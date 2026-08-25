@@ -63,6 +63,20 @@ test("LOCAL_DB (non-prod) + no creds → never throws", () => {
   assert.equal(pf.mustThrow, false);
 });
 
+test("SELF_HOSTED prod + no creds → allowed (a Firebase-less production boot is legal there)", () => {
+  const pf = firebasePreflight({ NODE_ENV: "production", SELF_HOSTED: "true" }, NO_FILE);
+  assert.equal(pf.mustThrow, false);
+  assert.equal(pf.allowed, true);
+  // the sqlite store variant self-host actually runs
+  const withLocal = firebasePreflight(
+    { NODE_ENV: "production", SELF_HOSTED: "true", LOCAL_DB: "true" },
+    NO_FILE
+  );
+  assert.equal(withLocal.mustThrow, false);
+  // and the guard stays FATAL when SELF_HOSTED is absent or not exactly "true"
+  assert.equal(firebasePreflight({ NODE_ENV: "production", SELF_HOSTED: "1" }, NO_FILE).mustThrow, true);
+});
+
 test("readinessMatrix reports present/absent booleans + the cred mode label, no secrets", () => {
   const m = readinessMatrix(
     {
@@ -173,6 +187,18 @@ test("productionWarnings: prod + RESEND_API_KEY without ALERT_FROM_EMAIL → san
   );
   // No RESEND_API_KEY → no warning (email.ts logs-only in that mode).
   assert.deepEqual(productionWarnings({ NODE_ENV: "production", CRON_SECRET: "c" }), []);
+});
+
+test("productionWarnings: self-hosted prod frames a missing CRON_SECRET as 'crons disabled', not a misconfig", () => {
+  const warnings = productionWarnings({ NODE_ENV: "production", SELF_HOSTED: "true" });
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /disabled/);
+  assert.match(warnings[0], /self-hosting\.md/); // points at the sidecar docs
+  assert.doesNotMatch(warnings[0], /401/);
+  assert.deepEqual(
+    productionWarnings({ NODE_ENV: "production", SELF_HOSTED: "true", CRON_SECRET: "c" }),
+    []
+  );
 });
 
 test("productionWarnings: non-prod is never warned (dev/local unaffected)", () => {

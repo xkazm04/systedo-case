@@ -25,15 +25,17 @@ import { RATE_RULES, clientIp } from "@/lib/ai/rate-limit";
 import { peekDurableRemaining, peekGlobalSpend } from "@/lib/ai/durable-limit";
 import { latencyByTool, resolveWouldServe, type AiStatusPayload } from "@/lib/ai/status-core";
 import { providerOrder, type ProviderName } from "@/lib/llm/provider-order";
+import { SELF_HOSTED } from "@/lib/deploy-mode";
 
 
 export async function GET(request: Request) {
   const dev = isDevEnvironment();
   const claudeOk = claudeAvailable();
   const geminiOk = geminiAvailable();
-  // Codex sits only in the dev ladder — skip the CLI probe entirely in prod.
-  const codexOk = dev ? codexAvailable() : false;
-  const wouldServe = resolveWouldServe(dev, claudeOk, geminiOk, codexOk);
+  // Codex sits only in the keyless CLI ladder (dev, and self-hosted prod where
+  // the CLIs live on the operator's own box) — skip the probe in cloud prod.
+  const codexOk = dev || SELF_HOSTED ? codexAvailable() : false;
+  const wouldServe = resolveWouldServe(dev, claudeOk, geminiOk, codexOk, SELF_HOSTED);
 
   // Read-only peek at the same rules — and the same durable counters — the paid
   // route enforces, so the preflight number matches what a POST would hit.
@@ -61,7 +63,7 @@ export async function GET(request: Request) {
     wouldServe,
     // Per-provider health, in the wrapper's environment-preferred order — the
     // operator's one-call diagnosis of "why is everything demo?".
-    providers: providerOrder(dev).map((name) => ({
+    providers: providerOrder(dev, SELF_HOSTED).map((name) => ({
       model: modelTag[name],
       available: available[name],
     })),

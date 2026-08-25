@@ -55,17 +55,21 @@ export interface AiStatusPayload {
 }
 
 /** Resolve which path would serve a generation, given the environment-preferred
- *  provider order the wrapper uses (dev: the Claude→Codex CLI ladder first;
- *  prod: Gemini first). `codexOk` defaults to false so prod callers (whose
- *  order never contains codex) need not probe a CLI that isn't there. */
+ *  provider order the wrapper uses (dev — and self-hosted prod, which runs on
+ *  the operator's own box with the CLIs present: the Claude→Codex CLI ladder
+ *  first; cloud prod: Gemini first). `codexOk` defaults to false so cloud-prod
+ *  callers (whose order never contains codex) need not probe a CLI that isn't
+ *  there; `selfHostedMode` is a passed-in boolean (never env — this module is
+ *  client-imported) mirroring the server's SELF_HOSTED. */
 export function resolveWouldServe(
   dev: boolean,
   claudeOk: boolean,
   geminiOk: boolean,
-  codexOk = false
+  codexOk = false,
+  selfHostedMode = false
 ): AiServePath {
   const available: Record<ProviderName, boolean> = { claude: claudeOk, codex: codexOk, gemini: geminiOk };
-  const order: [AiServePath, boolean][] = providerOrder(dev).map((name): [AiServePath, boolean] => [
+  const order: [AiServePath, boolean][] = providerOrder(dev, selfHostedMode).map((name): [AiServePath, boolean] => [
     name,
     available[name],
   ]);

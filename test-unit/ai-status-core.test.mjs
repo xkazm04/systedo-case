@@ -48,9 +48,21 @@ test("resolveWouldServe: Codex is the dev-only second rung of the CLI ladder", (
   // dev: Codex down too → Gemini, then demo
   assert.equal(resolveWouldServe(true, false, true, false), "gemini");
   assert.equal(resolveWouldServe(true, false, false, false), "demo");
-  // prod order never contains Codex — its availability changes nothing
+  // cloud-prod order never contains Codex — its availability changes nothing
   assert.equal(resolveWouldServe(false, false, false, true), "demo");
   assert.equal(resolveWouldServe(false, true, false, true), "claude");
+});
+
+test("resolveWouldServe: self-hosted prod gets the keyless CLI ladder, not Gemini-first", () => {
+  // both configured → the CLI wins in self-hosted mode (flat-rate subscription
+  // over a metered key), where cloud prod prefers Gemini
+  assert.equal(resolveWouldServe(false, true, true, false, true), "claude");
+  // no Gemini key at all — the documented self-hoster case — still serves
+  assert.equal(resolveWouldServe(false, true, false, false, true), "claude");
+  // Codex is a real rung in self-hosted prod (the CLI lives on the operator's box)
+  assert.equal(resolveWouldServe(false, false, false, true, true), "codex");
+  // nothing configured → demo floor, exactly as everywhere else
+  assert.equal(resolveWouldServe(false, false, false, false, true), "demo");
 });
 
 test("healthy live status renders no notice", () => {

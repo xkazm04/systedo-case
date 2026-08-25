@@ -44,10 +44,15 @@ export function firebasePreflight(env: Env, probes: FirebaseProbes): FirebasePre
   const mode = firebaseCredMode(env, probes);
   const explicit = mode !== "adc";
   const isProd = env.NODE_ENV === "production";
-  // LOCAL_DB is itself hard-gated off in production, but mirror its own guard.
-  const localDb = env.LOCAL_DB === "true" && !isProd;
+  // A Firebase-less production boot is legal ONLY in explicit self-hosted mode
+  // (docs/open-source/self-hosting.md §1) — the sqlite store is the production
+  // store there and Firestore is never touched.
+  const selfHosted = env.SELF_HOSTED === "true";
+  // LOCAL_DB is hard-gated off in production except under SELF_HOSTED; mirror
+  // local-mode.ts's own guard.
+  const localDb = env.LOCAL_DB === "true" && (!isProd || selfHosted);
   const allowAdc = env.FIREBASE_ALLOW_ADC === "true";
-  const mustThrow = isProd && !localDb && !explicit && !allowAdc;
+  const mustThrow = isProd && !localDb && !selfHosted && !explicit && !allowAdc;
 
   let reason: string;
   if (mustThrow) {
@@ -116,9 +121,17 @@ export function productionWarnings(env: Env): string[] {
   if (env.NODE_ENV !== "production") return [];
   const warnings: string[] = [];
   if (!env.CRON_SECRET) {
+    // In self-hosted mode an unset CRON_SECRET is not a MISCONFIGURATION — there
+    // is no platform scheduler, and running without crons is a legitimate choice
+    // (all five jobs are background refreshes). Say what is off and where the
+    // sidecar docs are, instead of implying a broken deploy.
     warnings.push(
-      "CRON_SECRET is unset in production — the scheduled crons and /api/health will " +
-        "401 at runtime. Set CRON_SECRET to enable them."
+      env.SELF_HOSTED === "true"
+        ? "CRON_SECRET is unset — scheduled jobs (sync, digests, reports, social publishing) are " +
+            "disabled. To enable them, set CRON_SECRET and run the cron sidecar — see " +
+            "docs/open-source/self-hosting.md §6."
+        : "CRON_SECRET is unset in production — the scheduled crons and /api/health will " +
+            "401 at runtime. Set CRON_SECRET to enable them."
     );
   }
   if (env.RESEND_API_KEY && !(env.ALERT_FROM_EMAIL ?? "").trim()) {

@@ -36,12 +36,25 @@ export function planHasByom(plan: Plan): boolean {
   return plan === "byom";
 }
 
-/** Whether the `BYOM_MATRIX=true` DEV flag may bypass the paid BYOM entitlement.
- *  HARD-GATED off when NODE_ENV=production (same posture as LOCAL_DB / DEV_AUTH),
- *  so an innocuously-named env var can never turn the paid feature free for every
- *  user in a real deployment. Pure (takes the env as an argument) so it is unit-
- *  testable without pulling firebase-admin via usage.ts. */
-export function devByomUnlockActive(env: { BYOM_MATRIX?: string; NODE_ENV?: string }): boolean {
+/** Whether a NON-plan switch unlocks the BYOM entitlement.
+ *
+ *  Two cases, deliberately distinct:
+ *  - `BYOM_MATRIX=true` — a DEV convenience, HARD-GATED off when
+ *    NODE_ENV=production (same posture as LOCAL_DB / DEV_AUTH), so an
+ *    innocuously-named env var can never turn the paid feature free for every
+ *    user in a real deployment.
+ *  - `SELF_HOSTED=true` — honoured in production. In a self-hosted install BYOM
+ *    is not a plan feature; it is the ONLY model path (the operator brings their
+ *    own keys/CLIs and pays their own provider) — docs/open-source/self-hosting.md §4.
+ *
+ *  Pure (takes the env as an argument) so it is unit-testable without pulling
+ *  firebase-admin via usage.ts. */
+export function devByomUnlockActive(env: {
+  BYOM_MATRIX?: string;
+  NODE_ENV?: string;
+  SELF_HOSTED?: string;
+}): boolean {
+  if (env.SELF_HOSTED === "true") return true;
   return env.BYOM_MATRIX === "true" && env.NODE_ENV !== "production";
 }
 

@@ -38,6 +38,7 @@ import { promptFingerprint, recordLlmCall, recordLlmError, recordLlmErrorEntry }
 import { pruneToSchema } from "./schema-prune";
 import { runByom } from "./byom/adapters";
 import { providerOrder, type ProviderName } from "./provider-order";
+import { SELF_HOSTED } from "@/lib/deploy-mode";
 import { getByomContext } from "./byom-context";
 import { getLlmRequestContext } from "./request-context";
 import { ByomUserError, isRetryableLlmError, LlmCallError } from "./errors";
@@ -200,7 +201,9 @@ function byomProvider(byom: ResolvedByomKey): Provider {
  *  environment-preferred order the app has always used. */
 export function resolveProviders(dev: boolean, byom: ResolvedByomKey | undefined): Provider[] {
   const byName: Record<ProviderName, Provider> = { claude: claudeProvider, codex: codexProvider, gemini: geminiProvider };
-  const env = providerOrder(dev)
+  // Self-hosted production prefers the keyless CLI ladder (see provider-order.ts);
+  // the availability filter below keys the final list off configured providers.
+  const env = providerOrder(dev, SELF_HOSTED)
     .map((name) => byName[name])
     .filter((p) => p.available());
   return byom ? [byomProvider(byom), ...env] : env;
