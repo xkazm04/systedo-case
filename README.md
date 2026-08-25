@@ -1,4 +1,4 @@
-# Adamant — AI inteligence pro reklamu
+# Adamant — AI ad intelligence, on your machine
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
@@ -7,152 +7,81 @@
 ![Quality gate](https://img.shields.io/badge/check-typecheck%20%C2%B7%20lint%20%C2%B7%20build-2ea44f)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
 
-**Adamant** je AI pracovní prostor pro reklamu — vzácný druh v adtech. Změří
-výkon účtu, vysvětlí, co čísla znamenají, a vygeneruje podklady, které z nich
-plynou: inzeráty, články, posty, kreativu i lokální SEO — v jednom workspace
-místo dashboardu, tabulky a chat okna vedle sebe.
+**[Česky →](./docs/README.cs.md)** · product profile: [`PRODUCT.md`](./PRODUCT.md) ·
+the case against the alternatives: [`docs/value-case.md`](./docs/value-case.md)
 
-Úroveň podpory kanálů uvádíme vždy výslovně: **Google Ads** je živý datový
-konektor, **Sklik** má kontroly limitů inzerátů a návrhy klíčových slov,
-**Meta** a **TikTok** jsou publikační plochy.
+## What it is
 
-- Produktový profil a positioning: [`PRODUCT.md`](./PRODUCT.md)
-- Hodnotová argumentace vs. konkurence: [`docs/value-case.md`](./docs/value-case.md)
-- **Cena: během validace zdarma** v plném rozsahu (férové denní limity — viz `/cena`).
+Adamant is an AI workspace for advertising, built for e-shop and agency
+marketers. It ingests your live ad-channel data, tells you what the numbers
+mean, and generates the assets those numbers call for — ad copy, articles,
+social posts, creative visuals, keyword and local-SEO work — in one workspace
+instead of a dashboard, a spreadsheet and a chat window side by side.
+**Measure → triage → generate.**
 
-> **Ukázková data.** Veřejné ukázky (homepage, `/dashboard`, mikrosite) běží nad
-> fiktivním klientem **Mionelo** (e-shop s ořechy a superpotravinami). Všechna
-> ukázková čísla jsou ilustrativní a takto označená — nejde o výsledky reálného
-> zákazníka.
+Channel support, stated exactly: **Google Ads** is a live data connector (sync
+and campaign edits), **Sklik** has ad-limit checks and keyword suggestions
+(plus read-only stats sync with a token), **Meta** and **TikTok** are
+publishing surfaces.
 
-## Co uvnitř je
+> **Sample data.** Public demos (homepage, `/dashboard`, microsites) run on the
+> fictional client **Mionelo** (a nuts-and-superfoods e-shop). Every demo number
+> is illustrative and labelled as such — none of it is a real customer's result.
 
-- **Výkonnostní dashboard a metriky** — návštěvy, náklady, konverze, obrat, PNO,
-  srovnání období, rozpad podle kanálů, automatické postřehy.
-- **Kampaňová inteligence** — triáž kampaní Google Ads, AI vyhodnocení po
-  řádcích i za portfolio, doporučené přesuny rozpočtu, sdílené klientské reporty.
-- **AI generování** — PPC inzeráty s hlídáním limitů Google Ads i Sklik, SEO
-  brief a články, sociální posty, Creative Studio (vizuály), brand-voice twin.
-- **Multi-tenant `/app`** — přihlášení přes Google (Auth.js), perzistence ve
-  Firestore, projekty s vlastními daty, cron synchronizace s e-mail alerty
-  (Resend), BYOM (vlastní API klíč, šifrovaný AES-256-GCM).
+![Adamant portfolio overview on Mionelo demo data](./docs/assets/readme-dashboard.png)
 
-### Benchmark modelů — BYOM kandidáti (měřeno 5. 8. 2026)
+## Two-minute local start
 
-Skóre LLM rozhodčího (1–10, Claude CLI Sonnet, 1 rozhodčí/buňku) přes všech
-20 produkčních AI operací, spuštěno skutečným wrapperem (`npm run llm:quality`
-s vendor-prefixovanými cíli). `claude-cli` = nativní CLI cesta (subscription);
-`qwen:*` = Qwen Cloud API; `ollama` = lokální LFM2.5-8B-A1B. `✗` = model
-operaci neobsloužil.
-
-| operace | sonnet | opus | qwen3.8-max | glm-5.2 | deepseek-v4 | lfm2.5:8b |
-|---|--:|--:|--:|--:|--:|--:|
-| ads | 7.0 | 7.0 | 6.0 | 7.0 | 6.5 | 1.0 |
-| brief | 8.5 | 9.0 | 8.0 | 7.5 | 7.0 | 1.0 |
-| analysis | 7.5 | 6.0 | 7.0 | 6.5 | 6.0 | 3.0 |
-| campaign-eval | 8.0 | 8.5 | 7.0 | 7.0 | 7.0 | 3.5 |
-| social | 8.0 | 8.0 | 6.5 | 5.5 | 6.0 | 1.5 |
-| twin-reply | 6.0 | 7.0 | 6.0 | 5.0 | 7.0 | 1.0 |
-| twin-style | 8.0 | 8.0 | 7.5 | 5.0 | 6.0 | 2.0 |
-| repurpose | 7.5 | 7.0 | 7.0 | 7.0 | 7.0 | 1.0 |
-| local-review-reply | 8.5 | 8.7 | 6.5 | 6.0 | 6.0 | 1.0 |
-| article-draft | 7.3 | 7.5 | 8.0 | 6.5 | 8.0 | 1.0 |
-| cohort-diagnosis | 8.0 | 8.0 | 6.0 | 6.5 | 7.0 | 1.0 |
-| keyword-clusters | 10.0 | 7.0 | 8.0 | 8.0 | 8.0 | 1.0 |
-| comparison-outline | 7.8 | 7.0 | 6.5 | 7.0 | 6.0 | 1.0 |
-| lp-variant-ideas | 8.0 | 9.0 | 8.5 | 5.0 | 7.0 | 1.0 |
-| lead-source-diagnosis | 8.0 | 8.0 | 8.0 | 7.5 | 8.0 | 2.0 |
-| local-diagnosis | 8.0 | 7.5 | 8.5 | 4.0 | 5.0 | 2.0 |
-| chat | 7.5 | 7.0 | 7.0 | 5.0 | 5.0 | 1.0 |
-| monthly-recap | 7.0 | 6.5 | 6.0 | 6.0 | 6.0 | 1.5 |
-| channel-research | 8.0 | 7.0 | ✗ | ✗ | 7.0 | 2.0 |
-| onboarding-scan | 9.0 | 8.0 | 9.0 | 8.0 | 8.0 | 3.0 |
-| **průměr** | **7.88** | **7.58** | **7.21** | **6.32** | **6.67** | **1.57** |
-
-Čtení: Sonnet zůstává stropem kvality; Opus ho neporáží (a rozhodčí je jeho
-sourozenec — home-team bias u obou CLI sloupců). **qwen3.8-max je nejsilnější
-BYOM kandidát** (7.21, ~$0.21 za celý průchod), deepseek-v4-flash je cenový
-outlier (6.67 při ~$0.012). Lokální 8B model je pro česky-first produkt
-**nepoužitelný** — rozhodčí dokládá pseudočeštinu, únik CJK znaků a anglické
-fallbacky; tentýž model přitom na anglických úlohách sesterského projektu
-dosahoval ~4.9/10. Kompletní reporty: `test-llm/quality/reports/`, metodika:
-[`docs/testing/llm-quality-matrix.md`](docs/testing/llm-quality-matrix.md).
-
-## Rychlý start
+Requires **Node ≥ 22.5** (the local store uses `node:sqlite`).
 
 ```bash
 npm install
-npm run dev          # http://localhost:3000
+npm run seed:local   # once — dev user + sample projects into .data/systedo.db
+npm run dev:local    # http://localhost:3000 → open /app
 ```
 
-Veřejné stránky běží **bez jakékoli konfigurace** (ukázková data jsou v repu).
-AI funguje i bez klíče v deterministickém ukázkovém režimu; s klíčem viz níže.
+`npm run dev:local` gives you a **fully offline** authenticated product at
+`/app`: no Google OAuth, no Firestore, no API key. Open `/app/demo-eshop` for
+the seeded sample project; the public site at `/` runs with an empty env file.
 
-```bash
-npm run build        # produkční build
-npm run typecheck    # tsc --noEmit
-npm run lint         # ESLint
-npm run test:unit    # jednotkové testy (node --test)
-npm run check:ci     # celá CI brána jedním příkazem
-npm run doctor       # preflight: co tvůj .env.local zapíná
-```
+There is **no required API key**. With no provider configured, every AI
+operation falls back to a deterministic demo result. Degrading without keys is
+a **product property**, not a dev convenience. In dev, a logged-in Claude Code
+CLI (`claude`) is picked up automatically and runs the AI tools on your
+subscription; otherwise they stay in demo mode.
 
-## Stack
+`npm run dev` is the cloud-auth mode (Google OAuth + Firestore credentials) —
+you almost certainly do not want it on day one.
 
-**Next.js 16 (App Router, Cache Components) · React 19 · TypeScript · Tailwind v4.**
-Data: Firestore (produkt) + JSON v repu (ukázky) + `node:sqlite` (lokální
-rate-limit). Bez chart knihovny — vlastní SVG grafy. Dvojjazyčné cs/en přes
-kolokované slovníky (`src/lib/i18n/`).
+## Set it up with your AI
 
-### LLM wrapper — jeden chokepoint
+Open the repo in Claude Code and run **`/onboarding`** (a shared skill from the
+organisation's AI registry, declared in `.ai/manifest.yaml`; its repo overlay
+is [`.claude/onboarding/config.md`](./.claude/onboarding/config.md)). It probes
+the machine, asks which capability groups you want, collects keys into
+`.env.local`, boots the app and hands back a capability matrix — or run one
+group, e.g. `/onboarding llm-engine`. Its source of truth is **`npm run doctor`**:
+a read-only env preflight that prints what your `.env.local` actually switches
+on (on / demo / off / error) plus the production-readiness matrix. Demo mode is
+a supported state; doctor only exits non-zero on a real misconfiguration.
 
-Všechna volání LLM jdou přes `src/lib/llm`: v devu **Claude Code CLI** (využívá
-předplatné), v produkci **Gemini**; BYOM uživatelé přepínají OpenAI / Gemini /
-Claude vlastním klíčem. Strukturovaný výstup podle schématu, stejný kontrakt u
-všech providerů. Každý call site má test proti reálnému modelu s prove-once
-bránou v pre-commitu (`npm run llm:gate`).
+## Local vs hosted, honestly
 
-```bash
-# Dev — stačí přihlášené Claude Code:
-claude            # ověřte přihlášení
-npm run dev
+Adamant is licensed under **AGPL-3.0-only** ([`LICENSE`](./LICENSE)). **It is
+meant to run on your machine, on your models, on your data.** Nothing is held
+back from this repository to sell elsewhere; a self-hosted install is intended
+to be unmetered — no plans, no quotas — because the metering that exists is cost
+control on the operator's own provider bill. There is no analytics SDK in the
+tree and nothing phones home by default.
 
-# Produkce — Gemini:
-cp .env.example .env.local   # doplňte GEMINI_API_KEY
-```
+| | Self-hosted (this repo) | Hosted version |
+| --- | --- | --- |
+| Software | the whole product — reporting, campaign intelligence, the content engine and all its AI operations, Creative Studio, the brand-voice twin, keywords, local SEO, the catalog spine | the same code |
+| Limits | none intended; rate limits are your own cost controls | fair daily limits (free during validation — see `/cena`) |
+| Operations | yours: hosting, backups, upgrades, crons, HTTPS | handled |
+| Provider credentials | you register your own (Google Ads developer token, Sklik token, Meta/LinkedIn apps) | approved credentials that cannot ship inside an open repo |
 
-## Nasazení (Vercel)
-
-1. Import repozitáře na [vercel.com/new](https://vercel.com/new) — veřejné
-   stránky nasadíte bez další konfigurace.
-2. Plné `/app` rozhraní vyžaduje `AUTH_SECRET`, `GOOGLE_CLIENT_ID/SECRET`,
-   Firestore a `CRON_SECRET` (+ volitelně Resend a Creative Studio klíče).
-   Kompletní postup: [`SETUP.md`](./SETUP.md).
-
-Kanonická URL se řeší env-first (`NEXT_PUBLIC_SITE_URL` →
-`VERCEL_PROJECT_PRODUCTION_URL` → fallback) — viz `src/lib/site.ts`.
-
-## License & self-hosting
-
-*(Anglicky — tato sekce míří na open-source publikum; detaily jsou v
-[`docs/open-source/`](./docs/open-source/).)*
-
-Adamant is licensed under **AGPL-3.0-only** ([`LICENSE`](./LICENSE)).
-
-**It is meant to run on your machine, on your models, on your data.** Nothing is
-held back from this repository to sell elsewhere: the reporting, the campaign
-intelligence, the content engine and all of its AI operations, Creative Studio,
-the brand-voice twin, keywords, local SEO and the catalog spine are the whole
-product, not a trial edition. A self-hosted install is intended to be **unmetered
-— no plans, no quotas** — because the metering that exists is cost control on the
-operator's own provider bill, and in a self-hosted install that operator is you.
-There is no analytics SDK in the tree and nothing phones home by default.
-
-A **hosted version** exists for teams who would rather not run servers. It is the
-same software with the operations handled — hosting, backups, upgrades, managed
-crons, a public HTTPS origin, and the approved provider credentials (a Google Ads
-developer token, a Sklik token, reviewed platform apps) that cannot be shipped
-inside an open repository. It is not a better version.
+**If the hosted version is ever better than this repository, that is a bug.**
 
 > **Status: not there yet.** A production build currently *requires* Firestore
 > and Google OAuth, so self-hosting does not work today. What has to change,
@@ -166,13 +95,45 @@ inside an open repository. It is not a better version.
 > and offer it to others over a network, §13 requires you to offer those users
 > your modified source.
 
-Contributions are welcome under a CLA — see [`CONTRIBUTING.md`](./CONTRIBUTING.md)
-for the setup and the verification gate, [`CLA.md`](./CLA.md) for why the CLA
-exists, and [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md). Security issues go
-through [`SECURITY.md`](./SECURITY.md), never a public issue.
+## What each key unlocks
 
-## Historie projektu
+Everything below is optional. Groups follow [`.env.example`](./.env.example);
+`npm run doctor` reports the same states.
 
-Adamant vznikl z případové studie („Systedo case study“). Původní zadání,
-zdůvodnění stacku a popis jednotlivých úkolů jsou zachované beze změn v
-[`docs/case-study.md`](./docs/case-study.md).
+| Group | Keys | With it | Without it |
+| --- | --- | --- | --- |
+| AI engine | dev: a logged-in `claude` CLI, no key · prod: `GEMINI_API_KEY` | real model output from every AI tool (one chokepoint, `src/lib/llm`) | deterministic demo result for every operation |
+| Sign-in + data store | dev: none (`dev:local` sets `DEV_AUTH` + `LOCAL_DB`) · cloud: `AUTH_SECRET`, `GOOGLE_CLIENT_ID/SECRET`, `GOOGLE_CLOUD_PROJECT`, a Firebase credential | real multi-user Google sign-in, Firestore data | offline synthetic user + local SQLite in dev; **hard-required in production** (see status above) |
+| Ad connectors | `GOOGLE_ADS_DEVELOPER_TOKEN` (+ `GOOGLE_ADS_LOGIN_CUSTOMER_ID`), `SKLIK_API_TOKEN` | live campaign sync and edits (Google Ads, needs cloud sign-in); read-only stats (Sklik, one token per instance) | `/kampane` stays on clearly labelled demo data |
+| Social publishing | `META_APP_ID/SECRET`, `LINKEDIN_CLIENT_ID/SECRET`, `TWIN_SMTP_URL` | real platform connections; the twin's outbound e-mail | demo connection per platform; e-mail channel degrades to "manual" |
+| Creative Studio | `LEONARDO_API_KEY` + `GEMINI_API_KEY` (vision scoring, embeddings) | real image generation with vision-scored candidates; embedding search in the patterns library | deterministic SVG placeholders; lexical search |
+| Crons + alerts | `CRON_SECRET`, `RESEND_API_KEY` (+ `ALERT_FROM_EMAIL`, `ALERT_WEBHOOK_URL`) | five scheduled jobs, alert e-mails, chat webhooks | crons **fail closed** (disabled, not open); alerts are logged, not sent |
+| Admin + observability | `ADMIN_EMAILS`; `SENTRY_DSN`, `LIGHTTRACK_*`; rate/spend knobs | operator telemetry surfaces, error tracking, LLM tracing | admin **fails closed** (nobody is admin); Sentry never initialises; limits run on defaults |
+
+**BYOM:** users paste their own provider key in the app (encrypted at rest,
+AES-256-GCM) — six vendors: OpenAI, Anthropic, Gemini, OpenRouter, Qwen and
+Ollama, so a local server via `OLLAMA_BASE_URL` / `OPENAI_BASE_URL` runs the
+whole thing for free with no key at all.
+
+## Where to go next
+
+- **Contributing:** [`CONTRIBUTING.md`](./CONTRIBUTING.md) — setup, the
+  verification gate (`npm run check:ci` and its pieces), and the conventions that
+  bite. Contributions are accepted under a CLA: [`CLA.md`](./CLA.md) explains
+  why; [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) applies.
+- **Security:** [`SECURITY.md`](./SECURITY.md) — never a public issue.
+- **Model quality:** the public benchmark surface is `/kvalita-modelu`
+  (LLM-as-judge scores across every AI operation); method and the latest
+  measured BYOM table are in
+  [`docs/testing/llm-quality-matrix.md`](./docs/testing/llm-quality-matrix.md).
+- **Deploying the hosted flavour (Vercel):** [`docs/deploy.md`](./docs/deploy.md)
+  — env names, crons, rollback, host rename. Cloud-connected setup (Google
+  sign-in + Ads sync) is walked through in [`SETUP.md`](./SETUP.md), which is
+  **partly stale** — it predates the offline path and narrates the maintainer's
+  own GCP project.
+- **Architecture and agent guide:** [`AGENTS.md`](./AGENTS.md) (stack in ten
+  lines, commands, conventions), [`docs/design-system.md`](./docs/design-system.md),
+  [`docs/i18n/contract.md`](./docs/i18n/contract.md), [`docs/open-source/`](./docs/open-source/).
+- **History:** Adamant grew out of a case study ("Systedo case study"); the
+  original brief, stack rationale and task write-ups are preserved unchanged in
+  [`docs/case-study.md`](./docs/case-study.md).

@@ -15,8 +15,9 @@ assertions. You run it on demand, read the scorecard, and decide.
 > runner also takes **vendor-prefixed targets** — `claude-cli:sonnet|opus`
 > (native CLI path via `CLAUDE_CLI_PIN`, generation phase only), `qwen:<slug>`
 > (Qwen Cloud, `QWEN_API_KEY`), `ollama:<tag>` (local, keyless) — alongside the
-> original bare OpenRouter slugs; see the README's benchmark section for the
-> latest measured table.
+> original bare OpenRouter slugs; the latest measured table is in
+> [Measured results — BYOM candidates](#measured-results--byom-candidates-2026-08-05)
+> at the end of this document.
 
 ---
 
@@ -236,3 +237,47 @@ A playbook, cheapest-first:
 - **Harden the evaluation** (future): multiple judges + majority vote; N-run
   averaging per cell with variance; per-dimension weights; a human spot-check
   column; a second non-Claude judge to quantify home-team bias.
+
+---
+
+## Measured results — BYOM candidates (2026-08-05)
+
+Moved here from the README (where it lived in Czech until 2026-08-25). LLM-judge
+scores (1–10, Claude CLI Sonnet, 1 judge per cell) across all 20 production AI
+operations, run through the real wrapper (`npm run llm:quality` with
+vendor-prefixed targets). `claude-cli` = the native CLI path (subscription);
+`qwen:*` = Qwen Cloud API; `ollama` = local LFM2.5-8B-A1B. `✗` = the model did
+not serve the operation. The same scores are the public surface at
+`/kvalita-modelu`.
+
+| operation | sonnet | opus | qwen3.8-max | glm-5.2 | deepseek-v4 | lfm2.5:8b |
+|---|--:|--:|--:|--:|--:|--:|
+| ads | 7.0 | 7.0 | 6.0 | 7.0 | 6.5 | 1.0 |
+| brief | 8.5 | 9.0 | 8.0 | 7.5 | 7.0 | 1.0 |
+| analysis | 7.5 | 6.0 | 7.0 | 6.5 | 6.0 | 3.0 |
+| campaign-eval | 8.0 | 8.5 | 7.0 | 7.0 | 7.0 | 3.5 |
+| social | 8.0 | 8.0 | 6.5 | 5.5 | 6.0 | 1.5 |
+| twin-reply | 6.0 | 7.0 | 6.0 | 5.0 | 7.0 | 1.0 |
+| twin-style | 8.0 | 8.0 | 7.5 | 5.0 | 6.0 | 2.0 |
+| repurpose | 7.5 | 7.0 | 7.0 | 7.0 | 7.0 | 1.0 |
+| local-review-reply | 8.5 | 8.7 | 6.5 | 6.0 | 6.0 | 1.0 |
+| article-draft | 7.3 | 7.5 | 8.0 | 6.5 | 8.0 | 1.0 |
+| cohort-diagnosis | 8.0 | 8.0 | 6.0 | 6.5 | 7.0 | 1.0 |
+| keyword-clusters | 10.0 | 7.0 | 8.0 | 8.0 | 8.0 | 1.0 |
+| comparison-outline | 7.8 | 7.0 | 6.5 | 7.0 | 6.0 | 1.0 |
+| lp-variant-ideas | 8.0 | 9.0 | 8.5 | 5.0 | 7.0 | 1.0 |
+| lead-source-diagnosis | 8.0 | 8.0 | 8.0 | 7.5 | 8.0 | 2.0 |
+| local-diagnosis | 8.0 | 7.5 | 8.5 | 4.0 | 5.0 | 2.0 |
+| chat | 7.5 | 7.0 | 7.0 | 5.0 | 5.0 | 1.0 |
+| monthly-recap | 7.0 | 6.5 | 6.0 | 6.0 | 6.0 | 1.5 |
+| channel-research | 8.0 | 7.0 | ✗ | ✗ | 7.0 | 2.0 |
+| onboarding-scan | 9.0 | 8.0 | 9.0 | 8.0 | 8.0 | 3.0 |
+| **average** | **7.88** | **7.58** | **7.21** | **6.32** | **6.67** | **1.57** |
+
+Reading: Sonnet remains the quality ceiling; Opus does not beat it (and the judge
+is its sibling — home-team bias on both CLI columns). **qwen3.8-max is the
+strongest BYOM candidate** (7.21, ~$0.21 for a full pass); deepseek-v4-flash is
+the price outlier (6.67 at ~$0.012). The local 8B model is **unusable** for a
+Czech-first product — the judge documents pseudo-Czech, CJK character leakage and
+English fallbacks; the same model reached ~4.9/10 on the English tasks of a
+sister project. Full reports: `test-llm/quality/reports/` (gitignored).
