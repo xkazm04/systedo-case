@@ -9,7 +9,21 @@
  *  `plans.ts` so the UI can import them without firebase-admin. */
 import { firestore } from "@/lib/firebase";
 import { LOCAL_DB } from "@/lib/local-mode";
+import { selfHosted } from "@/lib/deploy-mode";
 import { PLANS, devByomUnlockActive, planHasByom, type Plan, type UsageKind, type UsageStatus } from "@/lib/plans";
+
+/** True when this install does not meter at all. Two cases, one posture:
+ *  - LOCAL_DB (offline dev) — no Firestore to transact against; metering would
+ *    throw and silently drop every AI generation to its template (BM-L2-01).
+ *  - SELF_HOSTED (docs/open-source/impact.md Gap 5) — the metering that exists
+ *    is cost control on the operator's OWN provider bill; a self-hoster pays
+ *    that bill themselves, so every meter resolves unlimited and no usage row
+ *    is ever written. Call-time (not a module const) so tests can flip the env.
+ *  The per-IP rate limiter and AI_MAX_CONCURRENT still bound abuse — those are
+ *  sanity limits, not commercial ones. */
+function unmetered(): boolean {
+  return LOCAL_DB || selfHosted();
+}
 
 interface UsageDoc {
   plan?: Plan;
@@ -47,10 +61,10 @@ function statusFrom(data: UsageDoc, day: string): UsageStatus {
 
 /** Current usage + limits for a user (no increment). */
 export async function getUsage(userId: string): Promise<UsageStatus> {
-  // Offline dev (LOCAL_DB) has no Firestore/Google ADC — metering would throw and
-  // silently drop every AI generation to its template (BM-L2-01). Serve a local
-  // free-plan status instead; the per-IP rate limiter still bounds abuse.
-  if (LOCAL_DB) return statusFrom({ plan: "free" }, dayKey());
+  // Unmetered installs (offline dev, self-hosted) have no Firestore usage store —
+  // serve a local free-plan status instead; consume() grants freely there, so the
+  // numbers are informational only.
+  if (unmetered()) return statusFrom({ plan: "free" }, dayKey());
   const snap = await firestore.collection("usage").doc(userId).get();
   return statusFrom((snap.data() as UsageDoc) ?? {}, dayKey());
 }
@@ -58,7 +72,7 @@ export async function getUsage(userId: string): Promise<UsageStatus> {
 /** Just the user's plan (one read), for entitlement checks that don't need the
  *  full usage status — e.g. gating BYOM on the byom plan. Defaults to "free". */
 export async function getUserPlan(userId: string): Promise<Plan> {
-  if (LOCAL_DB) return "free";
+  if (unmetered()) return "free";
   const snap = await firestore.collection("usage").doc(userId).get();
   return normalizePlan((snap.data() as UsageDoc)?.plan);
 }
@@ -89,11 +103,12 @@ export async function consume(
   const day = dayKey();
   const charge = Math.max(1, Math.floor(amount));
 
-  // Offline dev (LOCAL_DB): no Firestore transaction — grant the charge so AI
-  // surfaces actually generate locally (the per-IP limiter still applies). Without
+  // Unmetered installs (offline dev, self-hosted): no Firestore transaction —
+  // grant the charge so AI surfaces actually generate (the per-IP limiter still
+  // applies in dev; a self-hosted operator is spending their own budget). Without
   // this, the metering read throws on missing ADC and the UI silently keeps its
   // non-AI template, which reads like success (BM-L2-01).
-  if (LOCAL_DB) return { ok: true, status: statusFrom({ plan: "free" }, day) };
+  if (unmetered()) return { ok: true, status: statusFrom({ plan: "free" }, day) };
 
   const ref = firestore.collection("usage").doc(userId);
 
@@ -126,12 +141,12 @@ export async function consume(
  * deterministic fallback (a provider outage, a demo/no-key result, a placeholder
  * image set) — so a user is never billed daily quota for output that cost the app
  * nothing. Best-effort and never throws to the caller: a refund failing must not
- * turn a already-degraded response into a 500. No-op in LOCAL_DB (consume grants
- * freely there) and when `amount <= 0`.
+ * turn a already-degraded response into a 500. No-op on unmetered installs
+ * (consume grants freely there) and when `amount <= 0`.
  */
 export async function refund(userId: string, kind: UsageKind, amount = 1): Promise<void> {
   const credit = Math.max(0, Math.floor(amount));
-  if (LOCAL_DB || credit === 0) return;
+  if (unmetered() || credit === 0) return;
   const day = dayKey();
   const ref = firestore.collection("usage").doc(userId);
   try {

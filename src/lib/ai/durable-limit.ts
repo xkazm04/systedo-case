@@ -55,6 +55,7 @@ import {
   windowStartFor,
 } from "./durable-limit-core";
 import { envInt } from "@/lib/env";
+import { selfHosted } from "@/lib/deploy-mode";
 
 const DAY = 86_400_000;
 const COLL = "ratelimits";
@@ -76,6 +77,12 @@ export async function durableGuard(
   rules: RateRule[],
   opts: { spendUnits?: number } = {}
 ): Promise<RateResult> {
+  // Self-hosted installs are unmetered by design (docs/open-source/impact.md
+  // Gap 5): the per-IP windows and the global ceiling exist to protect the
+  // hosted operator's provider bill, and a self-hoster pays their own. Early
+  // return — nothing is read, nothing is written, no counter doc is created.
+  // AI_MAX_CONCURRENT (a per-process sanity limit, env-tunable) still applies.
+  if (selfHosted()) return { ok: true, retryAfter: 0 };
   const now = Date.now();
   const ceiling = globalDailyCeiling();
   const spendUnits = Math.max(0, Math.floor(opts.spendUnits ?? 0));
@@ -160,6 +167,7 @@ export async function durableGuard(
  *  stricter/looser than reality around each midnight — not worth threading the
  *  original day through every caller for a soft daily cap. */
 export async function refundGlobalSpend(units: number): Promise<void> {
+  if (selfHosted()) return; // unmetered — durableGuard never charged anything
   const credit = Math.max(0, Math.floor(units));
   if (credit === 0 || globalDailyCeiling() === 0) return;
   const now = Date.now();
@@ -194,6 +202,7 @@ export async function refundGlobalSpend(units: number): Promise<void> {
  *  after the reservation debits the NEW day's doc, not the one the reservation
  *  charged (see refundGlobalSpend's MIDNIGHT STRADDLE note — same accepted slop). */
 export async function chargeGlobalSpend(units: number): Promise<void> {
+  if (selfHosted()) return; // unmetered — no ceiling ledger exists to true up
   const debit = Math.max(0, Math.floor(units));
   if (debit === 0 || globalDailyCeiling() === 0) return;
   const now = Date.now();
@@ -220,6 +229,9 @@ export async function chargeGlobalSpend(units: number): Promise<void> {
  *  when the ceiling is disabled or Firestore is unreachable, so a peek can never
  *  brick the free status endpoint. */
 export async function peekGlobalSpend(): Promise<{ used: number; ceiling: number }> {
+  // Self-hosted: report the ceiling as disabled so no banner ever warns about a
+  // shared budget that is not being enforced.
+  if (selfHosted()) return { used: 0, ceiling: 0 };
   const ceiling = globalDailyCeiling();
   if (ceiling === 0) return { used: 0, ceiling: 0 };
   const now = Date.now();
@@ -242,6 +254,8 @@ export async function peekGlobalSpend(): Promise<{ used: number; ceiling: number
  *  back to the local sqlite peek when Firestore is unreachable, mirroring the
  *  guard's own fallback path. */
 export async function peekDurableRemaining(ip: string, rules: RateRule[]): Promise<number[]> {
+  // Self-hosted: the guard never consumes, so the full window is always left.
+  if (selfHosted()) return rules.map((rule) => rule.limit);
   const now = Date.now();
   try {
     const snaps = await Promise.all(
