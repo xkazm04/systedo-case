@@ -83,13 +83,18 @@ tree and nothing phones home by default.
 
 **If the hosted version is ever better than this repository, that is a bug.**
 
-> **Status: not there yet.** A production build currently *requires* Firestore
-> and Google OAuth, so self-hosting does not work today. What has to change,
-> with file-level evidence, is in
-> [`docs/open-source/impact.md`](./docs/open-source/impact.md); the agreed design
-> for the fix — self-host mode, the auth seam, SQLite as a production store,
-> BYOM/Ollama, packaging, crons, and a full external-egress inventory — is in
-> [`docs/open-source/self-hosting.md`](./docs/open-source/self-hosting.md).
+> **Status: partially there.** A self-hosted production install now boots and
+> runs without Firestore or Google OAuth: `SELF_HOSTED=true` mode with
+> operator-password sign-in, the SQLite store, unmetered usage, BYOM/Ollama and
+> the CLI-first model ladder, a Dockerfile + docker-compose quick start, and a
+> cron sidecar all work (`cp .env.example .env && docker compose up -d --build`).
+> **What still requires the cloud:** the Firestore-only campaign modules — live
+> Google Ads sync (`google/token.ts`), campaign alerts/mutations/control-plane,
+> session listing — plus Creative Studio asset persistence and a backup script.
+> Per-item status lives in
+> [`docs/open-source/self-hosting.md`](./docs/open-source/self-hosting.md);
+> the evidence map in
+> [`docs/open-source/impact.md`](./docs/open-source/impact.md).
 
 > **Note on the AGPL.** Run it internally however you like. If you modify Adamant
 > and offer it to others over a network, §13 requires you to offer those users

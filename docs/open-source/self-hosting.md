@@ -1,12 +1,33 @@
 # Self-hosting Adamant — the design
 
-**Status: DESIGN, not implementation.** Nothing described here works today. A
-production build of this repository currently *refuses* to run without Firestore
-and Google OAuth — see
-[`impact.md` §2, Gap 1](./impact.md#gap-1--the-production-guard-inversion-blocking-effort-m).
-This document is the agreed shape of the fix, written down before anyone starts
-editing `src/`, so that the mode inversion is one deliberate pass rather than a
-dozen opportunistic ones.
+**Status: PARTIALLY IMPLEMENTED (2026-08-25).** The mode inversion described in
+this document has landed: `SELF_HOSTED=true` is a real, honoured-in-production
+switch. What works today, per section:
+
+| Section | Item | Status |
+| --- | --- | --- |
+| §1 | `src/lib/deploy-mode.ts` seam + the three consumers + fail-closed boot rule | **implemented** |
+| §2 | Operator-password auth (Option A: Credentials + JWT sessions, `ADAMANT_OPERATOR_PASSWORD`) | **implemented** (Auth.js's built-in sign-in form; a styled login page is open) |
+| §3 | SQLite as the production store (`LOCAL_DB=true` legal under `SELF_HOSTED`) | **implemented**; Gap 2 (`db:backup` script) and the index-migration test hole remain **open** |
+| §4 | BYOM ungated in self-host; provider order no longer keyed off `NODE_ENV` | **implemented**; the two image-route hard 400s and BYOM vision/embeddings remain **open** |
+| §5 | Dockerfile (standalone, non-root, node:24) + docker-compose + `/app/.data` volume | **implemented** |
+| §6 | Cron sidecar (`scripts/cron-runner.mjs`, schedules read from `vercel.json`) | **implemented** |
+| — | Firestore-only campaign modules (impact.md Gap 3: alerts, mutations, control-plane, `google/token.ts`, `account/sessions.ts`…) | **open — the main blocker**: live Google Ads sync and the campaigns write-paths still 500 on a Firestore-less install |
+| — | Self-host-honest plan/usage UI; `NEXT_PUBLIC_SOURCE_REPO_URL` footer wiring | **open** |
+
+### Quick start (what already works)
+
+```bash
+cp .env.example .env    # set AUTH_SECRET + ADAMANT_OPERATOR_PASSWORD (minimum)
+docker compose up -d --build
+# → http://localhost:3000, sign in with the operator password
+```
+
+Or without Docker: `SELF_HOSTED=true LOCAL_DB=true SYSTEDO_DB_FILE=/abs/path/systedo.db npm run build && npm start`.
+
+The rest of this document is the agreed design, kept as the reference for the
+open items above; original context in
+[`impact.md` §2](./impact.md#2-the-five-blocking-gaps-ranked).
 
 The target, stated plainly: **a self-hosted install runs the entire product, on
 your machine, on your models, on your data, with no limits, and nothing phones

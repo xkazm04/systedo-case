@@ -331,15 +331,15 @@ by any code).
 
 | # | Item | Area | Effort | v1? |
 | --- | --- | --- | --- | --- |
-| 1 | `SELF_HOSTED` deploy-mode seam; ungate `LOCAL_DB` + `firebasePreflight` in production | auth/data | M | **blocking** |
-| 2 | Credentials (operator-password) auth provider + JWT sessions in self-host mode | auth | M | **blocking** |
-| 3 | Local twins for the ~7 blocking Firestore-only modules | data | M | **blocking** |
-| 4 | Unmeter: `usage.ts` predicate + `durableGuard` early return | billing | S | **blocking** |
-| 5 | Dockerfile + docker-compose (`output: "standalone"`, cron sidecar) | packaging | M | **blocking** |
+| 1 | `SELF_HOSTED` deploy-mode seam; ungate `LOCAL_DB` + `firebasePreflight` in production | auth/data | M | **done 2026-08-25** (`src/lib/deploy-mode.ts`) |
+| 2 | Credentials (operator-password) auth provider + JWT sessions in self-host mode | auth | M | **done 2026-08-25** (`src/auth.ts`; styled login page still open) |
+| 3 | Local twins for the ~7 blocking Firestore-only modules | data | M | **blocking — the main remaining gap** |
+| 4 | Unmeter: `usage.ts` predicate + `durableGuard` early return | billing | S | **done 2026-08-25** |
+| 5 | Dockerfile + docker-compose (`output: "standalone"`, cron sidecar) | packaging | M | **done 2026-08-25** |
 | 6 | LICENSE / CLA / CONTRIBUTING / SECURITY / CODE_OF_CONDUCT / `package.json` license | legal | S | **this pack** |
 | 7 | English `.env.example` + `docs/open-source/*` + README section | docs | M | **this pack** |
 | 8 | Secret scan, credential rotation, harness-directory decisions | hygiene | S | **blocking** |
-| 9 | BYOM unconditionally on in self-host; provider order off configured providers, not `NODE_ENV` | llm | S | **blocking** |
+| 9 | BYOM unconditionally on in self-host; provider order off configured providers, not `NODE_ENV` | llm | S | **done 2026-08-25** |
 | 10 | `db:backup` script + absolute `SYSTEDO_DB_FILE` requirement + boot WAL checkpoint | data | S | **blocking** |
 | 11 | Two hard 400s (`images/nobg`, `images/upload-ref`) → graceful degradation | image | S | **blocking** |
 | 12 | Self-host-honest plan/usage UI (`aiAllowanceKind` + cs/en parity) | billing | M | v1 |
@@ -352,6 +352,11 @@ by any code).
 | 19 | BYOM image vendor (ComfyUI / SDXL / Replicate) | image | L | v2 |
 | 20 | Postgres backend for multi-replica self-host | data | L | v2 |
 
-Items 6 and 7 are what this documentation pack delivers. **No `src/` code has
-been changed** — the guard inversion in item 1 is a separate, decision-gated
-pass.
+Items 6 and 7 were delivered by the original documentation pack. The guard
+inversion landed on 2026-08-25 as five commits (items 1, 2, 4, 5, 9 — deploy
+mode, operator auth, unmetering, Docker packaging, cron sidecar), following the
+design in [`self-hosting.md`](./self-hosting.md), which now carries the
+per-section implementation status. Item 3 — the Firestore-only campaign
+modules, including `google/token.ts` (live Google Ads) and
+`account/sessions.ts` — is the main gap still standing between "boots and
+works self-hosted" and "the entire product self-hosted".
