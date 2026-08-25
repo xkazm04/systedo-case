@@ -1,0 +1,21 @@
+# Law files — changes here need the maintainer's eyes, no exceptions.
+# Everything else is open season under CONTRIBUTING.md.
+
+# Billing, metering, and abuse rails
+/src/lib/plans.ts               @xkazm04
+/src/lib/usage.ts               @xkazm04
+/src/lib/ai/durable-limit.ts    @xkazm04
+
+# The LLM chokepoint and its proof gate
+/src/lib/llm/                   @xkazm04
+/scripts/llm-gate.mjs           @xkazm04
+
+# Agent configuration and instructions
+/.claude/                       @xkazm04
+/CLAUDE.md                      @xkazm04
+/AGENTS.md                      @xkazm04
+
+# CI and licensing
+/.github/workflows/             @xkazm04
+/LICENSE                        @xkazm04
+/CLA.md                         @xkazm04

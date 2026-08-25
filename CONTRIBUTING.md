@@ -5,6 +5,12 @@ bar is "would I want to maintain this in three years", not "does it work on my
 machine". That cuts both ways: the conventions below exist so your patch gets
 merged rather than bikeshedded.
 
+Honest expectations first: Adamant is maintained by **one person plus agents**,
+and issues and PRs are **triaged weekly**. The issue and PR templates under
+[`.github/`](./.github/) exist to make that weekly pass fast — a bug report that
+states its deploy mode and attaches `npm run doctor` output gets fixed; one that
+doesn't gets a round-trip of questions.
+
 ## Before you write code
 
 - **Small fix, obvious bug, typo, missing translation** — just open a PR.
@@ -117,6 +123,35 @@ npm run test:e2e     # Playwright — NOT in CI, run it when you touch a flow
 7. **Scope your change with the context map.** `context-map.json` maps every file
    to a feature context. Read it at task start and keep your edits inside the
    context you are actually changing.
+
+## Local-first invariants — review criteria, not vibes
+
+Reviewers check every PR against these, so check yours first:
+
+- **No provider ever becomes mandatory.** Degrading without keys is a product
+  property (see above), and a PR that breaks it is rejected on that ground alone.
+- **No deterministic `demo` fallback is removed.** Same reason.
+- **No hosted-only features.** If it can't be useful to a self-hoster, it belongs
+  in the ops layer, not this repository.
+- **Nothing phones home by default.** No telemetry, update check, or remote
+  fetch that a fresh `dev:local` install performs without being asked to.
+- **If the hosted version is ever better than this repository, that is a bug.**
+  The hosted product is this software plus operations — never this software plus
+  extras.
+
+## AI-assisted contributions
+
+Half of this codebase was written with agents, so AI-assisted PRs are welcome —
+under the same deal the maintainer holds himself to:
+
+- **You own what you submit.** You ran the verification gate yourself and you
+  can explain every line in the diff. "The agent wrote it" is not an answer to
+  a review question.
+- **Disclose substantially agent-generated PRs** in the PR template's AI
+  assistance section. Disclosure is welcome and costs you nothing in review.
+- **Drive-by bulk agent PRs are closed without review.** If the PR reads like
+  it was aimed at a hundred repositories and happened to hit this one, it will
+  be treated that way.
 
 ## Commit and PR style
 
