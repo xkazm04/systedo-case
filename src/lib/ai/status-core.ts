@@ -14,9 +14,9 @@ import type { LlmTelemetryEntry } from "@/lib/llm/telemetry";
 import { providerOrder, type ProviderName } from "@/lib/llm/provider-order";
 
 /** Which path a generation would take right now. Mirrors the provider order in
- *  the LLM wrapper: Claude→Gemini in dev, Gemini→Claude in prod, demo when
- *  neither is configured. */
-export type AiServePath = "claude" | "gemini" | "demo";
+ *  the LLM wrapper: Claude→Codex→Gemini in dev, Gemini→Claude in prod, demo
+ *  when none is configured. */
+export type AiServePath = "claude" | "codex" | "gemini" | "demo";
 
 /** One provider's health as the wrapper sees it (cached availability probe). */
 export interface AiProviderStatus {
@@ -55,13 +55,16 @@ export interface AiStatusPayload {
 }
 
 /** Resolve which path would serve a generation, given the environment-preferred
- *  provider order the wrapper uses (dev: Claude first; prod: Gemini first). */
+ *  provider order the wrapper uses (dev: the Claude→Codex CLI ladder first;
+ *  prod: Gemini first). `codexOk` defaults to false so prod callers (whose
+ *  order never contains codex) need not probe a CLI that isn't there. */
 export function resolveWouldServe(
   dev: boolean,
   claudeOk: boolean,
-  geminiOk: boolean
+  geminiOk: boolean,
+  codexOk = false
 ): AiServePath {
-  const available: Record<ProviderName, boolean> = { claude: claudeOk, gemini: geminiOk };
+  const available: Record<ProviderName, boolean> = { claude: claudeOk, codex: codexOk, gemini: geminiOk };
   const order: [AiServePath, boolean][] = providerOrder(dev).map((name): [AiServePath, boolean] => [
     name,
     available[name],
@@ -83,7 +86,9 @@ export function resolveRunCeilingMs(
 ): number {
   if (!status) return opts.fallbackMs;
   const base =
-    status.wouldServe === "claude"
+    // Codex paces like the Claude CLI (a cold local CLI spawn, not an HTTP
+    // API), so both CLI paths share the slow ceiling.
+    status.wouldServe === "claude" || status.wouldServe === "codex"
       ? opts.claudeMs
       : status.wouldServe === "gemini"
         ? opts.geminiMs

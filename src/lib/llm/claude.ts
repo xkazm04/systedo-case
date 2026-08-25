@@ -28,7 +28,7 @@ const isWindows = process.platform === "win32";
  *  a process-wide concurrency slot. The death check reads exitCode/signalCode
  *  (both null == still running). On Windows signals are emulated (either forcibly
  *  terminates), so the escalation is harmless there. */
-function killChild(child: ChildProcess): void {
+export function killChild(child: ChildProcess): void {
   child.kill("SIGTERM");
   const grace = setTimeout(() => {
     if (child.exitCode === null && child.signalCode === null) {
@@ -86,7 +86,10 @@ export function claudeAvailable(): boolean {
   return _available;
 }
 
-function buildCliPrompt(system: string, prompt: string, schema: object): string {
+/** Exported so the sibling Codex CLI provider embeds the IDENTICAL schema
+ *  contract (same Czech JSON-only instruction, same Google GenAI Type framing)
+ *  instead of drifting on a copy. */
+export function buildCliPrompt(system: string, prompt: string, schema: object): string {
   return [
     system,
     "",

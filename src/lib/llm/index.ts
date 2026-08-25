@@ -1,7 +1,8 @@
-/** LLM wrapper — one structured-generation entry point, two providers, switched
+/** LLM wrapper — one structured-generation entry point, providers switched
  *  by environment:
  *
- *    development  → Claude Code CLI (Sonnet via the monthly subscription).
+ *    development  → Claude Code CLI (Sonnet via the monthly subscription),
+ *                   then the Codex CLI (ChatGPT plan) — both keyless.
  *    production   → Google Gemini API.
  *
  *  Every AI feature in the app calls `generateStructured` (see src/lib/gemini.ts,
@@ -19,12 +20,15 @@ import { languageViolations } from "./language-check";
 import { partitionViolations } from "../ai/tools/_shared";
 import type { SupportedLocale } from "../format";
 import { claudeAvailable, runClaude } from "./claude";
+import { codexAvailable, runCodex } from "./codex";
 import { geminiAvailable, runGemini } from "./gemini";
 import { addUsage, estimateCostUsd, type TokenUsage } from "./cost";
 import {
   byomModel,
   claudeModelTag,
   CLAUDE_TIMEOUT_MS,
+  codexModelTag,
+  CODEX_TIMEOUT_MS,
   geminiModelTag,
   LLM_DEADLINE_MS,
   LLM_RETRY_AFTER_CAP_MS,
@@ -148,6 +152,20 @@ const claudeProvider: Provider = {
   },
 };
 
+const codexProvider: Provider = {
+  modelFor: codexModelTag,
+  available: codexAvailable,
+  deadlineFloorMs: CODEX_TIMEOUT_MS,
+  // Codex runs on the dev ChatGPT plan — the JSONL does report token counts, but
+  // there is no metered rate to price them by (and inventing one would trip the
+  // "no rate for model" warning on every call), so the call is UNPRICED exactly
+  // like the Claude CLI path (the wrapper omits estCostUsd rather than claiming $0).
+  run: async (c) => {
+    const out = await runCodex({ system: c.system, prompt: c.prompt, schema: c.schema, tier: c.tier, signal: c.signal });
+    return { parsed: out.value, usage: undefined, extraction: out.rung };
+  },
+};
+
 const geminiProvider: Provider = {
   modelFor: geminiModelTag,
   available: geminiAvailable,
@@ -181,7 +199,7 @@ function byomProvider(byom: ResolvedByomKey): Provider {
  *  ByomUserError and never reaches them). Without BYOM this is exactly the
  *  environment-preferred order the app has always used. */
 export function resolveProviders(dev: boolean, byom: ResolvedByomKey | undefined): Provider[] {
-  const byName: Record<ProviderName, Provider> = { claude: claudeProvider, gemini: geminiProvider };
+  const byName: Record<ProviderName, Provider> = { claude: claudeProvider, codex: codexProvider, gemini: geminiProvider };
   const env = providerOrder(dev)
     .map((name) => byName[name])
     .filter((p) => p.available());
@@ -252,7 +270,7 @@ function buildRepairNote(violations: string[]): string {
 
 /**
  * The single chokepoint for every LLM call in the app. Tries providers in
- * environment-preferred order (Claude→Gemini in dev, Gemini→Claude in prod),
+ * environment-preferred order (Claude→Codex→Gemini in dev, Gemini→Claude in prod),
  * filtered to what's configured, with bounded retries and cross-provider
  * fallback; optionally self-repairs limit violations with one re-prompt; and
  * degrades to the deterministic demo only when every provider is exhausted.

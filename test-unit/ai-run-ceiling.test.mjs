@@ -18,6 +18,8 @@ test("Claude serving path uses the tolerant ceiling even without a sample", () =
 
 test("Gemini serving path uses the tight ceiling", () => {
   assert.equal(resolveRunCeilingMs({ wouldServe: "gemini" }, "ads", opts), 60_000);
+  // Codex paces like the Claude CLI — a local CLI spawn, not an HTTP API.
+  assert.equal(resolveRunCeilingMs({ wouldServe: "codex" }, "ads", opts), 120_000);
 });
 
 test("demo/unknown path keeps the fallback", () => {

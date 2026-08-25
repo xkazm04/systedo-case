@@ -16,6 +16,7 @@ import assert from "node:assert/strict";
 const {
   BYOM_DEFAULT_MODELS,
   claudeModelTag,
+  codexModelTag,
   geminiModelTag,
 } = await import("@/lib/llm/models");
 const { RATES, estimateCostUsd } = await import("@/lib/llm/cost");
@@ -25,7 +26,13 @@ const { RATES, estimateCostUsd } = await import("@/lib/llm/cost");
  *  it entirely rather than inventing a rate. These tags are exempt BY DESIGN, and
  *  naming them here is the record of that decision (a new tag is not exempt just
  *  because nobody added it). */
-const SUBSCRIPTION_TAGS = new Set([claudeModelTag("quality"), claudeModelTag("fast")]);
+const SUBSCRIPTION_TAGS = new Set([
+  claudeModelTag("quality"),
+  claudeModelTag("fast"),
+  // The Codex CLI bills the flat-rate ChatGPT plan the same way (and its
+  // wrapper deliberately reports no usage), so its tag is unpriced BY DESIGN.
+  codexModelTag(),
+]);
 
 /** Every model tag the app can stamp on `meta.model`, from the single source of
  *  truth — not a copy of the list. */
@@ -33,6 +40,7 @@ function allModelTags() {
   const tags = new Set([
     claudeModelTag("quality"),
     claudeModelTag("fast"),
+    codexModelTag(),
     geminiModelTag("quality"),
     geminiModelTag("fast"),
   ]);

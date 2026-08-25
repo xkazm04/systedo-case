@@ -16,7 +16,9 @@ const SRC = join(ROOT, "src");
 
 const WRAPPER_DEF = "src/lib/llm/index.ts"; // where generateStructured is defined
 const GEMINI_PROVIDER = "src/lib/llm/gemini.ts";
-const CLAUDE_PROVIDER = "src/lib/llm/claude.ts";
+// The keyless dev CLI providers — the ONLY files allowed to spawn a child
+// process. One entry per CLI transport (claude.ts, codex.ts), nothing else.
+const CLI_PROVIDERS = ["src/lib/llm/claude.ts", "src/lib/llm/codex.ts"];
 
 const rel = (f) => relative(ROOT, f).split("\\").join("/");
 
@@ -112,8 +114,8 @@ export function checkChokepoint() {
     if (/\bnew GoogleGenAI\b/.test(text) && r !== GEMINI_PROVIDER) {
       violations.push(`${r}: constructs GoogleGenAI outside ${GEMINI_PROVIDER}`);
     }
-    if (/from ["']node:child_process["']/.test(text) && r !== CLAUDE_PROVIDER) {
-      violations.push(`${r}: imports node:child_process outside ${CLAUDE_PROVIDER}`);
+    if (/from ["']node:child_process["']/.test(text) && !CLI_PROVIDERS.includes(r)) {
+      violations.push(`${r}: imports node:child_process outside ${CLI_PROVIDERS.join(" / ")}`);
     }
   }
   return violations;

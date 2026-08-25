@@ -15,8 +15,9 @@
 import { currentUserId } from "@/lib/session";
 import { isDevEnvironment } from "@/lib/llm";
 import { claudeAvailable } from "@/lib/llm/claude";
+import { codexAvailable } from "@/lib/llm/codex";
 import { geminiAvailable } from "@/lib/llm/gemini";
-import { claudeModelTag, geminiModelTag } from "@/lib/llm/models";
+import { claudeModelTag, codexModelTag, geminiModelTag } from "@/lib/llm/models";
 import { aggregateTelemetry, listLlmTelemetry } from "@/lib/llm/telemetry";
 import { summarizeAiOps } from "@/lib/llm/telemetry-ops";
 import { getUsage } from "@/lib/usage";
@@ -30,7 +31,9 @@ export async function GET(request: Request) {
   const dev = isDevEnvironment();
   const claudeOk = claudeAvailable();
   const geminiOk = geminiAvailable();
-  const wouldServe = resolveWouldServe(dev, claudeOk, geminiOk);
+  // Codex sits only in the dev ladder — skip the CLI probe entirely in prod.
+  const codexOk = dev ? codexAvailable() : false;
+  const wouldServe = resolveWouldServe(dev, claudeOk, geminiOk, codexOk);
 
   // Read-only peek at the same rules — and the same durable counters — the paid
   // route enforces, so the preflight number matches what a POST would hit.
@@ -47,9 +50,10 @@ export async function GET(request: Request) {
   // the same environment-preferred order the wrapper actually tries.
   const modelTag: Record<ProviderName, string> = {
     claude: claudeModelTag(),
+    codex: codexModelTag(),
     gemini: geminiModelTag(),
   };
-  const available: Record<ProviderName, boolean> = { claude: claudeOk, gemini: geminiOk };
+  const available: Record<ProviderName, boolean> = { claude: claudeOk, codex: codexOk, gemini: geminiOk };
 
   const payload: AiStatusPayload = {
     dev,

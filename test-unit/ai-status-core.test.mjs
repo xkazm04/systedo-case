@@ -40,6 +40,19 @@ test("resolveWouldServe follows the wrapper's environment-preferred order", () =
   assert.equal(resolveWouldServe(false, false, false), "demo");
 });
 
+test("resolveWouldServe: Codex is the dev-only second rung of the CLI ladder", () => {
+  // dev: Claude first even when Codex is up; Codex serves when Claude is down
+  assert.equal(resolveWouldServe(true, true, true, true), "claude");
+  assert.equal(resolveWouldServe(true, false, true, true), "codex");
+  assert.equal(resolveWouldServe(true, false, false, true), "codex");
+  // dev: Codex down too → Gemini, then demo
+  assert.equal(resolveWouldServe(true, false, true, false), "gemini");
+  assert.equal(resolveWouldServe(true, false, false, false), "demo");
+  // prod order never contains Codex — its availability changes nothing
+  assert.equal(resolveWouldServe(false, false, false, true), "demo");
+  assert.equal(resolveWouldServe(false, true, false, true), "claude");
+});
+
 test("healthy live status renders no notice", () => {
   const n = preflightNotice(status());
   assert.equal(n.kind, null);

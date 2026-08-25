@@ -66,6 +66,28 @@ export function geminiModelTag(tier: ModelTier = "quality"): string {
   return tier === "fast" ? GEMINI_MODEL_FAST : GEMINI_MODEL;
 }
 
+/** User-facing tag for the Codex CLI path (dev, keyless — bills the ChatGPT
+ *  plan). The CLI's default model serves BOTH tiers: Codex model ids drift
+ *  weekly and pinning one here would silently go stale, so the tag names the
+ *  transport rather than claiming a model name we didn't verify. */
+export const CODEX_MODEL = "codex";
+
+/** Tier → user-facing Codex model tag. Deliberately tier-blind (see
+ *  CODEX_MODEL); the arity-0 form stays assignable to `modelFor`. */
+export const codexModelTag = (): string => CODEX_MODEL;
+
+/** Hard ceiling for a single Codex CLI generation (`codex exec` has no timeout
+ *  flag — the app enforces the wall clock, same as CLAUDE_TIMEOUT_MS). Sized
+ *  like the Claude ceiling; env-overridable for slower machines. A tiny value
+ *  is treated as MISCONFIGURATION and floored — an instant kill on every call
+ *  would silently route the whole dev ladder to the demo floor. */
+const CODEX_TIMEOUT_FLOOR_MS = 30_000;
+const codexTimeoutRaw = Number(process.env.CODEX_TIMEOUT_MS);
+export const CODEX_TIMEOUT_MS =
+  Number.isFinite(codexTimeoutRaw) && codexTimeoutRaw > 0
+    ? Math.max(codexTimeoutRaw, CODEX_TIMEOUT_FLOOR_MS)
+    : 150_000;
+
 /** "Medium" thinking budget for in-app procedures, fed to the Claude CLI via the
  *  MAX_THINKING_TOKENS env var. 4000 ≈ Claude Code's "think" (medium) tier —
  *  enough to reason over the structured task without blowing the request latency. */
