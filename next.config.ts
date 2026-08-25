@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  // Container builds only (the Dockerfile sets ADAMANT_DOCKER_BUILD=1): emit the
+  // self-contained standalone server so the runtime image carries neither the
+  // toolchain nor the full node_modules. Gated on the flag — Vercel does its own
+  // output tracing, so this must never change how cloud deploys are packaged.
+  ...(process.env.ADAMANT_DOCKER_BUILD === "1" ? { output: "standalone" as const } : {}),
+
   // This project lives alongside other apps in a parent folder that also has a
   // lockfile. Pin the Turbopack root to this directory so module resolution and
   // output tracing stay scoped to the app.

@@ -1,0 +1,25 @@
+# Keep the build context small and deterministic: the image is built from the
+# tracked sources; local state, secrets, and generated output never enter it.
+.git
+.next
+node_modules
+.data
+.env*
+!.env.example
+npm-debug.log*
+playwright-report
+test-results
+coverage
+Dockerfile
+docker-compose.yml
+.dockerignore
+# agent-harness / operational state (see docs/open-source/impact.md §5.1)
+.claude
+.impeccable
+.perfect
+.outreach
+.personas
+docs/harness
+uat
+tiger
+kpi-sim

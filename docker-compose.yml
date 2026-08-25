@@ -1,0 +1,41 @@
+# Adamant self-host quick start (docs/open-source/self-hosting.md §5):
+#
+#   cp .env.example .env        # set AUTH_SECRET + ADAMANT_OPERATOR_PASSWORD (minimum)
+#   docker compose up -d --build
+#
+# The image bakes SELF_HOSTED=true + the sqlite store (LOCAL_DB=true,
+# SYSTEDO_DB_FILE on the named volume). Everything else — AI providers, ad
+# platforms, email — is optional: with nothing configured the app runs on
+# deterministic demo results by design.
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      # The single writable path: the sqlite database + its WAL sidecar. Losing
+      # this volume loses everything — back it up (a backup script is a known
+      # open item, self-hosting.md §3 Gap 2).
+      - adamant-data:/app/.data
+    restart: unless-stopped
+    # The sqlite store is single-process (self-hosting.md §3 Gap 3): never scale
+    # this service beyond one replica.
+    deploy:
+      replicas: 1
+
+  # --- Optional: local models via Ollama --------------------------------------
+  # Uncomment to run models locally; then add a BYOM key of vendor "ollama" in
+  # the app (no API key needed) or set OLLAMA_BASE_URL=http://ollama:11434/v1
+  # in .env. See self-hosting.md §4.
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   volumes:
+  #     - ollama-models:/root/.ollama
+  #   restart: unless-stopped
+  #   # ports: ["11434:11434"]   # only if you also want host access
+
+volumes:
+  adamant-data:
+  # ollama-models:
