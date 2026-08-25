@@ -25,6 +25,23 @@ services:
     deploy:
       replicas: 1
 
+  # --- Optional: cron sidecar (docs/open-source/self-hosting.md §6) -----------
+  # Fires the five /api/cron/* routes on their vercel.json schedules with
+  # `Authorization: Bearer ${CRON_SECRET}`. Requires CRON_SECRET in .env (the
+  # routes fail closed without it, and the runner refuses to start). The app
+  # works without this service — all five jobs are background refreshes — but
+  # scheduled posts, digests and report emails only happen with it running.
+  cron:
+    build: .
+    command: ["node", "scripts/cron-runner.mjs"]
+    environment:
+      CRON_TARGET: http://app:3000
+    env_file:
+      - .env
+    depends_on:
+      - app
+    restart: unless-stopped
+
   # --- Optional: local models via Ollama --------------------------------------
   # Uncomment to run models locally; then add a BYOM key of vendor "ollama" in
   # the app (no API key needed) or set OLLAMA_BASE_URL=http://ollama:11434/v1

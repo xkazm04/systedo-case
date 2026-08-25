@@ -62,10 +62,13 @@ USER node
 
 # The standalone bundle carries its own minimal node_modules; `static` and
 # `public` are served from disk and are NOT included in it, so both are copied
-# explicitly.
+# explicitly. cron-runner + vercel.json (its schedule source) ride along so the
+# cron sidecar can run from this same image (see docker-compose.yml).
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
+COPY --from=build --chown=node:node /app/scripts/cron-runner.mjs ./scripts/cron-runner.mjs
+COPY --from=build --chown=node:node /app/vercel.json ./vercel.json
 
 EXPOSE 3000
 VOLUME ["/app/.data"]
