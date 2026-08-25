@@ -27,7 +27,9 @@ const T = {
     kicker: "Zkušební prostor zdarma",
     heading: "Spusťte si vlastní Adamant",
     body: "Přihlášením přes Google si založíte skutečný pracovní prostor, ne ukázku. Vytvořte projekt (e-shop, aplikace, leady nebo obsah) a hned si projdete celý živý produkt.",
+    bodySelfHost: "Tohle je self-hosted instalace Adamantu. Přihlaste se heslem operátora (ADAMANT_OPERATOR_PASSWORD) a pracujte na vlastních datech, bez limitů.",
     signIn: "Přihlásit přes Google",
+    signInSelfHost: "Přihlásit se heslem operátora",
     trust: "Bez platební karty · založení trvá minutu · kdykoli smažete",
     footer: "Jen se rozhlížíte?",
     backToDemo: "Otevřít živou ukázku",
@@ -36,7 +38,9 @@ const T = {
     kicker: "Free trial workspace",
     heading: "Start your own Adamant",
     body: "Sign in with Google to open a real workspace, not a demo. Create a project (e-shop, app, leads, or content) and explore the whole live product right away.",
+    bodySelfHost: "This is a self-hosted Adamant install. Sign in with the operator password (ADAMANT_OPERATOR_PASSWORD) and work on your own data, with no limits.",
     signIn: "Sign in with Google",
+    signInSelfHost: "Sign in with operator password",
     trust: "No payment card · takes a minute to set up · delete anytime",
     footer: "Just looking around?",
     backToDemo: "Open the live demo",
@@ -46,8 +50,13 @@ const T = {
 /** Shown when an anonymous visitor lands on /app — the conversion wall a prospect
  *  hits after the public demo. Frames the product as a real free-trial workspace
  *  (not a portfolio) and asks for Google sign-in (the same provider the campaign
- *  connector needs for the Ads scope) before opening it. */
-export default function AppSignInGate() {
+ *  connector needs for the Ads scope) before opening it.
+ *
+ *  `selfHosted` (passed from the server layout — this is a client component and
+ *  must not read server env) switches the CTA to the operator-password flow:
+ *  `signIn()` with no provider routes to Auth.js's own sign-in page, which
+ *  renders the Credentials form configured in src/auth.ts. */
+export default function AppSignInGate({ selfHosted = false }: { selfHosted?: boolean }) {
   const t = useT(T);
   const { locale } = useLocale();
   // This gate wraps the ENTIRE authed /app subtree, so an anonymous visitor may hit
@@ -68,7 +77,7 @@ export default function AppSignInGate() {
           {t("heading")}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          {t("body")}
+          {selfHosted ? t("bodySelfHost") : t("body")}
         </p>
         <ul className="mt-5 space-y-2 text-left">
           {perks.map((perk) => (
@@ -80,11 +89,15 @@ export default function AppSignInGate() {
         </ul>
         <button
           type="button"
-          onClick={() => signIn("google", { callbackUrl: pathname || "/app" })}
+          onClick={() =>
+            selfHosted
+              ? signIn(undefined, { callbackUrl: pathname || "/app" })
+              : signIn("google", { callbackUrl: pathname || "/app" })
+          }
           className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
         >
-          <GoogleGlyph />
-          {t("signIn")}
+          {!selfHosted && <GoogleGlyph />}
+          {selfHosted ? t("signInSelfHost") : t("signIn")}
         </button>
         <p className="mt-3 text-xs text-muted">{t("trust")}</p>
         <p className="mt-5 text-xs text-muted">

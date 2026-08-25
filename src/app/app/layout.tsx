@@ -10,6 +10,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { currentSession } from "@/lib/session";
+import { SELF_HOSTED } from "@/lib/deploy-mode";
 import { recordPageView } from "@/lib/analytics/track";
 import { GATE_ROUTE } from "@/lib/analytics/funnel";
 import AppSignInGate from "@/components/app/AppSignInGate";
@@ -49,7 +50,9 @@ async function AuthGate({ children }: { children: React.ReactNode }) {
     // (it just read the session), so the count is per visitor hit, not per build.
     // Best-effort inside; a store hiccup never breaks the gate.
     await recordPageView(GATE_ROUTE);
-    return <AppSignInGate />;
+    // Deploy mode is server-only env; the client gate gets it as a prop so a
+    // self-hosted install offers the operator-password flow, not Google.
+    return <AppSignInGate selfHosted={SELF_HOSTED} />;
   }
   return <>{children}</>;
 }
