@@ -6,8 +6,11 @@ output for quality. It answers a question the pass/fail gate cannot: *not "does
 this tool still work" but "which model writes the best output for each of our
 tasks".*
 
-It is a **benchmark, not a test** — it never blocks a commit and has no
-assertions. You run it on demand, read the scorecard, and decide.
+The **run** is a benchmark, not a test — it costs real tokens, takes ~30 minutes
+and has no assertions, so it stays on demand. The **number it bakes** is a
+different thing: `src/lib/llm/quality-scores.ts` is committed data and is the
+public surface at `/kvalita-modelu`, and it is gated. See
+[Thresholds](#thresholds--what-can-actually-stop-a-change) below.
 
 > Status: in active use. Full runs exist since 2026-07-06 (~33 reports under
 > `test-llm/quality/reports/`, gitignored) and a baked scorecard shipped in
@@ -27,14 +30,59 @@ assertions. You run it on demand, read the scorecard, and decide.
 |---|---|---|---|
 | Coverage + chokepoint | part of the gate | is every wrapper call site tagged + registered, providers confined to the wrapper? | ✅ pre-commit |
 | Contract goldens | `npm run llm:eval` | did a tool's (system + schema) fingerprint drift? | ✅ pre-commit |
+| Contract provenance | part of the gate | is every golden's current fingerprint recorded, with a reason, in `test-llm/golden/CHANGELOG.md`? | ✅ pre-commit |
 | Real-model suite | `npm run test:llm` | does each tool produce schema-valid output on real Claude? | ❌ on-demand (the pre-commit re-prove was retired 2026-08-05) |
 | Offline sample validators | `npm run test:unit` | do committed sample outputs still pass each tool's validator? | ✅ CI |
 | **Quality matrix** | **`npm run llm:quality`** | **which model writes the best output per operation?** | ❌ on-demand |
+| **Quality floor** | **`npm run llm:quality:check`** | **does the baked scorecard still clear the floor on the models we serve?** | ✅ CI (`check:ci`) |
 
 The first four keep the app *correct*. The quality matrix is about *taste* — it's
 the input to choosing BYOM defaults, or deciding which model to recommend per
 operation in the `ByomMatrix` settings module
 (`src/components/app/modules/ByomMatrix.tsx`).
+
+---
+
+## Thresholds — what can actually stop a change
+
+A harness that informs is worth having; a harness with a threshold is what lets
+an agent land a change without a human reading the output. Three thresholds
+exist, and each one is cheap enough to run on every pull request because none of
+them calls a model.
+
+**1. A golden may not change without a stated reason.**
+`node scripts/llm-eval.mjs --update` refuses to run without `--reason "..."`,
+rejects filler (`update`, `fix`, `wip`, …), and appends `tool | from | to` plus
+the reason to `test-llm/golden/CHANGELOG.md`. The check side verifies that the
+newest ledger row for each tool matches the fingerprint actually committed — so a
+golden edited by hand, which passes the drift check by construction, fails here.
+This is the answer to *"when goldens are regenerated, what distinguishes an
+intended behaviour change from a regression being absorbed into the baseline?"*:
+nothing did, and now the reason is a required field.
+
+**2. A serving model may not fall below the floor.**
+`scripts/quality-gate.mjs` reads the baked scorecard and fails when any operation
+scores below **6.5** on a model the app actually serves with
+(`anthropic/claude-sonnet-5`, `google/gemini-3.5-flash`), or when a serving-model
+cell is marked `valid: false` — meaning the judged output failed that tool's own
+validator, i.e. production would have clamped or dropped it. Both serving columns
+sit at 7.0 or above on every baked operation today, so the floor leaves half a
+point for run-to-run variance and still catches a real drop. The comparison-field
+columns are deliberately **not** gated: their job is to inform BYOM
+recommendations, and a bad score there is information, not a defect.
+
+**3. Coverage of the scorecard is ratcheted.**
+The same gate reports two counts against a baseline (reporting rung, per
+[ADR-0007](../adr/0007-gate-rung-discipline.md)): registry tools with no baked
+score at all — six today: `channel-research`, `local-diagnosis`, `monthly-recap`,
+`onboarding-scan`, `twin-reply`, `twin-style` — and baked operations that no
+longer exist in the registry — one today: `lead-reply`, retired when the twin
+absorbed it and still displayed on the public scorecard. `--check` fails if
+either count rises. Fix and lower in the same commit; never raise.
+
+What is deliberately **not** gated is the judged run itself. It is ~90 OpenRouter
+generations plus up to 405 judge spawns; wiring that into a pull request would be
+both slow and a bill. The split is: measure on demand, gate the measurement.
 
 ---
 

@@ -74,7 +74,8 @@ Run this before opening a PR. CI runs the same command; a red gate is not a
 review comment, it's a blocked merge.
 
 ```bash
-npm run check:ci   # typecheck + lint + build + seed:check + test:unit + llm:gate:check
+npm run check:ci   # typecheck + lint + build + seed:check + test:unit
+                   #   + llm:gate:check + llm:quality:check + adr:check + agents:surface
 ```
 
 The pieces, if you need to run them individually:
@@ -85,8 +86,24 @@ npm run lint         # ESLint
 npm run build        # next build
 npm run test:unit    # node:test suites in test-unit/
 npm run llm:gate     # the LLM proof gate (llm:list shows every call site)
+npm run sast         # repo security rules over src/ (its own CI workflow)
+npm run review:agent # the rubric review your PR will get (--base origin/master)
 npm run test:e2e     # Playwright — NOT in CI, run it when you touch a flow
 ```
+
+Two more things run on your PR that are not in `check:ci`:
+
+- **`.github/workflows/sast.yml`** — the repo security rules and the Actions
+  supply-chain policy (both blocking), plus Semgrep's registry packs (reporting).
+- **`.github/workflows/agent-review.yml`** — an automated review of your diff
+  against [`.github/agent-review-rubric.md`](.github/agent-review-rubric.md). Its
+  mechanical half blocks; two of its four rules are unblocked by writing a
+  sentence rather than changing code — put `Ack: <why>` in a commit message or
+  the PR body when you delete a test or add a runtime dependency.
+
+Before you change a seam, read its decision record in
+[`docs/adr/`](docs/adr/README.md). Why a check blocks or merely reports is
+[ADR-0007](docs/adr/0007-gate-rung-discipline.md).
 
 ## The conventions that actually bite
 

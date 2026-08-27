@@ -1,0 +1,17 @@
+{
+  "$comment": "Deliberate exceptions to scripts/sast.mjs. One entry = one file the rule fires on, with the reason it is correct anyway. Reviewed under CODEOWNERS. An exception with no reason string is ignored (i.e. still fails), so 'add it to the list' is never a one-word edit. When the finding disappears the gate reports the entry as stale — delete it.",
+
+  "route-auth": {
+    "src/app/api/skills/route.ts": "Diagnostics surface, not a user surface: it returns the registered AI skill ids and the gate-covered set — build-time facts identical for every caller, with no tenant, no project id and no provider call. Importing the registry is itself the check (registration throws on an incomplete skill), which is the point of being able to curl it.",
+    "src/app/api/images/upload-ref/route.ts": "Deliberately anonymous: the Creative Studio reference upload has to work for a signed-out visitor on the marketing site. It is not unguarded — durableGuard applies both the per-minute AI throttle and a per-IP DAILY cap (RATE_RULES.uploadRefPerDay), and it spends no AI units. Adding an auth requirement is a product decision, not a bug fix."
+  },
+
+  "sql-template-interpolation": {
+    "src/lib/db.ts": "PRAGMA table_info(${table}) — PRAGMA takes no bound parameters, so this cannot be written with a placeholder. `table` is only ever a literal from SCHEMA/MIGRATIONS in this same file; no caller-supplied value reaches it.",
+    "src/lib/leads/store.local.ts": "DELETE FROM ${t} — a table NAME cannot be bound. `t` iterates a literal array of three table names written inline in clearProjectLeads(); the project id in the same statement IS bound (WHERE project_id = ?)."
+  },
+
+  "plaintext-key-in-route": {
+    "src/app/api/byom/validate/route.ts": "The one route that legitimately needs the decrypted key: 'test connection' calls the vendor with it. The key is passed to validateVendorKey and never reaches the response — the handler returns getPublicByomConfig() plus the validation verdict. Behind requireByomUser and the per-user probe floor."
+  }
+}

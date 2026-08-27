@@ -1,0 +1,105 @@
+name: Agent review
+
+# Automated review of the diff, against a rubric versioned in this repository
+# (.github/agent-review-rubric.md).
+#
+# Why: ~97% of commits here are written by an agent and triaged by one person
+# weekly. For most of a change's life, CI is the only thing that has read it.
+# This restores the symmetry — something reviews every diff, on the diff's own
+# schedule rather than the maintainer's.
+#
+# Two halves, matching the rubric:
+#
+#   review (blocking)  — scripts/agent-review.mjs. Four mechanical invariants
+#                        where "a reviewer will probably notice" is not good
+#                        enough: a component growing past 200 lines, a route
+#                        segment-config opt-out under cacheComponents, a deleted
+#                        test with no `Ack:` line, a new runtime dependency with
+#                        no `Ack:` line. It also puts law-file touches, gate
+#                        softening and new unmapped files at the top of the job
+#                        summary, where the weekly triage starts.
+#
+#   judgment (comment) — scripts/agent-review-llm.mjs, only when
+#                        ANTHROPIC_API_KEY is configured. Applies Part B of the
+#                        rubric and posts one PR comment. It never blocks; a
+#                        model's taste should not be able to stop a merge.
+#
+# `Ack:` is the escape hatch for the two rules that need a human sentence rather
+# than a code change. Put `Ack: <why>` in a commit message or the PR body.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    name: Rubric review of the diff
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # the judgment half posts one comment; nothing else writes
+    steps:
+      # Full history: the review diffs against the base branch, and a shallow
+      # clone has no merge base to diff against.
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.14.0
+
+      # The base to review against: a PR's own base, or the previous tip on a
+      # push. Both resolve locally because the checkout above is unshallowed.
+      - name: Resolve base revision
+        id: base
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "$PR_BASE" ]; then
+            echo "ref=$PR_BASE" >> "$GITHUB_OUTPUT"
+          elif [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "ref=$BEFORE" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=origin/${{ github.event.repository.default_branch }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "Capture the PR body (an Ack line may live there)"
+        if: github.event_name == 'pull_request'
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: printf '%s' "$BODY" > pr-body.txt
+
+      # Blocking. Zero-dependency, so no npm ci.
+      - name: Mechanical review (Part A)
+        run: |
+          node scripts/agent-review.mjs \
+            --base "${{ steps.base.outputs.ref }}" \
+            --body-file pr-body.txt \
+            --out mechanical.md \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      # Comment-only, and only with a key. `if: always()` so the judgment review
+      # still runs — and posts — when Part A failed, which is exactly when a human
+      # most wants the context.
+      - name: Judgment review (Part B)
+        if: always()
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "ANTHROPIC_API_KEY is not configured for this repository — Part B skipped." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          node scripts/agent-review-llm.mjs \
+            --base "${{ steps.base.outputs.ref }}" \
+            --mechanical mechanical.md \
+            --summary "$GITHUB_STEP_SUMMARY" \
+            ${{ github.event_name == 'pull_request' && format('--pr {0}', github.event.pull_request.number) || '' }}

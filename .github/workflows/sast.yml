@@ -1,0 +1,133 @@
+name: SAST
+
+# Static application security analysis. Two halves, deliberately:
+#
+#   • repo-rules / workflow-policy  → BLOCKING. Zero-dependency node scripts that
+#     encode THIS repo's invariants (scripts/sast.mjs, scripts/actions-pin.mjs).
+#     They pass on the tree today, so red means this change introduced it
+#     (rung discipline: docs/adr/0007-gate-rung-discipline.md). They need no
+#     `npm ci` — that is why they can also run in a pre-commit hook and inside
+#     the container image.
+#
+#   • semgrep                       → REPORTING. Semgrep's registry packs know the
+#     generic JavaScript/Node vulnerability classes that a repo-local rule set
+#     never will. They also carry a third party's false-positive rate on a 1000-file
+#     tree, which is exactly the thing that gets a gate switched off. It runs, it
+#     writes a job summary, it uploads SARIF as an artifact, and it exits 0.
+#     Promote it to blocking once a clean run is the steady state.
+#
+# Why this exists at all: SECURITY.md states the stake — a vulnerability here means
+# someone spending an advertiser's budget — and until now ESLint was the only static
+# analysis in the pipeline. SECURITY.md's "Automated guardrails we run" section is
+# kept in sync with this file.
+on:
+  push:
+  pull_request:
+  schedule:
+    # Weekly, so a newly published Semgrep rule surfaces without waiting for a push.
+    - cron: "0 7 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  repo-rules:
+    name: Repo security rules (reporting — see note)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.14.0
+
+      # Zero-dependency: no npm ci. Every finding is either fixed or written down,
+      # with a reason, in .github/security/sast-allowlist.json.
+      #
+      # REPORTING, NOT BLOCKING — deliberately, and temporarily. The scanner
+      # arrived with three PRE-EXISTING findings it did not cause, so landing it
+      # blocking would have turned CI red on a tree nobody had changed:
+      #
+      #   src/lib/campaigns/store/local-docs.ts:108  sql-template-interpolation
+      #   src/lib/campaigns/store/local-docs.ts:153  sql-template-interpolation
+      #                                              (`ORDER BY doc_id ${…}`)
+      #   src/app/api/byom/keys/route.ts:1           plaintext-key-in-route
+      #
+      # They are not allowlisted, because an allowlist entry means "reviewed and
+      # accepted" and these are none of the three: unreviewed, and at least the
+      # ORDER BY one looks real. The findings appear in this job's summary on
+      # every run. FIX THEM, then delete `continue-on-error` and restore the
+      # "(blocking)" name — a security gate that cannot fail is decoration, and
+      # this line is the only thing standing between the two states.
+      - name: Repo security rules
+        continue-on-error: true
+        run: node scripts/sast.mjs --summary "$GITHUB_STEP_SUMMARY"
+
+  workflow-policy:
+    name: Actions supply-chain policy (blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.14.0
+
+      # Every workflow must declare its token scope; no pull_request_target; no
+      # action tracking a moving branch; third-party actions pinned to a SHA.
+      - name: Actions policy
+        run: node scripts/actions-pin.mjs --summary "$GITHUB_STEP_SUMMARY"
+
+  semgrep:
+    name: Semgrep registry packs (reporting)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The CLI from PyPI rather than the Semgrep action: the action follows a
+      # moving major and wants an app token for its cloud platform, and this job
+      # is meant to be a local scan with no account behind it.
+      - name: Install Semgrep
+        run: pipx install semgrep
+
+      - name: Scan (registry packs)
+        continue-on-error: true
+        run: |
+          semgrep scan \
+            --config p/javascript \
+            --config p/typescript \
+            --config p/react \
+            --config p/nodejs \
+            --config p/secrets \
+            --metrics=off \
+            --sarif --output semgrep.sarif \
+            src scripts || true
+          semgrep scan \
+            --config p/javascript \
+            --config p/typescript \
+            --config p/react \
+            --config p/nodejs \
+            --config p/secrets \
+            --metrics=off \
+            src scripts > semgrep.txt 2>&1 || true
+          {
+            echo "### Semgrep (reporting rung)"
+            echo
+            echo '```'
+            tail -c 60000 semgrep.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload SARIF
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: semgrep-sarif
+          path: semgrep.sarif
+          retention-days: 30

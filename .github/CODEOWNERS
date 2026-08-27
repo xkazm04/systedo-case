@@ -14,6 +14,21 @@
 /.claude/                       @xkazm04
 /CLAUDE.md                      @xkazm04
 /AGENTS.md                      @xkazm04
+# The pinned content of the parts of that surface a GENERATOR writes, and the
+# rubric the automated review applies. A file that regenerates itself is only
+# reviewed if someone notices the diff — these two are what make sure someone does.
+/.github/agent-surface.lock.json @xkazm04
+/.github/agent-review-rubric.md  @xkazm04
+
+# Security policy and its enumerated exceptions
+/SECURITY.md                    @xkazm04
+/.github/security/              @xkazm04
+
+# Architecture decision records — the reasoning an agent reads before a seam
+/docs/adr/                      @xkazm04
+
+# The goldens' provenance ledger: the only place a prompt change carries its reason
+/test-llm/golden/CHANGELOG.md   @xkazm04
 
 # CI and licensing
 /.github/workflows/             @xkazm04

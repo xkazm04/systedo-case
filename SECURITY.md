@@ -81,24 +81,54 @@ behaviours, not bugs — see
 
 ## Automated guardrails we run
 
+Each entry says what runs, when, and what happens when it fails. A check that
+only prints says so — see
+[ADR-0007](./docs/adr/0007-gate-rung-discipline.md) for why some of these are
+deliberately non-blocking.
+
 - **Secret scanning** — `.gitignore` excludes `.env*` (except `.env.example`),
-  `*.pem` and `/.data`; a pre-commit hook runs on staged files. A full-history
-  `gitleaks` / `trufflehog` sweep is part of the go-public checklist in
-  [`docs/open-source/impact.md`](./docs/open-source/impact.md) and will become a
-  CI job at that point. Any hit is a hard fail.
+  `*.pem` and `/.data`; a pre-commit hook runs on staged files (`gitleaks` when
+  installed, `scripts/secret-scan.mjs` otherwise). CI backstops it with a
+  **full-history** `gitleaks` sweep plus the repo-local scanner over the tracked
+  tree (`.github/workflows/supply-chain.yml`, job `secrets`). **Blocking.** Any
+  hit fails the build; rotate first, then clean history.
 - **Typecheck, lint and build** on every change — `npm run check:ci`, which also
-  runs the unit suite and the LLM proof gate (`scripts/llm-gate.mjs`). The gate
-  is what prevents an un-reviewed model call site from reaching the tree.
-- **Dependency scanning** — GitHub Dependabot alerts on the default branch.
-  There is no blocking severity gate yet; that is a known gap, stated here
-  rather than left blank.
-- **SAST** — not applicable today. ESLint's security-relevant rules are the only
-  static analysis in CI. Stated explicitly so it is a visible gap, not an
-  invisible one.
-- **Container image scanning / SBOM / signed artifacts** — not applicable: this
-  repo publishes no images or packages yet. Self-host packaging is a design in
-  [`docs/open-source/self-hosting.md`](./docs/open-source/self-hosting.md), not
-  a shipped artifact.
+  runs the unit suite, the ADR gate and the LLM proof gate
+  (`scripts/llm-gate.mjs`). **Blocking.** The gate is what prevents an
+  un-reviewed model call site from reaching the tree.
+- **SAST — repo rules** — `scripts/sast.mjs`, run on every push and pull request
+  (`.github/workflows/sast.yml`, job `repo-rules`). Nine rules over the whole
+  `src/` tree, encoding the invariants an off-the-shelf pack cannot see: every
+  route under `src/app/api/` must establish caller identity, no `"use client"`
+  module may read a non-public env var, no route may import the decrypted BYOM
+  key, no SQL built by interpolation, no credential-shaped identifier passed to
+  `console`, no TLS verification disabled, no IV-less cipher, no dynamic code
+  execution. **Blocking.** Exceptions are enumerated with a written reason in
+  `.github/security/sast-allowlist.json` — three today — and the gate reports an
+  exception that no longer applies as stale.
+- **SAST — Semgrep** — the registry packs (`p/javascript`, `p/typescript`,
+  `p/react`, `p/nodejs`, `p/secrets`) over `src/` and `scripts/`, on every push
+  and weekly. **Reporting**: it writes a job summary and uploads SARIF as an
+  artifact, and exits 0. It is not blocking because it has never had a clean run
+  on this tree; promoting it is a stated next step, not a silent omission.
+- **Actions supply chain** — `scripts/actions-pin.mjs`
+  (`.github/workflows/sast.yml`, job `workflow-policy`). **Blocking**: every
+  workflow must declare a top-level `permissions:` scope, no workflow may use
+  `pull_request_target`, no action may track a moving branch, and every
+  **third-party** action must be pinned to a commit SHA. First-party
+  (`actions/*`, `github/*`) references on a version tag are reported, not
+  blocked — `npm run actions:pin` resolves them to SHAs, after which the strict
+  mode in that script covers them too.
+- **Dependency scanning** — GitHub Dependabot alerts on the default branch, plus
+  `npm audit --audit-level=high` on every push and weekly. **Reporting**: the
+  advisory summary is the deliverable, the exit code is not, because a
+  transitive advisory's timing is a third party's decision. Dependabot
+  (`.github/dependabot.yml`) does the fixing, for npm and for Actions.
+- **Container image scanning / SBOM / signed artifacts** — still not applicable:
+  the `Dockerfile` builds an image for an operator to run, but this repository
+  publishes no image and no package for anyone to verify a signature against.
+  Declaring that out of scope is more honest than a checkbox job. If a published
+  image ever ships, this line changes with it.
 
 ## Where secrets come from
 

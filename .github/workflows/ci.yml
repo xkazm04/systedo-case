@@ -12,6 +12,14 @@ on:
   push:
   pull_request:
 
+# Least privilege, declared rather than inherited. Unset means the repository
+# default, which can be read/write — and every step here is either first-party
+# tooling or an action from someone else's repository. Nothing in this workflow
+# writes to the repo; the artifact upload uses the runner's own token, not this
+# one. Enforced by scripts/actions-pin.mjs (see .github/workflows/sast.yml).
+permissions:
+  contents: read
+
 jobs:
   check:
     name: Typecheck, lint & build
@@ -38,9 +46,10 @@ jobs:
 
       # One command = the whole CI gate, runnable locally before pushing:
       #   check (typecheck && lint && build) → seed drift guard → unit tests →
-      #   llm:gate:check (chokepoint coverage + contract goldens + committed-cache
-      #   freshness — zero model calls). All deterministic and key-free (the
-      #   real-model Claude run stays local in the Husky hook).
+      #   llm:gate:check (chokepoint coverage + contract goldens + the golden
+      #   provenance ledger) → llm:quality:check (the baked scorecard's floor on
+      #   the models we actually serve). All deterministic and key-free — zero
+      #   model calls; the real-model run stays on demand (npm run test:llm).
       - name: Full CI gate (npm run check:ci)
         run: npm run check:ci
 
