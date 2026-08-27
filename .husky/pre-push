@@ -1,0 +1,46 @@
+#!/usr/bin/env sh
+# Delivery-contract gate (docs/deploy.md § Delivery contract).
+# Topology: Vercel ships master on push, regardless of CI's verdict — the push
+# IS the release act. This hook is the compensation for that race: any push
+# that updates refs/heads/master must pass the full blocking gate first.
+# `npm run check:ci` is CI's exact contract (ci.yml runs the same script), so
+# what this hook proves is what CI will prove — before Vercel is already live.
+# Other branches push freely; CI covers them.
+#
+# Escape hatch (emergencies only):
+#   SYSTEDO_SKIP_GATE=1 git push ...
+# Skipping means production ships unverified. Record WHY in the pushed commit
+# message or in docs/deploy.md — an unrecorded skip is an incident.
+
+targets_master=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/master) targets_master=1 ;;
+  esac
+done
+
+[ "$targets_master" = "1" ] || exit 0
+
+if [ "$SYSTEDO_SKIP_GATE" = "1" ]; then
+  echo "==================================================================" >&2
+  echo "pre-push: SYSTEDO_SKIP_GATE=1 — FULL GATE SKIPPED ON MASTER." >&2
+  echo "pre-push: skipping: npm run check:ci (typecheck, lint, build," >&2
+  echo "pre-push:   seed:check, test:unit, llm gates, adr:check," >&2
+  echo "pre-push:   agents:surface) — Vercel will ship this UNVERIFIED." >&2
+  echo "pre-push: RECORD THE REASON (commit message or docs/deploy.md)." >&2
+  echo "==================================================================" >&2
+  exit 0
+fi
+
+echo "pre-push: push targets master — the push is the release act." >&2
+echo "pre-push: running the full blocking gate (npm run check:ci)..." >&2
+
+npm run check:ci || {
+  echo "pre-push: check:ci failed — push blocked. Vercel ships master on" >&2
+  echo "pre-push: push, so a red gate here would have been a red deploy." >&2
+  echo "pre-push: Fix, or (emergency + recorded reason) SYSTEDO_SKIP_GATE=1." >&2
+  exit 1
+}
+
+echo "pre-push: gate green — pushing. Then: gh run watch --exit-status" >&2
+exit 0

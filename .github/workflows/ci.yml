@@ -5,9 +5,11 @@ name: CI
 # then seed drift guard, unit suite, and the key-free LLM gate check: chokepoint
 # coverage + contract goldens). The hash-cached real-model re-prove was retired
 # 2026-08-05 (static gate only; prove on demand via `npm run test:llm`). Keep
-# ci.yml and the `check:ci` script pointing at each other so the two can never
-# drift. `next build` runs only here — so a green local commit can still fail
-# CI on build unless you ran `npm run check:ci` yourself.
+# ci.yml, the `check:ci` script, and .husky/pre-push (which runs check:ci
+# before any push to master — see docs/deploy.md § Delivery contract) pointing
+# at each other so the three can never drift. `next build` runs only here and
+# in the pre-push gate — so a green local commit can still fail CI on build
+# unless you ran `npm run check:ci` yourself.
 on:
   push:
   pull_request:

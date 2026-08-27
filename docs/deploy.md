@@ -92,7 +92,9 @@ Notes:
 
 ## Pre-deploy checklist
 
-- [ ] `npm run check:ci` green locally (typecheck + lint + build + seed check + unit + llm gate).
+- [ ] `npm run check:ci` green locally (typecheck + lint + build + seed check +
+      unit + llm gates + adr:check + agents:surface). `.husky/pre-push` runs
+      this for you on any push to `master` — see the Delivery contract below.
 - [ ] **`DEV_AUTH` and `LOCAL_DB` are UNSET in the Vercel environment.** They
       are ignored in production by code, but an unset variable is the only
       configuration that cannot rot.
@@ -101,6 +103,99 @@ Notes:
 - [ ] `FIREBASE_SERVICE_ACCOUNT` present (prod crashes loudly without it
       unless `FIREBASE_ALLOW_ADC=true` is intentional).
 - [ ] New env vars added to `.env.example` with a comment.
+
+## Delivery contract
+
+This repo ships by **direct push to `master`** — there is no PR / merge-queue
+stage between a developer and production. That makes the push itself the
+release act, and the contract below is what keeps it honest.
+
+- **The full blocking gate is `npm run check:ci`** (typecheck + lint + build +
+  seed drift guard + unit suite + LLM gates + `adr:check` + `agents:surface`).
+  It is CI's exact contract — `.github/workflows/ci.yml` runs the same script —
+  and **`.husky/pre-push` now enforces it on every push that updates
+  `refs/heads/master`**. Other branches push freely; CI covers them.
+- **Escape hatch**: `SYSTEDO_SKIP_GATE=1 git push` skips the gate. The hook
+  prints loudly what was skipped; the operator owes a **recorded reason**
+  (commit message or this doc). An unrecorded skip is an incident.
+- **Red master = outage.** Because of the race below, a red gate on master is
+  not "CI is unhappy", it is "production is (or is about to be) broken".
+- **After every master push**: `gh run watch --exit-status` — do not walk away
+  until CI confirms what the local gate predicted.
+
+### The race
+
+**Vercel deploys `master` on push, regardless of CI's verdict.** The Git
+integration and GitHub Actions are parallel consumers of the same push event —
+CI going red does not stop, delay, or roll back the Vercel build. The
+compensation is the pre-push gate above: prove CI's exact contract *before*
+the push exists. Corollary: **keep `check:ci` equal to CI's blocking set
+whenever either changes** — ci.yml, the `check:ci` script in `package.json`,
+and `.husky/pre-push` cross-reference each other so the three cannot silently
+drift.
+
+### Node version authority
+
+Four opinions on Node existed: `engines` said `>=22.5`, `.nvmrc` says `24`,
+CI pins `24.14.0` exactly, and Vercel was unpinned. Resolved (2026-08-27):
+
+- **`package.json` `engines` is now `"24.x"`** — Vercel selects its build/
+  runtime Node major from `engines`, so this pins production to the same major
+  as local dev and CI.
+- **CI stays `24.14.0`-exact deliberately**: the Intl format goldens
+  (`test-unit/fixtures/format-golden.json`) are byte-pinned to the minting
+  version's ICU, and ICU shifts across Node minors. Do not loosen CI to `24.x`;
+  do not tighten `engines` to a patch version (Vercel needs only the major).
+
+### Rollback
+
+Rollback is **promote the previous Vercel deployment**, not a git revert under
+pressure — see [Deploy + rollback (Vercel)](#deploy--rollback-vercel) below
+for the exact steps (`vercel promote <deployment-url>` / dashboard promote).
+Fix forward in git afterwards.
+
+### Vercel CLI identity
+
+`.vercel/` is absent/gitignored, so the CLI is not linked to the project on a
+fresh checkout. For CLI deploys or `vercel promote`, either run `vercel link`
+once (recreates `.vercel/project.json`) or export
+`VERCEL_ORG_ID` + `VERCEL_PROJECT_ID`:
+
+```
+VERCEL_ORG_ID=TODO      # operator: fill after `vercel login` + `vercel link`
+VERCEL_PROJECT_ID=TODO  # (values shown in .vercel/project.json)
+```
+
+The Git-integration path (push to master) needs none of this.
+
+### Known red, owed
+
+Red that exists on master today, documented so nobody re-diagnoses it. The
+`check` job itself is green; these are the owed items around it.
+
+1. **e2e-smoke: 17/23 failing, ~30 min.** Two independent causes:
+   - `new Date()` evaluated in prerendered shells crashes under Next's
+     `cacheComponents` on `/`, `/app`, and `/ai-asistent`. Fix direction:
+     replace `new Date()` in prerendered shells per the Next cacheComponents
+     guidance (move it behind Suspense/dynamic, or pass time in from a dynamic
+     boundary).
+   - The e2e job has **no Firebase env** (`FIREBASE_SERVICE_ACCOUNT` /
+     `GOOGLE_CLOUD_PROJECT`), so Firestore-backed server components 500. Fix
+     direction: provide a scoped Firebase env to the e2e job, or make those
+     specs env-guarded (skip when the env is absent).
+2. **supply-chain "Secret scan": BLOCKING and red.** gitleaks over the full
+   history reports **11 findings** (redacted output). The workflow's stated
+   premise — "blocking because it passes today" — is now false. Owed work:
+   **triage all 11 findings**, then land a `.gitleaksignore` with a
+   per-finding reason for each entry that is a confirmed false positive. **Any
+   real credential means rotation** (and history rewrite if warranted), not an
+   ignore entry. The job **should stay blocking after triage** — the guardrail
+   is right; the backlog under it is the debt.
+3. **Dependabot dev-deps PRs: unmergeable.** `npm run lint` dies on them —
+   `eslint-config-next@16.3.3` vendors a typescript-eslint that hard-refuses
+   TypeScript 7. Nothing to fix locally; blocked until upstream
+   (eslint-config-next / typescript-eslint) ships TS7 support. Close or
+   snooze the PRs; do not force-merge past lint.
 
 ## Deploy + rollback (Vercel)
 
