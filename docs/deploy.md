@@ -162,11 +162,40 @@ once (recreates `.vercel/project.json`) or export
 `VERCEL_ORG_ID` + `VERCEL_PROJECT_ID`:
 
 ```
-VERCEL_ORG_ID=TODO      # operator: fill after `vercel login` + `vercel link`
-VERCEL_PROJECT_ID=TODO  # (values shown in .vercel/project.json)
+VERCEL_ORG_ID=team_x2mjBAxi3mgsZkKQ1SJgkjqL        # identifiers, not secrets
+VERCEL_PROJECT_ID=prj_FJLHnh7OQtLipEXldZHB1FEzcHp6  # linked 2026-08-27; also in .vercel/project.json
 ```
 
 The Git-integration path (push to master) needs none of this.
+
+### Production env gap (found 2026-08-27, owed)
+
+`vercel env ls` shows the project holds **one** variable — `GEMINI_API_KEY`
+(Production + Preview). Everything else in the required table above is absent
+on Vercel: `AUTH_SECRET`, `AUTH_TRUST_HOST`, `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, `FIREBASE_SERVICE_ACCOUNT`, `GOOGLE_CLOUD_PROJECT`,
+`CRON_SECRET`. Consequences today: sign-in cannot work, Firestore-backed
+routes fail (prod refuses the ADC fallback by design), and all five crons
+fail closed (no `CRON_SECRET`). The build is green because none of these are
+build-time inputs — this is exactly the "deployed" versus "working" gap the
+delivery contract warns about.
+
+Operator recipe (values are typed interactively, never pasted into a file):
+
+```
+vercel env add AUTH_SECRET production
+vercel env add AUTH_TRUST_HOST production        # true
+vercel env add GOOGLE_CLIENT_ID production
+vercel env add GOOGLE_CLIENT_SECRET production
+vercel env add FIREBASE_SERVICE_ACCOUNT production
+vercel env add GOOGLE_CLOUD_PROJECT production
+vercel env add CRON_SECRET production
+```
+
+Use production-grade values (a production OAuth client, a dedicated service
+account) — not the local `.env.local` ones. Add Preview-scoped, lower-privilege
+counterparts afterwards so previews prove behavior, not just layout. Redeploy
+(or promote) after adding; env changes do not re-run a build on their own.
 
 ### Known red, owed
 
