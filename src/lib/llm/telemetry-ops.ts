@@ -28,6 +28,11 @@ export interface AiOpsSummary {
   demoRate: number;
   /** Σ estimated cost, USD */
   totalCostUsd: number;
+  /** Calls behind `totalCostUsd` that carry no cost figure (dev CLI subscription,
+   *  a model with no rate row). `nullable-cost-never-zero` (see cost.ts): the total
+   *  must never be read as complete without this — on the subscription path every
+   *  call is unpriced, so a bare "$0.00" would claim the week was free. */
+  unpricedCalls: number;
   /** calls whose output needed a JSON repair pass */
   repairs: number;
   /** tool ids whose prompt/schema fingerprint drifted inside the window */
@@ -62,6 +67,7 @@ export function summarizeAiOps(tools: ToolTelemetry[], entries?: LlmTelemetryEnt
     demoCalls,
     demoRate,
     totalCostUsd: tools.reduce((s, t) => s + t.totalCostUsd, 0),
+    unpricedCalls: tools.reduce((s, t) => s + (t.unpricedCalls ?? 0), 0),
     repairs: tools.reduce((s, t) => s + t.repairs, 0),
     driftedTools: tools.filter((t) => t.drifted).map((t) => t.toolId),
     warn: calls > 0 && demoRate > AI_DEMO_RATE_WARN,
@@ -77,8 +83,12 @@ export function summarizeAiOps(tools: ToolTelemetry[], entries?: LlmTelemetryEnt
  *  window saw no AI traffic, so quiet weeks add no section at all. */
 export function aiOpsLines(s: AiOpsSummary): string[] {
   if (s.calls === 0) return [];
+  // `nullable-cost-never-zero`: the estimate is only ever a floor, so it is never
+  // rendered without the unpriced count behind it — on the subscription path that
+  // is every call, and a bare "$0.00" would read as "the week was free".
+  const unpriced = s.unpricedCalls > 0 ? ` (${s.unpricedCalls} volání bez vyčíslení)` : "";
   const lines = [
-    `${s.calls} volání · odhad nákladů $${s.totalCostUsd.toFixed(2)} · ` +
+    `${s.calls} volání · odhad nákladů $${s.totalCostUsd.toFixed(2)}${unpriced} · ` +
       `${fmtPct(s.demoRate, 0)} v ukázkovém režimu · ${s.repairs} oprav výstupu`,
   ];
   // Status + latency line — only when the raw entries were available (status data

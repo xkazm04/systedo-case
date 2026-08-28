@@ -18,6 +18,7 @@ function tool(overrides = {}) {
     demoCalls: 0,
     avgTookMs: 1000,
     totalCostUsd: 0.5,
+    unpricedCalls: 0,
     totalTokens: 1000,
     repairs: 0,
     drifted: false,
@@ -94,6 +95,27 @@ test("status/latency line renders only with entries; problem line on corrupt/err
   assert.ok(lines.some((l) => /Úspěšnost/.test(l) && /p50/.test(l) && /p95/.test(l)));
   assert.ok(lines.some((l) => /poškozených/.test(l)));
   assert.ok(lines.some((l) => /skončilo chybou nebo poškozeným/.test(l)));
+});
+
+test("`nullable-cost-never-zero`: the cost line discloses unpriced calls", () => {
+  // The dev/self-hosted CLI subscription reports no usage at all, so every call is
+  // unpriced and the estimate is $0.00 — which must NOT read as "the week was free".
+  const subscription = summarizeAiOps([
+    tool({ toolId: "brief", calls: 6, totalCostUsd: 0, unpricedCalls: 6 }),
+    tool({ toolId: "analysis", calls: 4, totalCostUsd: 0, unpricedCalls: 4 }),
+  ]);
+  assert.equal(subscription.unpricedCalls, 10);
+  assert.match(aiOpsLines(subscription)[0], /\$0\.00[^·]*10 volání bez vyčíslení/);
+
+  // A partly-priced window still discloses the gap next to the total.
+  const mixed = summarizeAiOps([tool({ calls: 8, totalCostUsd: 1.25, unpricedCalls: 3 })]);
+  assert.equal(mixed.unpricedCalls, 3);
+  assert.match(aiOpsLines(mixed)[0], /\$1\.25[^·]*3 volání bez vyčíslení/);
+
+  // Fully priced → no disclosure to make, so the line stays clean.
+  const priced = summarizeAiOps([tool({ calls: 8, totalCostUsd: 1.25, unpricedCalls: 0 })]);
+  assert.equal(priced.unpricedCalls, 0);
+  assert.doesNotMatch(aiOpsLines(priced)[0], /bez vyčíslení/);
 });
 
 test("renders Czech lines — and none at all for a quiet week", () => {
