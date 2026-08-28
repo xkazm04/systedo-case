@@ -18,6 +18,7 @@ import NextSteps from "@/components/app/NextSteps";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { LoadingTimer, RefineBar, ResultMeta, TimeoutState, ToolError } from "@/components/ai/primitives";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
+import { promptSafeName } from "@/lib/projects/name";
 import { seedFromChannel } from "@/lib/content-engine/seed";
 import { isModuleAvailable } from "@/lib/projects/modules";
 import { createFormatters } from "@/lib/format";
@@ -156,6 +157,13 @@ export default function OrganicChannels({
 
   const ai = useAiTool<ChannelResearchResult>("channel-research");
 
+  /** The brand as it may be spoken. A demo/sample project is named "Klinika
+   *  (ukázka)"; everything below either reaches the model or reaches the content
+   *  engine as a brief, and the marker leaks straight back out in the rationale,
+   *  the first actions and the seeded topic. Stripped once, here, at the ONE
+   *  boundary this component owns (the wire request re-strips server-side). */
+  const brandName = promptSafeName(project.name);
+
   const open = channels.find((c) => c.id === openId) ?? null;
   // The availability gate keeps every derived CTA honest for THIS project type
   // (e.g. a leadgen plan's LinkedIn row must not deep-link to the absent socialni).
@@ -204,7 +212,7 @@ export default function OrganicChannels({
     setApplied(false);
     ai.run({
       projectType,
-      brand: project.name,
+      brand: brandName,
       ...(grounding.offering ? { offering: grounding.offering } : {}),
       ...(grounding.localities?.length ? { localities: grounding.localities } : {}),
       ...(grounding.competitors?.length ? { competitors: grounding.competitors } : {}),
@@ -264,9 +272,9 @@ export default function OrganicChannels({
   const createContent = (channel: OrganicChannel) => {
     const seed = seedFromChannel({
       contentAngle: channel.contentAngle,
-      fallbackTopic: t("defaultTopic", { channel: channel.name, brand: project.name }),
+      fallbackTopic: t("defaultTopic", { channel: channel.name, brand: brandName }),
       keywords: grounding.keywords,
-      projectName: project.name,
+      projectName: brandName,
     });
     try {
       sessionStorage.setItem(briefSeedKey(project.id), JSON.stringify(seed));

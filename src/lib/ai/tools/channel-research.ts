@@ -8,7 +8,8 @@
  *  Grounded strictly in the supplied context: the model must not invent competitor
  *  facts or metrics; it reasons about channels from the business type + offering.
  *  normalize() slugifies each channel name into a stable id, clamps fit, coerces
- *  the category/effort to known sets and caps the arrays; a deterministic demo()
+ *  the category/effort to known sets, caps the arrays and drops a `url` that is not
+ *  an http(s) address with a host; a deterministic demo()
  *  builds a curated per-type plan from the shared catalog so the keyless path (and
  *  the floor when the model returns nothing usable) is still a real, useful plan.
  *  Runs through the provider-switching LLM wrapper (../../llm). Server-only. */
@@ -161,6 +162,30 @@ const CHANNEL_RESEARCH_SCHEMA = {
 const coerceCategory = coerceEnum<ChannelCategory, ChannelCategory>(CHANNEL_CATEGORIES, "content");
 const coerceEffort = coerceEnum<ChannelEffort, ChannelEffort>(["low", "medium", "high"], "medium");
 
+/** A channel's `url` is the "kam se zapsat" link — a place the UI tells the user to
+ *  GO (ChannelPlaybook renders it as an anchor). The model hands it back as free
+ *  text, and the only guard was a 300-char truncation, which accepts a `javascript:`
+ *  scheme, a bare phrase, or a scheme-less "firmy.cz/registrace" that the browser
+ *  resolves against OUR origin. Accept http(s) with a real host and nothing else.
+ *
+ *  Over-long is a REJECT, not a truncation: slicing a URL mid-path yields a link
+ *  that looks right and 404s, which is worse than the honest absence the schema
+ *  already allows. Failure drops the FIELD, never the channel — the plan's advice
+ *  does not depend on the link. */
+export function safeChannelUrl(raw: unknown): string | null {
+  const s = txt(raw);
+  if (!s || s.length > 300) return null;
+  let u: URL;
+  try {
+    u = new URL(s);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  if (!u.hostname) return null;
+  return s;
+}
+
 const clampFit = (v: unknown): number => {
   const n = Math.round(Number(v));
   if (!Number.isFinite(n)) return 60;
@@ -196,7 +221,8 @@ export function demoChannelResearch(req: ChannelResearchRequest): ChannelResearc
 }
 
 /** Map the raw model output into a validated, ranked plan: slugify names into stable
- *  ids (deduped), clamp fit, coerce category/effort to known sets, cap the arrays.
+ *  ids (deduped), clamp fit, coerce category/effort to known sets, cap the arrays,
+ *  and keep only an http(s) `url` with a real host (see safeChannelUrl).
  *  Also reports whether the plan is the wholesale demo fallback (`canned: true`) — no
  *  named channel survived normalization — so the caller can bill that case as demo
  *  (refund fires) instead of charging for the same free curated plan the keyless path
@@ -230,8 +256,8 @@ export function normalizeChannelResearchTracked(
       payoff: txt(x.payoff),
       firstActions: firstActions.length > 0 ? firstActions : ["Založte a vyplňte profil."],
     };
-    const url = txt(x.url);
-    if (url) channel.url = url.slice(0, 300);
+    const url = safeChannelUrl(x.url);
+    if (url) channel.url = url;
     const contentAngle = txt(x.contentAngle);
     if (contentAngle) channel.contentAngle = contentAngle;
     channels.push(channel);

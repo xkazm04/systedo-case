@@ -3,6 +3,7 @@
  *  validation logic — the route handlers import these, the UI imports the types. */
 
 import { AD_FIELD_LIMITS, BRIEF_FIELD_LIMITS } from "./field-limits";
+import { promptSafeName } from "@/lib/projects/name";
 import {
   ANALYSIS_PERIODS,
   CONTENT_TYPES,
@@ -1114,7 +1115,16 @@ export function validateChannelResearchRequest(input: unknown, locale: Supported
   if (brand.length < 1 || brand.length > 120) {
     return { valid: false, error: t(locale, "Vyplňte název firmy (1–120 znaků).", "Please fill in the business name (1–120 characters).") };
   }
-  const value: ChannelResearchRequest = { projectType, brand: brand.slice(0, 120) };
+  // The brand is the one request field the model is asked to SPEAK — it comes back
+  // inside every rationale, payoff and first action, and rides on into the content
+  // brief. A demo/sample project is named "Klinika (ukázka)", so the marker is
+  // stripped at the wire door, not only at the call site: this is the boundary every
+  // caller of the channel-research mode must cross. `|| brand` keeps a project named
+  // nothing BUT a marker valid — stripping must never empty a field we just accepted.
+  const value: ChannelResearchRequest = {
+    projectType,
+    brand: (promptSafeName(brand) || brand).slice(0, 120),
+  };
   const offering = str(o.offering);
   if (offering) value.offering = offering.slice(0, 300);
   // Website-scan profile grounding — bounded like the rest, and optional: absent on

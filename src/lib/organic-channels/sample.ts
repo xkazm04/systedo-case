@@ -6,6 +6,7 @@
  *  byte-identically. Real content stays Czech (like the other SAMPLE_* fixtures);
  *  the module chrome localizes. Framework-free apart from the Project type. */
 import type { Project, ProjectType } from "@/lib/projects/types";
+import { promptSafeName } from "@/lib/projects/name";
 import type { ChannelCategory, ChannelEffort, OrganicChannel } from "./types";
 // Shared demo core — the same seeded PRNG (mulberry32) + FNV-1a hash the other
 // demo generators use (one implementation instead of copies).
@@ -479,7 +480,15 @@ export function baseChannelPlan(
 
 /** The seeded organic-channel plan for a project: the curated per-type set,
  *  personalized with the project's brand/locality/category and nudged per project
- *  so two same-type projects don't read identically. Ranked by fit descending. */
+ *  so two same-type projects don't read identically. Ranked by fit descending.
+ *
+ *  The brand goes through `promptSafeName`: a demo/sample project is named
+ *  "Klinika (ukázka)", and this plan's filled text is not internal chrome — its
+ *  rationale, payoff and firstActions are read as advice, handed to the content
+ *  engine as a brief seed, and (through baseChannelResearch) spliced into a model
+ *  answer. "Založte profil pro Klinika (ukázka)" reads as a test account
+ *  (bughunt-refactor-2026-07-10 #1). The wobble key stays `project.id`, so
+ *  stripping the marker cannot reshuffle an existing plan's fit scores. */
 export function channelPlanForProject(project: Project, ctx: ChannelContext = {}): OrganicChannel[] {
-  return baseChannelPlan(project.type, { brand: project.name, ...ctx }, project.id);
+  return baseChannelPlan(project.type, { brand: promptSafeName(project.name), ...ctx }, project.id);
 }
