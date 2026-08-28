@@ -346,7 +346,7 @@ export default async function LandingBolder() {
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     <span className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-onyx text-brand-300 ring-1 ring-onyx-line">
-                      <Image src={meta.image} alt="" fill sizes="48px" className="object-cover opacity-70" />
+                      {/* image is optional in CROSSROAD_META */ meta.image && <Image src={meta.image} alt="" fill sizes="48px" className="object-cover opacity-70" />}
                       <Icon width={20} height={20} className="relative" />
                     </span>
                     <span className="min-w-0 flex-1">

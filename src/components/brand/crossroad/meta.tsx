@@ -4,23 +4,37 @@
  *  so the (server-resolved, localized) nav items can be merged on the client
  *  without passing non-serializable icon components across the boundary. */
 import type { ComponentType, SVGProps } from "react";
-import { Gauge, Document, Sparkles, Target } from "@/components/icons";
+import { Gauge, Document, Sparkles, Target, Network } from "@/components/icons";
 import type { NavItem } from "@/lib/nav";
 
 export interface CrossroadMeta {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
-  /** subtle ambient illustration (public/brand/crossroad/*.png) */
-  image: string;
+  /** subtle ambient illustration (public/brand/crossroad/*.png). Optional: a
+   *  destination with no illustration commissioned yet renders the icon on the
+   *  plain onyx chip rather than reusing another page's artwork. */
+  image?: string;
 }
 
 /** The four destinations moved out of the header, in journey order. */
 export const CROSSROAD_HREFS = ["/dashboard", "/clanek", "/ai-asistent", "/kampane"] as const;
 
-export const CROSSROAD_META: Record<(typeof CROSSROAD_HREFS)[number], CrossroadMeta> = {
+/** Public FEATURE pages that also earn a crossroad card (nav.ts
+ *  FEATURE_NAV_ITEMS). Deliberately a SEPARATE list from the four case-study
+ *  stops: the exploratory `/lp` variants enumerate CROSSROAD_HREFS and key their
+ *  own blurb tables off it, so widening that tuple would silently demand copy
+ *  from three landings that are not part of this story. */
+export const FEATURE_CROSSROAD_HREFS = ["/kanaly-zdarma"] as const;
+
+export type CrossroadHref =
+  | (typeof CROSSROAD_HREFS)[number]
+  | (typeof FEATURE_CROSSROAD_HREFS)[number];
+
+export const CROSSROAD_META: Record<CrossroadHref, CrossroadMeta> = {
   "/dashboard": { icon: Gauge, image: "/brand/crossroad/dashboard.png" },
   "/clanek": { icon: Document, image: "/brand/crossroad/clanek.png" },
   "/ai-asistent": { icon: Sparkles, image: "/brand/crossroad/ai-asistent.png" },
   "/kampane": { icon: Target, image: "/brand/crossroad/kampane.png" },
+  "/kanaly-zdarma": { icon: Network },
 };
 
 /** Card = a localized nav item (serializable — passed server→client). The icon +

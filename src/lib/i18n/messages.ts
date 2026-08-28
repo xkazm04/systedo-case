@@ -108,6 +108,11 @@ const cs: Messages = {
         label: "Kampaně",
         blurb: "Bonus: přehled kampaní z Google Ads se srovnáním podle typů, AI vyhodnocením a uložením do SQLite.",
       },
+      // Stránka s funkcí (nav.ts FEATURE_NAV_ITEMS), ne úkol případové studie.
+      "/kanaly-zdarma": {
+        label: "Kanály zdarma",
+        blurb: "Kde se zviditelnit bez rozpočtu na reklamu: katalogy, komunity, obsah a partnerství.",
+      },
     },
   },
   footer: {
@@ -171,6 +176,11 @@ const en: Messages = {
       "/kampane": {
         label: "Campaigns",
         blurb: "Bonus: a Google Ads campaign overview with type comparison, AI evaluation and Firestore storage.",
+      },
+      // Feature page (nav.ts FEATURE_NAV_ITEMS), not a case-study task.
+      "/kanaly-zdarma": {
+        label: "Free channels",
+        blurb: "Where to get seen without an ad budget: directories, communities, content and partnerships.",
       },
     },
   },

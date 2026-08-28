@@ -884,7 +884,10 @@
         "src/components/brand/crossroad/meta.tsx",
         "src/components/brand/variants/LandingBolder.tsx",
         "src/components/brand/variants/LandingDistilled.tsx",
-        "src/components/brand/variants/LandingNewWorld.tsx"
+        "src/components/brand/variants/LandingNewWorld.tsx",
+        "src/components/brand/landing/LandingHero.tsx",
+        "src/components/brand/landing/LandingProof.tsx",
+        "src/components/brand/landing/LandingClosing.tsx"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
@@ -4043,7 +4046,15 @@
         "src/app/socialni/page.tsx",
         "src/app/mapa/page.tsx",
         "src/app/mapa/loading.tsx",
-        "src/app/knihovna/page.tsx"
+        "src/app/knihovna/page.tsx",
+        "src/app/kanaly-zdarma/page.tsx",
+        "src/components/marketing/kanaly/facts.ts",
+        "src/components/marketing/kanaly/FreeChannelsHero.tsx",
+        "src/components/marketing/kanaly/FreeChannelsPath.tsx",
+        "src/components/marketing/kanaly/SeededPlanTable.tsx",
+        "src/components/marketing/kanaly/VisibilityPlanBand.tsx",
+        "src/components/marketing/kanaly/FreeChannelsClosing.tsx",
+        "src/components/marketing/kanaly/HomeFreeChannelsBand.tsx"
       ],
       "group": "Site & Marketing",
       "group_id": "0ca5ac6b-c9d8-4a90-94fb-6088a88a66b4",
@@ -5659,7 +5670,7 @@
   },
   "stats": {
     "contexts": 117,
-    "files": 866,
+    "files": 877,
     "groups": 16,
     "use_cases": 0
   },

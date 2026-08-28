@@ -10,12 +10,14 @@ web
 
 Two audiences, both confirmed by the codebase:
 
-- **Primary (in-product):** operators of Czech e-shops and the small agencies that
-  serve them. They run paid acquisition on Google Ads and Sklik, publish to Meta and
-  TikTok, and have neither an in-house performance team nor an agency retainer. The
-  job: find out what is actually working this week, fix the campaigns that are
-  leaking, and produce the next batch of ads, articles, and posts without hiring a
-  copywriter.
+- **Primary (in-product):** operators of Czech e-shops, small digital products and
+  local service businesses, plus the small agencies that serve them. They have neither
+  an in-house performance team nor an agency retainer. Two jobs, and a given user may
+  only ever have the first: *(a)* with a website and no ad budget — find the free
+  places worth being visible on and work them one at a time; *(b)* once they do run
+  paid acquisition on Google Ads and Sklik and publish to Meta and TikTok — find out
+  what is actually working this week, fix the campaigns that are leaking, and produce
+  the next batch of ads, articles, and posts without hiring a copywriter.
 - **Secondary (evaluative):** a technical reviewer assessing this repository as a
   case study for the Systedo "AI Vibecoder" position (see README.md). This audience
   is real and durable: it is why the public surfaces must read as a shipped product
@@ -26,24 +28,43 @@ The product is Czech-first. Copy ships `cs` and `en`, and `cs` is the primary lo
 
 ## Product Purpose
 
-Adamant is an AI ad-intelligence workspace. It ingests an advertiser's live channel
-data, tells them what the numbers mean, and then generates the marketing assets those
-numbers call for — ad copy, articles, social posts, creative images, local-SEO and
-keyword work — inside one workspace instead of across a dashboard, a spreadsheet, and
-a chat window.
+Adamant is an AI marketing workspace that does two jobs, in this order.
 
-Success is that an operator opens it weekly, gets a correct read on performance
+**First, discovery without a budget.** Given nothing but a web address, it reads the
+site, works out what the business sells and to whom, and returns a ranked plan of the
+free places that business can be found on the Czech market — directories, price
+comparison sites, communities, owned content, PR and partnerships — with a fit score,
+an effort level and concrete first actions for each, and then keeps the lifecycle of
+each channel as real state. Nothing needs to be connected and nothing needs to be
+spent. This is the first thing the product can do for a new user, and for a business
+with no ad account it may be the only thing it needs to do.
+
+**Second, paid measurement and generation.** For advertisers who do buy clicks, it
+ingests live channel data, tells them what the numbers mean, and generates the
+marketing assets those numbers call for — ad copy, articles, social posts, creative
+images, local-SEO and keyword work — inside one workspace instead of across a
+dashboard, a spreadsheet, and a chat window.
+
+Success is that an operator lands with a URL and leaves with somewhere to be found for
+free; and that a paying advertiser opens it weekly, gets a correct read on performance
 without interpreting charts themselves, and leaves with assets they actually publish.
 
 ## Positioning
 
+**Free visibility first, paid performance second.** The entry path assumes no media
+budget: `/kanaly-zdarma` (public) and the `Kanály zdarma` module compose free channels,
+target search queries and prepared content into ONE visibility plan, with the proposed
+links stated as proposals and any leg the tenant has no data for left explicitly empty
+rather than invented. Most adtech starts at "connect your ad account"; this starts at
+"here is where you can be found for nothing".
+
 **Grounded AI generation.** Every generative operation is anchored to the account's
 own live performance data, product catalog, and trained brand voice — not to a blank
-prompt box. The loop is measure → triage → generate, and the generation step reads the
-same data spine the measurement step wrote. A neighboring tool can bolt an LLM onto a
-dashboard; it cannot truthfully claim its output is conditioned on the advertiser's
-live Google Ads performance, catalog inventory, and captured voice unless it also owns
-that spine.
+prompt box. For the paid half the loop is measure → triage → generate, and the
+generation step reads the same data spine the measurement step wrote. A neighboring
+tool can bolt an LLM onto a dashboard; it cannot truthfully claim its output is
+conditioned on the advertiser's live Google Ads performance, catalog inventory, and
+captured voice unless it also owns that spine.
 
 Supporting (not the claim itself): Sklik is treated as a real channel next to Google
 Ads, which western adtech generally does not do.

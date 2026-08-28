@@ -76,6 +76,10 @@ const PLAN_COPY: Record<
     free: {
       tagline: "Pro vyzkoušení celého toku na ukázkových i živých datech.",
       features: [
+        // The free-channel path needs no ad account, no budget and no paid tier —
+        // it is the one thing the product does for someone who has never bought a
+        // click, so it leads the free tier (/kanaly-zdarma).
+        "Plán bezplatných kanálů viditelnosti (bez rozpočtu na reklamu)",
         "{aiEval} AI vyhodnocení denně",
         "{sync} synchronizací Google Ads denně",
         "{image} generování vizuálů denně",
@@ -110,6 +114,7 @@ const PLAN_COPY: Record<
     free: {
       tagline: "Try the full flow on demo or live data.",
       features: [
+        "A plan of free visibility channels (no ad budget needed)",
         "{aiEval} AI evaluations per day",
         "{sync} Google Ads syncs per day",
         "{image} visual generations per day",

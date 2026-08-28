@@ -19,12 +19,12 @@ const T = {
   cs: {
     eyebrow: "Pracovní prostor",
     heading: "Vyberte si cíl",
-    note: "Případová studie ve čtyřech zastávkách. Každá je reálná část produktu, opřená o stejná klientská data.",
+    note: "Každá zastávka je reálná část produktu, opřená o stejná klientská data.",
   },
   en: {
     eyebrow: "The workspace",
     heading: "Pick a destination",
-    note: "The case study in four stops. Each is a real product surface, grounded in the same client data.",
+    note: "Every stop is a real product surface, grounded in the same client data.",
   },
 } as const;
 
@@ -68,7 +68,11 @@ export default function Crossroad({ items }: { items: CrossroadItem[] }) {
                 {String(i + 1).padStart(2, "0")}
               </span>
               <span className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-onyx text-brand-300 ring-1 ring-onyx-line">
-                <Image src={meta.image} alt="" fill sizes="48px" className="object-cover opacity-70" />
+                {/* The illustration is optional — a destination without one shows
+                    the plain onyx chip rather than borrowing another page's art. */}
+                {meta.image && (
+                  <Image src={meta.image} alt="" fill sizes="48px" className="object-cover opacity-70" />
+                )}
                 <Icon width={20} height={20} className="relative" />
               </span>
               <span className="min-w-0 flex-1">
