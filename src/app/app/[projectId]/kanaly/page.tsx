@@ -8,14 +8,13 @@ import ModulePage from "@/components/app/ModulePage";
 import OrganicChannels from "@/components/app/modules/OrganicChannels";
 import { channelPlanForProject } from "@/lib/organic-channels/sample";
 import { resolveOrganicChannels } from "@/lib/organic-channels/resolve";
-import { competitorsGrounding, planProvenance } from "@/lib/organic-channels/types";
-import { buildKanalyGrounding } from "@/lib/organic-channels/grounding";
+import { planProvenance } from "@/lib/organic-channels/types";
+import { buildKanalyGrounding, kanalyGroundingInput } from "@/lib/organic-channels/grounding";
 import { buildSignpostContext, type SignpostContext } from "@/lib/organic-channels/next-step";
 import { resolveVisibilityPlan } from "@/lib/organic-channels/visibility-plan-resolve";
 import { loadProjectCatalog } from "@/lib/catalog/load";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { getCompetitors } from "@/lib/competitors/store";
-import { curatedCompetitors } from "@/lib/competitors/types";
 import { getOnboarding } from "@/lib/onboarding/store";
 import { resolveTwin } from "@/lib/twin/resolve";
 import { getTwin } from "@/lib/twin/store";
@@ -43,22 +42,18 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     ),
     getOnboarding(project.id).catch(() => null),
   ]);
-  const competitorSet = competitorRead.set;
-  const categories = [...new Set(catalog.map((o) => o.category).filter(Boolean))];
-  const localities = localitiesFor(project).map((l) => l.name);
-  // CURATED only: this grounding is handed to the channel-research model as fact, so an
-  // unconfirmed website-scan guess must not be asserted as one of the tenant's rivals.
-  const competitors = curatedCompetitors(competitorSet?.competitors).map((c) => c.name);
-  const { grounding, sample: sampleContext } = buildKanalyGrounding({
-    categories,
-    offeringNames: catalog.map((o) => o.name),
-    localities,
-    competitors,
-    // "unavailable" ≠ "none": only a FAILED read degrades the regenerate affordance.
-    competitorsUnavailable:
-      competitorsGrounding(competitorRead.failed, competitors) === "unavailable",
-    profile: onboarding?.scan ?? null,
-  });
+  // Curated-competitors-only and "unavailable ≠ none" both live in
+  // kanalyGroundingInput, which is pure, unit-tested, and shared with
+  // visibility-plan-resolve so the two pages cannot ground the same project
+  // differently.
+  const { grounding, sample: sampleContext } = buildKanalyGrounding(
+    kanalyGroundingInput({
+      catalog,
+      localities: localitiesFor(project),
+      competitorRead: { failed: competitorRead.failed, competitors: competitorRead.set?.competitors },
+      profile: onboarding?.scan ?? null,
+    })
+  );
 
   const sample = channelPlanForProject(project, sampleContext);
   const [resolved, twin, savedTwin] = await Promise.all([

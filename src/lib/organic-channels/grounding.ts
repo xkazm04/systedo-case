@@ -24,6 +24,8 @@
  *
  *  Pure and framework-free: no I/O, no Next, no store. The page does the reads. */
 import type { OnboardingScanProfile } from "@/lib/onboarding/types";
+import { curatedCompetitors, type Competitor } from "@/lib/competitors/types";
+import { competitorsGrounding } from "./types";
 
 /** What the kanaly page hands the client (and, through it, the `channel-research`
  *  request). Bounds mirror `validateChannelResearchRequest`, so nothing assembled
@@ -64,6 +66,53 @@ export interface KanalyGroundingResult {
   /** placeholder fill for the SEEDED plan (`{category}` / `{locality}`), so a
    *  catalog-less tenant stops reading "vaší nabídky" once the scan knows better */
   sample: { category?: string; locality?: string };
+}
+
+/** What the SERVER pages actually hold after their reads: the catalog rows, the
+ *  localities, the competitor read (which can FAIL), and the applied scan profile. */
+export interface KanalyPageReads {
+  /** persisted or seeded catalog offerings, in catalog order */
+  catalog: readonly { name: string; category: string }[];
+  /** localities the project serves, in `localitiesFor` order */
+  localities: readonly { name: string }[];
+  /** The competitor leg. Omit it entirely for a caller that deliberately does not
+   *  read competitors — they ground the AI REGENERATION prompt, not the seeded
+   *  plan's fill, so a caller that only needs the seeded plan (the shared visibility
+   *  plan) can skip the read without changing a single channel or a single word. */
+  competitorRead?: { failed: boolean; competitors: readonly Competitor[] | null | undefined };
+  /** the applied website-scan profile, when the tenant ran + applied one */
+  profile?: OnboardingScanProfile | null;
+}
+
+/** Turn one server page's raw reads into the pure builder's input.
+ *
+ *  This composition used to live inline in `/kanaly`'s page component — untestable
+ *  there, and already duplicated (minus the competitor leg) inside
+ *  `visibility-plan-resolve`. Two copies of "what may ground the plan" is exactly
+ *  the shape that lets two pages describe the same project differently, so it is one
+ *  function now and both server callers use it.
+ *
+ *  THE TWO DECISIONS IT CARRIES, both of them rules rather than plumbing:
+ *   • CURATED COMPETITORS ONLY. `curatedCompetitors` drops the website scan's
+ *     unconfirmed `scan`-sourced guesses. This grounding is handed to the model as
+ *     fact; asserting a guess as one of the tenant's rivals would route around the
+ *     confirm gate the apply route deliberately put there.
+ *   • "UNAVAILABLE" ≠ "NONE". Only a FAILED read degrades the regenerate affordance.
+ *     A tenant who genuinely has no competitors is not owed a warning; a tenant whose
+ *     read blinked IS, because regenerating now would silently drop that grounding. */
+export function kanalyGroundingInput(reads: KanalyPageReads): KanalyGroundingInput {
+  const competitors = reads.competitorRead
+    ? curatedCompetitors([...(reads.competitorRead.competitors ?? [])]).map((c) => c.name)
+    : [];
+  return {
+    categories: [...new Set(reads.catalog.map((o) => o.category).filter(Boolean))],
+    offeringNames: reads.catalog.map((o) => o.name),
+    localities: reads.localities.map((l) => l.name),
+    competitors,
+    competitorsUnavailable:
+      competitorsGrounding(reads.competitorRead?.failed ?? false, competitors) === "unavailable",
+    profile: reads.profile ?? null,
+  };
 }
 
 /** Wire bounds, mirroring `validateChannelResearchRequest` / `sanitizeScanProfile`. */

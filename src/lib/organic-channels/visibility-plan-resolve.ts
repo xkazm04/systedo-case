@@ -25,7 +25,7 @@ import { getContentLibrary } from "@/lib/content-library/store";
 import { listKeywordLists } from "@/lib/keywords/store";
 import { getOnboarding } from "@/lib/onboarding/store";
 import type { Project } from "@/lib/projects/types";
-import { buildKanalyGrounding } from "./grounding";
+import { buildKanalyGrounding, kanalyGroundingInput } from "./grounding";
 import { resolveOrganicChannels, type ResolvedChannels } from "./resolve";
 import { channelPlanForProject } from "./sample";
 import {
@@ -44,14 +44,16 @@ async function resolveChannelLeg(project: Project): Promise<ResolvedChannels> {
     loadProjectCatalog(project),
     getOnboarding(project.id).catch(() => null),
   ]);
-  const { sample: sampleContext } = buildKanalyGrounding({
-    categories: [...new Set(catalog.map((o) => o.category).filter(Boolean))],
-    offeringNames: catalog.map((o) => o.name),
-    localities: localitiesFor(project).map((l) => l.name),
-    competitors: [],
-    competitorsUnavailable: false,
-    profile: onboarding?.scan ?? null,
-  });
+  // Same composer /kanaly uses, with the competitor leg deliberately omitted
+  // (see KanalyPageReads.competitorRead) — so the two pages read the catalog, the
+  // localities and the scan profile through ONE rule instead of two copies of it.
+  const { sample: sampleContext } = buildKanalyGrounding(
+    kanalyGroundingInput({
+      catalog,
+      localities: localitiesFor(project),
+      profile: onboarding?.scan ?? null,
+    })
+  );
   return resolveOrganicChannels(project.id, channelPlanForProject(project, sampleContext));
 }
 
