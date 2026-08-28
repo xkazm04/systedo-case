@@ -35,7 +35,7 @@ function gateButton(page: Page) {
  *  the empty (first-project form) and populated (project list) states, and never
  *  by the sign-in gate. This is the anchor that decides authed vs gate. */
 function workspaceHome(page: Page) {
-  return page.getByRole("link", { name: /Adamant — (domů|home)/ });
+  return page.getByRole("link", { name: /Adamant.{0,3}(domů|home)/ });
 }
 
 /** Open /app and report which of the two legitimate states rendered. Generous

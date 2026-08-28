@@ -28,7 +28,7 @@ function gateButton(page: Page) {
 }
 
 function workspaceHome(page: Page) {
-  return page.getByRole("link", { name: /Adamant — (domů|home)/ });
+  return page.getByRole("link", { name: /Adamant.{0,3}(domů|home)/ });
 }
 
 async function gotoAppHub(page: Page): Promise<"gate" | "authed"> {
