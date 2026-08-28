@@ -5,6 +5,7 @@
 import { firestore } from "@/lib/firebase";
 import {
   appendDiagnosis,
+  parseDiagnosisState,
   setStatusIn,
   type DiagnosisState,
   type DiagnosisStatus,
@@ -19,11 +20,7 @@ function diagnosesDoc(projectId: string) {
  *  plain read and the transactional read-modify-write below. */
 function readState(raw: unknown): DiagnosisState | null {
   if (typeof raw !== "string") return null;
-  try {
-    return JSON.parse(raw) as DiagnosisState;
-  } catch {
-    return null;
-  }
+  return parseDiagnosisState(raw);
 }
 
 export async function getDiagnoses(projectId: string): Promise<DiagnosisState | null> {
