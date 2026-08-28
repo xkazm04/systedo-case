@@ -8,7 +8,7 @@
  *  schranka, content — via the setup wizard and deep links. Lifecycle intent is
  *  stored; readiness is derived (next-step.ts) from the twin modules' real
  *  state, so this signpost can never disagree with them. */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useProject } from "@/lib/projects/context";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -142,6 +142,12 @@ export default function OrganicChannels({
 
   const [channels, setChannels] = useState<OrganicChannel[]>(initialChannels);
   const [tracks, setTracks] = useState<Record<string, ChannelTrack>>(initialTracks);
+  /** Latest tracks, readable outside a render closure — so `saveTracks` can compute
+   *  and POST the next state without doing that work inside a state updater. */
+  const tracksRef = useRef(tracks);
+  useEffect(() => {
+    tracksRef.current = tracks;
+  });
   const [source, setSource] = useState<"sample" | "ai">(initialSource);
   /** when the AI plan was generated — server-resolved, refreshed on client apply */
   const [generatedAt, setGeneratedAt] = useState<string | undefined>(initialGeneratedAt);
@@ -190,13 +196,18 @@ export default function OrganicChannels({
       .catch(() => setSaveFailed(true));
   };
 
+  /** Mutate the tracked lifecycle and persist the result.
+   *
+   *  The POST used to be fired from INSIDE the `setTracks` updater. A state updater
+   *  must be pure: React is free to run it more than once for a render it then
+   *  discards, so the write could fire twice, or fire for a state the UI never
+   *  showed. The latest tracks are read from a ref instead — the same pattern (and
+   *  the same reason) as ContentSchedule's `postsRef`. */
   const saveTracks = (mutate: (prev: Record<string, ChannelTrack>) => Record<string, ChannelTrack>) => {
     if (degraded) return; // a whole-state POST now could clobber the unread real plan
-    setTracks((prev) => {
-      const next = mutate(prev);
-      persist({ tracks: next, ...(source === "ai" ? { plan: channels } : {}) });
-      return next;
-    });
+    const next = mutate(tracksRef.current);
+    setTracks(next);
+    persist({ tracks: next, ...(source === "ai" ? { plan: channels } : {}) });
   };
 
   const setStage = (id: string, stage: ChannelStage) =>
