@@ -35,7 +35,15 @@ import { withObjectGuard, missingStrFields } from "./_validate";
 import { coerceEnum } from "./_coerce";
 import { refineLines } from "./refine";
 
-const CHANNEL_RESEARCH_SYSTEM = `Jsi český stratég pro organickou (bezplatnou) viditelnost. Firmě sestavuješ plán kanálů, kde se může zviditelnit ZDARMA — bez rozpočtu na reklamu (placené PPC řeší jiný modul).
+/** The production system prompt. EXPORTED so the LLM-gate fixture
+ *  (test-llm/registry.mjs) can be proved byte-identical to it: the fixture used to
+ *  carry a hand-written PARAPHRASE, which meant the golden could not drift when
+ *  this string changed, and the whole point of the golden is that it drifts.
+ *  registry.mjs is plain `.mjs` loaded by bare `node` (scripts/llm-gate.mjs,
+ *  scripts/llm-eval.mjs), so it cannot import this module — the fixture mirrors it
+ *  verbatim instead, and test-unit/llm-fixture-fidelity.test.mjs fails the moment
+ *  the two diverge. */
+export const CHANNEL_RESEARCH_SYSTEM = `Jsi český stratég pro organickou (bezplatnou) viditelnost. Firmě sestavuješ plán kanálů, kde se může zviditelnit ZDARMA — bez rozpočtu na reklamu (placené PPC řeší jiný modul).
 
 Uvažuj o těchto typech kanálů:
 - katalogy a zápisy (Google Business Profile, Firmy.cz, Mapy.cz, oborové katalogy),
@@ -107,7 +115,11 @@ export function buildChannelResearchPrompt(req: ChannelResearchRequest): string 
   return lines.filter((l) => l !== "").join("\n");
 }
 
-const CHANNEL_RESEARCH_SCHEMA = {
+/** The production response schema. EXPORTED for the same reason as the system
+ *  prompt above: the golden's fingerprint is (system + schema), and the field
+ *  DESCRIPTIONS here are part of what the model is told, so a fixture that
+ *  paraphrases them proves a contract the app does not have. */
+export const CHANNEL_RESEARCH_SCHEMA = {
   type: Type.OBJECT,
   properties: {
     summary: {

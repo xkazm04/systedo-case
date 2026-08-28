@@ -886,37 +886,115 @@ Na základě těchto čísel urči: jednovětý verdikt (headline), odstavec shr
       Array.isArray(r.priorities) &&
       isStr(r.priorities[0]?.title),
   },
+  // system + schema + prompt are the PRODUCTION contract, mirrored byte-for-byte from
+  // src/lib/ai/tools/channel-research.ts (CHANNEL_RESEARCH_SYSTEM, CHANNEL_RESEARCH_SCHEMA,
+  // buildChannelResearchPrompt(CHANNEL_RESEARCH_FIXTURE_REQUEST)) @ 2026-08-28. This file is
+  // loaded by bare `node` (llm-gate / llm-eval), so it cannot import the TS module — the copy
+  // is kept honest by test-unit/llm-fixture-fidelity.test.mjs, which fails when the two
+  // diverge. Update both together, then `npm run llm:eval:update -- --reason "..."`.
   {
     id: "channel-research",
     label: "Výzkum bezplatných kanálů viditelnosti",
-    system:
-      "Jsi český stratég pro organickou (bezplatnou) viditelnost. Firmě sestavuješ plán kanálů, kde se může zviditelnit zdarma, bez rozpočtu na reklamu. Vycházej jen z předaného kontextu, nevymýšlej si čísla ani fakta o konkurenci, a vracej pouze validní JSON dle schématu.",
-    prompt:
-      "Sestav plán bezplatných (organických) kanálů viditelnosti pro tuto firmu. Typ podnikání: lokální podnik / služby s provozovnou. Značka / firma: Dentalis. Nabídka: zubní ordinace, dentální hygiena, implantáty. Lokality: Brno. Klíčová slova, která publikum hledá: zubař Brno, dentální hygiena Brno, zubní implantáty. Vrať summary (jedna věta o největší bezplatné příležitosti) a channels — 6–9 kanálů seřazených podle fit sestupně, každý s poli name (název kanálu), category (jedna z: directory | marketplace | community | content | social | pr | partnership), fit (0–100), effort (low | medium | high), rationale (proč sedí právě této firmě), payoff (co přinese) a firstActions (2–4 konkrétní první kroky). Vrať POUZE jeden JSON objekt.",
+    system: `Jsi český stratég pro organickou (bezplatnou) viditelnost. Firmě sestavuješ plán kanálů, kde se může zviditelnit ZDARMA — bez rozpočtu na reklamu (placené PPC řeší jiný modul).
+
+Uvažuj o těchto typech kanálů:
+- katalogy a zápisy (Google Business Profile, Firmy.cz, Mapy.cz, oborové katalogy),
+- porovnávače / marketplace se zdarma výpisem (Zboží.cz, Heureka),
+- komunity (Facebook skupiny, Reddit, oborová fóra, Product Hunt),
+- vlastní obsah (SEO/blog, YouTube, newsletter),
+- organické sociální sítě,
+- PR a hostování (podcasty, hostující články, reference),
+- partnerství a spolupráce (tvůrci, okolní/nekonkurenční podniky).
+
+Pravidla:
+- Doporuč 6–9 KONKRÉTNÍCH kanálů vhodných přesně pro tuto firmu a její typ. Preferuj kanály relevantní na českém trhu.
+- Vycházej VÝHRADNĚ z předaného kontextu (typ podnikání, značka, popis firmy, nabídka, publikum, lokality, konkurence, klíčová slova) — nevymýšlej si žádné údaje, které v podkladech nejsou. Zejména si nevymýšlej čísla ani fakta o konkurenci.
+- Každý kanál musí být bezplatný na vstup (žádné placené PPC/nákup médií).
+- Pro každý kanál vrať: „name" (název kanálu), „category" (jedna z: directory | marketplace | community | content | social | pr | partnership), „fit" (0–100, jak dobře sedí této firmě), „effort" (low | medium | high), „rationale" (jednou větou proč sedí PRÁVĚ této firmě), „payoff" (co konkrétně přinese) a „firstActions" (2–4 konkrétní první kroky).
+- Seřaď kanály od nejvyššího „fit" po nejnižší. Nedávej dva stejné kanály.
+- Volitelně u kanálu vrať „url" (kam se zapsat) a „contentAngle" (námět příspěvku k předání do tvorby obsahu).
+- Vrať i „summary": jednu větu, kde má firma největší bezplatnou příležitost.
+- Piš česky, věcně, bez marketingových frází, a vracej POUZE jeden validní JSON objekt dle schématu — žádný text okolo.`,
+    prompt: `Sestav plán bezplatných (organických) kanálů viditelnosti pro tuto firmu.
+Typ podnikání: lokální podnik / služby s provozovnou
+Značka / firma: Dentalis
+Čím se firma zabývá: Zubní ordinace v Brně s vlastní dentální hygienou; ošetřujeme děti i dospělé.
+Nabídka: zubní ordinace, dentální hygiena, implantáty
+Cílové publikum: dospělí v Brně a okolí, kteří hledají stálého zubaře
+Lokality: Brno
+Konkurence (jen pro rámec, nevymýšlej si o ní čísla): Zubovo, SmileClinic
+Klíčová slova, která publikum hledá: zubař Brno, dentální hygiena Brno, zubní implantáty
+Vrať „summary" (jedna věta o největší bezplatné příležitosti) a „channels" — 6–9 kanálů seřazených podle „fit" sestupně, každý s poli name, category, fit, effort, rationale, payoff, firstActions (volitelně url, contentAngle).`,
     schema: {
       type: Type.OBJECT,
       properties: {
-        summary: { type: Type.STRING },
+        summary: {
+          type: Type.STRING,
+          description: "Jedna věta o největší bezplatné příležitosti firmy",
+        },
         channels: {
           type: Type.ARRAY,
+          description: "Bezplatné kanály viditelnosti, seřazené podle fit sestupně",
           items: {
             type: Type.OBJECT,
             properties: {
-              name: { type: Type.STRING },
-              category: { type: Type.STRING },
-              fit: { type: Type.NUMBER },
-              effort: { type: Type.STRING },
-              rationale: { type: Type.STRING },
-              payoff: { type: Type.STRING },
-              firstActions: { type: Type.ARRAY, items: { type: Type.STRING } },
-              url: { type: Type.STRING },
-              contentAngle: { type: Type.STRING },
+              name: {
+                type: Type.STRING,
+                description: "Název kanálu",
+              },
+              category: {
+                type: Type.STRING,
+                description: "Kategorie kanálu, jedna z: directory | marketplace | community | content | social | pr | partnership",
+              },
+              fit: {
+                type: Type.NUMBER,
+                description: "Vhodnost pro tuto firmu, 0–100",
+              },
+              effort: {
+                type: Type.STRING,
+                description: "Náročnost: low | medium | high",
+              },
+              rationale: {
+                type: Type.STRING,
+                description: "Proč kanál sedí právě této firmě",
+              },
+              payoff: {
+                type: Type.STRING,
+                description: "Co konkrétně kanál přinese",
+              },
+              firstActions: {
+                type: Type.ARRAY,
+                description: "2–4 konkrétní první kroky",
+                items: {
+                  type: Type.STRING,
+                },
+              },
+              url: {
+                type: Type.STRING,
+                description: "Kam se zapsat (volitelné)",
+              },
+              contentAngle: {
+                type: Type.STRING,
+                description: "Námět příspěvku k předání do tvorby obsahu (volitelné)",
+              },
             },
             required: ["name", "category", "fit", "effort", "rationale", "payoff", "firstActions"],
+            propertyOrdering: [
+              "name",
+              "category",
+              "fit",
+              "effort",
+              "rationale",
+              "payoff",
+              "firstActions",
+              "url",
+              "contentAngle",
+            ],
           },
         },
       },
       required: ["summary", "channels"],
+      propertyOrdering: ["summary", "channels"],
     },
     // Lenient/structural: a non-empty summary and at least three named channels,
     // each with a non-empty name + rationale + at least one first action. category
@@ -965,3 +1043,20 @@ Na základě těchto čísel urči: jednovětý verdikt (headline), odstavec shr
       Array.isArray(r.competitors),
   },
 ];
+
+/** The exact `ChannelResearchRequest` the `channel-research` fixture's `prompt` was
+ *  built from, so the fidelity test can rebuild it from the production builder rather
+ *  than compare against a second hand-written copy. It carries `businessSummary` and
+ *  `audience` deliberately: those are the two fields the onboarding scan contributes,
+ *  the reason a URL-first tenant with an empty catalog gets a grounded plan at all,
+ *  and the paraphrased fixture exercised neither. */
+export const CHANNEL_RESEARCH_FIXTURE_REQUEST = {
+  projectType: "local",
+  brand: "Dentalis",
+  businessSummary: "Zubní ordinace v Brně s vlastní dentální hygienou; ošetřujeme děti i dospělé.",
+  offering: "zubní ordinace, dentální hygiena, implantáty",
+  audience: "dospělí v Brně a okolí, kteří hledají stálého zubaře",
+  localities: ["Brno"],
+  competitors: ["Zubovo", "SmileClinic"],
+  keywords: ["zubař Brno", "dentální hygiena Brno", "zubní implantáty"],
+};

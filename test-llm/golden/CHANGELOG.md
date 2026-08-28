@@ -59,3 +59,11 @@ prompts themselves. Every change from here forward carries its reason.
 | social | — | d242c5030bc0cba3 |
 | twin-reply | — | ecd4ef468762bdea |
 | twin-style | — | ad3168196ab640e4 |
+
+## 2026-08-28 — channel-research
+
+channel-research: fixture replaced the paraphrased system prompt and summarised schema with the production CHANNEL_RESEARCH_SYSTEM and CHANNEL_RESEARCH_SCHEMA verbatim, so the golden pins the app's real contract instead of a hand-written copy of it (backlog 22, ship gap T4); no production prompt or schema was changed
+
+| tool | from | to |
+|---|---|---|
+| channel-research | 3ebb6e442c386bcb | b78a5a2a23afd349 |

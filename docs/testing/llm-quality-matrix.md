@@ -154,6 +154,25 @@ LLM_QUALITY_TOOLS=ads npm run llm:quality
 LLM_QUALITY_TOOLS=analysis,campaign-eval LLM_QUALITY_REASONING=high npm run llm:quality
 ```
 
+### Baking is WHOLE-SCORECARD — a subset run cannot be baked
+
+`scripts/bake-quality-scores.mjs` rebuilds `src/lib/llm/quality-scores.ts` from ONE
+report and nothing else: `cells` is assembled from that report's results, `models`
+from that report's targets. There is no merge with what is already committed. So a
+subset run bakes a scorecard containing only the operations it ran, silently
+deleting the rest — the public page at `/kvalita-modelu` loses them, and
+`llm:quality:check`'s `unbaked` ratchet jumps by however many were dropped, which
+fails `check:ci`.
+
+The subset runs above are for **validating slugs and reading a spread**, not for
+adding an operation to the scorecard. To bake a currently-unbaked operation
+(`channel-research`, `local-diagnosis`, `monthly-recap`, `onboarding-scan`,
+`twin-reply`, `twin-style`) you need a run that also covers the 15 already baked —
+i.e. a full matrix, with the cost the section above describes — and then a single
+bake of that one report. Merging bake support would remove the constraint; until
+someone does that, "bake just this one op" is not a thing the procedure supports,
+and reaching for it destroys the other columns.
+
 ### Env knobs
 
 | Var | Default | Effect |

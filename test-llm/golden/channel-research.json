@@ -1,48 +1,69 @@
 {
   "id": "channel-research",
   "label": "Výzkum bezplatných kanálů viditelnosti",
-  "promptHash": "3ebb6e442c386bcb",
+  "promptHash": "b78a5a2a23afd349",
   "schemaKeys": [
     "channels",
     "summary"
   ],
-  "system": "Jsi český stratég pro organickou (bezplatnou) viditelnost. Firmě sestavuješ plán kanálů, kde se může zviditelnit zdarma, bez rozpočtu na reklamu. Vycházej jen z předaného kontextu, nevymýšlej si čísla ani fakta o konkurenci, a vracej pouze validní JSON dle schématu.",
+  "system": "Jsi český stratég pro organickou (bezplatnou) viditelnost. Firmě sestavuješ plán kanálů, kde se může zviditelnit ZDARMA — bez rozpočtu na reklamu (placené PPC řeší jiný modul).\n\nUvažuj o těchto typech kanálů:\n- katalogy a zápisy (Google Business Profile, Firmy.cz, Mapy.cz, oborové katalogy),\n- porovnávače / marketplace se zdarma výpisem (Zboží.cz, Heureka),\n- komunity (Facebook skupiny, Reddit, oborová fóra, Product Hunt),\n- vlastní obsah (SEO/blog, YouTube, newsletter),\n- organické sociální sítě,\n- PR a hostování (podcasty, hostující články, reference),\n- partnerství a spolupráce (tvůrci, okolní/nekonkurenční podniky).\n\nPravidla:\n- Doporuč 6–9 KONKRÉTNÍCH kanálů vhodných přesně pro tuto firmu a její typ. Preferuj kanály relevantní na českém trhu.\n- Vycházej VÝHRADNĚ z předaného kontextu (typ podnikání, značka, popis firmy, nabídka, publikum, lokality, konkurence, klíčová slova) — nevymýšlej si žádné údaje, které v podkladech nejsou. Zejména si nevymýšlej čísla ani fakta o konkurenci.\n- Každý kanál musí být bezplatný na vstup (žádné placené PPC/nákup médií).\n- Pro každý kanál vrať: „name\" (název kanálu), „category\" (jedna z: directory | marketplace | community | content | social | pr | partnership), „fit\" (0–100, jak dobře sedí této firmě), „effort\" (low | medium | high), „rationale\" (jednou větou proč sedí PRÁVĚ této firmě), „payoff\" (co konkrétně přinese) a „firstActions\" (2–4 konkrétní první kroky).\n- Seřaď kanály od nejvyššího „fit\" po nejnižší. Nedávej dva stejné kanály.\n- Volitelně u kanálu vrať „url\" (kam se zapsat) a „contentAngle\" (námět příspěvku k předání do tvorby obsahu).\n- Vrať i „summary\": jednu větu, kde má firma největší bezplatnou příležitost.\n- Piš česky, věcně, bez marketingových frází, a vracej POUZE jeden validní JSON objekt dle schématu — žádný text okolo.",
   "schema": {
     "properties": {
       "channels": {
+        "description": "Bezplatné kanály viditelnosti, seřazené podle fit sestupně",
         "items": {
           "properties": {
             "category": {
+              "description": "Kategorie kanálu, jedna z: directory | marketplace | community | content | social | pr | partnership",
               "type": "STRING"
             },
             "contentAngle": {
+              "description": "Námět příspěvku k předání do tvorby obsahu (volitelné)",
               "type": "STRING"
             },
             "effort": {
+              "description": "Náročnost: low | medium | high",
               "type": "STRING"
             },
             "firstActions": {
+              "description": "2–4 konkrétní první kroky",
               "items": {
                 "type": "STRING"
               },
               "type": "ARRAY"
             },
             "fit": {
+              "description": "Vhodnost pro tuto firmu, 0–100",
               "type": "NUMBER"
             },
             "name": {
+              "description": "Název kanálu",
               "type": "STRING"
             },
             "payoff": {
+              "description": "Co konkrétně kanál přinese",
               "type": "STRING"
             },
             "rationale": {
+              "description": "Proč kanál sedí právě této firmě",
               "type": "STRING"
             },
             "url": {
+              "description": "Kam se zapsat (volitelné)",
               "type": "STRING"
             }
           },
+          "propertyOrdering": [
+            "name",
+            "category",
+            "fit",
+            "effort",
+            "rationale",
+            "payoff",
+            "firstActions",
+            "url",
+            "contentAngle"
+          ],
           "required": [
             "name",
             "category",
@@ -57,9 +78,14 @@
         "type": "ARRAY"
       },
       "summary": {
+        "description": "Jedna věta o největší bezplatné příležitosti firmy",
         "type": "STRING"
       }
     },
+    "propertyOrdering": [
+      "summary",
+      "channels"
+    ],
     "required": [
       "summary",
       "channels"
