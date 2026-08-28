@@ -116,3 +116,34 @@ test("an empty plan yields no rec instead of a crash", () => {
   });
   assert.equal(channelRec(recs), undefined);
 });
+
+/* The rec's BODY must describe the pick, not the rule. The fallback chain goes
+ * past the quick-win bar on purpose (the Overview always wants one item), and the
+ * detail line used to assert "low effort, high fit" regardless — about a channel
+ * that is provably neither. */
+
+test("a quick-win pick keeps the low-effort / high-fit claim", () => {
+  const rec = channelRec(collectRecommendations(project, "cs", null, null, false, pinned));
+  assert.match(rec.title, /Náš kanál/);
+  assert.match(rec.detail, /nízkou náročností a vysokou vhodností/);
+});
+
+test("a fallback pick must NOT claim to be low effort and high fit", () => {
+  // Only "Vysoká námaha" (fit 95, effort high) and "Slabý fit" (fit 40, effort
+  // low) are left untracked — neither clears the bar, so the chain falls back.
+  const tracked = { ...pinned, tracks: { "nas-kanal": { stage: "planned" } } };
+  const rec = channelRec(collectRecommendations(project, "cs", null, null, false, tracked));
+  assert.match(rec.title, /Vysoká námaha/);
+  assert.ok(
+    !/nízkou náročností a vysokou vhodností/.test(rec.detail),
+    "the fallback must not describe a high-effort channel as a quick win"
+  );
+  assert.match(rec.detail, /rychlou výhru s nízkou náročností teď plán nenabízí/);
+});
+
+test("the fallback disclosure is localized, not Czech-only", () => {
+  const tracked = { ...pinned, tracks: { "nas-kanal": { stage: "planned" } } };
+  const rec = channelRec(collectRecommendations(project, "en", null, null, false, tracked));
+  assert.match(rec.detail, /no low-effort quick win left right now/);
+  assert.ok(!/Low-effort, high-fit/.test(rec.detail));
+});

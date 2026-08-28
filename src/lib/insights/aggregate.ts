@@ -433,6 +433,13 @@ function channelRecs(
     plan.channels.find(isQuickWin) ??
     plan.channels[0];
   if (!quickWin) return [];
+  // The fallback chain deliberately goes PAST the quick-win bar rather than going
+  // silent — but the body text then described the pick instead of the rule, and
+  // said "low effort, high fit" about a channel that is provably neither (the
+  // pinned case in insights-channel-rec.test.mjs picks a high-effort one). A
+  // recommendation that misstates the thing it is recommending is the same trust
+  // defect as a seeded number without its badge, so the copy follows the pick.
+  const quick = isQuickWin(quickWin);
   // A seeded plan's fit scores are illustrative and wear the badge; a pinned AI
   // plan is the tenant's own resolved data and must not be called sample.
   return [
@@ -441,9 +448,13 @@ function channelRecs(
       "kanaly",
       "opportunity",
       locale === "en" ? `Free channel: ${quickWin.name}` : `Kanál zdarma: ${quickWin.name}`,
-      locale === "en"
-        ? `Low-effort, high-fit organic channel (fit ${quickWin.fit}). Get visible without an ad budget. Open the plan for the first steps.`
-        : `Bezplatný kanál s nízkou náročností a vysokou vhodností (fit ${quickWin.fit}). Získejte viditelnost bez rozpočtu na reklamu. V plánu máte první kroky.`,
+      quick
+        ? locale === "en"
+          ? `Low-effort, high-fit organic channel (fit ${quickWin.fit}). Get visible without an ad budget. Open the plan for the first steps.`
+          : `Bezplatný kanál s nízkou náročností a vysokou vhodností (fit ${quickWin.fit}). Získejte viditelnost bez rozpočtu na reklamu. V plánu máte první kroky.`
+        : locale === "en"
+          ? `The best-fitting free channel you haven't started yet (fit ${quickWin.fit}) — the plan has no low-effort quick win left right now. Get visible without an ad budget. Open the plan for the first steps.`
+          : `Nejlépe sedící bezplatný kanál, který ještě nemáte rozpracovaný (fit ${quickWin.fit}) — rychlou výhru s nízkou náročností teď plán nenabízí. Získejte viditelnost bez rozpočtu na reklamu. V plánu máte první kroky.`,
       `fit ${quickWin.fit}`
     )),
   ];
