@@ -13,9 +13,11 @@ export function isoWeekKey(date: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** The claim-first decision behind the sent-guard: a period is newly claimable
- *  only when it differs from the previously-recorded one. Both backends (the
- *  Firestore transaction and the sqlite UPSERT-where) enforce exactly this. */
+/** The claim-first decision behind the sent-guard: claims are MONOTONIC — a
+ *  period is claimable only when it is LATER than the previously-recorded one
+ *  (ISO date strings sort lexicographically). A stale-period claim never
+ *  regresses the guard. Both backends (the Firestore transaction and the
+ *  sqlite UPSERT-where) enforce exactly this. */
 export function isNewPeriod(previousPeriod: string | undefined | null, period: string): boolean {
-  return previousPeriod !== period;
+  return previousPeriod == null || period > previousPeriod;
 }

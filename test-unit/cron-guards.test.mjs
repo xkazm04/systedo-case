@@ -47,11 +47,13 @@ test("isoWeekKey: every day in the same ISO week maps to that week's Monday (UTC
   assert.equal(isoWeekKey(new Date("2026-07-12T23:00:00Z")), "2026-07-06");
 });
 
-test("isNewPeriod: only a changed period is claimable", () => {
+test("isNewPeriod: only a LATER period is claimable (claims are monotonic)", () => {
   assert.equal(isNewPeriod(undefined, "2026-07-13"), true);
   assert.equal(isNewPeriod(null, "2026-07-13"), true);
   assert.equal(isNewPeriod("2026-07-06", "2026-07-13"), true);
   assert.equal(isNewPeriod("2026-07-13", "2026-07-13"), false);
+  // A STALE period never regresses the guard — the newer week stays guarded.
+  assert.equal(isNewPeriod("2026-07-20", "2026-07-13"), false);
 });
 
 test("isDayClaimed: the report claim-first compare-and-set decision", () => {
@@ -72,6 +74,10 @@ test("local claimSentPeriod: first claim wins, same-period re-fire refused, new 
   // The NEXT week is a new period → claimable again.
   assert.equal(await claimSentPeriod(tenant, "digest-weekly", "2026-07-20"), true);
   // …and now that new week is itself guarded.
+  assert.equal(await claimSentPeriod(tenant, "digest-weekly", "2026-07-20"), false);
+  // A STALE-period claim is refused and never regresses the guard: the current
+  // week stays claimed, so it cannot be re-claimed (no double-send).
+  assert.equal(await claimSentPeriod(tenant, "digest-weekly", "2026-07-13"), false);
   assert.equal(await claimSentPeriod(tenant, "digest-weekly", "2026-07-20"), false);
 
   // A different tenant is independent (per-tenant guard).
