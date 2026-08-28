@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { pinLocale } from "./support";
 
 /**
  * The trend chart overlays the previous (comparison) period as a faint dotted
@@ -23,7 +24,12 @@ const chartOf = (page: import("@playwright/test").Page) =>
   page.getByRole("img", { name: /Vývoj metriky/ }).first();
 
 test.describe("/dashboard — previous-period overlay", () => {
-  test.beforeEach(async ({ page }) => {
+  // The chart's accessible name and its legend are cs ("Vývoj metriky",
+  // "Aktuální období"), but DEFAULT_LOCALE is `en` (src/lib/format.ts:41) and a
+  // fresh browser carries no locale cookie — so the page rendered English and
+  // even `chartOf` never resolved. See tests/support.ts.
+  test.beforeEach(async ({ context, baseURL, page }) => {
+    await pinLocale(context, baseURL);
     await page.goto("/dashboard?m=vykon");
   });
 

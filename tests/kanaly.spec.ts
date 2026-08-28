@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { gotoAppHub } from "./support";
 
 /**
  * End-to-end coverage for the free-channel path — "Kanály zdarma" — the app's
@@ -46,20 +47,6 @@ import { test, expect, type Page } from "@playwright/test";
  *  grounding chain broke — the plan is advice, and advice about "vaší nabídky" is
  *  advice about nothing. */
 const PLACEHOLDERS = /vaší firmy|vaší nabídky/;
-
-function gateButton(page: Page) {
-  return page.getByRole("button", { name: /Přihlásit přes Google|Sign in with Google/ });
-}
-
-function workspaceHome(page: Page) {
-  return page.getByRole("link", { name: /Adamant.{0,3}(domů|home)/ });
-}
-
-async function gotoAppHub(page: Page): Promise<"gate" | "authed"> {
-  await page.goto("/app");
-  await expect(gateButton(page).or(workspaceHome(page)).first()).toBeVisible({ timeout: 45_000 });
-  return (await workspaceHome(page).isVisible()) ? "authed" : "gate";
-}
 
 /** ModulePage renders the module title as an h2 (the topbar repeats it as h1).
  *  `.first()` matches the rest of the suite — the dev server keeps a hidden copy

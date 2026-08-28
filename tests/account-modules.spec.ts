@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { gotoAppHub } from "./support";
 
 /**
  * End-to-end coverage for the four ACCOUNT-LEVEL module routes — the ones with no
@@ -22,20 +23,6 @@ import { test, expect, type Page } from "@playwright/test";
  *
  * Run:  npm run test:e2e -- account-modules
  */
-
-function gateButton(page: Page) {
-  return page.getByRole("button", { name: /Přihlásit přes Google|Sign in with Google/ });
-}
-
-function workspaceHome(page: Page) {
-  return page.getByRole("link", { name: /Adamant.{0,3}(domů|home)/ });
-}
-
-async function gotoAppHub(page: Page): Promise<"gate" | "authed"> {
-  await page.goto("/app");
-  await expect(gateButton(page).or(workspaceHome(page)).first()).toBeVisible({ timeout: 45_000 });
-  return (await workspaceHome(page).isVisible()) ? "authed" : "gate";
-}
 
 /** The module's own page header. ModulePage renders the title as an h2; the
  *  topbar renders the SAME label as the h1, so the level matters here.

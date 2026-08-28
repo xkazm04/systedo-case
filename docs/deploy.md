@@ -202,16 +202,37 @@ counterparts afterwards so previews prove behavior, not just layout. Redeploy
 Red that exists on master today, documented so nobody re-diagnoses it. The
 `check` job itself is green; these are the owed items around it.
 
-1. **e2e-smoke: 17/23 failing, ~30 min.** Two independent causes:
-   - `new Date()` evaluated in prerendered shells crashes under Next's
-     `cacheComponents` on `/`, `/app`, and `/ai-asistent`. Fix direction:
-     replace `new Date()` in prerendered shells per the Next cacheComponents
-     guidance (move it behind Suspense/dynamic, or pass time in from a dynamic
-     boundary).
-   - The e2e job has **no Firebase env** (`FIREBASE_SERVICE_ACCOUNT` /
-     `GOOGLE_CLOUD_PROJECT`), so Firestore-backed server components 500. Fix
-     direction: provide a scoped Firebase env to the e2e job, or make those
-     specs env-guarded (skip when the env is absent).
+1. ~~**e2e-smoke: 17/23 failing, ~30 min.**~~ **FIXED 2026-08-28** on
+   `ship/adamant-stabilize`; the diagnosis recorded here on 2026-08-27 was
+   wrong on both counts and is kept so nobody re-derives it.
+
+   **The actual cause was one line of product code.** `22746f17` (2026-08-05,
+   "flip the authoring direction to en-source") changed
+   `src/lib/format.ts:41` `DEFAULT_LOCALE` from `cs` to `en`. The locale is a
+   cookie (`src/lib/i18n/locale.ts`) and a fresh Playwright browser carries
+   none, so every page rendered **English** — while five specs assert Czech
+   copy. Every Czech locator missed; the test-id and role assertions in the
+   same files kept passing, which is why it read like a partial page failure.
+   The last green run is 2026-08-05T21:24Z and that commit landed at 23:55Z
+   the same day: it was red on the very next run and stayed red for 22 days.
+   A second, independent cause hit the two authed specs — the workspace
+   anchor `Adamant — domů` drifted to `Adamant: domů` in the CS-DASH sweep
+   (`1038216d`), so `gotoAppHub` reported "gate" on a `DEV_AUTH` server.
+
+   **What the old entry blamed, and why neither was it.** The
+   `Error: Route "/": … unstable value new Date() while prerendering` lines
+   are dev-server log noise: the routes still render and every spec on them
+   passes once the locale matches. The Firestore
+   `Unable to detect a Project Id` lines are caught and fall back by design —
+   proven by re-running the whole suite locally with `.env.local`/`.env`
+   removed entirely (no Firebase env, no `GEMINI_API_KEY`): green. Both
+   remain worth their own cleanup; neither was failing a test.
+
+   Fix: `tests/support.ts` (a `pinLocale` fixture + one shared `gotoAppHub`
+   whose two anchors are mutually exclusive, so an anchor drift now FAILS
+   instead of skipping) plus a per-spec locale pin. `/design-system` uses
+   bilingual matchers instead, so its committed `en` visual baseline stays
+   valid.
 2. **supply-chain "Secret scan": BLOCKING and red.** gitleaks over the full
    history reports **11 findings** (redacted output). The workflow's stated
    premise — "blocking because it passes today" — is now false. Owed work:

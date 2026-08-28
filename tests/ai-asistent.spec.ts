@@ -1,6 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { CLAUDE_TIMEOUT_MS } from "../src/lib/llm/models";
 import type { AdResponse } from "../src/lib/ai-types";
+import { pinLocale } from "./support";
 
 /**
  * End-to-end tests for the AI assistant (/ai-asistent).
@@ -59,7 +60,13 @@ async function openTab(page: Page, name: RegExp) {
 }
 
 test.describe("/ai-asistent", () => {
-  test.beforeEach(async ({ page }) => {
+  // Every locator in this file is a cs string ("AI marketingový asistent", the
+  // six tab labels, "Vyplnit ukázku"), but DEFAULT_LOCALE is `en`
+  // (src/lib/format.ts:41, flipped 2026-08-05 by 22746f17) and a fresh browser
+  // carries no locale cookie — so the page rendered English and every locator
+  // here missed. Pin the column the assertions speak; see tests/support.ts.
+  test.beforeEach(async ({ context, baseURL, page }) => {
+    await pinLocale(context, baseURL);
     await page.goto("/ai-asistent");
   });
 

@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import { gotoAppHub, signInGate, workspaceHome } from "./support";
 
 /**
  * End-to-end coverage for the first-run critical path:
@@ -23,28 +24,6 @@ import { test, expect, type Page } from "@playwright/test";
  *
  * Run:  npm run test:e2e -- first-run
  */
-
-/** A "Sign in with Google" button. NOT a gate-only anchor: the authed hub's
- *  topbar AuthButton renders the same label (the DEV_AUTH bypass patches the
- *  server `auth()` only, so the client-side useSession stays anonymous). */
-function gateButton(page: Page) {
-  return page.getByRole("button", { name: /Přihlásit přes Google|Sign in with Google/ });
-}
-
-/** The authed project hub's topbar home link (ProjectsHome) — rendered in both
- *  the empty (first-project form) and populated (project list) states, and never
- *  by the sign-in gate. This is the anchor that decides authed vs gate. */
-function workspaceHome(page: Page) {
-  return page.getByRole("link", { name: /Adamant.{0,3}(domů|home)/ });
-}
-
-/** Open /app and report which of the two legitimate states rendered. Generous
- *  timeout: the dev server compiles the route on first hit. */
-async function gotoAppHub(page: Page): Promise<"gate" | "authed"> {
-  await page.goto("/app");
-  await expect(gateButton(page).or(workspaceHome(page)).first()).toBeVisible({ timeout: 45_000 });
-  return (await workspaceHome(page).isVisible()) ? "authed" : "gate";
-}
 
 test.describe("/ — landing", () => {
   // The assertions that make a broken landing undeployable. Structure only
@@ -85,8 +64,8 @@ test.describe("/app — first run", () => {
     // Both states are legitimate; assert whichever rendered is coherent.
     const state = await gotoAppHub(page);
     if (state === "gate") {
-      // the conversion wall: Google sign-in plus the back-to-demo escape hatch
-      await expect(gateButton(page)).toBeVisible();
+      // the conversion wall: the gate's own heading plus the back-to-demo hatch
+      await expect(signInGate(page)).toBeVisible();
       await expect(page.locator('a[href="/dashboard"]').first()).toBeVisible();
     } else {
       // the hub: topbar + one of the three headings (first-project form,

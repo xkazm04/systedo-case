@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { pinLocale } from "./support";
 
 /**
  * End-to-end coverage for the campaign triage layer (/kampane).
@@ -45,7 +46,7 @@ test.describe("/kampane — triage", () => {
   // locale the assertions speak rather than translating 12 Czech strings whose
   // Czech-ness is part of what /kampane is being checked for.
   test.beforeEach(async ({ context, baseURL }) => {
-    await context.addCookies([{ name: "locale", value: "cs", url: baseURL ?? "http://localhost:3100" }]);
+    await pinLocale(context, baseURL);
   });
 
   test("summarises and flags campaigns that breach a rule", async ({ page }) => {

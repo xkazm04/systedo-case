@@ -10,6 +10,14 @@ import { test, expect } from "@playwright/test";
  * On first run (or after an intentional design change) refresh the baseline:
  *   npx playwright test design-system --update-snapshots
  *
+ * LOCALE. This file is the one spec that deliberately does NOT pin `cs` (the way
+ * kampane-triage / clanek-anchors / dashboard-comparison do via
+ * tests/support.ts): the committed visual baseline was captured in the app's
+ * DEFAULT_LOCALE (`en`), and pinning a locale here would silently invalidate it.
+ * Which language the visual reference speaks is a decision that belongs with the
+ * default-locale owner, so the two copy assertions accept both columns instead —
+ * the same contract tests/public-demos.spec.ts states for the public surfaces.
+ *
  * Run:  npm run test:e2e -- design-system
  */
 
@@ -19,7 +27,9 @@ test.describe("/design-system", () => {
   });
 
   test("renders every showcase section", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Design system na jedné obrazovce" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /Design system na jedné obrazovce|The design system on one screen/ })
+    ).toBeVisible();
 
     // each token/component section is present
     for (const id of ["ds-colors", "ds-typography", "ds-buttons", "ds-pills", "ds-icons", "ds-sparklines", "ds-deltabadge", "ds-elevation"]) {
@@ -30,9 +40,14 @@ test.describe("/design-system", () => {
   test("DeltaBadge matrix renders the significance states", async ({ page }) => {
     const section = page.getByTestId("ds-deltabadge");
     // the sub-threshold delta collapses to the explicit "no change" state
-    await expect(section.getByText("beze změny", { exact: true })).toBeVisible();
+    await expect(section.getByText(/^(beze změny|no change)$/)).toBeVisible();
     // a statistically insignificant change renders muted with the noise tooltip
-    await expect(section.locator('[title*="statisticky nevýznamná"]').first()).toBeVisible();
+    await expect(
+      section
+        .locator('[title*="statisticky nevýznamná"]')
+        .or(section.locator('[title*="not statistically significant"]'))
+        .first()
+    ).toBeVisible();
   });
 
   test("colour ramps and base tokens render swatches", async ({ page }) => {

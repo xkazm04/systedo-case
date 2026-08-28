@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { pinLocale } from "./support";
 
 /**
  * Hover-to-copy heading anchor permalinks on the article page (/clanek).
@@ -14,6 +15,16 @@ import { test, expect } from "@playwright/test";
 
 // Reading the clipboard back needs explicit permission in headless Chromium.
 test.use({ permissions: ["clipboard-read", "clipboard-write"] });
+
+// Every accessible name asserted below is Czech ("Kopírovat odkaz na sekci: …",
+// "Obsah článku"), but DEFAULT_LOCALE is `en` (src/lib/format.ts:41) and a fresh
+// browser carries no locale cookie — so the page rendered English and the
+// locators missed. File-level so it also reaches the print block, whose
+// assertions are all `toBeHidden()`: an unresolvable locator is trivially hidden,
+// so that test was passing for the wrong reason. See tests/support.ts.
+test.beforeEach(async ({ context, baseURL }) => {
+  await pinLocale(context, baseURL);
+});
 
 test.describe("/clanek heading anchors", () => {
   test.beforeEach(async ({ page }) => {
