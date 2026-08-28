@@ -213,17 +213,31 @@ export function sanitizeLeadSourceResult(raw: unknown): LeadSourceDiagnosisResul
   return result;
 }
 
-const METRIC_KEY_SET = new Set<string>(["ltvCac", "qualRate", "coverage"]);
+/** Which key metric each diagnosis kind snapshots (mirrors the extractors in
+ *  `outcome.ts`). A snapshot only means anything when its key is the one its kind is
+ *  ABOUT — a "coverage" fraction compared against a cohort's LTV:CAC is a nonsense
+ *  comparison, so the pairing is part of the contract, not a convention. */
+export const DIAGNOSIS_METRIC_KEY_BY_KIND: Record<DiagnosisKind, DiagnosisMetricKey> = {
+  cohort: "ltvCac",
+  "lead-source": "qualRate",
+  local: "coverage",
+};
+
+const METRIC_KEY_SET = new Set<string>(Object.values(DIAGNOSIS_METRIC_KEY_BY_KIND));
 
 /** Coerce an at-diagnosis snapshot from the wire (client-echoed from the result meta)
  *  into a clean {key, metric}, or null when it isn't a well-formed snapshot. Never
- *  trust the wire: the key must be a known metric and the value a finite number. */
-export function sanitizeDiagnosisSnapshot(raw: unknown): DiagnosisSnapshot | null {
+ *  trust the wire: the key must be a known metric and the value a finite number. When
+ *  `kind` is given the key must additionally be the one THAT kind snapshots — a
+ *  mismatched pair (e.g. a cohort diagnosis carrying a "coverage" baseline) would make
+ *  the render-time outcome chip compare differently-scaled numbers, so it is dropped. */
+export function sanitizeDiagnosisSnapshot(raw: unknown, kind?: DiagnosisKind): DiagnosisSnapshot | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
   const key = o.key;
   const metric = o.metric;
   if (!METRIC_KEY_SET.has(key as string)) return null;
+  if (kind && key !== DIAGNOSIS_METRIC_KEY_BY_KIND[kind]) return null;
   if (typeof metric !== "number" || !Number.isFinite(metric)) return null;
   return { key: key as DiagnosisMetricKey, metric };
 }
@@ -279,7 +293,7 @@ export function sanitizeDiagnosisInput(
       : kind === "lead-source"
         ? (result as LeadSourceDiagnosisResult).likelyCause
         : (result as LocalDiagnosisResult).worstGap);
-  const snapshot = sanitizeDiagnosisSnapshot(o.snapshot);
+  const snapshot = sanitizeDiagnosisSnapshot(o.snapshot, kind);
   const input: SanitizedDiagnosisInput = {
     kind,
     result,
