@@ -17,10 +17,19 @@ export interface OnboardingStepDef {
   labelEn: string;
   hintCs: string;
   hintEn: string;
-  /** true for the external-connection steps (Ads, imports, channels, cost model):
-   *  the app works end-to-end on sample data without them, so the checklist labels
-   *  them as explicitly optional rather than implying a hard requirement. */
+  /** The step's DEFAULT optionality. The external-connection steps (Ads, imports,
+   *  cost model) are optional because the app works end-to-end on sample data
+   *  without them, so the checklist labels them as explicitly optional rather than
+   *  implying a hard requirement. A type may override this — see REQUIRED_BY_TYPE,
+   *  which is how `channels` is required for the types that cannot connect an ad
+   *  account at all. Read `stepsForType`'s output, never `DEF` directly. */
   optional?: boolean;
+  /** true for a step the tenant completes INSIDE the app — no external account, no
+   *  import, no credentials, no budget. The checklist's row CTA says "open", not
+   *  "connect", because there is nothing to connect: promoting `channels` to the
+   *  front of the list made "Připojit" the label on the one step that connects
+   *  nothing. */
+  selfServe?: boolean;
 }
 
 const DEF: Record<OnboardingStepKey, OnboardingStepDef> = {
@@ -86,20 +95,57 @@ const DEF: Record<OnboardingStepKey, OnboardingStepDef> = {
     labelEn: "Pick free channels",
     hintCs: "Kde se zviditelnit bez rozpočtu na reklamu.",
     hintEn: "Where to get seen without an ad budget.",
+    // Optional BY DEFAULT only. For app / content / leadgen it is required — see
+    // REQUIRED_BY_TYPE. Nothing external is needed to finish it, which is what
+    // lets it lead the list.
     optional: true,
+    selfServe: true,
   },
 };
 
-/** The connector checklist per project type — only steps whose completion this
- *  project can actually reach, ordered scan → connect → free-visibility. */
+/** The checklist per project type — only steps whose completion this project can
+ *  actually reach, ordered scan → free visibility → connect.
+ *
+ *  WHY `channels` LEADS. It used to be last in every type's order and optional in
+ *  all five, sitting behind "Připojit Google Ads" — a step a tenant with no ad
+ *  budget cannot complete at all. So the app's zero-budget path was the last,
+ *  skippable item on a list whose blocking item was "spend money", and two UAT
+ *  characters whose stated job IS this module found it by accident
+ *  (uat/runs/2026-08-28-kanaly-l1/SUMMARY.md, finding K01). Free visibility is the
+ *  first thing every type can actually do on day one, with no account, no
+ *  credentials and no budget — so it is the first thing offered. */
 const BY_TYPE: Record<ProjectType, OnboardingStepKey[]> = {
-  eshop: ["scan", "catalog", "costModel", "ads", "channels"],
-  app: ["scan", "ads", "channels"],
-  leadgen: ["scan", "ads", "channels"],
+  eshop: ["scan", "channels", "catalog", "costModel", "ads"],
+  app: ["scan", "channels", "ads"],
+  leadgen: ["scan", "channels", "ads"],
   content: ["scan", "channels"],
-  local: ["scan", "catalog", "ads", "ranks", "channels"],
+  local: ["scan", "channels", "catalog", "ads", "ranks"],
 };
 
+/** Per-type overrides of a step's default optionality.
+ *
+ *  `channels` is REQUIRED for app / content / leadgen and stays optional for
+ *  eshop / local. The split is not a preference, it is what each type can reach:
+ *  an e-shop or a local business has a catalog to import and a storefront/GBP to
+ *  connect, so free channels is one honest route among several. A pre-launch app,
+ *  a content site or a leadgen site has no catalog step at all and typically no ad
+ *  budget — for them free channels is not a nice-to-have alongside the connectors,
+ *  it is the only route to a first visitor, and calling it "optional" told them the
+ *  opposite. See docs/adr/0009-free-channels-lead-the-onboarding-checklist.md.
+ *
+ *  Exhaustive by type (not Partial) so a new ProjectType has to decide. */
+const REQUIRED_BY_TYPE: Record<ProjectType, OnboardingStepKey[]> = {
+  eshop: [],
+  app: ["channels"],
+  leadgen: ["channels"],
+  content: ["channels"],
+  local: [],
+};
+
+/** The resolved checklist for a project type: the type's step set, with each
+ *  step's optionality resolved against REQUIRED_BY_TYPE. Callers must read this
+ *  and never `DEF`, whose `optional` is only the default. */
 export function stepsForType(type: ProjectType): OnboardingStepDef[] {
-  return BY_TYPE[type].map((k) => DEF[k]);
+  const required = new Set<OnboardingStepKey>(REQUIRED_BY_TYPE[type]);
+  return BY_TYPE[type].map((k) => (required.has(k) ? { ...DEF[k], optional: false } : DEF[k]));
 }

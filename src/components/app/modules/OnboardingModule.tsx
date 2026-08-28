@@ -7,8 +7,8 @@ import { useProject } from "@/lib/projects/context";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
 import { ArrowRight, Check, Plus, Sparkles } from "@/components/icons";
-import { ModuleIcon } from "@/components/app/icon-map";
 import Modal from "@/components/app/Modal";
+import OnboardingChecklist from "@/components/app/onboarding/OnboardingChecklist";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { LoadingTimer, TimeoutState, ToolError, inputClass } from "@/components/ai/primitives";
 import type { OnboardingScanResult } from "@/lib/ai-types";
@@ -75,14 +75,8 @@ const T = {
     appliedTitle: "Hotovo. Aplikace mluví vaší firmou.",
     appliedBody:
       "Profil jsme uložili a naplnili z něj konkurenci i podklady, ze kterých čerpají všechny moduly (report, sociální sítě, kanály zdarma).",
-    checklistTitle: "Připojení dat",
-    checklistBody: "Čím víc připojíte, tím přesnější budou čísla i doporučení. Kroky se odškrtnou samy.",
-    done: "Hotovo",
-    optionalStep: "Volitelné: funguje s ukázkovými daty",
-    connect: "Připojit",
     toOverview: "Přejít na přehled projektu",
     saveError: "Uložení se nepodařilo. Zkuste to prosím znovu.",
-    stepsDone: "{done} / {total} hotovo",
     chipRemove: "Odebrat {value}",
     chipAdd: "Přidat",
     errUnauthorized: "Nejste přihlášeni. Přihlaste se prosím znovu.",
@@ -128,14 +122,8 @@ const T = {
     appliedTitle: "Done. The app now speaks your business.",
     appliedBody:
       "We saved the profile and seeded your competitors and the grounding every module reads (report, social, free channels).",
-    checklistTitle: "Connect your data",
-    checklistBody: "The more you connect, the sharper the numbers and advice. Steps tick off on their own.",
-    done: "Done",
-    optionalStep: "Optional: works with sample data",
-    connect: "Connect",
     toOverview: "Go to the project overview",
     saveError: "Saving failed. Please try again.",
-    stepsDone: "{done} / {total} done",
     chipRemove: "Remove {value}",
     chipAdd: "Add",
     errUnauthorized: "You are not signed in. Please sign in again.",
@@ -159,7 +147,8 @@ function errorText(t: (key: TKey, vars?: Record<string, string | number>) => str
 }
 
 /** The Start module: a website-scan → review → apply flow that seeds the app with
- *  the user's real business, plus a type-aware connector checklist that self-completes. */
+ *  the user's real business, plus a type-aware onboarding checklist that
+ *  self-completes (rendered by ./onboarding/OnboardingChecklist). */
 export default function OnboardingModule({
   projectType,
   defaultUrl,
@@ -171,9 +160,7 @@ export default function OnboardingModule({
 }) {
   const project = useProject();
   const router = useRouter();
-  const { locale } = useLocale();
   const t = useT(T);
-  const L = locale === "en" ? "en" : "cs";
 
   const [mode, setMode] = useState<"scan" | "review" | "applied">(
     progress.scanApplied ? "applied" : "scan"
@@ -418,59 +405,7 @@ export default function OnboardingModule({
         </div>
       )}
 
-      {/* Connector checklist */}
-      <div className="card p-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-base font-semibold text-navy-800">{t("checklistTitle")}</h3>
-            <p className="mt-1 text-sm text-muted">{t("checklistBody")}</p>
-          </div>
-          <span className="pill shrink-0 bg-navy-50 text-muted">
-            {t("stepsDone", { done: progress.done, total: progress.total })}
-          </span>
-        </div>
-        <ul className="mt-4 divide-y divide-line">
-          {progress.steps.map((s) => {
-            const isScan = s.key === "scan";
-            const done = isScan ? mode === "applied" || s.done : s.done;
-            return (
-              <li key={s.key} className="flex items-center gap-3 py-3">
-                <span
-                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${
-                    done ? "bg-positive-soft text-positive" : "bg-brand-50 text-brand-accent"
-                  }`}
-                >
-                  {done ? <Check width={16} height={16} /> : <ModuleIcon icon={s.icon} width={16} height={16} />}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-navy-800">
-                      {L === "en" ? s.labelEn : s.labelCs}
-                    </span>
-                    {s.optional && !done && (
-                      <span className="rounded-pill bg-navy-50 px-2 py-0.5 text-[11px] font-medium text-muted">
-                        {t("optionalStep")}
-                      </span>
-                    )}
-                  </span>
-                  <span className="block text-xs text-muted">{L === "en" ? s.hintEn : s.hintCs}</span>
-                </span>
-                {done ? (
-                  <span className="shrink-0 text-xs font-semibold text-positive">{t("done")}</span>
-                ) : isScan ? null : (
-                  <Link
-                    href={`/app/${project.id}/${s.to}`}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
-                  >
-                    {t("connect")}
-                    <ArrowRight width={13} height={13} />
-                  </Link>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+      <OnboardingChecklist progress={progress} scanApplied={mode === "applied"} />
 
       <Link
         href={`/app/${project.id}`}

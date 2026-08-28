@@ -29,6 +29,7 @@ consequences. The long-form designs stay where they are —
 | [0006](0006-colocated-i18n-dictionaries.md) | Translations are colocated with their component and typed for parity; there is no parity script | Accepted |
 | [0007](0007-gate-rung-discipline.md) | A check is blocking only if it passes today; everything else reports against a ratchet | Accepted |
 | [0008](0008-zero-dependency-tooling.md) | Repo tooling uses Node built-ins and repo-local scripts before it takes a dependency | Accepted |
+| [0009](0009-free-channels-lead-the-onboarding-checklist.md) | Free channels lead the onboarding checklist, and are required for the types with no ad budget | Accepted |
 
 ## Writing one
 

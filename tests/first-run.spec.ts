@@ -122,12 +122,12 @@ test.describe("/app — first run", () => {
     const projectId = new URL(page.url()).pathname.split("/")[2]!;
 
     try {
-      // The connector checklist, type-aware (src/lib/onboarding/steps.ts): the
-      // default eshop package gets 5 of the 6 defined steps — scan, catalog,
-      // costModel, ads, channels. Scope to the checklist card's list: the step
+      // The onboarding checklist, type-aware (src/lib/onboarding/steps.ts): the
+      // default eshop package gets 5 of the 6 defined steps — scan, channels,
+      // catalog, costModel, ads. Scope to the checklist card's list: the step
       // label "Naskenovat web" also titles the scan card above it.
       await expect(
-        page.getByRole("heading", { name: /Připojení dat|Connect your data/ })
+        page.getByRole("heading", { name: /Vaše první kroky|Your first steps/ })
       ).toBeVisible({ timeout: 30_000 });
 
       const checklist = page
@@ -143,6 +143,14 @@ test.describe("/app — first run", () => {
       ]) {
         await expect(checklist.getByText(label)).toBeVisible();
       }
+
+      // ORDER, not just membership (ADR-0009): free channels is the first step
+      // after the scan, ahead of the Google Ads connection a budget-less tenant
+      // cannot complete. A membership-only assertion passed before this change
+      // too, which is exactly why the order is pinned here.
+      const rows = checklist.getByRole("listitem");
+      await expect(rows.nth(0)).toContainText(/Naskenovat web|Scan your website/);
+      await expect(rows.nth(1)).toContainText(/Vybrat kanály zdarma|Pick free channels/);
     } finally {
       // best-effort cleanup so repeated runs don't pile projects into the local DB
       await page.request.delete(`/api/projects/${projectId}`).catch(() => {});

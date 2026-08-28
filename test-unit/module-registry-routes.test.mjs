@@ -97,3 +97,24 @@ test("order values are unique and section-monotonic (a real tiebreak)", () => {
     bySection.set(m.section, m.order);
   }
 });
+
+// --- ADR-0009: the free-channels module leads its section --------------------
+// Premise check for the milestone's "move kanaly to first in comms" item: it was
+// ALREADY first (order 5, the lowest in the section), so no registry edit was
+// made. That is worth pinning rather than re-deriving — the next reader of the
+// gap list would otherwise repeat the same investigation, and a later `comms`
+// entry with a lower `order` would silently demote the module the checklist now
+// sends every new tenant to first.
+test("kanaly is the first module in the comms section, for every type that has it", () => {
+  const comms = MODULES.filter((m) => m.section === "comms");
+  assert.equal(
+    comms.reduce((lo, m) => (m.order < lo.order ? m : lo)).key,
+    "kanaly",
+    "kanaly must hold the lowest order in `comms`"
+  );
+  for (const type of PROJECT_TYPES) {
+    const inSection = modulesFor(type).filter((m) => m.section === "comms");
+    if (inSection.length === 0) continue;
+    assert.equal(inSection[0].key, "kanaly", `comms does not lead with kanaly for "${type}"`);
+  }
+});
