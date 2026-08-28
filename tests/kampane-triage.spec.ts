@@ -36,6 +36,18 @@ async function ensureSynced(page: Page) {
 }
 
 test.describe("/kampane — triage", () => {
+  // Every assertion below is written against the cs copy column, but the app's
+  // DEFAULT_LOCALE is `en` (src/lib/format) and a fresh browser carries no
+  // locale cookie — so the page rendered English and this whole file failed on
+  // its very first locator, silently, for as long as that default has stood.
+  // Same family as K05 (the authed suite that skipped itself after the CS-DASH
+  // sweep): a spec that cannot see its own subject is not coverage. Pin the
+  // locale the assertions speak rather than translating 12 Czech strings whose
+  // Czech-ness is part of what /kampane is being checked for.
+  test.beforeEach(async ({ context, baseURL }) => {
+    await context.addCookies([{ name: "locale", value: "cs", url: baseURL ?? "http://localhost:3100" }]);
+  });
+
   test("summarises and flags campaigns that breach a rule", async ({ page }) => {
     await ensureSynced(page);
 
