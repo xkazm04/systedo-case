@@ -108,9 +108,11 @@ async function persistMetrics(
 
 /** The account time zone captured by the project's PRIOR report sync, used to window
  *  THIS sync in the account's own clock. null on the first-ever sync (nothing captured
- *  yet) → UTC fallback, then bootstrapped from this sync's own captured zone onward. */
+ *  yet) → UTC fallback, then bootstrapped from this sync's own captured zone onward.
+ *  `?.meta?.` because a stored blob is only cast, never validated: one missing `meta`
+ *  would otherwise throw here and fail the whole sync over an optional window hint. */
 async function priorTimeZone(project: Project): Promise<string | null> {
-  return (await getReportMetrics(project.id).catch(() => null))?.meta.timeZone ?? null;
+  return (await getReportMetrics(project.id).catch(() => null))?.meta?.timeZone ?? null;
 }
 
 /** The ad account for this project: its OWN explicitly-linked customer id (digits),

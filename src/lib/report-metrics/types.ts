@@ -64,7 +64,14 @@ export interface ReportMetrics {
  *  syncing are separate, non-atomic actions). Both the report resolver and the
  *  lighter `hasSyncedMetrics` accessor derive "live" from this one rule so the
  *  Monthly Report, the AI recap and the Settings/Overview labels never disagree.
- *  Framework-free; the type predicate lets the resolver narrow after the check. */
+ *  Framework-free; the type predicate lets the resolver narrow after the check.
+ *
+ *  Also the SHAPE guard for the stored blob. Both stores `JSON.parse` + cast, so a
+ *  parseable-but-malformed blob (partial write, hand edit, schema drift) arrives
+ *  typed as `ReportMetrics` while missing `rows` or `meta` — the callers then
+ *  dereference `metrics.rows` / `metrics.meta.*` and a TypeError escapes into every
+ *  report page. Checking the shape here degrades such a blob to "not live" (→ the
+ *  sample dataset), which is what every caller already does for "never synced". */
 export function isLiveMetrics(metrics: ReportMetrics | null): metrics is ReportMetrics {
-  return !!metrics && metrics.rows.length > 0;
+  return !!metrics && !!metrics.meta && Array.isArray(metrics.rows) && metrics.rows.length > 0;
 }

@@ -27,11 +27,13 @@ process.env.LOCAL_DB = "true";
 
 const { mapAdsRowsToMetrics } = await import("@/lib/report-metrics/map");
 const { buildLiveDataset } = await import("@/lib/report-metrics/build");
-const { getReportMetrics, saveReportMetrics, clearReportMetrics } = await import("@/lib/report-metrics/store");
+const { getReportMetrics, saveReportMetrics, clearReportMetrics, hasSyncedMetrics } = await import("@/lib/report-metrics/store");
 const { resolveReportDataset } = await import("@/lib/report-metrics/resolve");
 const { getProjectDataset } = await import("@/lib/project-data/dataset");
 
 const PROJECT = { id: "proj-ads", name: "Acme s.r.o.", type: "eshop", domain: "acme.cz" };
+const METRICS_META = { source: "google-ads", customerId: "1234567890", syncedAt: "2026-06-03T10:00:00.000Z", days: 400, rowCount: 1 };
+const METRICS_ROWS = [{ date: "2026-06-01", visits: 5, cost: 1, conversions: 1, revenue: 1200 }];
 
 test("mapper: sums date-segmented rows, micros→CZK, clicks→visits + first-class clicks/impressions", () => {
   const rows = mapAdsRowsToMetrics([
@@ -169,4 +171,21 @@ test("store: clear reverts to sample", async () => {
   await clearReportMetrics(PROJECT.id);
   assert.equal(await getReportMetrics(PROJECT.id), null);
   assert.equal((await resolveReportDataset(PROJECT)).live, false);
+});
+
+test("store: a malformed-but-parseable blob degrades to sample instead of 500ing the report", async () => {
+  // Both stores JSON.parse + cast, so a partial write / hand edit / schema drift
+  // reaches the resolver typed as ReportMetrics. Each of these used to throw a
+  // TypeError out of resolveReportDataset (it runs outside the store's try/catch),
+  // taking down every report page. "Not live" is the honest degrade.
+  for (const blob of [{}, { meta: METRICS_META }, { rows: null, meta: METRICS_META }, { rows: METRICS_ROWS }]) {
+    await saveReportMetrics(PROJECT.id, blob);
+    const res = await resolveReportDataset(PROJECT);
+    assert.equal(res.live, false, `malformed blob ${JSON.stringify(blob)} must not read as live`);
+    assert.equal(res.source, "sample");
+    assert.ok(res.data.daily.length > 0);
+    // The lighter accessor agrees — the label surfaces never claim live data either.
+    assert.equal(await hasSyncedMetrics(PROJECT.id), false);
+  }
+  await clearReportMetrics(PROJECT.id);
 });
