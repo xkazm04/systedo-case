@@ -102,6 +102,11 @@ export const isProduct = (o: Offering): o is ProductOffering => o.kind === "prod
 export const isPlan = (o: Offering): o is PlanOffering => o.kind === "plan";
 export const isService = (o: Offering): o is ServiceOffering => o.kind === "service";
 
+/** A product offering the project is actually selling. `active: false` is the Katalog
+ *  pause toggle (and, for an availability feed, the SKU the feed reports as gone) — a
+ *  paused offering is NOT a product the modules may act on. */
+export const isActiveProduct = (o: Offering): o is ProductOffering => isProduct(o) && o.active;
+
 /** Adapt a product offering back to the legacy `Product` shape, so the existing
  *  inventory (`stockRows`, `budgetChangeSet`) and creative (`buildAssetGroup`)
  *  modules consume the catalog with zero downstream changes. */
@@ -125,3 +130,12 @@ export function toProduct(o: ProductOffering): Product {
     ...(o.source === "feed" || o.source === "merchant-center" ? { available: o.active } : {}),
   };
 }
+
+/** The catalog seam the legacy modules read products through: the project's LIVE
+ *  product offerings, adapted. Paused rows are dropped HERE rather than carried into
+ *  `Product` as a flag, because the legacy shape has nowhere to put one — a paused SKU
+ *  reaching {@link toProduct} is indistinguishable from a live one, so creative
+ *  generation and the catalog-wide ad export would write and export copy for a product
+ *  the user deliberately paused. Filtering keeps the adapter's "zero downstream
+ *  changes" contract intact. */
+export const toProducts = (offerings: Offering[]): Product[] => offerings.filter(isActiveProduct).map(toProduct);

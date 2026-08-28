@@ -17,7 +17,7 @@ import { listAnnotations } from "@/lib/annotations/store";
 import { resolveCohorts } from "@/lib/ltv/resolve";
 import { ltvSummary } from "@/lib/ltv/compute";
 import { loadProjectCatalog } from "@/lib/catalog/load";
-import { isProduct, toProduct } from "@/lib/catalog/offering";
+import { toProducts } from "@/lib/catalog/offering";
 import { catalogBlendedMargin } from "@/lib/catalog/blended-margin";
 import { stockRows, monthlySeasonality } from "@/lib/inventory/compute";
 import type { ReportBeyondData } from "@/components/app/modules/ReportBeyond";
@@ -60,7 +60,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     const now = lastDate ? new Date(`${lastDate}T00:00:00Z`) : new Date();
     const catalog = await loadProjectCatalog(project, now);
     catalogMarginPct = catalogBlendedMargin(catalog);
-    const products = catalog.filter(isProduct).map(toProduct);
+    const products = toProducts(catalog);
     const stock = stockRows(products, now);
     const atRiskCount = stock.filter((s) => s.status === "pause" || s.status === "low").length;
     const season = monthlySeasonality(dataset.daily);

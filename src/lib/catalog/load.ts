@@ -6,7 +6,7 @@ import "server-only";
 import { cache } from "react";
 import type { Project } from "@/lib/projects/types";
 import type { Offering, PlanOffering, ServiceOffering } from "./offering";
-import { isPlan, isProduct, isService, toProduct } from "./offering";
+import { isPlan, isService, toProducts } from "./offering";
 import type { Product } from "./sample";
 import { getProjectCatalog } from "./resolve";
 import { listOfferings } from "./store";
@@ -55,7 +55,7 @@ export async function loadProjectCatalogWithSource(
 }
 
 export async function loadProductsFor(project: Project, now: Date = new Date()): Promise<Product[]> {
-  return (await loadProjectCatalog(project, now)).filter(isProduct).map(toProduct);
+  return toProducts(await loadProjectCatalog(project, now));
 }
 
 /** Products plus the catalog's provenance (see {@link loadProjectCatalogWithSource}). */
@@ -64,7 +64,7 @@ export async function loadProductsForWithSource(
   now: Date = new Date()
 ): Promise<{ products: Product[]; source: "catalog" | "sample" }> {
   const { offerings, source } = await loadProjectCatalogWithSource(project, now);
-  return { products: offerings.filter(isProduct).map(toProduct), source };
+  return { products: toProducts(offerings), source };
 }
 
 export async function loadPlansFor(project: Project): Promise<PlanOffering[]> {

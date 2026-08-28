@@ -4,7 +4,7 @@
  *  swaps the seed lookup for a project-scoped store without changing these signatures. */
 import type { Project } from "@/lib/projects/types";
 import type { Locality, Offering, PlanOffering, ServiceOffering } from "./offering";
-import { isPlan, isProduct, isService, toProduct } from "./offering";
+import { isPlan, isService, toProducts } from "./offering";
 import type { Product } from "./sample";
 import { LOCALITIES, appCatalog, contentCatalog, eshopCatalog, leadgenCatalog, localSeoCatalog } from "./seeds";
 
@@ -25,9 +25,10 @@ export function getProjectCatalog(project: Project, now: Date = new Date()): Off
   }
 }
 
-/** Product offerings adapted to the legacy `Product` shape (inventory / creative). */
+/** Live product offerings adapted to the legacy `Product` shape (inventory / creative);
+ *  paused offerings are dropped by the adapter seam. */
 export function productsFor(project: Project, now: Date = new Date()): Product[] {
-  return getProjectCatalog(project, now).filter(isProduct).map(toProduct);
+  return toProducts(getProjectCatalog(project, now));
 }
 
 export function plansFor(project: Project): PlanOffering[] {

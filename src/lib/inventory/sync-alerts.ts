@@ -14,7 +14,7 @@ import { sendEmail, sendWebhook } from "@/lib/email";
 import { SITE_NAME } from "@/lib/site";
 import { escapeHtml } from "@/lib/html";
 import { HOME_MARKET_LOCALE, type SupportedLocale } from "@/lib/format";
-import { isProduct, toProduct, type Offering } from "@/lib/catalog/offering";
+import { toProducts, type Offering } from "@/lib/catalog/offering";
 import { syncProvider } from "./providers";
 import { stockRows } from "./compute";
 import { breachingSkus, stockAlertPayload } from "./plan-types";
@@ -85,7 +85,7 @@ export async function alertStockTransitions(
     // Eshop-only: the Sklad & sezónnost module (and its stock model) is availableFor eshop.
     if (!project || project.type !== "eshop") return null;
 
-    const products = offerings.filter(isProduct).map(toProduct);
+    const products = toProducts(offerings);
     const rows = stockRows(products, now);
     const breaching = breachingSkus(rows);
 
