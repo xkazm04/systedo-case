@@ -5,7 +5,7 @@
  *  Server-only. The pure goal-history primitives live in @/lib/metrics/goal-history. */
 import "server-only";
 import { LOCAL_DB } from "@/lib/local-mode";
-import { recordGoalChange } from "@/lib/metrics/goal-history";
+import { goalForMonth, recordGoalChange } from "@/lib/metrics/goal-history";
 import type { ProjectGoal } from "./types";
 
 function backend() {
@@ -28,11 +28,14 @@ export async function clearProjectGoal(projectId: string): Promise<void> {
   return (await backend()).clearProjectGoal(projectId);
 }
 
-/** Record a monthly revenue goal effective from `effectiveMonth` (YYYY-MM). Sets the
- *  headline `goal` and appends to the history via the shared `recordGoalChange`
- *  primitive — idempotent BY VALUE: a save that repeats the goal already in force for
- *  that month writes the same history (it never grows the log). Returns the next blob.
- *  A store hiccup on the read degrades to a fresh history so a first save never fails. */
+/** Record a monthly revenue goal effective from `effectiveMonth` (YYYY-MM). Appends to
+ *  the history via the shared `recordGoalChange` primitive — idempotent BY VALUE: a save
+ *  that repeats the goal already in force for that month writes the same history (it
+ *  never grows the log). The headline `goal` is then RESOLVED from that history for the
+ *  current month, never taken from the posted value: correcting a PAST month or booking
+ *  a FUTURE raise updates the timeline without touching the goal in force NOW. Returns
+ *  the next blob. A store hiccup on the read degrades to a fresh history so a first save
+ *  never fails. */
 export async function recordProjectGoal(
   projectId: string,
   effectiveMonth: string,
@@ -45,7 +48,8 @@ export async function recordProjectGoal(
     cur = null;
   }
   const history = recordGoalChange(cur?.history ?? [], effectiveMonth, goal);
-  const next: ProjectGoal = { goal, history };
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const next: ProjectGoal = { goal: goalForMonth(history, currentMonth, goal), history };
   await saveProjectGoal(projectId, next);
   return next;
 }
