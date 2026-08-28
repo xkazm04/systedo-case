@@ -11,6 +11,7 @@ import { resolveOrganicChannels } from "@/lib/organic-channels/resolve";
 import { competitorsGrounding, planProvenance } from "@/lib/organic-channels/types";
 import { buildKanalyGrounding } from "@/lib/organic-channels/grounding";
 import { buildSignpostContext, type SignpostContext } from "@/lib/organic-channels/next-step";
+import { resolveVisibilityPlan } from "@/lib/organic-channels/visibility-plan-resolve";
 import { loadProjectCatalog } from "@/lib/catalog/load";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { getCompetitors } from "@/lib/competitors/store";
@@ -21,7 +22,7 @@ import { getTwin } from "@/lib/twin/store";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const { project } = await requireProjectModule(projectId, "kanaly");
+  const { project, userId } = await requireProjectModule(projectId, "kanaly");
 
   // Ground the plan in the project's real business: its offering categories, the
   // localities it serves, and any named competitors — the same catalog/competitor
@@ -84,6 +85,12 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // a pinned AI plan instead discloses when it was generated.
   const provenance = planProvenance(resolved);
 
+  // The one visibility plan — the SAME artifact Klíčová slova renders, composed
+  // from the channel leg this page already resolved (so the reads are not doubled)
+  // plus the tenant's saved queries and content. Null when the project type does
+  // not have all three modules.
+  const visibilityPlan = await resolveVisibilityPlan(project, userId, { resolved });
+
   return (
     <ModulePage moduleKey="kanaly" sample={provenance.sample}>
       <OrganicChannels
@@ -95,6 +102,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         projectType={project.type}
         grounding={grounding}
         signpost={signpost}
+        visibilityPlan={visibilityPlan}
       />
     </ModulePage>
   );

@@ -14,7 +14,6 @@ import { useProject } from "@/lib/projects/context";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
 import { ArrowRight, Bolt, Check, Sparkles } from "@/components/icons";
-import NextSteps from "@/components/app/NextSteps";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { LoadingTimer, RefineBar, ResultMeta, TimeoutState, ToolError } from "@/components/ai/primitives";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
@@ -32,6 +31,9 @@ import {
 import type { ChannelGrounding } from "@/lib/organic-channels/grounding";
 import { deriveChannelNext, type SignpostContext } from "@/lib/organic-channels/next-step";
 import { reconcilePlanTracks } from "@/lib/organic-channels/reconcile";
+import type { VisibilityPlan } from "@/lib/organic-channels/visibility-plan";
+import VisibilityPlanCard from "@/components/app/visibility/VisibilityPlanCard";
+import ChannelNextSteps from "@/components/app/channels/ChannelNextSteps";
 import ChannelPipeline from "@/components/app/channels/ChannelPipeline";
 import ChannelTable from "@/components/app/channels/ChannelTable";
 import ChannelWizard from "@/components/app/channels/ChannelWizard";
@@ -61,10 +63,6 @@ const T = {
     applyPlan: "Použít tento plán",
     dismiss: "Zavřít",
     revertSample: "Zpět na ukázkový plán",
-    stepContent: "Obsahový engine",
-    stepContentHint: "Napište obsah pro vybraný kanál",
-    stepSocial: "Sociální sítě",
-    stepSocialHint: "Naplánujte a publikujte příspěvky",
     degradedBanner:
       "Uložený plán se nepodařilo načíst. Zobrazujeme ukázkový plán jen ke čtení. Změny stavu jsou dočasně vypnuté, aby nepřepsaly vaši uloženou práci. Obnovte stránku a zkuste to znovu.",
     saveFailedBanner:
@@ -93,10 +91,6 @@ const T = {
     applyPlan: "Use this plan",
     dismiss: "Dismiss",
     revertSample: "Back to sample plan",
-    stepContent: "Content engine",
-    stepContentHint: "Write content for the chosen channel",
-    stepSocial: "Social media",
-    stepSocialHint: "Plan and publish posts",
     degradedBanner:
       "Couldn't load your saved plan. Showing a read-only sample. Status changes are temporarily disabled so they can't overwrite your saved work. Refresh the page to try again.",
     saveFailedBanner:
@@ -120,6 +114,7 @@ export default function OrganicChannels({
   projectType,
   grounding,
   signpost,
+  visibilityPlan,
 }: {
   channels: OrganicChannel[];
   tracks: Record<string, ChannelTrack>;
@@ -132,6 +127,9 @@ export default function OrganicChannels({
   grounding: ChannelGrounding;
   /** twin-module state snapshot the next-step derivation reads */
   signpost: SignpostContext;
+  /** the composed query → content → channel plan; null when the project type
+   *  lacks one of the three modules (hasVisibilityPlan) */
+  visibilityPlan?: VisibilityPlan | null;
 }) {
   const project = useProject();
   const router = useRouter();
@@ -474,6 +472,12 @@ export default function OrganicChannels({
         </button>
       )}
 
+      {/* One plan across the three modules — above the table, because the table
+          answers "where", and this answers "for which query, with what content". */}
+      {visibilityPlan && (
+        <VisibilityPlanCard plan={visibilityPlan} projectType={projectType} current="kanaly" />
+      )}
+
       {/* Signpost table: fit + mode + stage + the ONE next step per channel */}
       <ChannelTable
         channels={channels}
@@ -484,12 +488,7 @@ export default function OrganicChannels({
         onNext={doNext}
       />
 
-      <NextSteps
-        steps={[
-          { to: "obsahovy-engine", label: t("stepContent"), hint: t("stepContentHint") },
-          { to: "socialni", label: t("stepSocial"), hint: t("stepSocialHint") },
-        ].filter((s) => isModuleAvailable(projectType, s.to))}
-      />
+      <ChannelNextSteps projectType={projectType} />
 
       <ChannelPlaybook
         channel={open}
