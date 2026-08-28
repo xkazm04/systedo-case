@@ -90,6 +90,10 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     <ModulePage moduleKey="kanaly" sample={provenance.sample}>
       <OrganicChannels
         channels={resolved.channels}
+        // The SEED, alongside the active plan: with a pinned AI plan those differ,
+        // and "Zpět na ukázkový plán" reverts to this one (it used to restore the
+        // active plan, i.e. the very plan it was discarding).
+        sample={sample}
         tracks={resolved.tracks}
         source={resolved.source}
         degraded={resolved.degraded}

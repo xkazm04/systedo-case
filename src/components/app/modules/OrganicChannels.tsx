@@ -104,6 +104,7 @@ const T = {
 
 export default function OrganicChannels({
   channels: initialChannels,
+  sample = initialChannels,
   tracks: initialTracks,
   source: initialSource,
   degraded = false,
@@ -114,6 +115,11 @@ export default function OrganicChannels({
   visibilityPlan,
 }: {
   channels: OrganicChannel[];
+  /** the SEEDED plan, which is not the same list as `channels` whenever a pinned AI
+   *  plan is what the server rendered — "Zpět na ukázkový plán" needs the seed, and
+   *  `channels` is the thing it is reverting away FROM. Defaults to `channels` for
+   *  the callers that render the seed anyway (the public demo shell). */
+  sample?: OrganicChannel[];
   tracks: Record<string, ChannelTrack>;
   source: "sample" | "ai";
   /** the saved plan couldn't be read — show a read-only banner + block writes */
@@ -245,8 +251,14 @@ export default function OrganicChannels({
     setOrphans([]);
   };
 
+  /** Drop the pinned plan and go back to the seed. It restores `sample`, NOT
+   *  `initialChannels`: on a page load that already had a pinned plan those are the
+   *  same variable only by accident of the sample path — the server renders the
+   *  PINNED plan into `channels`, so reverting used to leave the AI channels on
+   *  screen wearing the "Ukázkový plán" pill until the next reload, disagreeing with
+   *  the store it had just cleared. */
   const revertSample = () => {
-    setChannels(initialChannels);
+    setChannels(sample);
     setSource("sample");
     setGeneratedAt(undefined);
     setTracks({});
