@@ -64,6 +64,7 @@ test("snaps are pinned to buildSnapshot's engine numbers (the drift guarantee)",
   for (const p of ANALYSIS_PERIODS) {
     const s = buildSnapshot(p, "previous", performance);
     assert.equal(snaps[p].label, s.periodLabel);
+    assert.equal(snaps[p].truncated, s.truncated, `${p} truncated`);
     assert.equal(snaps[p].current.revenue, s.current.revenue, `${p} revenue`);
     assert.equal(snaps[p].current.cost, s.current.cost, `${p} cost`);
     assert.equal(snaps[p].current.roas, s.current.roas, `${p} roas`);
@@ -117,4 +118,25 @@ test("ref12 stays null when the 12m window is truncated (insufficient history)",
   const s = buildSnapshot("12m", "previous", performance);
   assert.ok(s.truncated, "fixture's 12m window is truncated");
   assert.equal(ref12, null);
+});
+
+test("truncated propagates per period: a series too short for the window is flagged honestly", () => {
+  // ~60 days of history: the 30d window fills, the 90d and 12m windows don't —
+  // so those snaps must carry truncated: true (the label no longer names the span)
+  // instead of presenting a 60-day figure as a full "90 dní" / "12 měsíců".
+  const short = { ...performance, daily: series().slice(-60), meta: { ...performance.meta, days: 60 } };
+  const { snaps } = assembleReport({ dataset: short, type: "eshop", live: false, costModel: null });
+  for (const p of ANALYSIS_PERIODS) {
+    assert.equal(snaps[p].truncated, buildSnapshot(p, "previous", short).truncated, `${p} truncated matches engine`);
+  }
+  assert.equal(snaps["30d"].truncated, false, "30d window fits a 60-day series");
+  assert.equal(snaps["90d"].truncated, true, "90d window is truncated on a 60-day series");
+  assert.equal(snaps["12m"].truncated, true, "12m window is truncated on a 60-day series");
+  // And a longer series is honest in the engine's own terms: with a "previous"
+  // baseline only half the series backs each window, so at 400 rows 30d/90d fill
+  // but the 12m window spans just 200 days and must read truncated.
+  const long = assembleReport({ dataset: performance, type: "eshop", live: false, costModel: null });
+  assert.equal(long.snaps["30d"].truncated, false, "30d not truncated on a 400-day series");
+  assert.equal(long.snaps["90d"].truncated, false, "90d not truncated on a 400-day series");
+  assert.equal(long.snaps["12m"].truncated, true, "12m (365d) can't be fully backed by 400 rows");
 });

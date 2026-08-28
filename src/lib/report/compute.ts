@@ -123,6 +123,11 @@ export const REPORT_TILES: ReportTileSpec[] = REPORT_TILE_PRESETS.eshop;
 /** A period's recap figures, grounded in buildSnapshot() by the page. */
 export interface ReportSnap {
   label: string;
+  /** true when the series is shorter than the requested window (span < period
+   *  days) — the totals cover fewer days than `label` claims and the delta is not
+   *  a true full-period comparison (propagated from buildSnapshot's `truncated`).
+   *  Consumers quoting the period as an absolute span must badge or soften it. */
+  truncated: boolean;
   current: Partial<Record<ReportMetric, number>>;
   delta: Partial<Record<ReportMetric, number>>;
 }

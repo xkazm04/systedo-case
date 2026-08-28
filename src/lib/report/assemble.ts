@@ -133,6 +133,7 @@ export function assembleReport({
 
     snaps[p] = {
       label: s.periodLabel,
+      truncated: s.truncated,
       current: {
         revenue: c.revenue,
         roas: c.roas,

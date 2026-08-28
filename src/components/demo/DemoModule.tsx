@@ -599,6 +599,7 @@ export default async function DemoModule({
         const prevCpa = prevConv > 0 ? prevCost / prevConv : 0;
         snaps[p] = {
           label: s.periodLabel,
+          truncated: s.truncated,
           current: {
             revenue: c.revenue, roas: c.roas, pno: c.pno, conversions: c.conversions,
             cost: c.cost, visits: c.visits, cpa, convRate: c.cr, profit: c.profit,
