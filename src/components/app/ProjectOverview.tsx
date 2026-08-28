@@ -17,6 +17,7 @@ import { getProjectDataset } from "@/lib/project-data/dataset";
 import { collectRecommendations } from "@/lib/insights/aggregate";
 import {
   getPortfolioModel,
+  resolveChannelRecsInput,
   resolveLocalRecsInput,
   resolveSeoQueries,
   type PortfolioRec,
@@ -231,12 +232,22 @@ export default async function ProjectOverview({
     // linked an Ads account) — the same signal the Monthly Report/AI recap use. The
     // SAME boolean is threaded into the aggregator so the dataset-derived recs
     // (profit/seasonality) carry the same provenance the pill shows.
-    const [localInput, seoQueries, synced] = await Promise.all([
+    // The channel plan resolves the way /kanaly does (pinned AI plan else the seed),
+    // so the "Kanál zdarma" rec names a channel from the plan the tenant actually has.
+    const [localInput, seoQueries, synced, channelPlan] = await Promise.all([
       resolveLocalRecsInput(project),
       resolveSeoQueries(project),
       hasSyncedMetrics(project.id),
+      resolveChannelRecsInput(project),
     ]);
-    const recs: ProjRec[] = collectRecommendations(project, locale, localInput, seoQueries, synced).map((r) => ({
+    const recs: ProjRec[] = collectRecommendations(
+      project,
+      locale,
+      localInput,
+      seoQueries,
+      synced,
+      channelPlan
+    ).map((r) => ({
       ...r,
       projectId: project.id,
       projectName: project.name,

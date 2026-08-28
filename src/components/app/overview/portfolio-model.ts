@@ -6,8 +6,8 @@
  *  Two seams, both keyed strictly off `isDemoProjectId` (the one demo-ness seam —
  *  never a parallel prefix test):
  *   1. STORE SHORT-CIRCUIT — a demo fixture id is never persisted (persist-guard),
- *      so its store reads (local signals ×4, catalog plans, competitors, synced
- *      metrics) always come back empty and every resolver falls through to its
+ *      so its store reads (local signals ×4, catalog plans, competitors, organic
+ *      channels, synced metrics) always come back empty and every resolver falls through to its
  *      sample. The demo builders below construct those exact sample inputs purely,
  *      skipping the round-trips; the resolver path proves the equivalence in
  *      test-unit/demo-portfolio-model.test.mjs.
@@ -29,8 +29,11 @@ import { hasSyncedMetrics } from "@/lib/report-metrics/store";
 import {
   ALL_SAMPLE,
   collectRecommendations,
+  type ChannelRecsInput,
   type LocalRecsInput,
 } from "@/lib/insights/aggregate";
+import { channelPlanForProject } from "@/lib/organic-channels/sample";
+import { resolveOrganicChannels } from "@/lib/organic-channels/resolve";
 import { byImpact, type Recommendation } from "@/lib/insights/types";
 import { SAMPLE_QUERIES, type CompareQuery } from "@/lib/seo-compare/sample";
 import { comparisonQueriesFromCatalog } from "@/lib/seo-compare/catalog";
@@ -123,7 +126,33 @@ export async function resolveSeoQueries(project: Project): Promise<CompareQuery[
   return generated.length > 0 ? generated : SAMPLE_QUERIES;
 }
 
+/** Resolve the project's ACTIVE organic-channel plan the same way `/kanaly` does —
+ *  `resolveOrganicChannels`, which returns the pinned AI plan when the tenant has
+ *  one and the seeded sample otherwise, with the tracked lifecycle merged in. The
+ *  Overview's "Kanál zdarma" rec used to compute off the seed unconditionally, so
+ *  it recommended a channel the tenant's own pinned plan might not even contain.
+ *
+ *  Runs for every project type (unlike the local/SEO resolvers): the Kanály module
+ *  is available to all five. `degraded` needs no branch here — resolveOrganicChannels
+ *  already answers a failed read with the sample AND `source: "sample"`, so the rec
+ *  falls back to the seed and keeps its sample badge, which is the honest outcome. */
+export async function resolveChannelRecsInput(project: Project): Promise<ChannelRecsInput> {
+  // Same seam as the resolvers above: a demo fixture id is never persisted, so its
+  // store read is provably empty and the resolver returns exactly the passed sample.
+  if (isDemoProjectId(project.id)) return demoChannelRecsInput(project);
+  const resolved = await resolveOrganicChannels(project.id, channelPlanForProject(project));
+  return { channels: resolved.channels, tracks: resolved.tracks, source: resolved.source };
+}
+
 /* ------------------------------------------------ pure demo counterparts */
+
+/** What {@link resolveChannelRecsInput} provably returns for a DEMO fixture id — an
+ *  empty store means no pinned plan and no tracked lifecycle, so the seeded plan is
+ *  the active plan. Pure (no I/O). */
+export function demoChannelRecsInput(project: Project): ChannelRecsInput {
+  return { channels: channelPlanForProject(project), tracks: {}, source: "sample" };
+}
+
 
 /** What {@link resolveLocalRecsInput} provably returns for a DEMO fixture id — the
  *  stores hold nothing for a never-persisted id, so every resolver falls through to
@@ -159,9 +188,14 @@ async function buildPortfolioModel(
   const perProject = await Promise.all(
     projects.map(async (p) => {
       const demo = isDemoProjectId(p.id);
-      const [localInput, seoQueries, synced] = demo
-        ? ([demoLocalRecsInput(p), demoSeoQueries(p), false] as const)
-        : await Promise.all([resolveLocalRecsInput(p), resolveSeoQueries(p), hasSyncedMetrics(p.id)]);
+      const [localInput, seoQueries, synced, channelPlan] = demo
+        ? ([demoLocalRecsInput(p), demoSeoQueries(p), false, demoChannelRecsInput(p)] as const)
+        : await Promise.all([
+            resolveLocalRecsInput(p),
+            resolveSeoQueries(p),
+            hasSyncedMetrics(p.id),
+            resolveChannelRecsInput(p),
+          ]);
       const data = getProjectDataset(p);
       const row: CompareRow = {
         id: p.id,
@@ -174,7 +208,14 @@ async function buildPortfolioModel(
         revenueSpark: bucketize(data.daily.slice(-365), "month").map((b) => b.revenue),
       };
       // Re-keyed per project (rec ids aren't project-scoped) and tagged for the feed.
-      const recs: PortfolioRec[] = collectRecommendations(p, locale, localInput, seoQueries, synced).map(
+      const recs: PortfolioRec[] = collectRecommendations(
+        p,
+        locale,
+        localInput,
+        seoQueries,
+        synced,
+        channelPlan
+      ).map(
         (r) => ({
           ...r,
           id: `${p.id}:${r.id}`,

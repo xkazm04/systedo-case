@@ -14,8 +14,10 @@ const {
   getPortfolioModel,
   demoLocalRecsInput,
   demoSeoQueries,
+  demoChannelRecsInput,
   resolveLocalRecsInput,
   resolveSeoQueries,
+  resolveChannelRecsInput,
 } = await import("@/components/app/overview/portfolio-model");
 const { collectRecommendations } = await import("@/lib/insights/aggregate");
 const { byImpact } = await import("@/lib/insights/types");
@@ -36,6 +38,7 @@ const { comparisonQueriesFromCatalog } = await import("@/lib/seo-compare/catalog
 const { SAMPLE_QUERIES } = await import("@/lib/seo-compare/sample");
 const { getCompetitors } = await import("@/lib/competitors/store");
 const { curatedCompetitors } = await import("@/lib/competitors/types");
+const { channelPlanForProject } = await import("@/lib/organic-channels/sample");
 
 /** The pre-extraction ProjectOverview portfolio computation, verbatim: resolver-based
  *  local inputs + SEO slates + synced flags (demo ids short-circuit only the synced
@@ -65,9 +68,19 @@ async function legacyPortfolioModel(projects, locale) {
   const seoQueries = new Map(
     await Promise.all(projects.map(async (p) => [p.id, await resolveSeoQueries(p)]))
   );
+  const channelPlans = new Map(
+    await Promise.all(projects.map(async (p) => [p.id, await resolveChannelRecsInput(p)]))
+  );
   const combined = projects
     .flatMap((p) =>
-      collectRecommendations(p, locale, localInputs.get(p.id), seoQueries.get(p.id), syncedById.get(p.id) ?? false).map(
+      collectRecommendations(
+        p,
+        locale,
+        localInputs.get(p.id),
+        seoQueries.get(p.id),
+        syncedById.get(p.id) ?? false,
+        channelPlans.get(p.id)
+      ).map(
         (r) => ({ ...r, id: `${p.id}:${r.id}`, projectId: p.id, projectName: p.name, projectAccent: p.accentColor })
       )
     )
@@ -106,9 +119,18 @@ test("pure demo builders ≡ the real store-resolver computation on an empty sto
   const generated = comparisonQueriesFromCatalog(demoApp.name, plansFor(demoApp), stored);
   assert.deepEqual(demoSeoQueries(demoApp), generated.length > 0 ? generated : SAMPLE_QUERIES);
 
+  // Channel plan: an empty organic-channels store means no pinned plan and no tracked
+  // lifecycle, so the seeded plan IS the active plan — the pure builder says so too.
+  assert.deepEqual(demoChannelRecsInput(p), {
+    channels: channelPlanForProject(p),
+    tracks: {},
+    source: "sample",
+  });
+
   // The exported resolvers short-circuit demo ids to the same pure result.
   assert.deepEqual(await resolveLocalRecsInput(p), demoLocalRecsInput(p));
   assert.deepEqual(await resolveSeoQueries(demoApp), demoSeoQueries(demoApp));
+  assert.deepEqual(await resolveChannelRecsInput(p), demoChannelRecsInput(p));
   // Non-matching types stay null on both paths.
   assert.equal(demoLocalRecsInput(demoApp), null);
   assert.equal(demoSeoQueries(demoLocal), null);

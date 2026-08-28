@@ -30,6 +30,7 @@ import { bandOf } from "@/lib/reviews/compute";
 import { SAMPLE_DECAY } from "@/lib/content-engine/sample";
 import { decayingPosts } from "@/lib/content-engine/compute";
 import { channelPlanForProject } from "@/lib/organic-channels/sample";
+import type { ChannelTrack, OrganicChannel } from "@/lib/organic-channels/types";
 import { byImpact, type Recommendation, type Severity } from "./types";
 
 function rec(
@@ -381,16 +382,61 @@ function contentRecs(locale: SupportedLocale): Recommendation[] {
   return out;
 }
 
+/** The already-resolved channel plan the Overview rec reads — threaded in by the
+ *  caller (resolveChannelRecsInput) exactly like LocalRecsInput, so the aggregator
+ *  stays pure and free of the server-only organic-channels store. */
+export interface ChannelRecsInput {
+  /** the ACTIVE plan: the tenant's pinned AI plan when there is one, else the seed */
+  channels: OrganicChannel[];
+  /** channelId → tracked lifecycle; a channel already being worked is not a "next" */
+  tracks: Record<string, ChannelTrack>;
+  /** "ai" only for a plan the tenant generated and pinned; a degraded store read
+   *  resolves to the sample and must therefore report "sample" (fail-CLOSED). */
+  source: "sample" | "ai";
+}
+
 /** The single best zero-ad-spend visibility opportunity, surfaced across every
  *  project type — the fastest free channel to get seen (low effort, high fit).
- *  Points at the Kanály module, where the full plan + first steps live. */
-function channelRecs(project: Project, locale: SupportedLocale): Recommendation[] {
-  const plan = channelPlanForProject(project);
-  const quickWin = plan.find((c) => c.effort === "low" && c.fit >= 70) ?? plan[0];
+ *  Points at the Kanály module, where the full plan + first steps live.
+ *
+ *  Reads the SAME plan the module shows. It used to compute from
+ *  `channelPlanForProject` unconditionally, so a tenant who had generated and
+ *  pinned an AI plan was still recommended a channel off the seeded list — the
+ *  Overview and `/kanaly` disagreed about what the plan even contained, and the
+ *  rec kept its "ukázková data" badge on a channel the tenant's own model chose.
+ *  The selection rule is the module's own quick-win rule (OrganicChannels.tsx:
+ *  `effort === "low" && fit >= 70`, untracked), so the callout and the rec name
+ *  the same channel. Untracked FIRST: a channel already in the lifecycle is not
+ *  the next thing to start. The Overview always wants one item, so it falls back
+ *  past the quick-win bar rather than going silent. */
+function channelRecs(
+  project: Project,
+  locale: SupportedLocale,
+  input?: ChannelRecsInput | null
+): Recommendation[] {
+  // No threaded plan → the seeded per-project sample, labelled as such. Same
+  // fail-closed shape as the local/SEO fallbacks above.
+  const plan = input ?? {
+    channels: channelPlanForProject(project),
+    tracks: {},
+    source: "sample" as const,
+  };
+  const isQuickWin = (c: OrganicChannel) => c.effort === "low" && c.fit >= 70;
+  const untracked = plan.channels.filter((c) => !plan.tracks[c.id]);
+  // Untracked exhausts BEFORE tracked: a channel already in the lifecycle is work
+  // the tenant started, so it is never "the next free channel to get seen on" — not
+  // even when it is the only one clearing the quick-win bar. Both plans arrive
+  // sorted by fit descending, so `[0]` is the best-fit member of its group.
+  const quickWin =
+    untracked.find(isQuickWin) ??
+    untracked[0] ??
+    plan.channels.find(isQuickWin) ??
+    plan.channels[0];
   if (!quickWin) return [];
-  // channelPlanForProject is a seeded per-project plan (fit scores are illustrative).
+  // A seeded plan's fit scores are illustrative and wear the badge; a pinned AI
+  // plan is the tenant's own resolved data and must not be called sample.
   return [
-    fixture(rec(
+    from(plan.source === "ai", rec(
       locale,
       "kanaly",
       "opportunity",
@@ -420,7 +466,11 @@ export function collectRecommendations(
    *  source the Živá/Ukázková pill reads), threaded by the caller. Governs the recs
    *  computed from the project dataset (profit channels, seasonality). Fail-CLOSED:
    *  omitted → false → those recs disclose themselves as sample-derived. */
-  metricsLive = false
+  metricsLive = false,
+  /** the project's ACTIVE channel plan, resolved by the caller the way /kanaly does
+   *  (pinned AI plan else the seed, statuses merged in). Omitted → the seeded plan,
+   *  sample-tagged — exactly what this rec did before the seam existed. */
+  channelPlan?: ChannelRecsInput | null
 ): Recommendation[] {
   const typeRecs =
     project.type === "eshop"
@@ -437,5 +487,5 @@ export function collectRecommendations(
                 local ?? { targets: targetsForProject(project), ladder: [], reviews: [], live: ALL_SAMPLE }
               )
             : contentRecs(locale);
-  return [...typeRecs, ...channelRecs(project, locale)].sort(byImpact);
+  return [...typeRecs, ...channelRecs(project, locale, channelPlan)].sort(byImpact);
 }
