@@ -67,12 +67,19 @@ export interface LtvSummary {
 
 /** The month-over-month survival ratio a cohort's retention is extrapolated with:
  *  the last observed step, clamped into [TAIL_RATIO_MIN, TAIL_RATIO_MAX], or 0.9
- *  when there is too little data to derive one. Exported so the projection band
- *  can recompute the same expected ratio the default curve uses. Pure. */
+ *  when there is too little data — or no usable step (a fully churned 0/0) — to
+ *  derive one. Exported so the projection band can recompute the same expected
+ *  ratio the default curve uses. Pure. */
 export function tailRatio(retention: number[]): number {
   const n = retention.length;
   if (n < 2) return 0.9;
-  return Math.min(TAIL_RATIO_MAX, Math.max(TAIL_RATIO_MIN, retention[n - 1]! / retention[n - 2]!));
+  const ratio = retention[n - 1]! / retention[n - 2]!;
+  // A fully churned cohort ends [.., 0, 0]: 0/0 is NaN and both clamps pass NaN through
+  // (Math.max(0.8, NaN) === NaN), so survivalCurve extrapolates NaN months and ltv /
+  // ltvCac / the sparkline all read "NaN Kč". Same failure class as the empty-retention
+  // guard below — fall back to the no-signal ratio when the step is not a number.
+  if (!Number.isFinite(ratio)) return 0.9;
+  return Math.min(TAIL_RATIO_MAX, Math.max(TAIL_RATIO_MIN, ratio));
 }
 
 /** Retention curve extended to `horizon` months by continuing the last observed
