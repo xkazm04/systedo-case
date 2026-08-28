@@ -23,6 +23,7 @@ import type { SupportedLocale } from "@/lib/format";
 import { PROJECT_TYPES, type ProjectType } from "@/lib/projects/types";
 import {
   CHANNEL_CATEGORIES,
+  safeChannelUrl,
   type ChannelCategory,
   type ChannelEffort,
   type OrganicChannel,
@@ -174,29 +175,12 @@ export const CHANNEL_RESEARCH_SCHEMA = {
 const coerceCategory = coerceEnum<ChannelCategory, ChannelCategory>(CHANNEL_CATEGORIES, "content");
 const coerceEffort = coerceEnum<ChannelEffort, ChannelEffort>(["low", "medium", "high"], "medium");
 
-/** A channel's `url` is the "kam se zapsat" link — a place the UI tells the user to
- *  GO (ChannelPlaybook renders it as an anchor). The model hands it back as free
- *  text, and the only guard was a 300-char truncation, which accepts a `javascript:`
- *  scheme, a bare phrase, or a scheme-less "firmy.cz/registrace" that the browser
- *  resolves against OUR origin. Accept http(s) with a real host and nothing else.
- *
- *  Over-long is a REJECT, not a truncation: slicing a URL mid-path yields a link
- *  that looks right and 404s, which is worse than the honest absence the schema
- *  already allows. Failure drops the FIELD, never the channel — the plan's advice
- *  does not depend on the link. */
-export function safeChannelUrl(raw: unknown): string | null {
-  const s = txt(raw);
-  if (!s || s.length > 300) return null;
-  let u: URL;
-  try {
-    u = new URL(s);
-  } catch {
-    return null;
-  }
-  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
-  if (!u.hostname) return null;
-  return s;
-}
+/** The "kam se zapsat" link guard — http(s) with a real host, or the field is
+ *  dropped. Re-exported, not re-implemented: the rule now lives beside the domain
+ *  model (organic-channels/types) because it has TWO doors — this normalizer, and
+ *  `sanitizeChannel` on the persistence route, which a client can post a pinned
+ *  plan through directly. Two copies of a security rule is one copy that drifts. */
+export { safeChannelUrl };
 
 const clampFit = (v: unknown): number => {
   const n = Math.round(Number(v));

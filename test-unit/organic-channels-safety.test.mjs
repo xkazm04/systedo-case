@@ -28,6 +28,9 @@ const { safeChannelUrl, normalizeChannelResearchTracked } = await import(
   "@/lib/ai/tools/channel-research"
 );
 const { channelPlanForProject } = await import("@/lib/organic-channels/sample");
+const { sanitizeChannelState, safeChannelUrl: domainSafeChannelUrl } = await import(
+  "@/lib/organic-channels/types"
+);
 const { promptSafeName } = await import("@/lib/projects/name");
 
 const project = (over = {}) => ({
@@ -171,4 +174,45 @@ test("normalize drops a bad url but keeps the channel", () => {
   assert.equal(first.name, "Firmy.cz");
   assert.equal("url" in first, false, "the unusable link is absent, not empty-string");
   assert.equal(second.url, "https://mapy.cz/zapis");
+});
+
+/* ------------------------------------------ 3. the OTHER door: the wire plan */
+
+/** The model is not the only way a channel's url reaches the playbook's anchor.
+ *  A client POSTs the pinned plan to /api/projects/[id]/organic-channels, the route
+ *  coerces it with sanitizeChannelState, and resolveOrganicChannels re-sanitizes the
+ *  stored blob on every read — so this door decides what a tenant's own browser
+ *  renders as a live link, on every load, forever. It applied a 300-char truncation
+ *  and nothing else while the model's door rejected schemes; these pin them equal. */
+
+test("the persistence door drops a non-http(s) url the same way the model's does", () => {
+  const pinned = (url) =>
+    sanitizeChannelState({
+      plan: [
+        {
+          id: "firmy-cz",
+          name: "Firmy.cz",
+          category: "directory",
+          fit: 90,
+          effort: "low",
+          rationale: "Sedí.",
+          payoff: "Přinese.",
+          firstActions: ["Založte profil."],
+          url,
+        },
+      ],
+    });
+
+  for (const bad of ["javascript:alert(1)", "data:text/html,<script>0</script>", "firmy.cz/registrace", "Zapište se na Firmy.cz", `https://example.com/${"a".repeat(400)}`]) {
+    const [channel] = pinned(bad).plan;
+    assert.equal(channel.name, "Firmy.cz", `the channel survives: ${bad}`);
+    assert.equal("url" in channel, false, `the unusable link is absent: ${bad}`);
+  }
+
+  const [ok] = pinned("https://www.firmy.cz/registrace").plan;
+  assert.equal(ok.url, "https://www.firmy.cz/registrace", "a real link crosses untouched");
+});
+
+test("both doors are the same function, not two implementations of one rule", () => {
+  assert.equal(safeChannelUrl, domainSafeChannelUrl);
 });

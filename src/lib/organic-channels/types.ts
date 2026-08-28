@@ -188,6 +188,38 @@ const INBOX_SET = new Set<string>(["manual", "import"]);
 const s = (v: unknown, max: number): string =>
   (typeof v === "string" ? v.trim() : "").slice(0, max);
 
+/** A channel's `url` is the "kam se zapsat" link — a place the UI tells the user to
+ *  GO (ChannelPlaybook renders it as an anchor). Accept http(s) with a real host and
+ *  nothing else: a `javascript:` scheme becomes a live anchor, and a scheme-less
+ *  "firmy.cz/registrace" is resolved by the browser against OUR origin.
+ *
+ *  Over-long is a REJECT, not a truncation: slicing a URL mid-path yields a link
+ *  that looks right and 404s, which is worse than the honest absence the schema
+ *  already allows. Failure drops the FIELD, never the channel — the plan's advice
+ *  does not depend on the link.
+ *
+ *  THE CANONICAL COPY LIVES HERE, not next to the model output it was written for.
+ *  The rule has two doors: the `channel-research` normalizer (model output) and
+ *  `sanitizeChannel` below (a pinned plan arriving on the WIRE, from a client that
+ *  can post whatever it likes). Only the first one had it, so the guard could be
+ *  walked around by POSTing the plan to /api/projects/[id]/organic-channels — and
+ *  the stored blob is re-sanitized on every read, so a bad link persisted once was
+ *  served forever. `ai/tools/channel-research` re-exports this so both doors are
+ *  provably the same rule. Framework-free (`URL` is a global in Node and browsers). */
+export function safeChannelUrl(raw: unknown): string | null {
+  const url = typeof raw === "string" ? raw.trim() : "";
+  if (!url || url.length > 300) return null;
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  if (!u.hostname) return null;
+  return url;
+}
+
 /** Pre-lifecycle blobs stored a flat status string per channel. Map it onto the
  *  stage vocabulary so existing tracked work survives the model change. */
 const LEGACY_STATUS_TO_STAGE: Record<string, ChannelStage> = {
@@ -254,7 +286,7 @@ export function sanitizeChannel(raw: unknown, index = 0): OrganicChannel | null 
     payoff: s(o.payoff, 300),
     firstActions,
   };
-  const url = s(o.url, 300);
+  const url = safeChannelUrl(o.url);
   if (url) channel.url = url;
   const contentAngle = s(o.contentAngle, 300);
   if (contentAngle) channel.contentAngle = contentAngle;
