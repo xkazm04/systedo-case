@@ -27,7 +27,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 /** Persist a freshly-run diagnosis. Body: { kind, result, inputDigest?, subject?,
- *  origin? }. Returns the stored diagnosis (with its id + status `new`). */
+ *  snapshot? }. Returns the stored diagnosis (with its id + status `new`). A body
+ *  `origin` is ignored — every diagnosis persisted here is "manual"; only the
+ *  digest cron stamps "digest", which is what gates its once-per-week run. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const g = await requireOwnedProject(id, { envelope: "ok" });

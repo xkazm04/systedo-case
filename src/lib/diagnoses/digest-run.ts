@@ -107,16 +107,20 @@ async function persistLeadSource(
   subject: string,
   now: Date
 ): Promise<void> {
-  const input = sanitizeDiagnosisInput({
-    kind: "lead-source",
-    result,
-    inputDigest: inputDigest(req),
-    subject,
-    origin: "digest",
-    // Direction 1: capture the at-diagnosis key-metric snapshot (the source's qualRate)
-    // so a digest-origin diagnosis also carries an outcome to compare against later.
-    snapshot: extractLeadSourceSnapshot(req),
-  });
+  const input = sanitizeDiagnosisInput(
+    {
+      kind: "lead-source",
+      result,
+      inputDigest: inputDigest(req),
+      subject,
+      // Direction 1: capture the at-diagnosis key-metric snapshot (the source's qualRate)
+      // so a digest-origin diagnosis also carries an outcome to compare against later.
+      snapshot: extractLeadSourceSnapshot(req),
+    },
+    // The cron is the only legitimate "digest" writer; the sanitizer ignores any
+    // wire-supplied origin, so the provenance is stamped here, server-side.
+    { origin: "digest" }
+  );
   if (!input) return;
   await recordDiagnosis(projectId, buildStoredDiagnosis(input, () => crypto.randomUUID(), now));
 }

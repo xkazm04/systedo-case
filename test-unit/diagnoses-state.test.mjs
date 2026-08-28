@@ -45,16 +45,20 @@ test("sanitizeDiagnosisInput rejects bad kind / missing fields / bad cause", () 
   assert.equal(ok.origin, "manual");
 });
 
-test("sanitizeDiagnosisInput keeps a valid severity + risks and defaults origin", () => {
-  const l = sanitizeDiagnosisInput({
+test("sanitizeDiagnosisInput keeps a valid severity + risks and never trusts the wire's origin", () => {
+  const body = {
     kind: "lead-source",
     result: { summary: "s", likelyCause: "pricing", recommendation: "r", severity: "high" },
     subject: "Meta",
-    origin: "digest",
-  });
+    origin: "digest", // forged on the wire — must not survive
+  };
+  const l = sanitizeDiagnosisInput(body);
   assert.equal(l.result.severity, "high");
   assert.equal(l.subject, "Meta");
-  assert.equal(l.origin, "digest");
+  assert.equal(l.origin, "manual", "a client cannot forge digest provenance (it gates the weekly cron)");
+  // Only a trusted server-side caller (the digest cron) can stamp "digest".
+  assert.equal(sanitizeDiagnosisInput(body, { origin: "digest" }).origin, "digest");
+  assert.equal(sanitizeDiagnosisInput(body, { origin: "nope" }).origin, "manual");
 });
 
 test("capPerKind keeps at most N of each kind, newest-first order preserved", () => {

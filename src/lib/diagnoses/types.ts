@@ -241,9 +241,22 @@ export interface SanitizedDiagnosisInput {
   snapshot?: DiagnosisSnapshot;
 }
 
+/** Options only a trusted server-side caller passes. */
+export interface SanitizeDiagnosisOptions {
+  /** Provenance to stamp on the record. Defaults to "manual" — `origin` is never
+   *  read from the wire, because the weekly digest cron gates its once-per-week
+   *  run on the newest "digest" record, so a forgeable origin would let any
+   *  client suppress the real digest diagnosis (and fake passive provenance in
+   *  the history UI). `digest-run.ts` is the only legitimate "digest" writer. */
+  origin?: DiagnosisOrigin;
+}
+
 /** Coerce a full persist-request body into a clean input, or null when it does
  *  not describe a valid diagnosis (bad kind / unusable result). */
-export function sanitizeDiagnosisInput(raw: unknown): SanitizedDiagnosisInput | null {
+export function sanitizeDiagnosisInput(
+  raw: unknown,
+  opts?: SanitizeDiagnosisOptions
+): SanitizedDiagnosisInput | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
   const kind = sanitizeDiagnosisKind(o.kind);
@@ -255,7 +268,10 @@ export function sanitizeDiagnosisInput(raw: unknown): SanitizedDiagnosisInput | 
         ? sanitizeLeadSourceResult(o.result)
         : sanitizeLocalResult(o.result);
   if (!result) return null;
-  const origin = ORIGIN_SET.has(o.origin as string) ? (o.origin as DiagnosisOrigin) : "manual";
+  // Server-supplied only: the wire's `origin` is ignored entirely.
+  const origin: DiagnosisOrigin = ORIGIN_SET.has(opts?.origin as string)
+    ? (opts!.origin as DiagnosisOrigin)
+    : "manual";
   const subject =
     str(o.subject, 120) ||
     (kind === "cohort"
