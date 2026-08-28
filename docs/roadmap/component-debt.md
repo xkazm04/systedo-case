@@ -7,23 +7,33 @@ against the repo convention of keeping components under 200 LOC (see
 the release. Priority: **post-launch**, opportunistic (split a file when you
 are already editing it), largest-first when scheduled deliberately.
 
+> **Re-measured 2026-08-28 at `ship/adamant-marketing`: 106 `.tsx` files over
+> 200 LOC**, after the three `/lp` landing variants (1126 / 525 / 412) were
+> deleted outright rather than split — see
+> [`landing-variants-retired.md`](./landing-variants-retired.md). The number went
+> UP by 8 across the intervening three weeks even with the largest file in the
+> repo removed, which is the useful reading of this table: opportunistic splitting
+> has not been keeping pace with new surface. Re-measure before quoting it.
+
 ## Top 10 offenders
 
 | LOC | Component |
 | --- | --- |
-| 1126 | `src/components/brand/variants/LandingNewWorld.tsx` |
+| 1034 | `src/components/ai/AdGenerator.tsx` |
 | 977 | `src/components/app/modules/CatalogManagerModule.tsx` |
-| 970 | `src/components/app/modules/DistributionModule.tsx` |
-| 966 | `src/components/ai/AdGenerator.tsx` |
-| 940 | `src/components/campaigns/CampaignTable.tsx` |
-| 904 | `src/components/ai/CreativeStudio.tsx` |
+| 944 | `src/components/ai/CreativeStudio.tsx` |
+| 943 | `src/components/campaigns/CampaignTable.tsx` |
+| 869 | `src/components/app/modules/SpeedLeadModule.tsx` |
 | 856 | `src/components/app/modules/MonthlyReport.tsx` |
-| 834 | `src/components/app/modules/CompareSeoTable.tsx` |
-| 800 | `src/components/app/modules/SpeedLeadModule.tsx` |
-| 764 | `src/components/app/twin/TwinOutbox.tsx` |
+| 849 | `src/components/app/modules/CompareSeoTable.tsx` |
+| 781 | `src/components/app/twin/TwinOutbox.tsx` |
+| 778 | `src/components/ai/ContentBriefGenerator.tsx` |
+| 758 | `src/app/design-system/page.tsx` |
 
-(LOC as measured at the /mvp scan; re-measure before starting a split — several
-of these files are actively edited.)
+(LOC re-measured 2026-08-28; re-measure again before starting a split — several
+of these files are actively edited. `LandingNewWorld.tsx` (1126) headed this
+table until it was retired with the rest of `/lp`; `DistributionModule.tsx` has
+since dropped below the top ten.)
 
 ## Recommended split pattern: presentational + data-hook pairs
 

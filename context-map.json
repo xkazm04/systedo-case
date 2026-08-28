@@ -873,7 +873,7 @@
         "local-seo-marketing"
       ],
       "db_tables": [],
-      "description": "The public marketing landing page with multiple design variant directions. BrandLanding is the canonical entry; Crossroad and its meta.tsx select which variant direction to render at build time; the variants/ subdirectory contains LandingBolder, LandingDistilled, and LandingNewWorld — three distinct visual treatments of the Adamant homepage hero.",
+      "description": "Homepage composition for the Adamant brand: a thin composer (BrandLanding) over band sections — hero, proof, module grid derived from the module registry, FAQ and closing CTA — plus the case-study crossroad. The three exploratory /lp landing variants were retired 2026-08-28 (docs/roadmap/landing-variants-retired.md).",
       "entry_points": [
         "src/components/brand/BrandLanding.tsx",
         "src/components/brand/crossroad/Crossroad.tsx"
@@ -882,12 +882,11 @@
         "src/components/brand/BrandLanding.tsx",
         "src/components/brand/crossroad/Crossroad.tsx",
         "src/components/brand/crossroad/meta.tsx",
-        "src/components/brand/variants/LandingBolder.tsx",
-        "src/components/brand/variants/LandingDistilled.tsx",
-        "src/components/brand/variants/LandingNewWorld.tsx",
         "src/components/brand/landing/LandingHero.tsx",
         "src/components/brand/landing/LandingProof.tsx",
-        "src/components/brand/landing/LandingClosing.tsx"
+        "src/components/brand/landing/LandingClosing.tsx",
+        "src/components/brand/landing/LandingModules.tsx",
+        "src/components/brand/landing/LandingFaq.tsx"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
@@ -3352,48 +3351,6 @@
     },
     {
       "api_surface": null,
-      "business_feature": "Landing Page A/B Variants",
-      "category": "ui",
-      "cross_refs": [],
-      "db_tables": [],
-      "description": "A/B landing page variant system with three distinct visual directions — Bolder, Distilled, and Newworld — plus an index page that lists them. Each variant is a self-contained page exploring a different brand and layout approach for conversion testing. All variants share the same domain content (Adamant adtech pitch) but differ in visual hierarchy, animation style, and copy emphasis.",
-      "entry_points": [
-        "src/app/lp/page.tsx"
-      ],
-      "file_paths": [
-        "src/app/lp/page.tsx",
-        "src/app/lp/loading.tsx",
-        "src/app/lp/bolder/page.tsx",
-        "src/app/lp/bolder/loading.tsx",
-        "src/app/lp/distilled/page.tsx",
-        "src/app/lp/distilled/loading.tsx",
-        "src/app/lp/newworld/page.tsx",
-        "src/app/lp/newworld/loading.tsx"
-      ],
-      "group": "Site & Marketing",
-      "group_id": "0ca5ac6b-c9d8-4a90-94fb-6088a88a66b4",
-      "id": "c39eefd8-f08a-4db5-8b0b-adaee851eb87",
-      "keywords": [
-        "landing page",
-        "A/B",
-        "variant",
-        "bolder",
-        "distilled",
-        "newworld",
-        "conversion",
-        "brand direction"
-      ],
-      "last_written_at": "2026-07-30T08:51:59.387246700+00:00",
-      "name": "lp-variants",
-      "pinned": false,
-      "tech_stack": [
-        "Next.js 16.3.0-preview.5",
-        "React 19.2.7",
-        "TypeScript"
-      ]
-    },
-    {
-      "api_surface": null,
       "business_feature": "Map Pack & SEO Comparison",
       "category": "ui",
       "cross_refs": [
@@ -4054,7 +4011,9 @@
         "src/components/marketing/kanaly/SeededPlanTable.tsx",
         "src/components/marketing/kanaly/VisibilityPlanBand.tsx",
         "src/components/marketing/kanaly/FreeChannelsClosing.tsx",
-        "src/components/marketing/kanaly/HomeFreeChannelsBand.tsx"
+        "src/components/marketing/kanaly/HomeFreeChannelsBand.tsx",
+        "src/components/marketing/kanaly/HomePathWalkthrough.tsx",
+        "src/components/marketing/kanaly/WalkthroughStep.tsx"
       ],
       "group": "Site & Marketing",
       "group_id": "0ca5ac6b-c9d8-4a90-94fb-6088a88a66b4",
@@ -5549,7 +5508,7 @@
   "groups": [
     {
       "color": "emerald",
-      "context_count": 10,
+      "context_count": 9,
       "domain": "feature",
       "id": "0ca5ac6b-c9d8-4a90-94fb-6088a88a66b4",
       "name": "Site & Marketing"
@@ -5670,8 +5629,8 @@
     "git_commit_count": 1073
   },
   "stats": {
-    "contexts": 117,
-    "files": 878,
+    "contexts": 116,
+    "files": 871,
     "groups": 16,
     "use_cases": 0
   },
