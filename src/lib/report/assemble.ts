@@ -89,7 +89,11 @@ export function assembleReport({
   for (const p of ANALYSIS_PERIODS) {
     const s = buildSnapshot(p, "previous", dataset);
     const c = s.current;
-    if (p === "12m") ref12 = { adCost: c.cost, conversions: c.conversions };
+    // A truncated 12m snapshot (e.g. a live sync capped below 365 days) does not
+    // cover a full year — charging 12 months of overhead against a partial span
+    // would distort the break-even, so leave ref12 null and let the consumer
+    // fall back to the plain (non-overhead) strip.
+    if (p === "12m" && !s.truncated) ref12 = { adCost: c.cost, conversions: c.conversions };
     // Prior-period totals: read the comparison window directly (snap.previous)
     // rather than reconstructing them by inverting the deltas.
     const prev = s.previous;

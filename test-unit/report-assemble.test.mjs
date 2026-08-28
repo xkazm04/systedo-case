@@ -18,11 +18,12 @@ const { periodProfit, PERIOD_MONTHS } = await import("@/lib/cost-model/compute")
 const { ANALYSIS_PERIODS } = await import("@/lib/ai-types");
 
 /** ~400 days of e-shop-shaped daily rows (covers the 12m window + the attainment
- *  track record). Weekday seasonality + a paid-traffic pair so CTR/CPC read non-zero. */
-function series() {
+ *  track record). Weekday seasonality + a paid-traffic pair so CTR/CPC read non-zero.
+ *  `days` defaults to 400 — under 730 the 12m window is truncated (span = floor(n/2)). */
+function series(days = 400) {
   const out = [];
   const base = new Date("2025-05-01T00:00:00Z").getTime();
-  for (let i = 0; i < 400; i++) {
+  for (let i = 0; i < days; i++) {
     const d = new Date(base + i * 86_400_000);
     const dow = d.getUTCDay();
     const w = dow === 0 || dow === 6 ? 0.7 : 1;
@@ -46,6 +47,10 @@ const performance = {
   channels: [],
   daily: series(),
 };
+
+// A variant long enough (>=730 days) that the 12m window is NOT truncated (span =
+// min(365, floor(n/2)) === 365) — for the full-year break-even reference pin.
+const fullYearPerformance = { ...performance, daily: series(730) };
 
 test("tiles match the type preset on the sample (non-live, no cost model) path", () => {
   for (const type of ["eshop", "leadgen", "local", "content", "app"]) {
@@ -98,7 +103,18 @@ test("cost model relabels the contribution tile to Zisk, adds a margin tile, net
 });
 
 test("ref12 carries the 12-month reference totals for the break-even", () => {
+  const { ref12 } = assembleReport({ dataset: fullYearPerformance, type: "eshop", live: false, costModel: null });
+  const s = buildSnapshot("12m", "previous", fullYearPerformance);
+  assert.ok(s.truncated === false, "fixture covers a full 12m window");
+  assert.deepEqual(ref12, { adCost: s.current.cost, conversions: s.current.conversions });
+});
+
+test("ref12 stays null when the 12m window is truncated (insufficient history)", () => {
+  // A live sync's 400-day series caps the 12m span at 200 days — charging 12
+  // months of overhead against ~6.6 months of ad cost was the defect, so a
+  // truncated 12m snapshot must NOT produce an overhead-loaded break-even ref.
   const { ref12 } = assembleReport({ dataset: performance, type: "eshop", live: false, costModel: null });
   const s = buildSnapshot("12m", "previous", performance);
-  assert.deepEqual(ref12, { adCost: s.current.cost, conversions: s.current.conversions });
+  assert.ok(s.truncated, "fixture's 12m window is truncated");
+  assert.equal(ref12, null);
 });
