@@ -14,13 +14,12 @@ import {
 } from "@/components/icons";
 import { Pill } from "@/components/ui";
 import Modal from "@/components/app/Modal";
-import NextSteps from "@/components/app/NextSteps";
+import ContentEngineNextSteps from "@/components/app/modules/ContentEngineNextSteps";
 import SectionSkeleton from "@/components/app/SectionSkeleton";
 import type { BriefSeed } from "@/components/ai/KeywordResearch";
 import { useBriefToAdsHandoff } from "@/components/ai/useBriefToAds";
 import { useProject } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
-import { isModuleAvailable } from "@/lib/projects/modules";
 import type { ContentDerivation } from "@/lib/content-engine/resolve";
 import { rankedClusterStats, decayingPosts, type ClusterStat } from "@/lib/content-engine/compute";
 import type { ClusterArticle, DecayingPost, TopicCluster } from "@/lib/content-engine/sample";
@@ -97,14 +96,6 @@ const T = {
     wsSeeded: "Obsahový brief",
     wsAds: "PPC inzeráty z briefu",
     // next steps
-    stepLibrary: "Uložený obsah",
-    stepLibraryHint: "Otevřít knihovnu hotových briefů a článků",
-    stepDistribute: "Distribuovat",
-    stepDistributeHint: "Rozšířit hotový článek na sítě a do newsletteru",
-    stepSocial: "Sociální sítě",
-    stepSocialHint: "Naplánovat příspěvky z tohoto obsahu",
-    stepCreative: "Kreativa",
-    stepCreativeHint: "Vygenerovat vizuály k článku",
   },
   en: {
     sourceLive: "Live data · Search Console",
@@ -153,14 +144,6 @@ const T = {
     wsRefresh: "Refresh of “{title}”",
     wsSeeded: "Content brief",
     wsAds: "PPC ads from the brief",
-    stepLibrary: "Saved content",
-    stepLibraryHint: "Open the library of finished briefs and articles",
-    stepDistribute: "Distribute",
-    stepDistributeHint: "Push the finished article to social and newsletter",
-    stepSocial: "Social media",
-    stepSocialHint: "Schedule posts from this content",
-    stepCreative: "Creative",
-    stepCreativeHint: "Generate visuals for the article",
   },
 } as const;
 
@@ -300,13 +283,6 @@ export default function ContentEngine({
     () => groundablePatternCount(library, isDemoProjectId(project.id)),
     [library, project.id]
   );
-
-  const nextSteps = [
-    { to: "ulozeny-obsah", label: t("stepLibrary"), hint: t("stepLibraryHint") },
-    { to: "distribuce", label: t("stepDistribute"), hint: t("stepDistributeHint") },
-    { to: "socialni", label: t("stepSocial"), hint: t("stepSocialHint") },
-    { to: "kreativa", label: t("stepCreative"), hint: t("stepCreativeHint") },
-  ].filter((s) => isModuleAvailable(project.type, s.to));
 
   return (
     <div className="stagger space-y-6">
@@ -469,7 +445,7 @@ export default function ContentEngine({
         )}
       </div>
 
-      {nextSteps.length > 0 && <NextSteps steps={nextSteps} />}
+      <ContentEngineNextSteps projectType={project.type} />
 
       {/* ---- Cluster detail modal (layer 2) ---- */}
       <Modal

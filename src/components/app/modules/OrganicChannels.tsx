@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { useProject } from "@/lib/projects/context";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
-import { ArrowRight, Bolt, Check, Sparkles } from "@/components/icons";
+import { Check, Sparkles } from "@/components/icons";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { LoadingTimer, RefineBar, ResultMeta, TimeoutState, ToolError } from "@/components/ai/primitives";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
@@ -35,6 +35,7 @@ import type { VisibilityPlan } from "@/lib/organic-channels/visibility-plan";
 import VisibilityPlanCard from "@/components/app/visibility/VisibilityPlanCard";
 import ChannelNextSteps from "@/components/app/channels/ChannelNextSteps";
 import ChannelPipeline from "@/components/app/channels/ChannelPipeline";
+import ChannelQuickWin from "@/components/app/channels/ChannelQuickWin";
 import ChannelTable from "@/components/app/channels/ChannelTable";
 import ChannelWizard from "@/components/app/channels/ChannelWizard";
 import ChannelPlaybook from "@/components/app/channels/ChannelPlaybook";
@@ -55,8 +56,6 @@ const T = {
     tailorCta: "Sestavit plán na míru (AI)",
     tailoring: "Sestavuji plán…",
     regenerate: "Přegenerovat",
-    quickWin: "Rychlá výhra",
-    quickWinHint: "Nízká náročnost, vysoká vhodnost. Začněte tady.",
     channels: "{n} kanálů",
     aiReadyTitle: "Plán na míru je připravený",
     aiReadyBody: "Nahraďte ukázkový plán touto verzí přizpůsobenou vaší firmě.",
@@ -83,8 +82,6 @@ const T = {
     tailorCta: "Build a tailored plan (AI)",
     tailoring: "Building the plan…",
     regenerate: "Regenerate",
-    quickWin: "Quick win",
-    quickWinHint: "Low effort, high fit. Start here.",
     channels: "{n} channels",
     aiReadyTitle: "Your tailored plan is ready",
     aiReadyBody: "Replace the sample plan with this version tailored to your business.",
@@ -454,22 +451,15 @@ export default function OrganicChannels({
         </div>
       )}
 
-      {/* Quick win callout (only while undecided) */}
+      {/* Quick win callout (only while undecided). Disabled — not hidden — on the
+          degraded path: the wizard's Save is refused there, so an enabled button
+          would open a form that no-ops (ChannelQuickWin). */}
       {quickWin && (
-        <button
-          type="button"
-          onClick={() => openWizard([quickWin])}
-          className="group flex w-full items-center gap-3 rounded-card border border-positive/40 bg-positive-soft px-4 py-3 text-left transition-colors hover:border-positive"
-        >
-          <Bolt width={18} height={18} className="shrink-0 text-positive" />
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-navy-800">
-              {t("quickWin")}: {quickWin.name}
-            </span>
-            <span className="block truncate text-xs text-muted">{t("quickWinHint")}</span>
-          </span>
-          <ArrowRight width={16} height={16} className="shrink-0 text-positive transition-transform group-hover:translate-x-1" />
-        </button>
+        <ChannelQuickWin
+          channel={quickWin}
+          degraded={degraded}
+          onStart={(c) => openWizard([c])}
+        />
       )}
 
       {/* One plan across the three modules — above the table, because the table
