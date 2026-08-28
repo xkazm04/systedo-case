@@ -9,7 +9,10 @@ import {
 import LandingHero from "@/components/brand/landing/LandingHero";
 import LandingProof from "@/components/brand/landing/LandingProof";
 import LandingClosing from "@/components/brand/landing/LandingClosing";
+import LandingModules from "@/components/brand/landing/LandingModules";
+import LandingFaq from "@/components/brand/landing/LandingFaq";
 import HomeFreeChannelsBand from "@/components/marketing/kanaly/HomeFreeChannelsBand";
+import HomePathWalkthrough from "@/components/marketing/kanaly/HomePathWalkthrough";
 
 /* ---------------------------------------------------------------------------
    Adamant — homepage (Monolith direction)
@@ -22,7 +25,11 @@ import HomeFreeChannelsBand from "@/components/marketing/kanaly/HomeFreeChannels
    Section order is the story: what the product does for someone with no budget
    comes BEFORE the paid-performance proof band, because the free-channel path is
    the first job it can do for a visitor who has never bought a click
-   (docs/ship/2026-08-28-kanaly-core-path.md §6 C1).
+   (docs/ship/2026-08-28-kanaly-core-path.md §6 C1). It is then WALKED before it
+   is proven — the claim band says what happens, the walkthrough shows the real
+   output of each step, and only then does the paid proof band quote numbers.
+   After the proof: what is actually in the product (module grid, derived from the
+   registry), the case-study crossroad, and the four questions everybody asks.
 --------------------------------------------------------------------------- */
 
 export default async function BrandLanding() {
@@ -49,8 +56,11 @@ export default async function BrandLanding() {
     <>
       <LandingHero />
       <HomeFreeChannelsBand />
+      <HomePathWalkthrough />
       <LandingProof />
+      <LandingModules />
       <Crossroad items={crossroad} />
+      <LandingFaq />
       <LandingClosing />
     </>
   );

@@ -411,6 +411,33 @@ html[data-theme="dark"] .theme-toggle-moon {
 .stagger > *:nth-child(6) { animation-delay: 325ms; }
 .stagger > *:nth-child(n + 7) { animation-delay: 390ms; }
 
+/* Scroll-linked reveal for MARKETING bands — the same `fadeUp` the rest of this
+   family uses, but driven by the element's own position in the scrollport rather
+   than by mount time, so a band below the fold eases in when the reader arrives
+   at it instead of having already played before they got there.
+
+   Pure CSS, zero JS, zero hydration: no IntersectionObserver, no client island,
+   and it works identically on a server-rendered tree. That is why it exists next
+   to <Kinetic> (framer-motion, `whileInView`) rather than being replaced by it —
+   a static marketing section should not pull a motion runtime into the bundle
+   just to fade in.
+
+   The @supports guard is load-bearing and deliberately fails SAFE: without
+   scroll-driven animations the rule never applies at all, so the element renders
+   in its final state with no animation — never stuck at `opacity: 0` waiting for
+   a timeline that will never advance. `both` is only safe INSIDE the guard.
+
+   Reduced motion and print switch it off outright below (a `animation-duration`
+   override cannot neutralise it — a view timeline ignores duration entirely,
+   which is exactly the trap the universal reduced-motion rule would fall into). */
+@supports (animation-timeline: view()) {
+  .reveal-on-scroll {
+    animation: fadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-timeline: view();
+    animation-range: entry 5% cover 22%;
+  }
+}
+
 /* Route-level loading fallback (app/loading.tsx). The reveal holds opacity 0
    for the first 40% of its 0.5s run (~200ms), so fast navigations swap in the
    real page before the spinner ever paints — no flash on quick round-trips. */
@@ -542,6 +569,13 @@ html {
     animation: none !important;
     opacity: 1;
   }
+  /* a view-timeline animation ignores animation-duration, so the universal rule
+     above does NOT neutralise it — switch it off by name, or a reduced-motion
+     reader would still get a scroll-driven fade */
+  .reveal-on-scroll {
+    animation: none !important;
+    opacity: 1;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -564,7 +598,9 @@ html {
   /* don't let interactive entrance animations hide content in the PDF */
   .animate-fade-up,
   .animate-fade-in,
-  .animate-drop {
+  .animate-drop,
+  .reveal-on-scroll {
     animation: none !important;
+    opacity: 1;
   }
 }

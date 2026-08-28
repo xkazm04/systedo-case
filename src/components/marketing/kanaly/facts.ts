@@ -1,4 +1,4 @@
-/** Every number the free-channels marketing page states, DERIVED from the code
+/** Every number the free-channels marketing surfaces state, DERIVED from the code
  *  that actually ships it — never typed into copy.
  *
  *  The rule this file exists to enforce: a marketing claim about the free-channel
@@ -9,11 +9,19 @@
  *
  *  The demo plan is the SAME call the public `/dashboard?m=kanaly` demo makes
  *  (`DemoModule`'s `kanaly` case) against the SAME fixture project, so the table
- *  on the marketing page and the table in the live demo cannot disagree.
+ *  on the marketing page and the table in the live demo cannot disagree — and the
+ *  grounding it is built from comes from `buildKanalyGrounding`, the app's own
+ *  pure, unit-tested builder that `/app/[projectId]/kanaly` uses, rather than a
+ *  marketing-side re-implementation of "what the module knows about a business".
  *
  *  Pure: no I/O, no React, no locale. */
 import { channelPlanForProject, baseChannelPlan } from "@/lib/organic-channels/sample";
 import { CHANNEL_CATEGORIES, type OrganicChannel } from "@/lib/organic-channels/types";
+import {
+  buildKanalyGrounding,
+  kanalyGroundingInput,
+  type ChannelGrounding,
+} from "@/lib/organic-channels/grounding";
 import { demoProjectFor } from "@/lib/demo/projects";
 import { getProjectCatalog, localitiesFor } from "@/lib/catalog/resolve";
 import { PROJECT_TYPES } from "@/lib/projects/types";
@@ -38,20 +46,28 @@ export interface FreeChannelFacts {
     project: Project;
     /** the seeded plan, fit-ranked — byte-identical to the /dashboard?m=kanaly table */
     plan: OrganicChannel[];
+    /** exactly what the module knows about this business before it ranks anything:
+     *  the offering line, the localities and the keywords the plan speaks from.
+     *  Built by the APP's builder, so the walkthrough cannot narrate a grounding
+     *  step the product does not actually perform. */
+    grounding: ChannelGrounding;
   };
 }
 
-/** Grounding for the demo plan, mirroring `DemoModule`'s `kanaly` case exactly:
- *  first catalog category + first locality, so the seeded copy names the real
- *  business instead of falling back to "vaší nabídky". */
-function demoPlan(project: Project): OrganicChannel[] {
-  const catalog = getProjectCatalog(project, DEMO_NOW);
-  const categories = [...new Set(catalog.map((o) => o.category).filter(Boolean))];
-  const localities = localitiesFor(project).map((l) => l.name);
-  return channelPlanForProject(project, {
-    ...(categories[0] ? { category: categories[0] } : {}),
-    ...(localities[0] ? { locality: localities[0] } : {}),
-  });
+/** Grounding + seeded plan for the demo fixture, assembled the way the real page
+ *  assembles them: catalog rows and localities through `kanalyGroundingInput`
+ *  (no competitor read — the demo has no tenant competitor store, and the
+ *  competitor leg only grounds AI REGENERATION, never the seeded fill) and then
+ *  `buildKanalyGrounding`, whose `sample` result carries the `{category}` /
+ *  `{locality}` fill the seeded plan interpolates. */
+function demoRead(project: Project): { plan: OrganicChannel[]; grounding: ChannelGrounding } {
+  const { grounding, sample } = buildKanalyGrounding(
+    kanalyGroundingInput({
+      catalog: getProjectCatalog(project, DEMO_NOW),
+      localities: localitiesFor(project),
+    })
+  );
+  return { plan: channelPlanForProject(project, sample), grounding };
 }
 
 export function freeChannelFacts(): FreeChannelFacts {
@@ -65,6 +81,6 @@ export function freeChannelFacts(): FreeChannelFacts {
     families: CHANNEL_CATEGORIES.length,
     businessTypes: PROJECT_TYPES.length,
     curatedChannels: ids.size,
-    demo: { project, plan: demoPlan(project) },
+    demo: { project, ...demoRead(project) },
   };
 }

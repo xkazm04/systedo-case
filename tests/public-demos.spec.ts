@@ -3,6 +3,7 @@ import { test, expect, type Page } from "@playwright/test";
 /**
  * Smoke coverage for every PUBLIC surface that claims to demo the product:
  *
+ *   /                   the homepage — its three demonstrating bands
  *   /kampane            campaign triage on the demo tenant
  *   /knihovna           the winning-patterns library
  *   /socialni           the social center
@@ -41,6 +42,43 @@ async function gotoPublic(page: Page, path: string) {
 }
 
 test.describe("public demo surfaces", () => {
+  test("/ demonstrates the core path, the module registry and the FAQ", async ({ page }) => {
+    await gotoPublic(page, "/");
+
+    // 1. THE WALKTHROUGH. Its whole claim is that each step shows the product's
+    // real output, so the assertions are on DERIVED values, not on prose: the
+    // demo fixture's own domain (src/lib/demo/projects.ts) in the open first
+    // step, and a ranked list whose fit scores are numbers.
+    const walk = page.locator("#core-path");
+    await expect(walk).toBeVisible();
+    await expect(walk.getByText("mionelo.cz")).toBeVisible();
+
+    // The stepper is a native <details name> accordion — zero client JS. The
+    // ranked panel is in the HTML but closed, and opening it is what a reader
+    // does. Both halves are asserted: if the accordion silently stopped
+    // toggling, "the rows exist in the DOM" would still pass on its own.
+    const ranked = walk.locator("ol > li");
+    await expect(ranked).toHaveCount(3);
+    await expect(ranked.first()).toBeHidden();
+    await walk.getByText(/Dostanete seřazený plán|You get a ranked plan/).click();
+    await expect(ranked.first()).toBeVisible();
+    // A fit score, i.e. a number the seeded plan computed — not a typed claim.
+    await expect(ranked.first()).toContainText(/\d+/);
+
+    // 2. THE MODULE GRID, derived from src/lib/projects/modules.ts. Assert a
+    // section heading AND a module name from the registry: a grid that rendered
+    // its framing copy with an empty module list would pass the first alone.
+    const modules = page.locator("#moduly");
+    await expect(modules.getByRole("heading", { name: /^(Akvizice|Acquisition)$/ })).toBeVisible();
+    await expect(modules.getByText(/^(Kanály zdarma|Free channels)$/).first()).toBeVisible();
+
+    // 3. THE FAQ. Same accordion; the answer carries a link into /cena, which is
+    // where the "free during validation" claim is substantiated.
+    const faq = page.locator("#faq");
+    await faq.getByRole("heading", { name: /Kolik to stojí|What does it cost/ }).click();
+    await expect(faq.getByRole("link", { name: /bezplatném plánu|free plan covers/ })).toBeVisible();
+  });
+
   test("/kampane reaches one of its two terminal states", async ({ page }) => {
     await gotoPublic(page, "/kampane");
     // Cold DB → the empty state with its sync affordance; already synced → the
