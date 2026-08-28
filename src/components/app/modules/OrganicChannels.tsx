@@ -28,6 +28,7 @@ import {
   type ChannelTrack,
   type OrganicChannel,
 } from "@/lib/organic-channels/types";
+import type { ChannelGrounding } from "@/lib/organic-channels/grounding";
 import { deriveChannelNext, type SignpostContext } from "@/lib/organic-channels/next-step";
 import { reconcilePlanTracks } from "@/lib/organic-channels/reconcile";
 import ChannelPipeline from "@/components/app/channels/ChannelPipeline";
@@ -35,16 +36,12 @@ import ChannelTable from "@/components/app/channels/ChannelTable";
 import ChannelWizard from "@/components/app/channels/ChannelWizard";
 import ChannelPlaybook from "@/components/app/channels/ChannelPlaybook";
 
-/** Grounding the page resolves server-side and threads into the AI "tailor" call. */
-export interface ChannelGrounding {
-  offering?: string;
-  localities?: string[];
-  competitors?: string[];
-  keywords?: string[];
-  /** the competitors READ failed (≠ "tenant has none"): regeneration would run
-   *  un-grounded, so the regenerate affordance discloses the degradation */
-  competitorsUnavailable?: boolean;
-}
+/** Grounding the page resolves server-side and threads into the AI "tailor" call.
+ *  Assembled (catalog spine + applied website-scan profile) by buildKanalyGrounding;
+ *  the shape lives next to that pure builder so the lib does not depend on this
+ *  client component. Re-exported here because the page imports it alongside the
+ *  component. */
+export type { ChannelGrounding };
 
 const T = {
   cs: {
@@ -212,6 +209,8 @@ export default function OrganicChannels({
       ...(grounding.localities?.length ? { localities: grounding.localities } : {}),
       ...(grounding.competitors?.length ? { competitors: grounding.competitors } : {}),
       ...(grounding.keywords?.length ? { keywords: grounding.keywords } : {}),
+      ...(grounding.businessSummary ? { businessSummary: grounding.businessSummary } : {}),
+      ...(grounding.audience ? { audience: grounding.audience } : {}),
     });
   };
 

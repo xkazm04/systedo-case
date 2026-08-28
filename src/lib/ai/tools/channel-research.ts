@@ -47,7 +47,7 @@ Uvažuj o těchto typech kanálů:
 
 Pravidla:
 - Doporuč 6–9 KONKRÉTNÍCH kanálů vhodných přesně pro tuto firmu a její typ. Preferuj kanály relevantní na českém trhu.
-- ${antiFabrication("předaného kontextu (typ podnikání, značka, nabídka, lokality, konkurence, klíčová slova)")} Zejména si nevymýšlej čísla ani fakta o konkurenci.
+- ${antiFabrication("předaného kontextu (typ podnikání, značka, popis firmy, nabídka, publikum, lokality, konkurence, klíčová slova)")} Zejména si nevymýšlej čísla ani fakta o konkurenci.
 - Každý kanál musí být bezplatný na vstup (žádné placené PPC/nákup médií).
 - Pro každý kanál vrať: „name" (název kanálu), „category" (jedna z: ${CHANNEL_CATEGORIES.join(" | ")}), „fit" (0–100, jak dobře sedí této firmě), „effort" (low | medium | high), „rationale" (jednou větou proč sedí PRÁVĚ této firmě), „payoff" (co konkrétně přinese) a „firstActions" (2–4 konkrétní první kroky).
 - Seřaď kanály od nejvyššího „fit" po nejnižší. Nedávej dva stejné kanály.
@@ -72,7 +72,13 @@ function resolveType(v: string): ProjectType {
   return (KNOWN_TYPES.has(v) ? v : "eshop") as ProjectType;
 }
 
-function buildChannelResearchPrompt(req: ChannelResearchRequest): string {
+/** The user prompt. Every context line is OPTIONAL and omitted when the caller has
+ *  nothing to say, so a catalog-first tenant's prompt is unchanged by the arrival of
+ *  the website-scan fields: `businessSummary` (what the firm does, in prose) and
+ *  `audience` (who it sells to) come from the applied onboarding scan and are the
+ *  grounding a URL-first tenant with an empty catalog would otherwise not have.
+ *  Exported for the unit tests — request in, prompt text out, no I/O. */
+export function buildChannelResearchPrompt(req: ChannelResearchRequest): string {
   const type = resolveType(req.projectType);
   const lines = [
     "Sestav plán bezplatných (organických) kanálů viditelnosti pro tuto firmu.",
@@ -80,7 +86,9 @@ function buildChannelResearchPrompt(req: ChannelResearchRequest): string {
     `Typ podnikání: ${TYPE_FRAMING[type]}`,
     `Značka / firma: ${req.brand}`,
   ];
+  if (req.businessSummary) lines.push(`Čím se firma zabývá: ${req.businessSummary}`);
   if (req.offering) lines.push(`Nabídka: ${req.offering}`);
+  if (req.audience) lines.push(`Cílové publikum: ${req.audience}`);
   if (req.localities && req.localities.length > 0) {
     lines.push(`Lokality: ${req.localities.join(", ")}`);
   }

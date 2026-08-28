@@ -1282,6 +1282,13 @@ export interface ChannelResearchRequest {
   brand: string;
   /** what the business offers (top categories / short offering summary), when known */
   offering?: string;
+  /** a one-paragraph read of what the business does — from the applied website-scan
+   *  profile; the catalog has no equivalent, so this is often the only real context a
+   *  URL-first tenant with an empty catalog can give the model */
+  businessSummary?: string;
+  /** who the business sells to — from the website-scan profile; steers the
+   *  community / social / partnership picks */
+  audience?: string;
   /** localities the business serves (local / leadgen) — enables map/directory channels */
   localities?: string[];
   /** named competitors, for gap framing — the model never invents rivals or their numbers */

@@ -5,15 +5,17 @@
  *  derives readiness from reality, not from stored flags. */
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
-import OrganicChannels, { type ChannelGrounding } from "@/components/app/modules/OrganicChannels";
+import OrganicChannels from "@/components/app/modules/OrganicChannels";
 import { channelPlanForProject } from "@/lib/organic-channels/sample";
 import { resolveOrganicChannels } from "@/lib/organic-channels/resolve";
 import { competitorsGrounding, planProvenance } from "@/lib/organic-channels/types";
+import { buildKanalyGrounding } from "@/lib/organic-channels/grounding";
 import { buildSignpostContext, type SignpostContext } from "@/lib/organic-channels/next-step";
 import { loadProjectCatalog } from "@/lib/catalog/load";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { getCompetitors } from "@/lib/competitors/store";
 import { curatedCompetitors } from "@/lib/competitors/types";
+import { getOnboarding } from "@/lib/onboarding/store";
 import { resolveTwin } from "@/lib/twin/resolve";
 import { getTwin } from "@/lib/twin/store";
 
@@ -23,41 +25,41 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
 
   // Ground the plan in the project's real business: its offering categories, the
   // localities it serves, and any named competitors — the same catalog/competitor
-  // spine the other smart modules read.
+  // spine the other smart modules read — TOPPED UP from the applied website-scan
+  // profile so a URL-first tenant with an empty catalog is not reduced to a
+  // type+brand-only prompt. Precedence (catalog wins, profile fills gaps) and the
+  // deliberate exclusion of the scan's unconfirmed competitors live in
+  // buildKanalyGrounding, which is pure and unit-tested.
   // A failed competitors read is NOT "the tenant has no competitors": it silently
   // un-grounds regeneration, so the failure survives to the UI (degraded grounding).
-  const [catalog, competitorRead] = await Promise.all([
+  // A failed onboarding read simply means "no profile" — it can only ever cost a
+  // gap-fill, never un-ground anything the catalog already said.
+  const [catalog, competitorRead, onboarding] = await Promise.all([
     loadProjectCatalog(project),
     getCompetitors(project.id).then(
       (set) => ({ failed: false, set }),
       () => ({ failed: true, set: null })
     ),
+    getOnboarding(project.id).catch(() => null),
   ]);
   const competitorSet = competitorRead.set;
   const categories = [...new Set(catalog.map((o) => o.category).filter(Boolean))];
   const localities = localitiesFor(project).map((l) => l.name);
-  const offering = categories.slice(0, 4).join(", ");
   // CURATED only: this grounding is handed to the channel-research model as fact, so an
   // unconfirmed website-scan guess must not be asserted as one of the tenant's rivals.
   const competitors = curatedCompetitors(competitorSet?.competitors).map((c) => c.name);
-  const grounding: ChannelGrounding = {
-    ...(offering ? { offering } : {}),
-    ...(localities.length ? { localities } : {}),
-    ...(competitors.length ? { competitors } : {}),
+  const { grounding, sample: sampleContext } = buildKanalyGrounding({
+    categories,
+    offeringNames: catalog.map((o) => o.name),
+    localities,
+    competitors,
     // "unavailable" ≠ "none": only a FAILED read degrades the regenerate affordance.
-    ...(competitorsGrounding(competitorRead.failed, competitors) === "unavailable"
-      ? { competitorsUnavailable: true }
-      : {}),
-    // Seed keywords for the SEO/content channels: the offerings the business sells.
-    ...(catalog.length
-      ? { keywords: [...new Set(catalog.map((o) => o.name).filter(Boolean))].slice(0, 8) }
-      : {}),
-  };
-
-  const sample = channelPlanForProject(project, {
-    category: categories[0],
-    locality: localities[0],
+    competitorsUnavailable:
+      competitorsGrounding(competitorRead.failed, competitors) === "unavailable",
+    profile: onboarding?.scan ?? null,
   });
+
+  const sample = channelPlanForProject(project, sampleContext);
   const [resolved, twin, savedTwin] = await Promise.all([
     resolveOrganicChannels(project.id, sample),
     resolveTwin(project.id, project.type),

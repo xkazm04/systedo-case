@@ -1117,6 +1117,12 @@ export function validateChannelResearchRequest(input: unknown, locale: Supported
   const value: ChannelResearchRequest = { projectType, brand: brand.slice(0, 120) };
   const offering = str(o.offering);
   if (offering) value.offering = offering.slice(0, 300);
+  // Website-scan profile grounding — bounded like the rest, and optional: absent on
+  // every catalog-first tenant, so the request shape is unchanged for them.
+  const businessSummary = str(o.businessSummary);
+  if (businessSummary) value.businessSummary = businessSummary.slice(0, 600);
+  const audience = str(o.audience);
+  if (audience) value.audience = audience.slice(0, 300);
   const localities = parseGroundingList(o.localities, 8, 80);
   if (localities.length > 0) value.localities = localities;
   const competitors = parseGroundingList(o.competitors, 8, 80);
