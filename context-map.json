@@ -4904,7 +4904,8 @@
         "src/components/motion/MotionProvider.tsx",
         "src/components/hooks/useAsyncAction.ts",
         "src/components/hooks/useFocusTrap.ts",
-        "src/components/patterns/PatternsLibrary.tsx"
+        "src/components/patterns/PatternsLibrary.tsx",
+        "src/components/patterns/copy.ts"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
@@ -5670,7 +5671,7 @@
   },
   "stats": {
     "contexts": 117,
-    "files": 877,
+    "files": 878,
     "groups": 16,
     "use_cases": 0
   },

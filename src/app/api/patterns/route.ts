@@ -23,7 +23,11 @@ export async function GET(request: Request) {
     return Response.json(await getLibrary(tenant, pnoGoal, projectId ?? undefined));
   } catch (err) {
     console.error("[patterns] library failed:", err);
-    return Response.json({ auto: [], saved: [] });
+    // Degrade without lying: an empty body alone is indistinguishable from a
+    // tenant that genuinely has no patterns, and the UI then told the reader to
+    // go sync campaigns — a wrong diagnosis, and impossible advice on the public
+    // /knihovna page where nobody is signed in. `unavailable` says "unknown".
+    return Response.json({ auto: [], saved: [], unavailable: true });
   }
 }
 

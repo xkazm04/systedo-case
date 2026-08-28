@@ -14,79 +14,7 @@ import {
   type PatternCategory,
   type RankedPattern,
 } from "@/lib/patterns/types";
-
-const T = {
-  cs: {
-    infoBanner: "Vzory se odvozují z vašich vlastních výsledků. Hledání je",
-    infoBannerSemantic: "sémantické",
-    infoBannerSuffix: "a najde vzory podle významu, ne jen podle slov. Uložené vzory navíc ladí AI vyhodnocení portfolia.",
-    filterAll: "Vše",
-    searchPlaceholder: "Hledat podle významu…",
-    searchAriaLabel: "Hledat",
-    clearSearch: "Vymazat",
-    loading: "Načítám vzory…",
-    searchResults: "Výsledky hledání ({n})",
-    searching: "Hledám…",
-    semantic: "Sémantické",
-    textual: "Textové",
-    noResults: "Nic neodpovídá dotazu.",
-    yourLibrary: "Vaše knihovna ({n})",
-    emptyLibrary: "Zatím nemáte nic uloženo. Připněte si rozpoznané vzory níže nebo přidejte vlastní.",
-    noFilterMatch: "Žádný uložený vzor neodpovídá filtru.",
-    autoDetected: "Automaticky rozpoznané z dat ({n})",
-    noData: "Zatím nejsou data k analýze. Synchronizujte kampaně na stránce Kampaně.",
-    noAutoFilterMatch: "Žádný rozpoznaný vzor neodpovídá filtru.",
-    relevanceTitle: "Relevance k dotazu",
-    relevanceLabel: "relevance",
-    contradictedLabel: "Již neodpovídá datům",
-    contradictedTitle: "Čerstvě vytěžená data odporují tomuto uloženému vzoru. Zvažte jeho odebrání.",
-    savedAgePrefix: "Uloženo",
-    removeLabel: "Odebrat",
-    saveLabel: "Uložit",
-    addCustomTitle: "Přidat vlastní vzor",
-    patternNamePlaceholder: "Název vzoru",
-    insightPlaceholder: "Poučení / pravidlo",
-    evidencePlaceholder: "Důkaz / čísla (volitelné)",
-    saveBusy: "Ukládám…",
-    saveBtn: "Uložit vzor",
-    saveFailed: "Uložení se nezdařilo.",
-  },
-  en: {
-    infoBanner: "Patterns are derived from your own results. Search is",
-    infoBannerSemantic: "semantic",
-    infoBannerSuffix: "and finds patterns by meaning, not just keywords. Saved patterns also tune the AI portfolio evaluation.",
-    filterAll: "All",
-    searchPlaceholder: "Search by meaning…",
-    searchAriaLabel: "Search",
-    clearSearch: "Clear",
-    loading: "Loading patterns…",
-    searchResults: "Search results ({n})",
-    searching: "Searching…",
-    semantic: "Semantic",
-    textual: "Text",
-    noResults: "Nothing matches your query.",
-    yourLibrary: "Your library ({n})",
-    emptyLibrary: "Nothing saved yet. Pin detected patterns below or add your own.",
-    noFilterMatch: "No saved pattern matches the filter.",
-    autoDetected: "Auto-detected from data ({n})",
-    noData: "No data to analyze yet. Sync campaigns on the Campaigns page.",
-    noAutoFilterMatch: "No detected pattern matches the filter.",
-    relevanceTitle: "Relevance to query",
-    relevanceLabel: "relevance",
-    contradictedLabel: "No longer matches the data",
-    contradictedTitle: "Freshly mined data contradicts this saved pattern. Consider removing it.",
-    savedAgePrefix: "Saved",
-    removeLabel: "Remove",
-    saveLabel: "Save",
-    addCustomTitle: "Add custom pattern",
-    patternNamePlaceholder: "Pattern name",
-    insightPlaceholder: "Insight / rule",
-    evidencePlaceholder: "Evidence / numbers (optional)",
-    saveBusy: "Saving…",
-    saveBtn: "Save pattern",
-    saveFailed: "Save failed.",
-  },
-} as const;
+import { PATTERNS_T as T } from "./copy";
 
 type CategoryFilter = "all" | PatternCategory;
 
@@ -103,6 +31,11 @@ export default function PatternsLibrary({ projectId }: { projectId?: string } = 
   const [auto, setAuto] = useState<Pattern[]>([]);
   const [saved, setSaved] = useState<Pattern[]>([]);
   const [loading, setLoading] = useState(true);
+  // The library READ can fail (the auto-mined half reads the campaigns tree and is
+  // not offline-backed). Empty and unavailable are different answers, and telling
+  // an anonymous visitor to "sync campaigns" when the read failed is a wrong
+  // diagnosis on a page where they cannot sync anything.
+  const [unavailable, setUnavailable] = useState(false);
   const [filter, setFilter] = useState<CategoryFilter>("all");
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -116,11 +49,17 @@ export default function PatternsLibrary({ projectId }: { projectId?: string } = 
     try {
       const qs = pid ? `?projectId=${encodeURIComponent(pid)}` : "";
       const res = await fetch(`/api/patterns${qs}`);
-      const json = (await res.json()) as { auto?: Pattern[]; saved?: Pattern[] };
+      const json = (await res.json()) as {
+        auto?: Pattern[];
+        saved?: Pattern[];
+        unavailable?: boolean;
+      };
       setAuto(json.auto ?? []);
       setSaved(json.saved ?? []);
+      setUnavailable(json.unavailable === true);
     } catch {
-      /* non-critical */
+      // A failed fetch is the same answer as a failed read: unknown, not empty.
+      setUnavailable(true);
     } finally {
       setLoading(false);
     }
@@ -351,9 +290,11 @@ export default function PatternsLibrary({ projectId }: { projectId?: string } = 
             </h2>
             {visibleAuto.length === 0 ? (
               <p className="text-sm text-muted">
-                {auto.length === 0
-                  ? t("noData")
-                  : t("noAutoFilterMatch")}
+                {auto.length > 0
+                  ? t("noAutoFilterMatch")
+                  : unavailable
+                    ? t("libraryUnavailable")
+                    : t("noData")}
               </p>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
