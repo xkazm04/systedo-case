@@ -2,7 +2,7 @@
 name: Vojta (indie SaaS maker, build-in-public)
 role: Solo developer-founder of a bootstrapped micro-SaaS, doing all his own marketing on a near-zero budget — organic-first, no ad spend
 maps_to: /app/demo-app (app project type) — keywords, Compare & SEO (srovnani-seo), content engine, social, patterns library, overview/performance
-surface_binding: app project type (demo-app). Reachable modules: Přehled, Výkon, Kampaně, Klíčová slova, Obsahový engine, Sociální sítě, Knihovna vzorů, Reporty, CAC→LTV, LP experimenty, Srovnání & SEO + system. He lives in Klíčová slova, Srovnání & SEO, Obsahový engine and Sociální sítě — the organic-visibility modules. He does NOT touch paid Kampaně (no budget) except to confirm he can ignore it.
+surface_binding: app project type (demo-app). Reachable modules: Přehled, Výkon, Kampaně, Klíčová slova, **Kanály zdarma**, Obsahový engine, Sociální sítě, Knihovna vzorů, Reporty, CAC→LTV, LP experimenty, Srovnání & SEO + system. He lives in Klíčová slova, Kanály zdarma, Srovnání & SEO, Obsahový engine and Sociální sítě — the organic-visibility modules. He does NOT touch paid Kampaně (no budget) except to confirm he can ignore it.
 tech_level: power-user (technically fluent, but a marketing novice — can wire an API in an hour, freezes at "what's my keyword strategy")
 cohort: bootstrapped-maker (cheap-visibility, ease-first)
 promotion: discovery

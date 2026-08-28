@@ -2,7 +2,7 @@
 name: Standa (pre-launch maker, building buzz from zero)
 role: Solo maker weeks away from launching a new app/product — no revenue, no traffic, no ad budget, trying to build a waitlist and early visibility before there's anything to show
 maps_to: /app/demo-app (app project type) — keywords (demand validation), Compare & SEO, content engine, social; the empty/cold-start states of every module
-surface_binding: app project type (demo-app). Reachable modules: Přehled, Výkon, Kampaně, Klíčová slova, Obsahový engine, Sociální sítě, Knihovna vzorů, Reporty, CAC→LTV, LP experimenty, Srovnání & SEO + system. His defining test is the COLD-START: he has no historical performance data, so he lives in the modules that work from zero — Klíčová slova, Srovnání & SEO, Obsahový engine, Sociální sítě. Modules that need existing traffic/results (Výkon, Knihovna vzorů, CAC→LTV) are where he probes for empty-state dead-ends.
+surface_binding: app project type (demo-app). Reachable modules: Přehled, Výkon, Kampaně, Klíčová slova, **Kanály zdarma**, Obsahový engine, Sociální sítě, Knihovna vzorů, Reporty, CAC→LTV, LP experimenty, Srovnání & SEO + system. His defining test is the COLD-START: he has no historical performance data, so he lives in the modules that work from zero — Klíčová slova, Kanály zdarma, Srovnání & SEO, Obsahový engine, Sociální sítě. Modules that need existing traffic/results (Výkon, Knihovna vzorů, CAC→LTV) are where he probes for empty-state dead-ends.
 tech_level: comfortable (maker-generalist; ships product, shaky on go-to-market)
 cohort: bootstrapped-maker (cheap-visibility, ease-first)
 promotion: discovery

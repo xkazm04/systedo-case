@@ -37,7 +37,7 @@ npm run dev:local        # = DEV_AUTH=true LOCAL_DB=true next dev
 - **`demo-leadgen`** (leadgen): kvalita-leadu, rychla-reakce, lokalni + shared → **Hana**.
 - **`demo-app`** (app): srovnani-seo, experimenty-lp, ltv, socialni + shared → **Tobias**.
 - **`demo-content`** (content): obsahovy-engine, distribuce, publikum, kreativa + shared → **Eva**.
-- shared / ALL: prehled, vykon, klicova-slova, obsah, knihovna, reporty, nastaveni → **Petra, Tomáš, Lucia**.
+- shared / ALL: prehled, vykon, klicova-slova, **kanaly** (Kanály zdarma — `availableFor: ALL`, reachable for every Character; it was missing from this list until 2026-08-28 and so went untested through the whole 2026-07-16 run), obsah, knihovna, reporty, nastaveni → **Petra, Tomáš, Lucia** + every zero-budget Character (**Standa, Radek, Vojta**) via `find-free-channels`.
 
 > **Client-facing surfaces need a generated token.** Lucia's white-label microsite (`/report/<token>`) is unreachable without first creating a shared report (Kampaně → "Sdílet report") and capturing its token — create one in the preflight, or that journey can't be driven live.
 

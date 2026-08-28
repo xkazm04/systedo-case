@@ -2,7 +2,7 @@
 name: Radek (bootstrapped freelance consultant)
 role: Solo freelancer/consultant who needs a steady trickle of inbound leads without an ad budget — organic + local + fast response is his whole funnel; every lead matters because there aren't many
 maps_to: /app/demo-leadgen (leadgen project type) — keywords, local dominance, quick response, lead quality, content engine
-surface_binding: leadgen project type (demo-leadgen, "Služby"). Reachable modules: Přehled, Výkon, Kampaně, Klíčová slova, Obsahový engine, Sociální sítě, Knihovna vzorů, Reporty, Kvalita leadů, Rychlá reakce, Lokální dominance + system. He lives in Klíčová slova + Obsahový engine (organic inbound), Lokální dominance, and Rychlá reakce (respond fast to the few leads he gets). He eyes Kampaně but has no budget, so the organic + response path must stand on its own. Kvalita leadů matters because he can't afford to chase junk.
+surface_binding: leadgen project type (demo-leadgen, "Služby"). Reachable modules: Přehled, Výkon, Kampaně, Klíčová slova, **Kanály zdarma**, Obsahový engine, Sociální sítě, Knihovna vzorů, Reporty, Kvalita leadů, Rychlá reakce, Lokální dominance + system. He lives in Klíčová slova + Kanály zdarma + Obsahový engine (organic inbound), Lokální dominance, and Rychlá reakce (respond fast to the few leads he gets). He eyes Kampaně but has no budget, so the organic + response path must stand on its own. Kvalita leadů matters because he can't afford to chase junk.
 tech_level: comfortable (domain-expert consultant; competent generalist, not a marketer)
 cohort: bootstrapped-maker (cheap-visibility, ease-first)
 promotion: discovery
