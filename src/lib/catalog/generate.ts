@@ -98,6 +98,10 @@ export function buildAssetGroup(p: Product, brand = "", domain = "", claims: Flo
   // but with an unknown (0) count must not be advertised as a preorder (product #5).
   const inStock = p.available ?? p.stock > 0;
   const withBrand = (s: string) => (brand ? `${s} ${brand}` : s);
+  // A feed-imported row can carry no (or blank) tags, so every USP fragment below is
+  // built conditionally — an empty join must never reach the exported copy as a bare
+  // "." clause or a dangling "Title — ".
+  const usps = p.usps.filter((u) => u.trim() !== "");
 
   // Verifiable claim lines — each present only when the shop actually supplied the value.
   const stockLine = inStock
@@ -115,8 +119,8 @@ export function buildAssetGroup(p: Product, brand = "", domain = "", claims: Flo
       `${p.category} ${price}`,
       stockLine,
       ...claimHeadlines,
-      p.usps[0] ?? "Ověřená kvalita",
-      p.usps[1] ?? "Oblíbená volba zákazníků",
+      usps[0] ?? "Ověřená kvalita",
+      usps[1] ?? "Oblíbená volba zákazníků",
       withBrand(p.category),
     ],
     RSA_HEADLINE_MAX,
@@ -124,9 +128,10 @@ export function buildAssetGroup(p: Product, brand = "", domain = "", claims: Flo
   );
 
   const shippingSuffix = claims.freeShippingFrom != null ? " s dopravou zdarma" : "";
+  const uspSuffix = usps.length ? ` — ${usps.slice(0, 2).join(", ")}` : "";
   const longHeadlines = clampList(
     [
-      `${p.title} — ${p.usps.slice(0, 2).join(", ")}`,
+      `${p.title}${uspSuffix}`,
       `${withBrand(p.category)} za ${price}${shippingSuffix}`,
     ],
     PMAX_LONG_HEADLINE_MAX,
@@ -144,13 +149,16 @@ export function buildAssetGroup(p: Product, brand = "", domain = "", claims: Flo
       : "Skladem."
     : "Naskladnění brzy.";
 
+  const topUspClause = usps.length ? [`${usps.slice(0, 2).join(", ")}.`] : [];
+  const allUspClause = usps.length ? [`${usps.join(", ")}.`] : [];
+
   const descriptions = clampList(
     [
       packClauses(
-        [`${p.title}.`, `${p.usps.slice(0, 2).join(", ")}.`, ...(promoClause ? [promoClause] : [])],
+        [`${p.title}.`, ...topUspClause, ...(promoClause ? [promoClause] : [])],
         RSA_DESCRIPTION_MAX
       ),
-      packClauses([`${p.usps.join(", ")}.`, dispatchClause], RSA_DESCRIPTION_MAX),
+      packClauses([...allUspClause, dispatchClause], RSA_DESCRIPTION_MAX),
     ],
     RSA_DESCRIPTION_MAX,
     2
