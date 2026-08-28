@@ -1911,7 +1911,10 @@
         "src/components/app/modules/ContentEngine.tsx",
         "src/components/app/modules/ContentSchedule.tsx",
         "src/components/app/modules/DistributionModule.tsx",
-        "src/components/app/modules/OrganicChannels.tsx"
+        "src/components/app/modules/OrganicChannels.tsx",
+        "src/components/app/channels/ChannelNextSteps.tsx",
+        "src/components/app/channels/ChannelQuickWin.tsx",
+        "src/components/app/modules/ContentEngineNextSteps.tsx"
       ],
       "group": "Social & Content Publishing",
       "group_id": "79748803-cfff-4395-b8bd-69e33a473856",
@@ -3697,7 +3700,8 @@
         "src/components/app/modules/OnboardingModule.tsx",
         "src/components/app/modules/AccountSecurity.tsx",
         "src/components/app/modules/ProjectSettings.tsx",
-        "src/components/app/modules/IntegrationStatusModule.tsx"
+        "src/components/app/modules/IntegrationStatusModule.tsx",
+        "src/components/app/onboarding/OnboardingChecklist.tsx"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
@@ -3742,7 +3746,9 @@
       "file_paths": [
         "src/app/app/[projectId]/kanaly/page.tsx",
         "src/app/api/projects/[id]/organic-channels/route.ts",
-        "src/app/api/projects/[id]/competitors/route.ts"
+        "src/app/api/projects/[id]/competitors/route.ts",
+        "src/components/app/visibility/VisibilityPlanCard.tsx",
+        "src/components/app/visibility/VisibilityPlanRow.tsx"
       ],
       "group": "Project & Catalog",
       "group_id": "e4a4d67e-a44a-4b8d-9b59-6c6bd18ba324",
@@ -3796,7 +3802,10 @@
         "src/lib/keywords/engine.ts",
         "src/lib/keywords/store.ts",
         "src/lib/keywords/sample.ts",
-        "src/lib/keywords/types.ts"
+        "src/lib/keywords/types.ts",
+        "src/lib/organic-channels/grounding.ts",
+        "src/lib/organic-channels/visibility-plan.ts",
+        "src/lib/organic-channels/visibility-plan-resolve.ts"
       ],
       "group": "Social & Content Publishing",
       "group_id": "79748803-cfff-4395-b8bd-69e33a473856",
@@ -5650,7 +5659,7 @@
   },
   "stats": {
     "contexts": 117,
-    "files": 857,
+    "files": 866,
     "groups": 16,
     "use_cases": 0
   },
