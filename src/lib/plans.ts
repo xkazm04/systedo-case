@@ -112,66 +112,31 @@ export interface UsageStatus {
   day: string;
 }
 
-/** Marketing copy for each plan, shown on /cena. Price is illustrative for the
- *  case study (no billing is wired — upgrading the `plan` field is the seam). */
+/** The plan CATALOGUE: what plans exist, in what order, under what name, at what
+ *  price, and which one is recommended. Price is illustrative for the case study
+ *  (no billing is wired — upgrading the `plan` field is the seam).
+ *
+ *  Deliberately carries NO marketing copy. It used to hold a cs-only
+ *  `tagline`/`features` pair as well, which duplicated what `/cena` actually
+ *  renders, had drifted from it (the page led the free tier with the
+ *  free-channel plan; this list did not), and whose last reader was the retired
+ *  `/lp/distilled` variant. The words now live once, next to the components that
+ *  render them, in `src/components/marketing/pricing/planRows.ts` — which reads
+ *  this catalogue for everything a plan IS. */
 export interface PlanInfo {
   id: Plan;
   name: string;
   /** monthly price in CZK; 0 = free */
   priceCzk: number;
-  tagline: string;
-  features: string[];
   /** the highlighted/recommended card */
   featured?: boolean;
 }
 
 export const PLAN_INFO: PlanInfo[] = [
-  {
-    id: "free",
-    name: "Free",
-    priceCzk: 0,
-    tagline: "Pro vyzkoušení celého toku na ukázkových i živých datech.",
-    features: [
-      `${PLANS.free.aiEval} AI vyhodnocení denně`,
-      `${PLANS.free.sync} synchronizací Google Ads denně`,
-      `${PLANS.free.image} generování vizuálů denně`,
-      "Připojení vlastního účtu Google Ads",
-      "Doporučené přesuny rozpočtu (bez AI)",
-      "Sdílené reporty pro klienty",
-    ],
-  },
-  {
-    id: "byom",
-    // ~5 USD/měsíc ≈ 125 Kč. Vlastní API klíč, neomezené AI generování.
-    name: "Vlastní klíč",
-    priceCzk: 125,
-    tagline: "Vlastní API klíč, neomezené AI generování a volba modelu.",
-    features: [
-      "Neomezená AI generování přes vlastní klíč",
-      "OpenAI, Gemini nebo Claude — přepínání modelů",
-      "Platíte za tokeny přímo poskytovateli",
-      "Bez denního limitu na AI nástroje (přes vlastní klíč)",
-      // Honest disclosure: when the user's own key is missing/failing, generation
-      // falls back to our app-funded provider, capped like Free (PLANS.byom).
-      `Záložní generování přes náš klíč: ${PLANS.byom.aiEval}/den`,
-      "Přístup ke všem AI nástrojům v aplikaci",
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    priceCzk: 490,
-    tagline: "Pro agentury a denní práci s více účty.",
-    features: [
-      `${PLANS.pro.aiEval} AI vyhodnocení denně`,
-      `${PLANS.pro.sync} synchronizací denně`,
-      `${PLANS.pro.image} generování vizuálů denně`,
-      "Automatická hodinová synchronizace + e-mail alerty",
-      "Týdenní souhrnný report",
-      "Prioritní zpracování",
-    ],
-    featured: true,
-  },
+  { id: "free", name: "Free", priceCzk: 0 },
+  // ~5 USD/měsíc ≈ 125 Kč. Vlastní API klíč, neomezené AI generování.
+  { id: "byom", name: "Vlastní klíč", priceCzk: 125 },
+  { id: "pro", name: "Pro", priceCzk: 490, featured: true },
 ];
 
 /** Where the in-app upgrade CTA / quota-exceeded messages point. */

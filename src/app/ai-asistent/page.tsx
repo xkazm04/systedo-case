@@ -3,15 +3,21 @@ import { Container, Eyebrow, Pill } from "@/components/ui";
 import AiAssistant from "@/components/ai/AiAssistant";
 import TaskPager from "@/components/site/TaskPager";
 import { Bolt, Document, Info, Target } from "@/components/icons";
+import { AD_LIMITS, SEO_LIMITS } from "@/lib/ai-types";
+import { CLAUDE_MODEL, GEMINI_MODEL } from "@/lib/llm/models";
 import { getT } from "@/lib/i18n/server";
 
 // generateMetadata is not wired here (this file has no server locale read for the
 // metadata export) - the title/description below stay Czech-only per the
 // contract's "flag, don't improvise" rule; see docs/i18n flags.
+//
+// The two model ids are READ from src/lib/llm/models.ts rather than typed. A
+// retired model id is a real failure mode in this stack (it returns a 404 the
+// parser mis-files), and the last place anyone would think to update after a
+// model bump is a marketing page's meta description.
 export const metadata: Metadata = {
   title: "AI asistent — marketingové nástroje na Claude a Gemini",
-  description:
-    "AI nástroje pro marketing postavené na LLM wrapperu (claude-sonnet v devu, gemini-3-flash-preview v produkci): generátor PPC inzerátů, výzkum klíčových slov, SEO obsahový brief a analýza výkonu klienta. Strukturovaný výstup a kontrola limitů.",
+  description: `AI nástroje pro marketing postavené na LLM wrapperu (${CLAUDE_MODEL} v devu, ${GEMINI_MODEL} v produkci): generátor PPC inzerátů, výzkum klíčových slov, SEO obsahový brief a analýza výkonu klienta. Strukturovaný výstup a kontrola limitů.`,
 };
 
 const T = {
@@ -31,7 +37,7 @@ const T = {
       "Model nevrací volný text, ale JSON podle schématu (responseSchema). Výsledek je rovnou typovaný a validovaný, žádné křehké parsování.",
     approach2Title: "Doménová pravidla v promptu",
     approach2Body:
-      "Do instrukcí jsou zapečené limity Google Ads i SEO (nadpisy 30/90 znaků, title 60, meta 155) a oborové zásady. UI je navíc kontroluje a barevně označí přetečení.",
+      "Do instrukcí jsou zapečené limity Google Ads i SEO (nadpisy {headline}/{description} znaků, title {title}, meta {meta}) a oborové zásady. UI je navíc kontroluje a barevně označí přetečení.",
     approach3Title: "Klíč zůstává na serveru",
     approach3Body:
       "Volání běží v Route Handleru na Node runtime. GEMINI_API_KEY se nikdy nedostane do prohlížeče. Klient vidí jen hotový výsledek.",
@@ -60,7 +66,7 @@ const T = {
       "The model doesn't return free text. It returns JSON against a schema (responseSchema). The result is typed and validated on arrival, no brittle parsing.",
     approach2Title: "Domain rules baked into the prompt",
     approach2Body:
-      "Google Ads and SEO limits (30/90-character headlines, 60-character title, 155-character meta) and industry conventions are baked into the instructions. The UI additionally checks and color-flags any overflow.",
+      "Google Ads and SEO limits ({headline}/{description}-character headlines, {title}-character title, {meta}-character meta) and industry conventions are baked into the instructions. The UI additionally checks and color-flags any overflow.",
     approach3Title: "The key stays on the server",
     approach3Body:
       "Calls run in a Route Handler on the Node runtime. GEMINI_API_KEY never reaches the browser. The client only sees the finished result.",
@@ -80,7 +86,20 @@ export default async function AiAssistantPage() {
 
   const APPROACH = [
     { icon: Document, title: t("approach1Title"), body: t("approach1Body") },
-    { icon: Target, title: t("approach2Title"), body: t("approach2Body") },
+    {
+      icon: Target,
+      // The four character limits are the validator's OWN numbers (AD_LIMITS /
+      // SEO_LIMITS in lib/ai-types), not a copy of them: the sentence claims the
+      // limits are baked into the prompt, so quoting a stale number here would
+      // make the page wrong about the one thing it is bragging about.
+      title: t("approach2Title"),
+      body: t("approach2Body", {
+        headline: String(AD_LIMITS.headline),
+        description: String(AD_LIMITS.description),
+        title: String(SEO_LIMITS.titleTag),
+        meta: String(SEO_LIMITS.metaDescription),
+      }),
+    },
     { icon: Bolt, title: t("approach3Title"), body: t("approach3Body") },
     { icon: Info, title: t("approach4Title"), body: t("approach4Body") },
   ];
@@ -100,7 +119,7 @@ export default async function AiAssistantPage() {
               {t("introEnd")}
             </p>
           </div>
-          <Pill tone="brand">claude-sonnet</Pill>
+          <Pill tone="brand">{CLAUDE_MODEL}</Pill>
         </div>
       </div>
 

@@ -3470,7 +3470,10 @@
         "src/app/clanek/vykon/page.tsx",
         "src/app/clanek/vykon/loading.tsx",
         "src/app/clanek/vykon/opengraph-image.tsx",
-        "src/app/clanek/vykon/report-article.ts"
+        "src/app/clanek/vykon/report-article.ts",
+        "src/components/marketing/pricing/planRows.ts",
+        "src/components/marketing/pricing/PricingPlans.tsx",
+        "src/components/marketing/pricing/SelfHostBand.tsx"
       ],
       "group": "Site & Marketing",
       "group_id": "0ca5ac6b-c9d8-4a90-94fb-6088a88a66b4",
@@ -5630,7 +5633,7 @@
   },
   "stats": {
     "contexts": 116,
-    "files": 871,
+    "files": 874,
     "groups": 16,
     "use_cases": 0
   },

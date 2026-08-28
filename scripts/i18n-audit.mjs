@@ -342,7 +342,7 @@ if (JSON_OUT) {
  *  Do NOT raise a number to make a red run green: that is the one edit this file
  *  exists to prevent. */
 const RATCHET = {
-  coverage: 40, // hardcoded cs strings outside any T table
+  coverage: 38, // hardcoded cs strings outside any T table (40 → 38 on 2026-08-28: the /lp variants were retired)
   leftover: 42, // cs values byte-identical to en, minus the DNT list
   register: 0, // tykání in the cs column (already clean — keep it there)
 };
