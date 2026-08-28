@@ -27,8 +27,11 @@ export interface SyncTarget {
   /** the project tenant to sync into, or undefined → the per-user tenant */
   projectId?: string;
   projectType?: ProjectType;
-  /** why this pairing was chosen — surfaced in the cron result for diagnostics */
-  reason: "linked" | "single-project-fallback" | "no-project-fallback";
+  /** why this pairing was chosen — surfaced in the cron result for diagnostics.
+   *  `user-load-failed` is never planned here: the fan-out spine synthesises it for a
+   *  user whose own stores failed to load, so that failure still reaches the cron's
+   *  per-pair error path instead of aborting the run. */
+  reason: "linked" | "single-project-fallback" | "no-project-fallback" | "user-load-failed";
 }
 
 const digits = (s: string | null | undefined): string => (s ?? "").replace(/\D/g, "");

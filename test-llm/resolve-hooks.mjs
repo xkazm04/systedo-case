@@ -1,7 +1,8 @@
 /** Minimal ESM resolve hook so `node --test` can import the app's TypeScript
- *  wrapper directly (Node 24 strips the types). Handles the two things plain Node
- *  doesn't: the `@/` path alias and extensionless relative imports (`./x` → `./x.ts`).
- *  The wrapper's import graph is JSON-free and data-free, so this is all it needs.
+ *  wrapper directly (Node 24 strips the types). Handles the three things plain Node
+ *  doesn't: the `@/` path alias, extensionless relative imports (`./x` → `./x.ts`),
+ *  and the bare `import dataset from "@/data/*.json"` the app writes (Next supplies
+ *  the JSON loader; plain Node demands an explicit `with { type: "json" }`).
  */
 import { stat } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -49,4 +50,14 @@ export async function resolve(specifier, context, nextResolve) {
   }
 
   return nextResolve(spec, context);
+}
+
+/** Supply the `type: "json"` import attribute Node requires but the app's source
+ *  omits (e.g. `@/lib/data` → `@/data/performance.json`), so importing a module
+ *  whose graph reaches the sample dataset doesn't throw ERR_IMPORT_ATTRIBUTE_MISSING. */
+export async function load(url, context, nextLoad) {
+  if (url.startsWith("file:") && url.endsWith(".json")) {
+    return nextLoad(url, { ...context, importAttributes: { type: "json" } });
+  }
+  return nextLoad(url, context);
 }
