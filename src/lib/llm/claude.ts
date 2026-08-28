@@ -8,6 +8,11 @@
  *  Uses the machine's Claude subscription, so it must be logged in (`claude`).
  *  CLAUDECODE / CLAUDE_CODE_ENTRYPOINT are cleared so a nested invocation (e.g.
  *  running this from inside Claude Code) starts a fresh top-level session.
+ *
+ *  The child is a TRANSPORT, not an agent: it runs with no tools and no MCP
+ *  servers ({@link cliArgs}) and inherits only non-secret plumbing
+ *  ({@link cliEnv}) — the prompt carries user-influenced content, so an injected
+ *  instruction must have neither a tool to reach for nor a credential to steal.
  */
 import { spawn, spawnSync } from "node:child_process";
 import type { ChildProcess } from "node:child_process";
@@ -39,24 +44,110 @@ export function killChild(child: ChildProcess): void {
   grace.unref?.();
 }
 
-/** A fresh env for the spawned CLI: drop the markers that signal we're already
- *  inside Claude Code, and request a "medium" thinking budget. */
-function cliEnv(): NodeJS.ProcessEnv {
-  const env = { ...process.env };
-  delete env.CLAUDECODE;
-  delete env.CLAUDE_CODE_ENTRYPOINT;
+/** The ONLY variables the spawned CLI inherits — an allowlist, not a denylist.
+ *  The prompt is built from user-influenced content (project data, onboarding
+ *  website scans, catalog text), so the child must be treated as running on
+ *  attacker-supplied input: handing it the whole server env would put
+ *  GEMINI_API_KEY, the Firestore admin credentials, CRON_SECRET/AUTH_SECRET, the
+ *  BYOM key-encryption secret and every OAuth client secret one exfiltration
+ *  away. A denylist cannot be right here — every new secret would have to be
+ *  remembered — so only process/locale/network plumbing plus the paths the CLI
+ *  needs to find its own login session are copied through. Anything not on this
+ *  list (including ANTHROPIC_API_KEY: this path bills the operator's
+ *  subscription, the same economics as the Codex provider stripping
+ *  OPENAI_API_KEY, and CLAUDECODE / CLAUDE_CODE_ENTRYPOINT, whose absence keeps
+ *  a nested invocation a fresh top-level session) is dropped by construction. */
+const CLI_ENV_ALLOWLIST = [
+  // process plumbing (POSIX + Windows) — without these `cmd /c claude` cannot resolve
+  "PATH",
+  "PATHEXT",
+  "COMSPEC",
+  "SYSTEMROOT",
+  "SYSTEMDRIVE",
+  "WINDIR",
+  "OS",
+  "NUMBER_OF_PROCESSORS",
+  "PROCESSOR_ARCHITECTURE",
+  "PROGRAMDATA",
+  "PROGRAMFILES",
+  "PROGRAMFILES(X86)",
+  "PROGRAMW6432",
+  "COMMONPROGRAMFILES",
+  // home / config / temp — where the CLI reads its own auth session
+  "HOME",
+  "HOMEDRIVE",
+  "HOMEPATH",
+  "USERPROFILE",
+  "APPDATA",
+  "LOCALAPPDATA",
+  "XDG_CONFIG_HOME",
+  "XDG_CACHE_HOME",
+  "XDG_DATA_HOME",
+  "CLAUDE_CONFIG_DIR",
+  "TMPDIR",
+  "TMP",
+  "TEMP",
+  "SHELL",
+  "USER",
+  "USERNAME",
+  "LOGNAME",
+  // locale / terminal
+  "LANG",
+  "LANGUAGE",
+  "LC_ALL",
+  "LC_CTYPE",
+  "TERM",
+  "TZ",
+  // network egress (corporate proxy + custom CA) — non-secret transport config
+  "HTTP_PROXY",
+  "HTTPS_PROXY",
+  "NO_PROXY",
+  "ALL_PROXY",
+  "http_proxy",
+  "https_proxy",
+  "no_proxy",
+  "NODE_EXTRA_CA_CERTS",
+  "SSL_CERT_FILE",
+  "SSL_CERT_DIR",
+] as const;
+
+/** A fresh env for the spawned CLI: everything outside {@link CLI_ENV_ALLOWLIST}
+ *  is left behind, and a "medium" thinking budget is requested. Exported so a
+ *  regression test can assert the scrub. */
+export function cliEnv(): NodeJS.ProcessEnv {
+  // NODE_ENV is not a secret (and is a required property of ProcessEnv), so it seeds the object.
+  const env: NodeJS.ProcessEnv = { NODE_ENV: process.env.NODE_ENV };
+  for (const name of CLI_ENV_ALLOWLIST) {
+    // process.env is case-insensitive on Windows, so the canonical upper-case
+    // name also picks up `Path` / `ProgramFiles`; the child gets it upper-cased,
+    // which Windows resolves identically.
+    const value = process.env[name];
+    if (value !== undefined) env[name] = value;
+  }
   env.MAX_THINKING_TOKENS = String(CLAUDE_THINKING_TOKENS);
   return env;
 }
 
 /** CLI argv for one generation — the model alias follows the requested tier
- *  (sonnet for quality, haiku for the fast tier). */
-const cliArgs = (tier?: ModelTier): string[] => [
+ *  (sonnet for quality, haiku for the fast tier). Exported so a regression test
+ *  can assert the spawn argv. */
+export const cliArgs = (tier?: ModelTier): string[] => [
   "-p",
   "-", // read the prompt from stdin
   "--model",
   claudeCliAlias(tier),
-  "--dangerously-skip-permissions",
+  // NO TOOLS. This is a text-in / JSON-out transport call, and the prompt carries
+  // user-influenced content (project data, onboarding website scans, catalog
+  // text) — an injected "now run this" must have nothing to run. `--tools ""`
+  // turns off the whole built-in set (Bash/Read/Write/WebFetch/…) and
+  // `--strict-mcp-config` with no `--mcp-config` leaves zero MCP servers, so the
+  // user-level settings this still loads cannot re-add a tool surface. There is
+  // deliberately no `--dangerously-skip-permissions` here: it used to bypass
+  // every permission check, so anything the model reached for just ran. Without
+  // it a tool call that somehow survives both switches is denied instead.
+  "--tools",
+  "",
+  "--strict-mcp-config",
   // Load ONLY user settings (keeps the login/auth session) and NOT project/local — so this headless
   // one-shot JSON generation does not inherit the repo's CLAUDE.md/AGENTS.md interactive-coding
   // instructions. The repo's AGENTS.md tells an agent to "read docs before acting", which spent the
@@ -64,7 +155,7 @@ const cliArgs = (tier?: ModelTier): string[] => [
   // (`--bare` would also drop project instructions but skips auth too → "Not logged in".)
   "--setting-sources",
   "user",
-  // Headroom above one turn so a model that still takes a thinking/tool step reaches the final JSON
+  // Headroom above one turn so a model that still takes a thinking step reaches the final JSON
   // instead of being cut off mid-answer. Bounded by CLAUDE_TIMEOUT_MS regardless.
   "--max-turns",
   "6",
