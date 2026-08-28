@@ -3,7 +3,7 @@
  *  XML or CSV) — a URL-fetch path (SSRF-guarded) is a deliberate follow-up. Two
  *  modes: "preview" returns the diff without saving; "apply" merges + persists. */
 import { requireOwnedProject } from "@/lib/projects/api-guard";
-import { CatalogTooLargeError, listOfferings, saveOfferings } from "@/lib/catalog/store";
+import { listOfferings, saveOfferings } from "@/lib/catalog/store";
 import { sanitizeOfferings } from "@/lib/catalog/validate";
 import { isProduct, MAX_FEED_ITEMS, type ProductOffering } from "@/lib/catalog/offering";
 import { feedItemsToOfferings, parseFeed, sourceForFormat, type FeedFormat } from "@/lib/catalog/feed";
@@ -89,16 +89,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return Response.json({ ok: true, applied: false, format: parsed.format, warnings, diff });
   }
 
-  try {
-    await saveOfferings(uid, id, next);
-  } catch (err) {
-    // An oversized merged catalog is the payload's fault, not a backend failure —
-    // the local dev store has no byte cap, so this is the ONLY 4xx it ever becomes.
-    if (err instanceof CatalogTooLargeError) {
-      return apiError(413, "Katalog je příliš velký — odeberte některé položky.", "content-too-long");
-    }
-    throw err;
-  }
+  await saveOfferings(uid, id, next);
   await emitProjectActivity(uid, id, {
     kind: "update",
     module: "katalog",
