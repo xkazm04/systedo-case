@@ -6,7 +6,6 @@ import { getDb } from "@/lib/db";
 import type { DatabaseSync } from "node:sqlite";
 import {
   appendDiagnosis,
-  parseDiagnosisState,
   setStatusIn,
   type DiagnosisState,
   type DiagnosisStatus,
@@ -24,7 +23,11 @@ function selectState(db: DatabaseSync, projectId: string): DiagnosisState | null
     | Row
     | undefined;
   if (!row) return null;
-  return parseDiagnosisState(row.data);
+  try {
+    return JSON.parse(row.data) as DiagnosisState;
+  } catch {
+    return null;
+  }
 }
 
 function upsertState(db: DatabaseSync, projectId: string, state: DiagnosisState): void {

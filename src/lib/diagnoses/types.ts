@@ -88,52 +88,16 @@ export interface DiagnosisState {
 // dispatcher and the interesting logic is unit-testable in isolation.
 // --------------------------------------------------------------------------
 
-/** Keep at most `cap` items of each kind, preserving the (newest-first) order. A
- *  Map (not a plain object) so a hostile/corrupt `kind` value (e.g. "__proto__")
- *  can't collide with Object.prototype. */
+/** Keep at most `cap` items of each kind, preserving the (newest-first) order. */
 export function capPerKind(items: StoredDiagnosis[], cap = DIAGNOSIS_HISTORY_CAP): StoredDiagnosis[] {
-  const seen = new Map<string, number>();
+  const seen: Record<string, number> = {};
   const out: StoredDiagnosis[] = [];
   for (const it of items) {
-    const n = (seen.get(it.kind) ?? 0) + 1;
-    seen.set(it.kind, n);
+    const n = (seen[it.kind] ?? 0) + 1;
+    seen[it.kind] = n;
     if (n <= cap) out.push(it);
   }
   return out;
-}
-
-/** Shape-check a value parsed from a persisted blob before trusting it as
- *  {@link DiagnosisState}. A blob that parses as JSON but isn't the expected shape
- *  (a legacy write, a manual edit, a partial migration — `{}`, `{"items":{}}`,
- *  `[]`) must read as null (empty state), the same as the JSON.parse-failure
- *  branch, rather than flow a malformed `items` into `setStatusIn`/`latestOfKind`
- *  and throw deep inside a store transaction. Also drops non-object entries so a
- *  corrupt item can't reach capPerKind's per-kind counter. */
-export function isValidDiagnosisState(v: unknown): v is DiagnosisState {
-  return (
-    !!v &&
-    typeof v === "object" &&
-    Array.isArray((v as { items?: unknown }).items) &&
-    typeof (v as { updatedAt?: unknown }).updatedAt === "string"
-  );
-}
-
-/** Parse a persisted blob into a {@link DiagnosisState}, or null when it doesn't
- *  have the expected shape (bad JSON, or JSON of the wrong shape). Filters any
- *  non-object item out of `items` so a partially-corrupt blob still yields usable
- *  state rather than being discarded wholesale. */
-export function parseDiagnosisState(raw: string): DiagnosisState | null {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-  if (!isValidDiagnosisState(parsed)) return null;
-  return {
-    ...parsed,
-    items: parsed.items.filter((it): it is StoredDiagnosis => !!it && typeof it === "object"),
-  };
 }
 
 /** Prepend a new diagnosis (newest-first) and re-cap per kind. Returns the next
