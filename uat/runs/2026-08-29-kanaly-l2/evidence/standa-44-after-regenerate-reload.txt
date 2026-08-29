@@ -1,0 +1,164 @@
+Přehled
+Akvizice
+Tvorba
+Komunikace
+Analýza
+Nastavení
+Systém
+Fakturoid
+APLIKACE / SAAS
+
+KOMUNIKACE
+
+Kanály zdarma
+Sociální sítě
+Twin
+Správa kanálů
+Schránka zpráv
+Leady
+Zpět na web
+Kanály zdarma
+Zpětná vazba
+Přihlásit přes Google
+CS
+Kanály zdarma
+
+Kde se zviditelnit bez rozpočtu na reklamu: katalogy, komunity, obsah a partnerství s plánem prvních kroků.
+
+Plán na míru (AI)
+9 kanálů
+
+Vygenerováno 29. srpna 2026 v 13:21 z podkladů projektu
+
+Rozcestník vaší komunikace: kde vás zákazníci najdou zdarma a co je na každém kanálu další krok. Kliknutím na řádek otevřete playbook, tlačítkem uděláte další krok.
+
+Přegenerovat
+Zpět na ukázkový plán
+8
+Nalezeno
+→
+1
+Naplánováno
+→
+0
+Běží
+→
+0
+Pauza
+→
+0
+Hotovo
+Plán na míru je připravený
+claude-sonnet
+Vygenerováno modelem · 43 s
+
+Fakturoid má největší bezplatnou příležitost ve vlastním obsahu (SEO blog a YouTube) na klíčová slova jako „vystavit fakturu“ a „fakturace online“, kde může zachytit poptávku OSVČ přímo ve chvíli, kdy hledají řešení.
+
+Nahraďte ukázkový plán touto verzí přizpůsobenou vaší firmě.
+
+Použít tento plán (9)
+Zavřít
+Rychlá výhra: Facebook skupiny pro OSVČ a podnikatele
+Nízká náročnost, vysoká vhodnost. Začněte tady.
+Plán viditelnosti
+3 z 9 kanálů
+
+Jeden plán napříč moduly: dotaz, obsah, který na něj odpoví, a kanál, kde vás najdou. Nejbližší kroky nahoře.
+
+Nemáte uložený žádný brief ani koncept, takže žádný dotaz zatím nemá obsah.
+
+Napsat
+evidence nákladů
+zatím bez obsahu
+Vlastní blog a SEO (fakturoid.cz/blog)
+Vytvořit obsahový plán kolem klíčových slov „vystavit fakturu“, „fakturace online“, „faktura s QR kódem“
+Vaše data
+Napsat brief
+Napsat
+faktura s QR kódem
+zatím bez obsahu
+Facebook skupiny pro OSVČ a podnikatele
+Identifikovat aktivní skupiny pro OSVČ a podnikatele na Facebooku
+AI
+Napsat brief
+Napsat
+fakturace online
+zatím bez obsahu
+YouTube kanál s návody
+Natočit krátké video Jak nastavit párování plateb ve Fakturoidu
+AI
+Napsat brief
+Klíčová slova
+Obsahový engine
+KANÁL	VHODNOST	REŽIM	STAV	DALŠÍ KROK
+
+Vlastní blog a SEO (fakturoid.cz/blog)
+Obsah
+	
+92
+	Ručně	Naplánováno	Projít první kroky
+
+
+Facebook skupiny pro OSVČ a podnikatele
+Komunita
+	
+85
+	Nízká	Nalezeno	Nastavit kanál
+
+
+Google Business Profile
+Katalog
+	
+80
+	Nízká	Nalezeno	Nastavit kanál
+
+
+YouTube kanál s návody
+Obsah
+	
+78
+	Střední	Nalezeno	Nastavit kanál
+
+
+Firmy.cz
+Katalog
+	
+72
+	Nízká	Nalezeno	Nastavit kanál
+
+
+Reddit (r/czech, r/OSVC a podnikatelská vlákna)
+Komunita
+	
+68
+	Nízká	Nalezeno	Nastavit kanál
+
+
+Newsletter pro uživatele a odběratele blogu
+Obsah
+	
+65
+	Nízká	Nalezeno	Nastavit kanál
+
+
+Partnerství s účetními a daňovými poradci
+Partnerství
+	
+62
+	Střední	Nalezeno	Nastavit kanál
+
+
+Hostování v podcastech pro podnikatele
+PR
+	
+58
+	Vysoká	Nalezeno	Nastavit kanál
+
+DALŠÍ KROKY
+
+Klíčová slova
+Vyberte dotazy, na které chcete být vidět
+Obsahový engine
+Napište obsah pro vybraný kanál
+Sociální sítě
+Naplánujte a publikujte příspěvky

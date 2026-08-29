@@ -1,0 +1,12 @@
+{
+  "wrapOverflowX": "auto",
+  "wrapClientWidth": 356,
+  "wrapScrollWidth": 416,
+  "canScrollToIt": true,
+  "ctaRightBeforeScroll": 417,
+  "viewport": 390,
+  "afterScroll": {
+    "right": 357,
+    "fully": true
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "mode": "channel-research",
+  "projectType": "leadgen",
+  "brand": "Radek Poradenství",
+  "offering": "Služby",
+  "localities": [
+    "Praha",
+    "Brno",
+    "Ostrava",
+    "Plzeň"
+  ],
+  "keywords": [
+    "Ukázková služba A",
+    "Ukázková služba B"
+  ],
+  "projectId": "3500da2c52a94a1ea4f9"
+}

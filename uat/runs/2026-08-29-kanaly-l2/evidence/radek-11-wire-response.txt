@@ -1,0 +1,130 @@
+{
+  "result": {
+    "summary": "Největší bezplatná příležitost je zápis do lokálních katalogů a Google Business Profile pro všechna čtyři města, protože firma cílí na leadgen pro služby napříč Prahou, Brnem, Ostravou a Plzní a lokální vyhledávání zde staví základní důvěryhodnost bez nákladů.",
+    "channels": [
+      {
+        "id": "google-business-profile",
+        "name": "Google Business Profile",
+        "category": "directory",
+        "fit": 90,
+        "effort": "medium",
+        "rationale": "Firma působí ve čtyřech městech, profil v Google Business Profile umožňuje samostatný lokální zápis pro každou pobočku nebo obsluhovanou oblast.",
+        "payoff": "Zobrazení v lokálním vyhledávání a mapách při hledání služeb v dané lokalitě, možnost sbírat recenze.",
+        "firstActions": [
+          "Vytvořit nebo ověřit profil pro každé ze 4 měst",
+          "Vyplnit kategorii služby a popis nabídky",
+          "Přidat kontakt a provozní oblast",
+          "Požádat první klienty o recenzi"
+        ]
+      },
+      {
+        "id": "firmy-cz",
+        "name": "Firmy.cz",
+        "category": "directory",
+        "fit": 85,
+        "effort": "low",
+        "rationale": "Český katalog firem je standardní bezplatný vstupní bod pro firmu nabízející služby na českém trhu ve více lokalitách.",
+        "payoff": "Další zdroj organické viditelnosti a zpětný odkaz v rámci českého vyhledávání.",
+        "firstActions": [
+          "Založit zápis firmy Radek Poradenství",
+          "Uvést nabízené služby a lokality Praha, Brno, Ostrava, Plzeň",
+          "Doplnit kontaktní údaje a popis nabídky"
+        ]
+      },
+      {
+        "id": "mapy-cz",
+        "name": "Mapy.cz",
+        "category": "directory",
+        "fit": 82,
+        "effort": "low",
+        "rationale": "Doplňkový lokální zápis vedle Google Business Profile pro firmu s působností ve čtyřech českých městech.",
+        "payoff": "Viditelnost v české mapové službě, kterou část publika preferuje před Google Mapami.",
+        "firstActions": [
+          "Ověřit nebo vytvořit firemní bod na Mapy.cz",
+          "Doplnit popis služeb a lokality",
+          "Propojit s webem firmy"
+        ]
+      },
+      {
+        "id": "oborovy-katalog-sluzeb",
+        "name": "Oborový katalog služeb",
+        "category": "directory",
+        "fit": 75,
+        "effort": "low",
+        "rationale": "Katalogy zaměřené na poskytovatele služeb pomáhají oslovit publikum, které aktivně hledá konkrétní typ služby podle zadaných klíčových slov.",
+        "payoff": "Přímé poptávky od uživatelů hledajících konkrétní službu v daném oboru.",
+        "firstActions": [
+          "Vybrat relevantní oborový katalog pro služby",
+          "Vytvořit zápis s popisem Ukázková služba A a Ukázková služba B",
+          "Zvolit lokality Praha, Brno, Ostrava, Plzeň"
+        ]
+      },
+      {
+        "id": "facebook-skupiny-lokalnich-podnikatelu-a-poptavek",
+        "name": "Facebook skupiny lokálních podnikatelů a poptávek",
+        "category": "community",
+        "fit": 72,
+        "effort": "medium",
+        "rationale": "Skupiny zaměřené na místní poptávky ve čtyřech obsluhovaných městech jsou přirozeným místem, kde lidé hledají poskytovatele služeb.",
+        "payoff": "Přímý kontakt s poptávkou a možnost reagovat na konkrétní dotazy z daných lokalit.",
+        "firstActions": [
+          "Vyhledat aktivní skupiny pro Praha, Brno, Ostrava, Plzeň",
+          "Připojit se a seznámit se s pravidly skupin",
+          "Reagovat na relevantní poptávky se stručnou nabídkou"
+        ]
+      },
+      {
+        "id": "seo-blog-na-webu-firmy",
+        "name": "SEO blog na webu firmy",
+        "category": "content",
+        "fit": 68,
+        "effort": "high",
+        "rationale": "Vlastní obsah zacílený na klíčová slova Ukázková služba A a Ukázková služba B buduje dlouhodobou organickou návštěvnost z vyhledávání.",
+        "payoff": "Postupný nárůst organických návštěv a poptávek přes vyhledávače bez nutnosti placené inzerce.",
+        "firstActions": [
+          "Vytvořit článek na téma Ukázková služba A",
+          "Vytvořit článek na téma Ukázková služba B",
+          "Zmínit obsluhované lokality v textu",
+          "Propojit články s kontaktním formulářem"
+        ]
+      },
+      {
+        "id": "linkedin-firemni-profil-a-prispevky",
+        "name": "LinkedIn firemní profil a příspěvky",
+        "category": "social",
+        "fit": 65,
+        "effort": "medium",
+        "rationale": "Pro leadgen ve službách je LinkedIn vhodný kanál pro budování důvěryhodnosti a oslovení firemních klientů.",
+        "payoff": "Zvýšení povědomí o nabídce mezi firemními kontakty a možnost přímého networkingu.",
+        "firstActions": [
+          "Založit firemní stránku Radek Poradenství",
+          "Publikovat příspěvek představující nabízené služby",
+          "Propojit profil s weby a kontaktovat relevantní kontakty"
+        ]
+      },
+      {
+        "id": "partnerstvi-s-nekonkurencnimi-firmami-v-regionech",
+        "name": "Partnerství s nekonkurenčními firmami v regionech",
+        "category": "partnership",
+        "fit": 60,
+        "effort": "medium",
+        "rationale": "Spolupráce s doplňkovými poskytovateli v Praze, Brně, Ostravě a Plzni může přinášet vzájemná doporučení bez nákladů na reklamu.",
+        "payoff": "Doporučení od partnerů vedoucí k novým poptávkám v jednotlivých lokalitách.",
+        "firstActions": [
+          "Identifikovat nekonkurenční firmy obsluhující stejné lokality",
+          "Navrhnout vzájemné doporučování klientů",
+          "Domluvit konkrétní formu spolupráce"
+        ]
+      }
+    ]
+  },
+  "meta": {
+    "model": "claude-sonnet",
+    "demo": false,
+    "tookMs": 36622,
+    "provider": "claude-sonnet",
+    "attempts": 1,
+    "fellBack": false,
+    "extraction": "direct"
+  }
+}

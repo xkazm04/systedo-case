@@ -1,0 +1,151 @@
+Přehled
+Akvizice
+Tvorba
+Komunikace
+Analýza
+Nastavení
+Systém
+Radek Poradenství
+LEADY / SLUŽBY
+
+KOMUNIKACE
+
+Kanály zdarma
+Twin
+Správa kanálů
+Schránka zpráv
+Leady
+Zpět na web
+Kanály zdarma
+Zpětná vazba
+Přihlásit přes Google
+CS
+Kanály zdarma
+
+Kde se zviditelnit bez rozpočtu na reklamu: katalogy, komunity, obsah a partnerství s plánem prvních kroků.
+
+Plán na míru (AI)
+8 kanálů
+
+Vygenerováno 29. srpna 2026 v 13:17 z podkladů projektu
+
+Rozcestník vaší komunikace: kde vás zákazníci najdou zdarma a co je na každém kanálu další krok. Kliknutím na řádek otevřete playbook, tlačítkem uděláte další krok.
+
+Přegenerovat
+Zpět na ukázkový plán
+8
+Nalezeno
+→
+0
+Naplánováno
+→
+0
+Běží
+→
+0
+Pauza
+→
+0
+Hotovo
+Plán na míru je připravený
+claude-sonnet
+Vygenerováno modelem · 37 s
+
+Největší bezplatná příležitost je zápis do lokálních katalogů a Google Business Profile pro všechna čtyři města, protože firma cílí na leadgen pro služby napříč Prahou, Brnem, Ostravou a Plzní a lokální vyhledávání zde staví základní důvěryhodnost bez nákladů.
+
+Nahraďte ukázkový plán touto verzí přizpůsobenou vaší firmě.
+
+Použít tento plán (8)
+Zavřít
+Rychlá výhra: Firmy.cz
+Nízká náročnost, vysoká vhodnost. Začněte tady.
+Plán viditelnosti
+3 z 8 kanálů
+
+Jeden plán napříč moduly: dotaz, obsah, který na něj odpoví, a kanál, kde vás najdou. Nejbližší kroky nahoře.
+
+Nemáte uložená klíčová slova, takže plán zatím vede jen kanály.
+
+Zapsat se
+zatím bez dotazu
+zatím bez obsahu
+Google Business Profile
+Vytvořit nebo ověřit profil pro každé ze 4 měst
+AI
+Zapsat se
+zatím bez dotazu
+zatím bez obsahu
+Firmy.cz
+Založit zápis firmy Radek Poradenství
+AI
+Zapsat se
+zatím bez dotazu
+zatím bez obsahu
+Mapy.cz
+Ověřit nebo vytvořit firemní bod na Mapy.cz
+AI
+Klíčová slova
+Obsahový engine
+KANÁL	VHODNOST	REŽIM	STAV	DALŠÍ KROK
+
+Google Business Profile
+Katalog
+	
+90
+	Střední	Nalezeno	Nastavit kanál
+
+
+Firmy.cz
+Katalog
+	
+85
+	Nízká	Nalezeno	Nastavit kanál
+
+
+Mapy.cz
+Katalog
+	
+82
+	Nízká	Nalezeno	Nastavit kanál
+
+
+Oborový katalog služeb
+Katalog
+	
+75
+	Nízká	Nalezeno	Nastavit kanál
+
+
+Facebook skupiny lokálních podnikatelů a poptávek
+Komunita
+	
+72
+	Střední	Nalezeno	Nastavit kanál
+
+
+SEO blog na webu firmy
+Obsah
+	
+68
+	Vysoká	Nalezeno	Nastavit kanál
+
+
+LinkedIn firemní profil a příspěvky
+Sociální síť
+	
+65
+	Střední	Nalezeno	Nastavit kanál
+
+
+Partnerství s nekonkurenčními firmami v regionech
+Partnerství
+	
+60
+	Střední	Nalezeno	Nastavit kanál
+
+DALŠÍ KROKY
+
+Klíčová slova
+Vyberte dotazy, na které chcete být vidět
+Obsahový engine
+Napište obsah pro vybraný kanál

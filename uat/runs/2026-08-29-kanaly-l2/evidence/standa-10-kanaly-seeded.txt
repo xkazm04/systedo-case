@@ -1,0 +1,144 @@
+Přehled
+Akvizice
+Tvorba
+Komunikace
+Analýza
+Nastavení
+Systém
+Fakturoid
+APLIKACE / SAAS
+
+KOMUNIKACE
+
+Kanály zdarma
+Sociální sítě
+Twin
+Správa kanálů
+Schránka zpráv
+Leady
+Zpět na web
+Kanály zdarma
+Zpětná vazba
+Přihlásit přes Google
+CS
+Kanály zdarma
+
+Kde se zviditelnit bez rozpočtu na reklamu: katalogy, komunity, obsah a partnerství s plánem prvních kroků.
+
+Ukázková data
+Čísla jsou ilustrativní (vygenerovaná pro každý projekt zvlášť), nejde o vaše reálná data z reklamních účtů. Skutečná data se napojí přes konektor (viz poznámky „Seam“).
+Ukázkový plán
+8 kanálů
+
+Rozcestník vaší komunikace: kde vás zákazníci najdou zdarma a co je na každém kanálu další krok. Kliknutím na řádek otevřete playbook, tlačítkem uděláte další krok.
+
+Sestavit plán na míru (AI)
+8
+Nalezeno
+→
+0
+Naplánováno
+→
+0
+Běží
+→
+0
+Pauza
+→
+0
+Hotovo
+Plán viditelnosti
+3 z 8 kanálů
+
+Jeden plán napříč moduly: dotaz, obsah, který na něj odpoví, a kanál, kde vás najdou. Nejbližší kroky nahoře.
+
+Nemáte uložený žádný brief ani koncept, takže žádný dotaz zatím nemá obsah.
+
+Napsat
+evidence nákladů
+zatím bez obsahu
+Product Hunt
+Připravte hunter, vizuály, GIF a první komentář
+AI
+Napsat brief
+Napsat
+faktura s QR kódem
+zatím bez obsahu
+Vlastní blog a SEO
+Vyberte 3 témata z reálné poptávky (viz Klíčová slova)
+AI
+Napsat brief
+Napsat
+fakturace online
+zatím bez obsahu
+LinkedIn (organicky)
+Optimalizujte firemní i osobní profil zakladatele
+AI
+Napsat brief
+Klíčová slova
+Obsahový engine
+KANÁL	VHODNOST	REŽIM	STAV	DALŠÍ KROK
+
+Product Hunt
+Komunita
+	
+82
+	Střední	Nalezeno	Nastavit kanál
+
+
+G2 / Capterra
+Katalog
+	
+81
+	Střední	Nalezeno	Nastavit kanál
+
+
+Vlastní blog a SEO
+Obsah
+	
+80
+	Vysoká	Nalezeno	Nastavit kanál
+
+
+LinkedIn (organicky)
+Sociální síť
+	
+77
+	Střední	Nalezeno	Nastavit kanál
+
+
+E-mailový newsletter
+Obsah
+	
+77
+	Střední	Nalezeno	Nastavit kanál
+
+
+Reddit / oborové komunity
+Komunita
+	
+70
+	Vysoká	Nalezeno	Nastavit kanál
+
+
+YouTube
+Obsah
+	
+64
+	Vysoká	Nalezeno	Nastavit kanál
+
+
+Spolupráce s tvůrci
+Partnerství
+	
+64
+	Střední	Nalezeno	Nastavit kanál
+
+DALŠÍ KROKY
+
+Klíčová slova
+Vyberte dotazy, na které chcete být vidět
+Obsahový engine
+Napište obsah pro vybraný kanál
+Sociální sítě
+Naplánujte a publikujte příspěvky

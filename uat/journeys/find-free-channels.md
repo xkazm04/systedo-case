@@ -55,6 +55,24 @@ Entry point(s): the project **Přehled** (which surfaces one "Kanál zdarma: X" 
 
 **The one visibility plan.** Does the same composed artifact render on both ends of the path; are empty legs stated rather than invented; does every hop it offers point at a module this project type actually has.
 
+## L2 status
+
+**Certified 2026-08-29 — `L2-conditional`.** Run:
+`uat/runs/2026-08-29-kanaly-l2/` (Standa `app`/URL-first, Radek `leadgen`/catalog-first).
+Engine: Claude Code CLI `claude-sonnet` on the subscription, `demo:false` on every
+call. `channel-research` measured at **43.3 s** (Standa) and **37.8 s** (Radek) wall,
+8-9 named Czech channels each, pin and per-channel decision both survive a reload,
+the one visibility plan reads identically from both ends. Three defects were fixed in
+that run (mobile table clipping the row CTA; the apply banner returning after a
+reload of an already-pinned plan; and the blocker - the persisted starter catalog's
+placeholder rows being asserted to the model as the tenant's services and returned as
+advice). Two remain open and are the reason it is conditional: **L2-KAN-001** (the
+starter catalog's unmarked rows still outrank the tenant's applied website scan) and
+**L2-KAN-004** ("Přegenerovat" is a silent no-op inside the 15-minute response cache,
+which also meant the rename/reconcile path could not be exercised live). The degraded
+path was not reachable without corrupting the store; the production Gemini path is
+still unmeasured.
+
 ## What L2 must confirm (live browser)
 - **Real latency of `channel-research`** against the configured provider, measured — the page has a client ceiling and this Character's whole proposition is time saved. A plan that takes longer than the manual shortlist is a finding regardless of quality.
 - **Both themes** (light and dark) on `/kanaly`: the fit bar, the stage/mode pills, the quick-win callout and the plan card.

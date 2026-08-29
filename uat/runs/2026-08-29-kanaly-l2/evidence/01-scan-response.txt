@@ -1,0 +1,29 @@
+{
+  "result": {
+    "businessName": "Fakturoid",
+    "summary": "Fakturoid je online nástroj pro jednoduché vystavování faktur a správu financí drobných podnikatelů a firem. Automatizuje párování plateb, upomínky a evidenci nákladů.",
+    "offering": "Online fakturace s QR kódem, správa nákladů a výdajů, párování plateb, automatické upomínky, sklad, cenové nabídky, exporty pro účetní, více uživatelů a API integrace",
+    "audience": "OSVČ a firmy v ČR a na Slovensku, od začínajících podnikatelů po rostoucí firmy s týmem",
+    "toneOfVoice": "přátelský a jednoduchý, s důrazem na srozumitelnost a klid uživatele",
+    "keywords": [
+      "fakturace online",
+      "vystavit fakturu",
+      "fakturační program",
+      "faktura s QR kódem",
+      "párování plateb",
+      "evidence nákladů",
+      "fakturace OSVČ"
+    ],
+    "competitors": [],
+    "suggestedType": "app"
+  },
+  "meta": {
+    "model": "claude-sonnet",
+    "demo": false,
+    "tookMs": 11763,
+    "provider": "claude-sonnet",
+    "attempts": 1,
+    "fellBack": false,
+    "extraction": "direct"
+  }
+}

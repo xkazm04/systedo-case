@@ -1,0 +1,19 @@
+{
+  "mode": "channel-research",
+  "projectType": "app",
+  "brand": "Fakturoid",
+  "offering": "Předplatné",
+  "keywords": [
+    "Free",
+    "Pro",
+    "Team",
+    "fakturace online",
+    "vystavit fakturu",
+    "fakturační program",
+    "faktura s QR kódem",
+    "párování plateb"
+  ],
+  "businessSummary": "Fakturoid je online nástroj pro jednoduché vystavování faktur a správu financí drobných podnikatelů a firem. Automatizuje párování plateb, upomínky a evidenci nákladů.",
+  "audience": "OSVČ a firmy v ČR a na Slovensku, od začínajících podnikatelů po rostoucí firmy s týmem",
+  "projectId": "5a9460c0a07a480889d4"
+}

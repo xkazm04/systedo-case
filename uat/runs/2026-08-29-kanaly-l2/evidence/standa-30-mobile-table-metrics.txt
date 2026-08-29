@@ -1,0 +1,15 @@
+{
+  "tableWidth": 412,
+  "wrapClientWidth": 356,
+  "wrapScrollWidth": 412,
+  "wrapOverflowX": "hidden",
+  "wrapClass": "overflow-hidden rounded-card border border-line",
+  "viewport": 390,
+  "ctaText": "Nastavit kanál",
+  "ctaRect": {
+    "x": 312,
+    "right": 413,
+    "w": 101
+  },
+  "ctaFullyInViewport": false
+}

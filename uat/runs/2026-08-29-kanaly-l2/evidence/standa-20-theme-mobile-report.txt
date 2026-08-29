@@ -1,0 +1,90 @@
+[
+  {
+    "case": "desktop-light",
+    "dataTheme": "light",
+    "bodyBg": "rgb(244, 247, 249)",
+    "bodyFg": "rgb(13, 26, 36)",
+    "cardBg": "rgb(255, 255, 255)",
+    "cardFg": "rgb(13, 26, 36)",
+    "visibleHeaders": [
+      "Kanál",
+      "Vhodnost",
+      "Režim",
+      "Stav",
+      "Další krok"
+    ],
+    "rows": 9,
+    "quickWin": "Pracovní prostor · Adamant(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light'){document.docum",
+    "docScrollX": false,
+    "playbook": {
+      "width": 672,
+      "fitsViewport": true,
+      "actionCount": 27
+    }
+  },
+  {
+    "case": "desktop-dark",
+    "dataTheme": "dark",
+    "bodyBg": "rgb(10, 15, 22)",
+    "bodyFg": "rgb(231, 238, 245)",
+    "cardBg": "rgb(18, 26, 36)",
+    "cardFg": "rgb(231, 238, 245)",
+    "visibleHeaders": [
+      "Kanál",
+      "Vhodnost",
+      "Režim",
+      "Stav",
+      "Další krok"
+    ],
+    "rows": 9,
+    "quickWin": "Pracovní prostor · Adamant(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light'){document.docum",
+    "docScrollX": false,
+    "playbook": {
+      "width": 672,
+      "fitsViewport": true,
+      "actionCount": 27
+    }
+  },
+  {
+    "case": "mobile-light",
+    "dataTheme": "light",
+    "bodyBg": "rgb(244, 247, 249)",
+    "bodyFg": "rgb(13, 26, 36)",
+    "cardBg": "rgb(255, 255, 255)",
+    "cardFg": "rgb(13, 26, 36)",
+    "visibleHeaders": [
+      "Kanál",
+      "Stav",
+      "Další krok"
+    ],
+    "rows": 9,
+    "quickWin": "Pracovní prostor · Adamant(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light'){document.docum",
+    "docScrollX": false,
+    "playbook": {
+      "width": 358,
+      "fitsViewport": true,
+      "actionCount": 27
+    }
+  },
+  {
+    "case": "mobile-dark",
+    "dataTheme": "dark",
+    "bodyBg": "rgb(10, 15, 22)",
+    "bodyFg": "rgb(231, 238, 245)",
+    "cardBg": "rgb(18, 26, 36)",
+    "cardFg": "rgb(231, 238, 245)",
+    "visibleHeaders": [
+      "Kanál",
+      "Stav",
+      "Další krok"
+    ],
+    "rows": 9,
+    "quickWin": "Pracovní prostor · Adamant(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light'){document.docum",
+    "docScrollX": false,
+    "playbook": {
+      "width": 358,
+      "fitsViewport": true,
+      "actionCount": 27
+    }
+  }
+]

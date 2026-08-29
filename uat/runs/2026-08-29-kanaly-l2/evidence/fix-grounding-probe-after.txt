@@ -1,0 +1,9 @@
+
+=== leadgen (scan applied: false) — a1324da83a1540a38758
+{"offering":"Služby","localities":["Praha","Brno","Ostrava","Plzeň"]}
+
+=== app (scan applied: true) — 7e69bea1814640c3b414
+{"offering":"Předplatné","keywords":["Free","Pro","Team","fakturace online","vystavit fakturu","fakturační program"],"businessSummary":"Fakturoid je online nástroj pro jednoduché vystavování faktur a správu financí drobných podnikatelů a firem.","audience":"OSVČ a firmy v ČR a na Slovensku"}
+
+=== eshop (scan applied: true) — 6881932e65374fd18d56
+{"offering":"Online fakturace s QR kódem, správa nákladů a výdajů, párování plateb","keywords":["fakturace online","vystavit fakturu","fakturační program"],"businessSummary":"Fakturoid je online nástroj pro jednoduché vystavování faktur a správu financí drobných podnikatelů a firem.","audience":"OSVČ a firmy v ČR a na Slovensku"}

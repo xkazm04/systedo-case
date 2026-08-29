@@ -1,0 +1,148 @@
+{
+  "result": {
+    "summary": "Největší bezplatná příležitost je založit a důsledně vyplnit lokální profily (Google Business Profile, Mapy.cz, Firmy.cz) pro všechna čtyři města a propojit je s LinkedIn profilem, protože B2B poptávka po poradenských službách vzniká právě z lokálního vyhledávání a doporučení.",
+    "channels": [
+      {
+        "id": "google-business-profile",
+        "name": "Google Business Profile",
+        "category": "directory",
+        "fit": 92,
+        "effort": "medium",
+        "rationale": "Poradenské služby se hledají lokálně a Google Business Profile je první místo, kde poptávka vzniká přímo z vyhledávání „poradenství + město“.",
+        "payoff": "Zobrazení ve výsledcích Mapy Google a lokálním balíčku pro Prahu, Brno, Ostravu a Plzeň, přímé telefonáty a zprávy od poptávajících.",
+        "firstActions": [
+          "Založit samostatný záznam nebo obsluhovanou oblast pro každé ze čtyř měst",
+          "Doplnit kompletní popis nabízených poradenských služeb a kategorii",
+          "Nasbírat první recenze od stávajících klientů",
+          "Pravidelně přidávat příspěvky s aktualitami a nabídkami"
+        ],
+        "url": "https://business.google.com"
+      },
+      {
+        "id": "linkedin-organicky-profil-a-prispevky",
+        "name": "LinkedIn (organický profil a příspěvky)",
+        "category": "social",
+        "fit": 88,
+        "effort": "medium",
+        "rationale": "Poradenství pro firmy je B2B produkt a rozhodovatelé o poptávce po takových službách jsou aktivní právě na LinkedIn.",
+        "payoff": "Budování důvěryhodnosti u firemních rozhodovatelů a přímé poptávky přes zprávy nebo komentáře.",
+        "firstActions": [
+          "Doplnit firemní i osobní profil s jasným popisem nabídky a lokalit",
+          "Publikovat pravidelně příspěvky s konkrétními případy a radami z praxe",
+          "Aktivně komentovat příspěvky potenciálních klientů v oboru"
+        ],
+        "contentAngle": "Konkrétní příklad, jak poradenství pomohlo firmě vyřešit problém — bez jmen, ale s čísly a postupem."
+      },
+      {
+        "id": "firmy-cz",
+        "name": "Firmy.cz",
+        "category": "directory",
+        "fit": 80,
+        "effort": "low",
+        "rationale": "Firmy.cz je standardní český katalog, kde firmy hledající poradenství ve svém regionu ověřují dodavatele.",
+        "payoff": "Zvýšená viditelnost při lokálním vyhledávání a zpětný odkaz posilující SEO webu.",
+        "firstActions": [
+          "Vytvořit nebo aktualizovat zápis se všemi čtyřmi lokalitami",
+          "Doplnit kategorie odpovídající typu poradenství",
+          "Přidat odkaz na web a kontaktní formulář"
+        ],
+        "url": "https://www.firmy.cz"
+      },
+      {
+        "id": "mapy-cz",
+        "name": "Mapy.cz",
+        "category": "directory",
+        "fit": 76,
+        "effort": "low",
+        "rationale": "Mapy.cz je vedle Googlu druhý nejpoužívanější lokální vyhledávač v Česku, relevantní pro firmu působící ve čtyřech městech.",
+        "payoff": "Další zdroj lokální viditelnosti a přímých kontaktů z vyhledávání v regionech.",
+        "firstActions": [
+          "Založit firemní záznam pro každé město",
+          "Doplnit fotografie, kontakty a otevírací dobu konzultací",
+          "Propojit záznam s webem"
+        ],
+        "url": "https://firmy.mapy.cz"
+      },
+      {
+        "id": "vlastni-blog-seo-obsah-na-webu",
+        "name": "Vlastní blog / SEO obsah na webu",
+        "category": "content",
+        "fit": 74,
+        "effort": "high",
+        "rationale": "Poradenské služby se prodávají skrze důvěru a expertízu, kterou nejlépe buduje vlastní odborný obsah odpovídající na otázky poptávajících firem.",
+        "payoff": "Dlouhodobý organický přísun poptávek z vyhledávání a materiál ke sdílení na sociálních sítích.",
+        "firstActions": [
+          "Sestavit seznam otázek, které klienti nejčastěji řeší před poptávkou",
+          "Publikovat první články zaměřené na konkrétní problémy klientů",
+          "Interně provazovat články s kontaktním formulářem"
+        ],
+        "contentAngle": "Návod krok za krokem na nejčastější problém, se kterým klienti přicházejí na první konzultaci."
+      },
+      {
+        "id": "facebook-skupiny-pro-podnikatele-a-firmy",
+        "name": "Facebook skupiny pro podnikatele a firmy",
+        "category": "community",
+        "fit": 68,
+        "effort": "medium",
+        "rationale": "V regionálních a oborových Facebook skupinách se firmy z Prahy, Brna, Ostravy i Plzně často ptají na doporučení poradců.",
+        "payoff": "Přímé doporučení a poptávky od členů skupin hledajících konkrétní pomoc.",
+        "firstActions": [
+          "Vytipovat aktivní skupiny pro podnikatele v daných čtyřech městech",
+          "Zapojit se do diskuzí s věcnými radami bez přímé reklamy",
+          "Reagovat na příspěvky, kde lidé hledají poradenství"
+        ]
+      },
+      {
+        "id": "newsletter-pro-stavajici-a-potencialni-klienty",
+        "name": "Newsletter pro stávající a potenciální klienty",
+        "category": "content",
+        "fit": 62,
+        "effort": "medium",
+        "rationale": "Poradenství má delší rozhodovací cyklus, takže newsletter udržuje kontakt s poptávajícími, kteří ještě nejsou rozhodnutí.",
+        "payoff": "Opakovaný kontakt s kontakty z konzultací a webu, který zvyšuje šanci na pozdější poptávku.",
+        "firstActions": [
+          "Přidat přihlašovací formulář na web",
+          "Sestavit první vydání s praktickou radou z oboru",
+          "Nastavit pravidelnou periodicitu rozesílky"
+        ]
+      },
+      {
+        "id": "hostovani-v-podcastech-a-odbornych-clancich",
+        "name": "Hostování v podcastech a odborných článcích",
+        "category": "pr",
+        "fit": 56,
+        "effort": "high",
+        "rationale": "Vystoupení jako expert v podcastu nebo hostující článek buduje důvěryhodnost potřebnou pro rozhodnutí o poradenské spolupráci.",
+        "payoff": "Zvýšení viditelnosti a důvěryhodnosti u nové skupiny posluchačů a čtenářů mimo vlastní kanály.",
+        "firstActions": [
+          "Vytipovat podcasty a weby zaměřené na podnikání a firmy",
+          "Oslovit je s konkrétním tématem, které mohou nabídnout jejich publiku",
+          "Připravit krátký přehled expertízy a zkušeností"
+        ]
+      },
+      {
+        "id": "partnerstvi-s-nekonkurencnimi-firmami-a-ucetnimi-pravniky",
+        "name": "Partnerství s nekonkurenčními firmami a účetními/právníky",
+        "category": "partnership",
+        "fit": 52,
+        "effort": "medium",
+        "rationale": "Firmy poptávající poradenství často souběžně řeší účetní nebo právní služby, takže vzájemná doporučení mezi nekonkurenčními obory fungují jako přirozený zdroj poptávek.",
+        "payoff": "Doporučení od partnerů, kteří mají důvěru stejné cílové skupiny klientů.",
+        "firstActions": [
+          "Sestavit seznam nekonkurenčních firem obsluhujících stejné cílové klienty",
+          "Domluvit vzájemné doporučování klientů",
+          "Uvést partnerství na webu nebo v komunikaci s klienty"
+        ]
+      }
+    ]
+  },
+  "meta": {
+    "model": "claude-sonnet",
+    "demo": false,
+    "tookMs": 49497,
+    "provider": "claude-sonnet",
+    "attempts": 1,
+    "fellBack": false,
+    "extraction": "fence"
+  }
+}

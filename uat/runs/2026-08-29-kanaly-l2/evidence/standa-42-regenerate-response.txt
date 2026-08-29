@@ -1,0 +1,146 @@
+{
+  "result": {
+    "summary": "Fakturoid má největší bezplatnou příležitost ve vlastním obsahu (SEO blog a YouTube) na klíčová slova jako „vystavit fakturu“ a „fakturace online“, kde může zachytit poptávku OSVČ přímo ve chvíli, kdy hledají řešení.",
+    "channels": [
+      {
+        "id": "vlastni-blog-a-seo-fakturoid-cz-blog",
+        "name": "Vlastní blog a SEO (fakturoid.cz/blog)",
+        "category": "content",
+        "fit": 92,
+        "effort": "medium",
+        "rationale": "Cílová skupina OSVČ a malé firmy aktivně vyhledává fráze jako „vystavit fakturu“ a „fakturační program“, takže vlastní obsah cílený na tato klíčová slova přivádí organickou návštěvnost přímo do produktu.",
+        "payoff": "Dlouhodobý organický přísun návštěvníků hledajících konkrétní řešení fakturace, kteří konvertují do free registrace.",
+        "firstActions": [
+          "Vytvořit obsahový plán kolem klíčových slov „vystavit fakturu“, „fakturace online“, „faktura s QR kódem“",
+          "Publikovat návodový článek typu Jak vystavit fakturu OSVČ krok za krokem",
+          "Interně prolinkovat blog s registrací na Free plán"
+        ],
+        "contentAngle": "Návod: Jak vystavit první fakturu jako OSVČ za 5 minut (s QR kódem pro platbu)"
+      },
+      {
+        "id": "facebook-skupiny-pro-osvc-a-podnikatele",
+        "name": "Facebook skupiny pro OSVČ a podnikatele",
+        "category": "community",
+        "fit": 85,
+        "effort": "low",
+        "rationale": "V ČR existují aktivní facebookové skupiny pro OSVČ a začínající podnikatele, kde se běžně řeší téma fakturace a účetnictví, což je přesně cílové publikum Fakturoidu.",
+        "payoff": "Přímá zpětná vazba a doporučení od uživatelů v komunitě, kde se rozhoduje o výběru fakturačního nástroje.",
+        "firstActions": [
+          "Identifikovat aktivní skupiny pro OSVČ a podnikatele na Facebooku",
+          "Zapojit se do diskuzí o fakturaci s věcnými odpověďmi, ne reklamou",
+          "Sdílet praktické tipy odkazující na blogový obsah"
+        ]
+      },
+      {
+        "id": "google-business-profile",
+        "name": "Google Business Profile",
+        "category": "directory",
+        "fit": 80,
+        "effort": "low",
+        "rationale": "Jako firma s webovou aplikací potřebuje Fakturoid základní důvěryhodnou přítomnost v Google vyhledávání a mapách pro brandové dotazy typu „Fakturoid“.",
+        "payoff": "Lepší viditelnost při brandovém vyhledávání a zvýšená důvěryhodnost díky recenzím.",
+        "firstActions": [
+          "Ověřit a kompletně vyplnit profil na Google Business Profile",
+          "Přidat kategorii Účetní software / Online služba",
+          "Sbírat recenze od spokojených uživatelů Free a Pro plánu"
+        ],
+        "url": "https://www.google.com/business/"
+      },
+      {
+        "id": "youtube-kanal-s-navody",
+        "name": "YouTube kanál s návody",
+        "category": "content",
+        "fit": 78,
+        "effort": "medium",
+        "rationale": "Uživatelé fakturačních nástrojů často hledají vizuální návody, jak nastavit párování plateb nebo vystavit fakturu, což je formát vhodný pro video obsah.",
+        "payoff": "Zachycení poptávky ve vyhledávání YouTube a Google (video výsledky) na dotazy typu „jak vystavit fakturu“.",
+        "firstActions": [
+          "Natočit krátké video Jak nastavit párování plateb ve Fakturoidu",
+          "Natočit srovnání plánů Free, Pro a Team",
+          "Popisky videí optimalizovat na klíčová slova z výzkumu"
+        ],
+        "contentAngle": "Video návod: Automatické párování plateb a upomínky ve Fakturoidu"
+      },
+      {
+        "id": "firmy-cz",
+        "name": "Firmy.cz",
+        "category": "directory",
+        "fit": 72,
+        "effort": "low",
+        "rationale": "Firmy.cz je běžně používaný katalog pro české firmy a služby, kde OSVČ a malé firmy hledají dodavatele softwarových řešení včetně fakturačních nástrojů.",
+        "payoff": "Dodatečná viditelnost v lokálním vyhledávání a katalogovém provozu s minimální náročností na údržbu.",
+        "firstActions": [
+          "Vytvořit a ověřit zápis firmy Fakturoid na Firmy.cz",
+          "Doplnit popis služby s klíčovými slovy fakturace online",
+          "Přidat odkaz na registraci Free plánu"
+        ],
+        "url": "https://www.firmy.cz"
+      },
+      {
+        "id": "reddit-r-czech-r-osvc-a-podnikatelska-vlakna",
+        "name": "Reddit (r/czech, r/OSVC a podnikatelská vlákna)",
+        "category": "community",
+        "fit": 68,
+        "effort": "low",
+        "rationale": "Na českém Redditu se v diskuzích o podnikání a OSVČ pravidelně řeší doporučení fakturačních nástrojů, kde může Fakturoid zaznít jako věcná odpověď.",
+        "payoff": "Organická doporučení v diskuzích s vysokou důvěryhodností mezi začínajícími podnikateli.",
+        "firstActions": [
+          "Sledovat vlákna o fakturaci a účetnictví pro OSVČ",
+          "Odpovídat věcně s odkazem na konkrétní funkci (např. párování plateb), ne obecnou reklamou",
+          "Vytvořit si konzistentní profil s transparentní identitou zástupce Fakturoidu"
+        ]
+      },
+      {
+        "id": "newsletter-pro-uzivatele-a-odberatele-blogu",
+        "name": "Newsletter pro uživatele a odběratele blogu",
+        "category": "content",
+        "fit": 65,
+        "effort": "low",
+        "rationale": "Firma s předplatným modelem (Free/Pro/Team) profituje z opakovaného kontaktu se čtenáři blogu, kteří ještě nejsou platícími zákazníky.",
+        "payoff": "Postupná konverze čtenářů blogu na registrované uživatele Free plánu a následně na Pro/Team upgrade.",
+        "firstActions": [
+          "Přidat formulář pro odběr novinek na blog",
+          "Nastavit pravidelný souhrn tipů k fakturaci a novinek v produktu",
+          "Segmentovat odběratele podle Free/Pro/Team pro relevantní obsah"
+        ]
+      },
+      {
+        "id": "partnerstvi-s-ucetnimi-a-danovymi-poradci",
+        "name": "Partnerství s účetními a daňovými poradci",
+        "category": "partnership",
+        "fit": 62,
+        "effort": "medium",
+        "rationale": "Účetní a daňoví poradci pravidelně doporučují nástroje svým klientům OSVČ a malým firmám, takže jsou přirozeným partnerem pro doporučení Fakturoidu.",
+        "payoff": "Doporučení od důvěryhodných odborníků, kteří přivádí nové uživatele s vyšší mírou konverze do placeného plánu.",
+        "firstActions": [
+          "Oslovit vybrané účetní a daňové poradce s nabídkou partnerského doporučení",
+          "Připravit jednoduchý materiál vysvětlující výhody Free/Pro/Team plánu pro jejich klienty",
+          "Nabídnout společný webinář nebo článek o fakturaci pro OSVČ"
+        ]
+      },
+      {
+        "id": "hostovani-v-podcastech-pro-podnikatele",
+        "name": "Hostování v podcastech pro podnikatele",
+        "category": "pr",
+        "fit": 58,
+        "effort": "high",
+        "rationale": "Čeští podnikatelští podcasty oslovují přesně cílovku začínajících OSVČ a rostoucích firem, kteří řeší praktická témata jako fakturace a správa financí.",
+        "payoff": "Budování důvěryhodnosti značky a zásah publika, které aktivně řeší podnikatelské starosti včetně fakturace.",
+        "firstActions": [
+          "Sestavit seznam podcastů zaměřených na OSVČ a malé podnikání",
+          "Připravit stručný pitch s tématem automatizace fakturace a párování plateb",
+          "Nabídnout hosta z Fakturoidu jako odborníka na financování malých firem"
+        ]
+      }
+    ]
+  },
+  "meta": {
+    "model": "claude-sonnet",
+    "demo": false,
+    "tookMs": 42611,
+    "provider": "claude-sonnet",
+    "attempts": 1,
+    "fellBack": false,
+    "extraction": "direct"
+  }
+}

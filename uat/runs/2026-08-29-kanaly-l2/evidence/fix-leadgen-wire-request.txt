@@ -1,0 +1,13 @@
+{
+  "mode": "channel-research",
+  "projectType": "leadgen",
+  "brand": "Radek Poradenstvi (po opravě)",
+  "offering": "Služby",
+  "localities": [
+    "Praha",
+    "Brno",
+    "Ostrava",
+    "Plzeň"
+  ],
+  "projectId": "e478f129bf3a46af805d"
+}
