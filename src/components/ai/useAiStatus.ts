@@ -11,6 +11,9 @@ import type { AiStatusPayload } from "@/lib/ai/status-core";
 
 let cached: AiStatusPayload | null = null;
 let inflight: Promise<AiStatusPayload | null> | null = null;
+/** Every mounted subscriber, so an invalidation can push a fresh payload into
+ *  banners that are ALREADY on screen — they only fetch once, on mount. */
+const subscribers = new Set<(status: AiStatusPayload | null) => void>();
 
 function fetchAiStatus(): Promise<AiStatusPayload | null> {
   if (cached) return Promise.resolve(cached);
@@ -42,6 +45,14 @@ function fetchAiStatus(): Promise<AiStatusPayload | null> {
 export function invalidateAiStatus(): void {
   cached = null;
   inflight = null;
+  // Clearing the cache alone was not enough: the banner and the tool hooks fetch
+  // once on mount and stay mounted for the whole visit (the assistant keeps every
+  // tool panel mounted across tab switches), so "the next subscriber" was the next
+  // page NAVIGATION — the count on screen never moved. Re-fetch once and push.
+  if (subscribers.size === 0) return;
+  void fetchAiStatus().then((status) => {
+    for (const notify of subscribers) notify(status);
+  });
 }
 
 /** The current AI preflight status, or null while loading / when unavailable. */
@@ -49,11 +60,14 @@ export function useAiStatus(): AiStatusPayload | null {
   const [status, setStatus] = useState<AiStatusPayload | null>(null);
   useEffect(() => {
     let alive = true;
-    void fetchAiStatus().then((s) => {
+    const receive = (s: AiStatusPayload | null) => {
       if (alive && s) setStatus(s);
-    });
+    };
+    subscribers.add(receive);
+    void fetchAiStatus().then(receive);
     return () => {
       alive = false;
+      subscribers.delete(receive);
     };
   }, []);
   return status;
