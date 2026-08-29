@@ -122,6 +122,8 @@ export interface ResolvedLocalInputs {
   coverageSource: "sample" | LocalSignalsSource;
   coverageSyncedAt?: string;
   coverageSourceUrl?: string;
+  /** W2-C — how many published local-landing microsites the coverage overlay matched */
+  coveragePages?: number;
   /** live-over-sample recent reviews for the reply queue */
   recentReviews: RecentReview[];
   /** business-type label derived from the catalogue (grounds AI review replies) */
@@ -195,6 +197,7 @@ export async function resolveLocalDiagnosisRequest(
     coverageSource: resolvedCoverage.source,
     coverageSyncedAt: resolvedCoverage.syncedAt,
     coverageSourceUrl: resolvedCoverage.sourceUrl,
+    coveragePages: resolvedCoverage.pages,
     recentReviews,
     businessType,
   };

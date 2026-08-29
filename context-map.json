@@ -1085,7 +1085,8 @@
         "src/components/campaigns/ScoreTimeline.tsx",
         "src/components/campaigns/TypeBreakdown.tsx",
         "src/components/campaigns/MicrositeCard.tsx",
-        "src/components/campaigns/PillButton.tsx"
+        "src/components/campaigns/PillButton.tsx",
+        "src/components/campaigns/ChangeSetLedgerRow.tsx"
       ],
       "group": "Campaign & Ads Management",
       "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
@@ -1275,7 +1276,8 @@
         "src/lib/campaigns/budget-math.ts",
         "src/lib/campaigns/budget-moves.ts",
         "src/lib/campaigns/triage.ts",
-        "src/lib/campaigns/simulate.ts"
+        "src/lib/campaigns/simulate.ts",
+        "test-unit/campaigns-simulate-calibration.test.mjs"
       ],
       "group": "Campaign Management",
       "group_id": "e5d040ea-3527-41ae-965b-8f0c3d82564e",
@@ -1508,7 +1510,13 @@
         "src/lib/campaigns/provider-precedence.ts",
         "src/lib/campaigns/control-plane.ts",
         "src/lib/campaigns/control-plane-types.ts",
-        "src/lib/campaigns/sync.ts"
+        "src/lib/campaigns/sync.ts",
+        "src/lib/campaigns/realize.ts",
+        "src/lib/campaigns/realize-run.ts",
+        "src/lib/campaigns/calibration.ts",
+        "test-unit/campaigns-realize.test.mjs",
+        "test-unit/campaigns-realize-run-local-store.test.mjs",
+        "test-unit/campaigns-calibration.test.mjs"
       ],
       "group": "Campaign Management",
       "group_id": "e5d040ea-3527-41ae-965b-8f0c3d82564e",
@@ -1666,7 +1674,18 @@
         "src/lib/catalog/feed-fetch.ts",
         "src/lib/catalog/rate-limit.ts",
         "src/lib/catalog/blended-margin.ts",
-        "src/lib/seo-compare/catalog.ts"
+        "src/lib/seo-compare/catalog.ts",
+        "src/lib/catalog/feed-out.ts",
+        "src/lib/catalog/feed-labels.ts",
+        "src/lib/catalog/feed-token-store.ts",
+        "src/lib/catalog/feed-token-store.local.ts",
+        "src/lib/catalog/feed-token-store.firestore.ts",
+        "src/app/api/feed/[token]/route.ts",
+        "src/app/api/projects/[id]/feed-token/route.ts",
+        "src/components/app/modules/catalog/FeedOutPanel.tsx",
+        "test-unit/catalog-feed-out.test.mjs",
+        "test-unit/catalog-feed-routes.test.mjs",
+        "test-unit/catalog-feed-token-store.test.mjs"
       ],
       "group": "Project & Catalog",
       "group_id": "e4a4d67e-a44a-4b8d-9b59-6c6bd18ba324",
@@ -2419,7 +2438,8 @@
         "src/lib/microsite/types.ts",
         "src/lib/microsite/store.ts",
         "src/lib/microsite/store.local.ts",
-        "src/lib/microsite/store.firestore.ts"
+        "src/lib/microsite/store.firestore.ts",
+        "src/components/microsite/PerformanceMicrosite.tsx"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
@@ -2595,7 +2615,8 @@
         "src/lib/distribution/learnings.ts",
         "src/lib/distribution/newsletter.ts",
         "src/lib/distribution/sample.ts",
-        "src/lib/distribution/utm.ts"
+        "src/lib/distribution/utm.ts",
+        "src/lib/distribution/measured.ts"
       ],
       "group": "Social & Content Publishing",
       "group_id": "79748803-cfff-4395-b8bd-69e33a473856",
@@ -3077,7 +3098,9 @@
         "src/components/app/modules/LocationsModule.tsx",
         "src/components/app/overview/LocationsOverviewSection.tsx",
         "src/components/app/modules/CompetitorEditor.tsx",
-        "src/components/app/modules/CoverageCell.tsx"
+        "src/components/app/modules/CoverageCell.tsx",
+        "src/components/app/modules/local/GapPageAction.tsx",
+        "src/components/microsite/LocalLanding.tsx"
       ],
       "group": "Local SEO & Maps",
       "group_id": "0d89d569-2b9f-4778-a78c-c8b6ddd15333",
@@ -3128,7 +3151,11 @@
         "src/lib/locations/compute.ts",
         "src/lib/locations/sample.ts",
         "src/lib/seo-compare/compute.ts",
-        "src/lib/seo-compare/sample.ts"
+        "src/lib/seo-compare/sample.ts",
+        "src/lib/ai/tools/local-page.ts",
+        "src/lib/microsite/local-page.ts",
+        "src/lib/microsite/local-jsonld.ts",
+        "test-unit/microsite-local-page.test.mjs"
       ],
       "group": "Local SEO & Maps",
       "group_id": "0d89d569-2b9f-4778-a78c-c8b6ddd15333",
@@ -3262,7 +3289,9 @@
         "src/lib/local-signals/store.firestore.ts",
         "src/lib/local-signals/store.local.ts",
         "src/lib/local-signals/summary.ts",
-        "src/lib/local-signals/types.ts"
+        "src/lib/local-signals/types.ts",
+        "src/lib/local-signals/page-grounding.ts",
+        "test-unit/local-page-grounding.test.mjs"
       ],
       "group": "Local SEO & Maps",
       "group_id": "0d89d569-2b9f-4778-a78c-c8b6ddd15333",
@@ -3642,7 +3671,27 @@
         "src/lib/onboarding/store.ts",
         "src/lib/onboarding/store.firestore.ts",
         "src/lib/onboarding/store.local.ts",
-        "src/lib/onboarding/types.ts"
+        "src/lib/onboarding/types.ts",
+        "src/app/sken/page.tsx",
+        "src/app/api/sken/claim/route.ts",
+        "src/app/api/sken/redeem/route.ts",
+        "src/components/marketing/sken/SkenHero.tsx",
+        "src/components/marketing/sken/SkenClient.tsx",
+        "src/components/marketing/sken/SkenResult.tsx",
+        "src/components/marketing/sken/SkenProfileCard.tsx",
+        "src/components/marketing/sken/SkenPlanTable.tsx",
+        "src/components/marketing/sken/useSkenClaim.ts",
+        "src/lib/onboarding/claim-token.ts",
+        "src/lib/onboarding/claim-store.ts",
+        "src/lib/onboarding/claim-store.local.ts",
+        "src/lib/onboarding/claim-store.firestore.ts",
+        "src/lib/onboarding/apply.ts",
+        "src/lib/onboarding/sken-guard.ts",
+        "src/lib/onboarding/sken-track.ts",
+        "test-unit/sken-claim-store.test.mjs",
+        "test-unit/sken-guard.test.mjs",
+        "test-unit/sken-apply-redeem.test.mjs",
+        "test-unit/sken-funnel.test.mjs"
       ],
       "group": "Site & Marketing",
       "group_id": "0ca5ac6b-c9d8-4a90-94fb-6088a88a66b4",
@@ -3793,7 +3842,20 @@
         "src/lib/keywords/types.ts",
         "src/lib/organic-channels/grounding.ts",
         "src/lib/organic-channels/visibility-plan.ts",
-        "src/lib/organic-channels/visibility-plan-resolve.ts"
+        "src/lib/organic-channels/visibility-plan-resolve.ts",
+        "src/lib/organic-channels/outcomes.ts",
+        "src/lib/organic-channels/outcomes-store.ts",
+        "src/lib/organic-channels/outcomes-store.local.ts",
+        "src/lib/organic-channels/outcomes-store.firestore.ts",
+        "src/lib/organic-channels/outcomes-state.ts",
+        "src/lib/organic-channels/rollup-step.ts",
+        "src/app/go/[id]/route.ts",
+        "src/app/api/projects/[id]/go-links/route.ts",
+        "src/components/app/channels/ChannelNotices.tsx",
+        "test-unit/organic-outcomes.test.mjs",
+        "test-unit/organic-outcomes-store.test.mjs",
+        "test-unit/organic-go-routes.test.mjs",
+        "test-unit/channel-research-measured.test.mjs"
       ],
       "group": "Social & Content Publishing",
       "group_id": "79748803-cfff-4395-b8bd-69e33a473856",

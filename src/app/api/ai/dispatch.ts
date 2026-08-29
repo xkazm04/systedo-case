@@ -15,6 +15,7 @@
  *  /api/ai route uses (byte-identical to the old inline version). */
 import {
   generateAds,
+  generateAdsDiagnosis,
   generateAnalysis,
   generateChannelResearch,
   generateChat,
@@ -27,6 +28,7 @@ import {
   generateTwinStyle,
   generateLeadSourceDiagnosis,
   generateLocalDiagnosis,
+  generateLocalPage,
   generateLocalReviewReply,
   generateLpVariantIdeas,
   generateMonthlyRecap,
@@ -34,10 +36,8 @@ import {
   generateRepurpose,
   generateSocialPosts,
 } from "@/lib/ai/tools";
-// Wave 1 — the ads-performance diagnosis. Imported from its own module rather than
-// the ./tools barrel: the barrel is outside this work package's write set, and a
-// direct module import is what the barrel would re-export anyway.
-import { generateAdsDiagnosis } from "@/lib/ai/tools/ads-diagnosis";
+// W2-C — the local-page grounding lives in lib (it is shared with the publish route).
+import { resolveLocalPage } from "@/lib/local-signals/page-grounding";
 import { consume, refund } from "@/lib/usage";
 import { refundGlobalSpend } from "@/lib/ai/durable-limit";
 import { getByomContext } from "@/lib/llm/byom-context";
@@ -90,6 +90,7 @@ const realDeps: ModeDeps = {
     leadSourceDiagnosis: generateLeadSourceDiagnosis,
     localDiagnosis: generateLocalDiagnosis,
     adsDiagnosis: generateAdsDiagnosis,
+    localPage: generateLocalPage,
     channelResearch: generateChannelResearch,
     onboardingScan: generateOnboardingScan,
     // Social takes a single arg object; adapt it to the (value, locale, signal) Gen shape.
@@ -105,6 +106,7 @@ const realDeps: ModeDeps = {
   resolveLeadSourceDiagnosis,
   resolveLocalDiagnosis,
   resolveAdsDiagnosis,
+  resolveLocalPage,
   fetchSiteText,
   // A fetch failure is a clear 422 (bad/unreachable URL), not a generic generation
   // error — byte-identical to the old inline onboarding-scan catch.

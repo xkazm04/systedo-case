@@ -23,6 +23,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     coverageSource,
     coverageSyncedAt,
     coverageSourceUrl,
+    coveragePages,
     recentReviews,
     businessType,
   } = await resolveLocalDiagnosisRequest(project);
@@ -41,6 +42,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         coverageSource={coverageSource}
         coverageSyncedAt={coverageSyncedAt}
         coverageSourceUrl={coverageSourceUrl}
+        coveragePages={coveragePages}
         recentReviews={recentReviews}
         businessName={project.name}
         businessType={businessType}

@@ -55,6 +55,7 @@ import type {
   KeywordClustersRequest,
   LeadSourceDiagnosisRequest,
   LocalDiagnosisRequest,
+  LocalPageRequest,
   LocalReviewReplyRequest,
   LpVariantIdeasRequest,
   MonthlyRecapRequest,
@@ -85,6 +86,7 @@ import {
   validateTwinStyleRequest,
   validateLeadSourceDiagnosisIntent,
   validateLocalDiagnosisIntent,
+  validateLocalPageIntent,
   validateLocalReviewReplyRequest,
   validateLpVariantIdeasRequest,
   validateRepurposeRequest,
@@ -93,8 +95,13 @@ import {
   type CohortDiagnosisIntent,
   type LeadSourceDiagnosisIntent,
   type LocalDiagnosisIntent,
+  type LocalPageIntent,
   type SocialDraftRequest,
 } from "@/lib/ai/validation";
+// W2-B — the public /sken lane: the per-IP daily cap that replaces onboarding-scan's
+// sign-in wall, and the funnel counter bumped only after the guards let a scan run.
+import { guardSkenDaily } from "@/lib/onboarding/sken-guard";
+import { recordSkenScan } from "@/lib/onboarding/sken-track";
 import type { SocialSkillInput } from "@/lib/ai/tools/social";
 import type { SocialDraftResult } from "@/lib/social/types";
 import { inputDigest } from "@/lib/diagnoses/types";
@@ -131,6 +138,10 @@ export interface DispatchCtx {
    *  and analysis grounding — distinct from a request body's own `value.projectId`. */
   projectIdStr: string | undefined;
   signal: AbortSignal;
+  /** The caller's IP, from `clientIp(request)` in the /api/ai route. Optional: the
+   *  delegate routes build their own ctx and no mode of theirs reads it. The
+   *  public-scan guard needs it because ctx is all a guard receives. */
+  ip?: string;
 }
 
 /** What `prepare` hands back: the exact value hashed into the cache key, and the
@@ -142,7 +153,7 @@ export interface Prepared {
 
 export interface ModeDescriptor<T> {
   validate: (body: unknown, locale: SupportedLocale) => Valid<T>;
-  guard?: (ctx: DispatchCtx) => Response | null;
+  guard?: (ctx: DispatchCtx) => Response | null | Promise<Response | null>;
   prepare: (value: T, ctx: DispatchCtx) => Promise<Prepared | Response> | Prepared | Response;
 }
 
@@ -152,7 +163,7 @@ export interface ModeDescriptor<T> {
  *  sound by that invariant. */
 export interface ErasedMode {
   validate: (body: unknown, locale: SupportedLocale) => Valid<unknown>;
-  guard?: (ctx: DispatchCtx) => Response | null;
+  guard?: (ctx: DispatchCtx) => Response | null | Promise<Response | null>;
   prepare: (value: unknown, ctx: DispatchCtx) => Promise<Prepared | Response> | Prepared | Response;
 }
 
@@ -202,6 +213,7 @@ export interface ModeDeps {
     leadSourceDiagnosis: Gen<LeadSourceDiagnosisRequest>;
     localDiagnosis: Gen<LocalDiagnosisRequest>;
     adsDiagnosis: Gen<AdsDiagnosisRequest>;
+    localPage: Gen<LocalPageRequest>;
     channelResearch: Gen<ChannelResearchRequest>;
     onboardingScan: Gen<OnboardingScanRequest>;
     // Direction 1: social rides the mode table. Its grounding (perf/brand/competitor)
@@ -284,6 +296,17 @@ export interface ModeDeps {
     projectId: string | undefined,
     userId: string | null
   ) => Promise<ResolvedDiagnosis<AdsDiagnosisRequest> | null>;
+  /** W2-C: the local landing page re-derives its FACTS (catalog service spelling,
+   *  price, price model, currency, and the real reviews it may quote) server-side
+   *  from the owned project — the wire carries only WHICH gap to write about.
+   *  Injected rather than imported so the table stays free of the session/catalog
+   *  import graph that test-unit/ai-mode-table.test.mjs cannot load. */
+  resolveLocalPage: (
+    projectId: string | undefined,
+    userId: string | null,
+    service: string,
+    area: string
+  ) => Promise<{ request: LocalPageRequest; sample: boolean; keyId: string } | null>;
   fetchSiteText: (url: string) => Promise<{ title: string; description: string; text: string }>;
   onFetchError: (err: unknown) => Response;
   recap: {
@@ -456,6 +479,33 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
           (req) => deps.gen.localDiagnosis(req, ctx.locale, ctx.signal),
           extractLocalSnapshot
         );
+      },
+    }),
+    // W2-C — gap to page. The intent names ONE coverage gap; every figure the page
+    // prints (catalog price, price model, currency) and every review it may quote is
+    // re-derived server-side, so a tampered body cannot put an invented number or a
+    // fabricated testimonial on a public, indexable URL.
+    "local-page": defineMode<LocalPageIntent>({
+      validate: validateLocalPageIntent,
+      prepare: async (intent, ctx) => {
+        const resolved = await deps.resolveLocalPage(
+          intent.projectId,
+          ctx.userId,
+          intent.service,
+          intent.area
+        );
+        if (!resolved) return noDiagnosisData(ctx);
+        const value: LocalPageRequest = {
+          ...resolved.request,
+          sample: resolved.sample,
+          ...(intent.refine ? { refine: intent.refine } : {}),
+        };
+        return {
+          // Keyed by the effective project + the rebuilt request, so an unowned id
+          // can never serve another tenant's cached page draft.
+          cacheValue: { request: value, keyId: resolved.keyId },
+          gen: () => deps.gen.localPage(value, ctx.locale, ctx.signal),
+        };
       },
     }),
     "channel-research": defineMode<ChannelResearchRequest>({
@@ -728,6 +778,36 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
         return { cacheValue: value, gen: () => deps.gen.onboardingScan(full, ctx.locale, ctx.signal) };
       },
     }),
+
+    // ── onboarding-scan-public: the SAME prepare as onboarding-scan with the
+    //    sign-in wall replaced by a per-IP daily cap (WP W2-B). /sken is the one
+    //    paid generation an anonymous visitor reaches, so it is bounded by
+    //    RATE_RULES.skenPerDay ON TOP OF guardPaidGeneration's rails, never
+    //    instead of them. The funnel counter is bumped here, after the guards,
+    //    so it counts scans that actually ran. ──
+    "onboarding-scan-public": defineMode<OnboardingScanRequest>({
+      validate: validateOnboardingScanRequest,
+      guard: (ctx) => guardSkenDaily(ctx),
+      prepare: async (value, ctx) => {
+        let site: { title: string; description: string; text: string };
+        try {
+          site = await deps.fetchSiteText(value.url);
+        } catch (err) {
+          return deps.onFetchError(err);
+        }
+        if (site.text.length < 40) {
+          return bad("Na webu jsem nenašel dost textu ke skenu. Zkuste jinou stránku (např. hlavní).");
+        }
+        const full: OnboardingScanRequest = {
+          ...value,
+          pageText: site.text,
+          ...(site.title ? { siteTitle: site.title } : {}),
+          ...(site.description ? { siteDescription: site.description } : {}),
+        };
+        void recordSkenScan();
+        return { cacheValue: value, gen: () => deps.gen.onboardingScan(full, ctx.locale, ctx.signal) };
+      },
+    }),
   };
 
   return table;
@@ -748,7 +828,9 @@ export async function resolvePrepared(
   const desc = table[mode];
   if (!desc) return Response.json({ error: "Neznámý režim nástroje.", code: "invalid" }, { status: 400 });
   if (desc.guard) {
-    const g = desc.guard(ctx);
+    // Awaited: a guard may be async (the public-scan durable limiter). A synchronous
+    // `if (desc.guard(ctx))` would treat a pending Promise as a blocking Response.
+    const g = await desc.guard(ctx);
     if (g) return g;
   }
   const v = desc.validate(ctx.body, ctx.locale);

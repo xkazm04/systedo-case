@@ -43,6 +43,8 @@ const { saveOfferings, listOfferings } = await import("@/lib/catalog/store");
 const { appendCatalogEvents, listCatalogEvents } = await import("@/lib/catalog/events-store");
 const { saveWebhookConfig, getWebhookConfig } = await import("@/lib/outbound/config-store");
 const { appendDelivery, listDeliveries } = await import("@/lib/outbound/delivery-store");
+const { saveGoLink, listGoLinks } = await import("@/lib/organic-channels/outcomes-store");
+const { mintFeedToken, getProjectFeedToken } = await import("@/lib/catalog/feed-token-store");
 const { starterCatalog } = await import("@/lib/catalog/starter");
 const { recordAnnotation, listAnnotations } = await import("@/lib/annotations/store");
 const { saveConnection, getConnection } = await import("@/lib/inventory/connection-store");
@@ -200,6 +202,20 @@ const STORE_FIXTURES = [
         { id: `${NOW}_CASCADE-1_added`, at: NOW, key: "CASCADE-1", name: "Cascade", kind: "added", actor: "manual" },
       ]),
     present: async (u, p) => (await listCatalogEvents(u, p)).length > 0,
+  },
+  {
+    // WP W2-D: the public feed capability URL — a deleted project must not keep serving
+    // its catalog at /api/feed/{token}.
+    name: "feed-tokens",
+    seed: (u, p) => mintFeedToken(u, p),
+    present: async (u, p) => (await getProjectFeedToken(u, p)) !== null,
+  },
+  {
+    // WP W2-A: the public /go short links (clicks ride the link rows' cascade).
+    name: "go-links",
+    seed: (u, p) =>
+      saveGoLink({ id: `go${p}`.slice(0, 10), userId: u, projectId: p, url: "https://example.com/x", channel: "LinkedIn", campaign: "cascade", createdAt: NOW }),
+    present: async (u, p) => (await listGoLinks(p)).length > 0,
   },
   {
     name: "project-state",

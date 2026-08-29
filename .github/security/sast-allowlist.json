@@ -3,7 +3,9 @@
 
   "route-auth": {
     "src/app/api/skills/route.ts": "Diagnostics surface, not a user surface: it returns the registered AI skill ids and the gate-covered set — build-time facts identical for every caller, with no tenant, no project id and no provider call. Importing the registry is itself the check (registration throws on an incomplete skill), which is the point of being able to curl it.",
-    "src/app/api/images/upload-ref/route.ts": "Deliberately anonymous: the Creative Studio reference upload has to work for a signed-out visitor on the marketing site. It is not unguarded — durableGuard applies both the per-minute AI throttle and a per-IP DAILY cap (RATE_RULES.uploadRefPerDay), and it spends no AI units. Adding an auth requirement is a product decision, not a bug fix."
+    "src/app/api/images/upload-ref/route.ts": "Deliberately anonymous: the Creative Studio reference upload has to work for a signed-out visitor on the marketing site. It is not unguarded — durableGuard applies both the per-minute AI throttle and a per-IP DAILY cap (RATE_RULES.uploadRefPerDay), and it spends no AI units. Adding an auth requirement is a product decision, not a bug fix.",
+    "src/app/api/sken/claim/route.ts": "Deliberately anonymous: stores a visitor's own sanitized scan under a 128-bit random token so it survives the sign-in redirect. No AI spend, no tenant read; durableGuard per-IP daily cap (RATE_RULES.skenPerDay) + 32 KB body cap.",
+    "src/app/api/feed/[token]/route.ts": "Deliberately anonymous: a merchant feed is pulled by Google/Heureka/Zboží robots that cannot sign in. The 128-bit random token in the path IS the credential (unguessable, per-project, revocable by re-mint); the route is read-only, spends no AI units, and serves only the catalog the owner explicitly exposed."
   },
 
   "sql-template-interpolation": {

@@ -26,7 +26,9 @@ export type AiMode =
   | "lp-variant-ideas"
   | "lead-source-diagnosis"
   | "channel-research"
-  | "onboarding-scan";
+  | "onboarding-scan"
+  | "onboarding-scan-public"
+  | "local-page";
 export const AI_MODES: AiMode[] = [
   "ads",
   "brief",
@@ -43,6 +45,8 @@ export const AI_MODES: AiMode[] = [
   "lead-source-diagnosis",
   "channel-research",
   "onboarding-scan",
+  "onboarding-scan-public",
+  "local-page",
 ];
 
 /** The wrapper's honest verdict on one generation, mirrored from the durable LLM

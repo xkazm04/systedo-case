@@ -25,6 +25,12 @@
  *     data by this list's rule, and meaningless against a catalog that was just re-homed)
  *   • outbound webhook endpoints + their delivery log (signing SECRETS — never copy;
  *     and a duplicate must not start POSTing to the source client's receiver)
+ *   • /go short links + their click ledger (WP W2-A) — a public address space and the
+ *     operating data measured through it; a duplicate must not inherit either
+ *   • the outbound product-feed TOKEN (WP W2-D) — a capability URL is a secret ADDRESS,
+ *     not setup: two projects sharing one feed URL would serve one catalog under both
+ *     identities, and revoking either would silently break the other. The duplicate
+ *     mints its own on first publish.
  *   • the project's tenant-keyed campaign/series/snapshot/activity data
  *
  *  Same-owner only: a duplicate is created for the SAME user, so source and target

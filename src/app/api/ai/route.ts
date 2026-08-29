@@ -4,7 +4,7 @@ import { getServerLocale } from "@/lib/i18n/locale";
 import { enterLlmRequestContext } from "@/lib/llm/request-context";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
-import { releaseSlot } from "@/lib/ai/rate-limit";
+import { clientIp, releaseSlot } from "@/lib/ai/rate-limit";
 import { guardPaidGeneration } from "@/lib/ai/paid-guard";
 import { dispatchMode } from "./modes";
 // The mode table + metering core live in ./dispatch so the two delegate routes
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     return await dispatchMode(
       MODE_TABLE,
       typeof mode === "string" ? mode : "",
-      { body, locale, userId, projectIdStr, signal: request.signal },
+      { body, locale, userId, projectIdStr, ip: clientIp(request), signal: request.signal },
       cachedRespond
     );
   } catch (err) {

@@ -665,7 +665,7 @@ type Migration = {
 const MIGRATIONS: Migration[] = [
   {
     version: 1,
-    name: "base schema (38 tables + projects/cron_runs/twin_archive/campaign_docs indexes)",
+    name: "base schema (42 tables + projects/cron_runs/twin_archive/campaign_docs indexes)",
     up: (db) => db.exec(SCHEMA),
     // rate_limits is the always-on table; its presence means the base schema ran.
     applied: (db) => tableExists(db, "rate_limits"),
@@ -1300,7 +1300,7 @@ export function getDb(): DatabaseSync {
     // 5s is generous for this low-write workload.
     db.exec("PRAGMA busy_timeout = 5000;");
     // Enforce declared foreign keys (off by default per-connection in SQLite). The
-    // current 38-table schema declares none, so this is forward-looking hygiene; it
+    // current 42-table schema declares none, so this is forward-looking hygiene; it
     // must be set here because rebuildTable toggles it and PRAGMAs are per-connection.
     db.exec("PRAGMA foreign_keys = ON;");
     g.__systedoDb = db;
