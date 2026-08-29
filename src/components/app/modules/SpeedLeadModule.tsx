@@ -221,6 +221,7 @@ export default function SpeedLeadModule({
   const fmt = useFormatters();
   const t = useT(T);
   const { locale } = useLocale();
+  const L = locale === "en" ? "en" : "cs";
   /** The sign-off name for the deterministic draft — the same resolver the AI path
    *  feeds its prompt, so both replies are signed by the business, not by "our team". */
   const brand = promptSafeName(project.name);
@@ -408,7 +409,6 @@ export default function SpeedLeadModule({
     // from, the before/after banks as a style fact on the same commit.
     const approved =
       base.status === "approved" ? { ...base, reply: replyText } : asApproved({ ...base, reply: replyText }, now);
-    const L = locale === "en" ? "en" : "cs";
     const editFact = isMeaningfulEdit(aiReply.reply, replyText)
       ? buildEditFact(aiReply.reply, replyText, "leads", L, uid(), now)
       : undefined;
@@ -513,7 +513,7 @@ export default function SpeedLeadModule({
             {analytics.byChannel.length > 0 ? (
               analytics.byChannel.map((c) => (
                 <span key={c.channel} className="text-xs text-navy-700">
-                  {CHANNEL_LABELS[c.channel]}{" "}
+                  {CHANNEL_LABELS[c.channel][L]}{" "}
                   <strong className="tnum font-semibold">
                     {c.avgResponseSec != null ? fmt.fmtDuration(c.avgResponseSec) : "—"}
                   </strong>
@@ -593,7 +593,7 @@ export default function SpeedLeadModule({
                 <p className="mt-1 line-clamp-2 text-xs text-muted">{l.message}</p>
                 <div className="mt-1.5 flex items-center justify-between gap-2">
                   <p className="text-[11px] text-muted">
-                    {CHANNEL_LABELS[l.channel]} · {ago(l.minutesAgo, t)}
+                    {CHANNEL_LABELS[l.channel][L]} · {ago(l.minutesAgo, t)}
                   </p>
                   {!done && sla ? (
                     <span
@@ -617,7 +617,7 @@ export default function SpeedLeadModule({
           <div className="border-b border-line pb-3">
             <h3 className="text-base font-semibold text-navy-800">{selected.name}</h3>
             <p className="mt-1 text-sm text-muted">
-              {CHANNEL_LABELS[selected.channel]} · {ago(selected.minutesAgo, t)}
+              {CHANNEL_LABELS[selected.channel][L]} · {ago(selected.minutesAgo, t)}
             </p>
             <p className="mt-2 rounded-lg bg-canvas px-3 py-2 text-sm text-navy-700">{selected.message}</p>
           </div>

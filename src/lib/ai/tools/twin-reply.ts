@@ -66,7 +66,9 @@ function threadLines(req: TwinReplyRequest): string[] {
 function buildTwinReplyPrompt(req: TwinReplyRequest): string {
   const channelLabel = TWIN_CHANNEL_LABELS[req.channel] ?? req.channel;
   const arrival = txt(req.arrival);
-  const arrivalLabel = arrival ? (CHANNEL_LABELS[arrival as keyof typeof CHANNEL_LABELS] ?? arrival) : "";
+  // `.cs` deliberately: this whole prompt is written in Czech, so the arrival label
+  // must match it rather than the reader's UI locale.
+  const arrivalLabel = arrival ? (CHANNEL_LABELS[arrival as keyof typeof CHANNEL_LABELS]?.cs ?? arrival) : "";
   const contact = txt(req.contact);
   const brand = txt(req.brand);
   const qualification = txt(req.qualification);

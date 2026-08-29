@@ -12,11 +12,16 @@ export interface InboundLead {
   minutesAgo: number;
 }
 
-export const CHANNEL_LABELS: Record<LeadChannel, string> = {
-  form: "Formulář",
-  call: "Hovor",
-  email: "E-mail",
-  chat: "Chat",
+/** How a lead arrived, per locale. Shaped like the twin's own CHANNEL_LABELS
+ *  (components/app/twin/labels.ts) because it is read by the same two kinds of
+ *  caller: a localized surface picks its locale, and a Czech-language prompt or
+ *  snippet body asks for `.cs` explicitly — which is now a visible choice rather
+ *  than the only thing on offer. */
+export const CHANNEL_LABELS: Record<LeadChannel, { cs: string; en: string }> = {
+  form: { cs: "Formulář", en: "Form" },
+  call: { cs: "Hovor", en: "Call" },
+  email: { cs: "E-mail", en: "Email" },
+  chat: { cs: "Chat", en: "Chat" },
 };
 
 export const SAMPLE_LEADS: InboundLead[] = [

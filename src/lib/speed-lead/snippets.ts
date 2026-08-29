@@ -25,7 +25,9 @@ const firstName = (name: string) => name.trim().split(/\s+/)[0] || name;
 
 /** Build the expansion variables for a lead. Pure — no clock, no storage. */
 export function snippetVarsFor(lead: InboundLead): SnippetVars {
-  return { jméno: firstName(lead.name), kanál: CHANNEL_LABELS[lead.channel] };
+  // `.cs` deliberately: every snippet body in this file is Czech, so a placeholder
+  // inside one must be too — not the reader's UI locale.
+  return { jméno: firstName(lead.name), kanál: CHANNEL_LABELS[lead.channel].cs };
 }
 
 /** Replace every {jméno} / {kanál} occurrence in a body. Unknown placeholders are
