@@ -23,6 +23,8 @@ import { contactKeys } from "./normalize";
 import { appendActivity, deleteActivities, listActivities, saveContact } from "./store";
 import { newLeadId } from "./apply";
 import { scoreContact } from "./score";
+import { conversionFromStageChange } from "./conversion-events";
+import { appendConversionEvents } from "./conversion-store";
 
 export interface StageChangeInput {
   to: PipelineStage;
@@ -75,6 +77,26 @@ export async function changeStage(
 
   await saveContact(projectId, next);
   await appendActivity(projectId, contact.id, activity);
+
+  // WP W3-C — the CONVERSION LEDGER (append site 1). A crossing into qualified / won
+  // is the outcome an ad platform can only optimise toward if it is told about it,
+  // and this is the instant it happens. BEST-EFFORT and AFTER the contact save: the
+  // ledger explains a stage move, it is never a precondition for one, so a ledger
+  // outage must never fail the move the operator just made.
+  //
+  // A rank REGRESSION (qualified → working, → lost) emits NOTHING. Retracting an
+  // already-uploaded conversion is a live-API problem (WP S3); the file formats
+  // cannot express it, and a silent negative row would be a lie. The upsert id
+  // `${contactId}_${kind}` makes a later re-qualify update the existing row instead
+  // of double-counting.
+  try {
+    await appendConversionEvents(
+      projectId,
+      conversionFromStageChange(contact.stage, input.to, next, now)
+    );
+  } catch (err) {
+    console.error(`[leads] conversion ledger append failed for ${contact.id}:`, err);
+  }
   return next;
 }
 

@@ -45,6 +45,8 @@ import {
   saveContact,
   saveLeadEvent,
 } from "./store";
+import { conversionFromApply, conversionValue } from "./conversion-events";
+import { appendConversionEvents } from "./conversion-store";
 
 /** Collision-resistant opaque id (the annotations/lp-exp precedent — no dependency). */
 export function newLeadId(prefix = "c"): string {
@@ -106,8 +108,8 @@ export function eventSummary(event: LeadEvent): string {
 }
 
 /** Merge the event's attribution over a contact's, WITHOUT overwriting a known
- *  first touch. First-touch wins for `source`; last-touch fills the blanks. Pure —
- *  this is the whole attribution policy in one readable function. */
+ *  first touch. First-touch wins for `source` and `gclid`; last-touch fills the
+ *  blanks. Pure — this is the whole attribution policy in one readable function. */
 export function mergeAttribution(prev: Attribution | undefined, next: Partial<Attribution>): Attribution {
   const base: Attribution = prev ?? { source: next.source || "unknown" };
   return {
@@ -115,6 +117,12 @@ export function mergeAttribution(prev: Attribution | undefined, next: Partial<At
     ...Object.fromEntries(Object.entries(next).filter(([, v]) => v !== undefined && v !== "")),
     // first touch is never rewritten — an attribution argument you cannot win later
     source: base.source || next.source || "unknown",
+    // WP W3-C: the click id is first-touch for the same reason, and for one more —
+    // it is what an offline conversion is MATCHED on. Letting a later import
+    // overwrite it would re-attribute an already-uploaded conversion to a different
+    // click, which is a double-count the ad platform cannot undo. A blank existing
+    // gclid is still fillable (that is a first touch arriving late, not a rewrite).
+    ...(base.gclid ? { gclid: base.gclid } : {}),
   };
 }
 
@@ -248,6 +256,31 @@ export async function applyLeadEvent(
     updatedAt: nowIso,
   };
   await saveContact(projectId, contact);
+
+  // 5 ── CONVERSION LEDGER (WP W3-C, append site 2). A contact CREATED (or
+  //      auto-merged) at rank ≥ 1 never passes through `changeStage` — the initial
+  //      stage is set inline above — so an import of an already-`won` row would
+  //      otherwise leave no ledger trace at all. Same upsert id as append site 1,
+  //      which is what makes the two safe to overlap.
+  //
+  //      BEST-EFFORT and AFTER the save: a ledger outage must never fail an import.
+  //      The deal value rides `raw.value` (the CSV connector's `value` column) —
+  //      absent ⇒ null, never 0.
+  try {
+    const rawValue =
+      event.raw && typeof event.raw === "object"
+        ? (event.raw as { value?: unknown }).value
+        : undefined;
+    await appendConversionEvents(
+      projectId,
+      conversionFromApply(contact, now, {
+        value: conversionValue(rawValue),
+        connectorId: event.connectorId,
+      })
+    );
+  } catch (err) {
+    console.error(`[leads] conversion ledger append failed for ${contact.id}:`, err);
+  }
 
   const applied: LeadEvent = { ...event, status: "applied", contactId: contact.id, receivedAt: nowIso };
   await saveLeadEvent(projectId, key, applied);

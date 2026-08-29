@@ -17,7 +17,13 @@ import {
 import type { LeadSource } from "@/lib/lead-quality/sample";
 import LeadSourceDiagnosisPanel from "@/components/app/modules/LeadSourceDiagnosisPanel";
 import LeadImportPanel from "@/components/app/modules/LeadImportPanel";
-import { buildLeadSourceSeeds, seedToRequest } from "@/lib/diagnoses/lead-source-request";
+import ConversionLedgerStrip from "@/components/app/modules/leads/ConversionLedgerStrip";
+import type { ConversionSummary } from "@/lib/leads/conversion-events";
+import {
+  buildLeadSourceSeeds,
+  seedToRequest,
+  type ConversionsByLabel,
+} from "@/lib/diagnoses/lead-source-request";
 import { inputDigest } from "@/lib/diagnoses/types";
 import { latestDiagnosis, listDiagnoses } from "@/lib/diagnoses/store";
 
@@ -145,6 +151,7 @@ export default async function LeadQualityModule({
   source,
   syncedAt,
   sourceUrl,
+  conversions = null,
 }: {
   sources: LeadSource[];
   /** the project the diagnosis persists under — undefined on sample-less surfaces */
@@ -157,6 +164,9 @@ export default async function LeadQualityModule({
   syncedAt?: string;
   /** for source "url": the hosted CSV the leads were fetched from */
   sourceUrl?: string;
+  /** WP W3-C — the project's rolled-up conversion ledger, or null when the rollup
+   *  has never run (or on the sample-less/demo mount, which has no project). */
+  conversions?: ConversionSummary | null;
 }) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
@@ -177,7 +187,19 @@ export default async function LeadQualityModule({
   // the model needs — drift / velocity / live alerts / peer set threaded — via the
   // shared server-usable builder the digest cron reuses. No compute / sample data
   // ships to the client.
-  const diagnosisSeeds = buildLeadSourceSeeds(rows);
+  // WP W3-C: the ledger's per-source 30-day counts, joined by the DISPLAY label the
+  // funnel already groups by. `resolveLeadSourceDiagnosisRequest` must build the same
+  // map from the same summary — the seed feeds `inputDigest`, so two call sites
+  // disagreeing would badge every stored diagnosis stale.
+  const conversionsByLabel: ConversionsByLabel | undefined = conversions
+    ? Object.fromEntries(
+        conversions.bySource.map((c) => [
+          c.sourceLabel,
+          { qualified30d: c.qualified30d, won30d: c.won30d, gclidPct: c.gclidPct },
+        ])
+      )
+    : undefined;
+  const diagnosisSeeds = buildLeadSourceSeeds(rows, conversionsByLabel);
   // The persisted latest lead-source diagnosis + capped history, so the panel
   // renders the last one on load (not only after a click) and lists the history.
   const [initialDiagnosis, diagnosisHistory] = projectId
@@ -217,6 +239,10 @@ export default async function LeadQualityModule({
           sourceUrl={sourceUrl}
         />
       )}
+
+      {/* WP W3-C — the conversion ledger + its two exports. Only on a real project
+          surface, for the same reason the importer above is. */}
+      {projectId && <ConversionLedgerStrip projectId={projectId} summary={conversions} />}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card p-5">

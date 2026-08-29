@@ -89,6 +89,15 @@ export function buildLeadSourceDiagnosisPrompt(req: LeadSourceDiagnosisRequest):
     lines.push("- Upozornění (drift):");
     for (const a of req.alerts) lines.push(`  · ${a}`);
   }
+  // WP W3-C — the CRM conversion ledger's own 30-day counts for this source.
+  // AGGREGATE COUNTS ONLY (no contacts, no click ids). The anti-fabrication framing
+  // is explicit because the coverage share is easy to over-read: it says how many
+  // conversions can be UPLOADED, not how many happened.
+  if (req.conversions) {
+    lines.push(
+      `- Konverzní ledger za 30 dní: ${fmtInt(req.conversions.qualified30d)} kvalifikovaných, ${fmtInt(req.conversions.won30d)} uzavřených; ${fmtPct(req.conversions.gclidPct)} z nich nese Google Click ID (podíl nahratelný do Google Ads, ne podíl úspěšnosti). Neodvozuj z těchto čísel nic nad rámec uvedených počtů.`
+    );
+  }
   const peers = (req.peers ?? []).filter((p) => p.source !== req.source);
   if (peers.length > 0) {
     lines.push("", "PRO SROVNÁNÍ — ostatní zdroje (kam lze případně přesunout rozpočet):");

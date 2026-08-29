@@ -31,7 +31,17 @@ export interface LeadSourceSeed {
   velocityDays?: number;
   /** period alert sentences already raised for this source (CPQL rise / over target) */
   alerts?: string[];
+  /** WP W3-C — this source's 30-day CONVERSION-LEDGER counts, when the project has a
+   *  rollup. Aggregate counts only; never a contact or a click id. */
+  conversions?: { qualified30d: number; won30d: number; gclidPct: number };
 }
+
+/** Per-source conversion counts, keyed by the DISPLAY source label — the same key
+ *  `aggregate.ts#sourceLabel` produces and `SourceMetrics.source` carries, which is
+ *  what lets the ledger and the funnel be joined without a second identifier. */
+export type ConversionsByLabel = Readonly<
+  Record<string, { qualified30d: number; won30d: number; gclidPct: number }>
+>;
 
 /** Win rate below which a source that otherwise qualifies still under-performs
  *  (qualified leads that rarely close → a fit / targeting problem). */
@@ -40,7 +50,11 @@ export const WEAK_WIN_RATE = 0.15;
 /** Project one computed source row down to the seed the diagnosis reads, threading
  *  its drift / velocity / live alerts and a best-first peer set for budget-shift
  *  comparison. `allRows` supplies the peers. */
-export function toLeadSourceSeed(r: SourceMetrics, allRows: SourceMetrics[]): LeadSourceSeed {
+export function toLeadSourceSeed(
+  r: SourceMetrics,
+  allRows: SourceMetrics[],
+  conversions?: ConversionsByLabel
+): LeadSourceSeed {
   const seed: LeadSourceSeed = {
     source: r.source,
     leads: r.leads,
@@ -75,6 +89,11 @@ export function toLeadSourceSeed(r: SourceMetrics, allRows: SourceMetrics[]): Le
       ...(p.spend > 0 ? { costPerQualified: p.cpql } : {}),
     }));
   if (peers.length > 0) seed.peers = peers;
+  // WP W3-C — join the conversion ledger's 30-day counts for THIS source. Absent
+  // key ⇒ absent field ⇒ the prompt omits the line entirely (never a fabricated 0,
+  // which would tell the model the source converted nothing).
+  const conv = conversions?.[r.source];
+  if (conv) seed.conversions = conv;
   return seed;
 }
 
@@ -87,9 +106,15 @@ export function underperformingRows(rows: SourceMetrics[]): SourceMetrics[] {
   return under.length > 0 ? under : rows.slice(-1);
 }
 
-/** Build the seeds the diagnosis panel offers, from the computed source rows. */
-export function buildLeadSourceSeeds(rows: SourceMetrics[]): LeadSourceSeed[] {
-  return underperformingRows(rows).map((r) => toLeadSourceSeed(r, rows));
+/** Build the seeds the diagnosis panel offers, from the computed source rows.
+ *  `conversions` (WP W3-C) is the per-label conversion-ledger join; every caller that
+ *  can reach the rollup must pass the SAME map, because the seed feeds `inputDigest`
+ *  and two call sites disagreeing would badge every stored diagnosis stale. */
+export function buildLeadSourceSeeds(
+  rows: SourceMetrics[],
+  conversions?: ConversionsByLabel
+): LeadSourceSeed[] {
+  return underperformingRows(rows).map((r) => toLeadSourceSeed(r, rows, conversions));
 }
 
 /** Build the request from a picked seed (identical to the panel's former inline
@@ -110,5 +135,6 @@ export function seedToRequest(seed: LeadSourceSeed): LeadSourceDiagnosisRequest 
   if (seed.trend) req.trend = seed.trend;
   if (seed.velocityDays != null && seed.velocityDays > 0) req.velocityDays = seed.velocityDays;
   if (seed.alerts && seed.alerts.length > 0) req.alerts = seed.alerts;
+  if (seed.conversions) req.conversions = seed.conversions; // W3-C
   return req;
 }

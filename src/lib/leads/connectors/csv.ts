@@ -24,7 +24,18 @@ import {
 import type { ConnectorMeta, LeadConnector, PullOptions, PullResult, StoredLeadConnection } from "./types";
 
 /** Canonical columns this connector understands. */
-type Col = "name" | "email" | "phone" | "company" | "source" | "campaign" | "stage" | "at" | "note";
+type Col =
+  | "name"
+  | "email"
+  | "phone"
+  | "company"
+  | "source"
+  | "campaign"
+  | "stage"
+  | "at"
+  | "note"
+  | "gclid"
+  | "value";
 
 /** Header aliases (cs / en), diacritic-folded before lookup. Order-independent. */
 const COL: Record<string, Col> = {
@@ -45,6 +56,12 @@ const COL: Record<string, Col> = {
   date: "at", datum: "at", at: "at", created: "at", vytvoreno: "at", "datum vzniku": "at", submitted: "at",
   // free text
   note: "note", poznamka: "note", zprava: "note", message: "note", text: "note", popis: "note", enquiry: "note",
+  // WP W3-C — the two columns that make a row exportable as an offline conversion.
+  // `gclid` is the Google click id an offline conversion is MATCHED on (without it a
+  // qualified lead is exportable to Sklik's hand sheet and to nothing else), `value`
+  // the deal amount in CZK. Both optional; an absent value stays null, never 0.
+  gclid: "gclid", "google click id": "gclid", "click id": "gclid", "id kliknuti": "gclid",
+  value: "value", hodnota: "value", "deal value": "value", cena: "value", castka: "value",
 };
 
 /** Stage-value aliases → PipelineStage. A superset of lead-quality's STAGE map
@@ -60,6 +77,10 @@ const STAGE: Record<string, PipelineStage> = {
   lost: "lost", ztraceno: "lost", prohrano: "lost", "closed lost": "lost", closedlost: "lost", odmitnuto: "lost",
   disqualified: "disqualified", diskvalifikovano: "disqualified", spam: "disqualified", nevhodne: "disqualified",
 };
+
+/** Bound for a Google click id. Real gclids run ~50–100 characters; the cap is a
+ *  sanity bound on an untrusted cell, not a format claim. */
+const GCLID_MAX = 200;
 
 export interface CsvParseOptions {
   projectId: string;
@@ -90,8 +111,10 @@ export function parseContactCsv(text: string, opts: CsvParseOptions): CsvParseRe
   const header = records[0]!.map((c) => normalizeForSearch(c).trim());
   const mapped = header.map((h) => COL[h]);
   const hasHeader = mapped.some(Boolean);
-  // Without a header we assume the documented default order.
-  const idx: Record<Col, number> = { name: 0, email: 1, phone: 2, company: 3, source: 4, campaign: 5, stage: 6, at: 7, note: 8 };
+  // Without a header we assume the documented default order. The two WP W3-C
+  // columns are APPENDED (9, 10) so a headerless file written against the previous
+  // order still maps every column it had to the same place.
+  const idx: Record<Col, number> = { name: 0, email: 1, phone: 2, company: 3, source: 4, campaign: 5, stage: 6, at: 7, note: 8, gclid: 9, value: 10 };
   if (hasHeader) {
     for (const k of Object.keys(idx) as Col[]) idx[k] = -1;
     mapped.forEach((col, i) => {
@@ -124,6 +147,11 @@ export function parseContactCsv(text: string, opts: CsvParseOptions): CsvParseRe
     const campaign = clampText(cell(row, "campaign"), NAME_MAX);
     const stageCell = cell(row, "stage");
     const source = clampText(cell(row, "source"), NAME_MAX) ?? opts.defaultSource ?? "import";
+    // WP W3-C: the click id rides ATTRIBUTION (it is an attribution fact, and
+    // `Attribution.gclid` has existed unused since the entity layer shipped); the
+    // deal value rides `raw`, because it belongs to the row, not to the person.
+    const gclid = clampText(cell(row, "gclid"), GCLID_MAX);
+    const valueCell = cell(row, "value");
 
     events.push({
       id: `csv-${opts.importId}-${r}`,
@@ -137,13 +165,23 @@ export function parseContactCsv(text: string, opts: CsvParseOptions): CsvParseRe
       attribution: {
         source,
         ...(campaign ? { campaign } : {}),
+        ...(gclid ? { gclid } : {}),
         connectorId: "csv",
         externalId,
       },
       // `raw` carries the columns that are not part of the identity/attribution
       // contract but that the applier may still honour — the declared stage above
-      // all, so an imported "won" row is not filed as a fresh enquiry.
-      ...(company || stageCell ? { raw: { ...(company ? { company } : {}), ...(stageCell ? { stage: stageCell } : {}) } } : {}),
+      // all, so an imported "won" row is not filed as a fresh enquiry, and the deal
+      // value the conversion ledger uploads.
+      ...(company || stageCell || valueCell
+        ? {
+            raw: {
+              ...(company ? { company } : {}),
+              ...(stageCell ? { stage: stageCell } : {}),
+              ...(valueCell ? { value: valueCell } : {}),
+            },
+          }
+        : {}),
       receivedAt: opts.receivedAt,
       status: "pending",
     });
