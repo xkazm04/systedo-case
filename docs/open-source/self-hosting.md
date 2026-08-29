@@ -252,13 +252,14 @@ crons are silently disabled rather than open).
 | `/api/cron/digest` | weekly Mon 07:00 | portfolio digest, "Diagnóza týdne", operator LLM telemetry rollup |
 | `/api/cron/report` | daily 06:00 | cadence-filtered shared report + email, claim-first day lock |
 | `/api/cron/social` | hourly | publish due scheduled posts, reclaim stale `publishing` claims |
+| `/api/cron/ledgers` | hourly :30 | ledger step registry — every due step in `src/lib/cron/ledgers.ts` |
 
 There is **no scheduler in the repo** — no `node-cron`, no `setInterval`, nothing
 in `src/instrumentation.ts` (Sentry only).
 
 **Option 1 — documented external cron (recommended for v1).** The routes are
 already HTTP-shaped and already secret-gated, so *zero code change is required*:
-an `alpine` + `curl` + `crond` (or `supercronic`) sidecar firing five
+an `alpine` + `curl` + `crond` (or `supercronic`) sidecar firing six
 authenticated GETs. Identical on a VPS crontab or a systemd timer. Document the
 long timeouts — the routes budget 300s. **Effort S.**
 
@@ -271,7 +272,7 @@ and it duplicates on every dev HMR reload. **Effort M, v1.1** if self-hosters as
 **Option 3 — tell people to `curl` it themselves.** Unacceptable UX for a
 self-host-first product.
 
-Ship option 1 with v1. The product works without crons — all five are background
+Ship option 1 with v1. The product works without crons — all six are background
 refreshes — but "my scheduled posts never published" is a day-2 support burden.
 
 ---

@@ -11,9 +11,15 @@ function backend() {
   return LOCAL_DB ? import("./sent-guard.local") : import("./sent-guard.firestore");
 }
 
-/** Guard kind — the digest's weekly send. A stable string keyed alongside the
- *  tenant so future crons can share the table without colliding. */
-export type SentGuardKind = "digest-weekly";
+/** Guard kind — the digest's weekly send, plus one namespace per ledgers-cron
+ *  step (`ledger-<stepId>`). A stable string keyed alongside the tenant so the
+ *  crons share the table without colliding; the template member lets a step of
+ *  `/api/cron/ledgers` claim a period per tenant without this union growing a
+ *  line per step. Both backends already take an arbitrary string: the sqlite
+ *  `kind` column is TEXT with no CHECK (src/lib/db.ts), and Firestore uses it as
+ *  the config document id — which is why a step id must stay slash-free (see
+ *  `LedgerStep.id` in ./ledgers.ts). */
+export type SentGuardKind = "digest-weekly" | `ledger-${string}`;
 
 /** Atomically claim `period` for (tenant, kind). Returns true to the FIRST caller
  *  (the period was not yet recorded → proceed to send), false if it was already

@@ -61,7 +61,7 @@ you change it.
 6. Non-chokepoint AI: Leonardo image gen + Gemini vision scoring + embeddings (Creative Studio, patterns RAG).
 7. Billing/abuse rails are server-enforced: `usage.consume()` Firestore txn, durable per-IP limits + global daily spend ceiling (`src/lib/ai/durable-limit.ts`) on all paid routes.
 8. i18n is colocated: each component owns `const T = { cs: {...}, en: {...} }` (`TDict`), consumed via `useT(T)` (client) / `await getT(T)` (server); central dict only for nav/footer chrome. Contract: `docs/i18n/contract.md`.
-9. Five crons in `vercel.json` → `/api/cron/*`, guarded by `CRON_SECRET` through `src/lib/cron-auth.ts` (constant-time).
+9. Six crons in `vercel.json` → `/api/cron/*`, guarded by `CRON_SECRET` through `src/lib/cron-auth.ts` (constant-time).
 10. Design system: token-driven (`ink`/`muted`/`surface`/`brand-*`, dark mode via token overrides), shared `Button` in `src/components/ui.tsx`; conventions in `docs/design-system.md`.
 
 ## Conventions that bite

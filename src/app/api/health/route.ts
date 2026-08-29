@@ -20,6 +20,7 @@ import { projectCronHealth, type CronHealth } from "@/lib/cron/run-record";
  *  Derived from vercel.json's schedules × a 2× TOLERANCE that absorbs scheduling
  *  drift and a single missed tick without crying wolf:
  *    sync + social       — hourly  (0 * * * *)   → 2h
+ *    ledgers             — hourly  (30 * * * *)  → 2h
  *    report              — daily   (0 6 * * *)   → 2d
  *    catalog-sync        — daily   (0 5 * * *)   → 2d
  *    digest              — weekly  (0 7 * * 1)   → 2w
@@ -30,6 +31,7 @@ const CRON_STALE_TOLERANCE = 2;
 const CRON_MAX_AGE_MS: Record<string, number> = {
   sync: CRON_STALE_TOLERANCE * HOUR,
   social: CRON_STALE_TOLERANCE * HOUR,
+  ledgers: CRON_STALE_TOLERANCE * HOUR,
   report: CRON_STALE_TOLERANCE * DAY,
   "catalog-sync": CRON_STALE_TOLERANCE * DAY,
   digest: CRON_STALE_TOLERANCE * 7 * DAY,

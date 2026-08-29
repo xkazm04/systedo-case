@@ -2155,7 +2155,8 @@
         "src/app/api/cron/catalog-sync/route.ts",
         "src/app/api/cron/social/route.ts",
         "src/app/api/cron/report/route.ts",
-        "src/app/api/cron/digest/route.ts"
+        "src/app/api/cron/digest/route.ts",
+        "src/app/api/cron/ledgers/route.ts"
       ],
       "group": "Platform Operations",
       "group_id": "e8e90ce7-36cb-446d-82fd-bceb635cfe12",
@@ -2213,6 +2214,7 @@
         "src/lib/cron/runs-store.firestore.ts",
         "src/lib/cron/runs-store.local.ts",
         "src/lib/cron/schedule.ts",
+        "src/lib/cron/ledgers.ts",
         "src/lib/cron/sent-guard.ts",
         "src/lib/cron/sent-guard.firestore.ts",
         "src/lib/cron/sent-guard.local.ts",

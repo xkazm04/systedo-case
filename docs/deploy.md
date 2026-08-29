@@ -175,7 +175,7 @@ The Git-integration path (push to master) needs none of this.
 on Vercel: `AUTH_SECRET`, `AUTH_TRUST_HOST`, `GOOGLE_CLIENT_ID`,
 `GOOGLE_CLIENT_SECRET`, `FIREBASE_SERVICE_ACCOUNT`, `GOOGLE_CLOUD_PROJECT`,
 `CRON_SECRET`. Consequences today: sign-in cannot work, Firestore-backed
-routes fail (prod refuses the ADC fallback by design), and all five crons
+routes fail (prod refuses the ADC fallback by design), and all six crons
 fail closed (no `CRON_SECRET`). The build is green because none of these are
 build-time inputs — this is exactly the "deployed" versus "working" gap the
 delivery contract warns about.
@@ -260,7 +260,7 @@ forward in git afterwards.
 
 ## Crons
 
-Five schedules in `vercel.json`, all hitting `/api/cron/*` with
+Six schedules in `vercel.json`, all hitting `/api/cron/*` with
 `Authorization: Bearer $CRON_SECRET` (verified constant-time in
 `src/lib/cron-auth.ts`):
 
@@ -271,6 +271,16 @@ Five schedules in `vercel.json`, all hitting `/api/cron/*` with
 | `/api/cron/digest` | `0 7 * * 1` (Mon 07:00) | Weekly digest e-mail/webhook |
 | `/api/cron/report` | `0 6 * * *` (daily 06:00) | Report generation |
 | `/api/cron/social` | `0 * * * *` (hourly) | Social publishing tick |
+| `/api/cron/ledgers` | `30 * * * *` (hourly, :30) | Ledger step registry — runs every due step in `src/lib/cron/ledgers.ts` |
+
+`/api/cron/ledgers` is the **shared** slot: it is one schedule and one guard for
+every ledger-shaped background job (conversion drain, webhook retry, go-link
+rollup, social read-back). A new job registers a step in
+`src/lib/cron/ledgers.ts` (`LEDGER_STEPS`) with its own `due()` cadence — no new
+`vercel.json` entry, no new route. It is offset to :30 so it never contends with
+the hourly `sync`/`social` tick, and each invocation writes one `cron_runs` row
+carrying per-step counts plus each step's `lastRunAt` (which is how a step's
+cadence survives across runs). One step failing never stops the others.
 
 ## Host rename → adamant-named project (operator action)
 

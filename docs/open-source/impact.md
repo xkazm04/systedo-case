@@ -137,7 +137,7 @@ offline") — it is a known, bounded backlog, not a surprise.
 
 There is **no Dockerfile, no docker-compose, no Helm chart**. Deployment is
 Vercel-only: `vercel.json` plus `docs/deploy.md`, whose entire runbook assumes
-Vercel. Five crons live in `vercel.json` and have no in-repo scheduler
+Vercel. Six crons live in `vercel.json` and have no in-repo scheduler
 (`src/app/api/projects/orphans/route.ts:22` says as much: "there is no per-user
 scheduler in this app").
 
