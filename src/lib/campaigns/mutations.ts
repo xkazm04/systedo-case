@@ -9,7 +9,7 @@
  *  `u_{userId}_{customerId}` bucket the campaign surfaces never read. Legacy audit
  *  docs written under that old key stay readable via `listMutationAudit`'s
  *  dual-read; history is never rewritten. Server-only. */
-import { firestore } from "@/lib/firebase";
+import { tenantDocs } from "@/lib/tenant-docs/backend";
 import { getAdsConnection } from "./connection";
 import { getSyncMeta } from "./store";
 import { recordActivity } from "./activity";
@@ -26,6 +26,13 @@ import {
 } from "@/lib/google/ads";
 import { computeDailyMicros, planBudgetMove, dedupeSnapshots } from "./budget-math";
 import type { BudgetSnapshot } from "./control-plane-types";
+
+/** The immutable audit sub-collection under `tenants/{tenant}` — unchanged;
+ *  addressed through the generic per-tenant document seam ({@link tenantDocs},
+ *  ADR-0001) so a mutation attempted under LOCAL_DB is audited to the sqlite twin
+ *  instead of throwing. The Firestore backend of that seam issues the same `.add`
+ *  and the same `orderBy("at","desc").limit(n)` read this module issued before. */
+const MUTATIONS = "mutations";
 
 export interface MutationResult {
   ok: boolean;
@@ -99,7 +106,7 @@ export async function applyPause(
 
   try {
     await pauseCampaign(token, connection.customerId, campaignId);
-    await firestore.collection("tenants").doc(tenant).collection("mutations").add({
+    await (await tenantDocs()).addDoc(tenant, MUTATIONS, {
       action: "pause",
       campaignId,
       campaignName,
@@ -136,7 +143,7 @@ export async function applyResume(
 
   try {
     await resumeCampaign(token, connection.customerId, campaignId);
-    await firestore.collection("tenants").doc(tenant).collection("mutations").add({
+    await (await tenantDocs()).addDoc(tenant, MUTATIONS, {
       action: "resume",
       campaignId,
       campaignName,
@@ -219,7 +226,7 @@ export async function applyBudgetShift(
       }
       // Best-effort audit of the failed attempt (never let logging mask the failure).
       try {
-        await firestore.collection("tenants").doc(tenant).collection("mutations").add({
+        await (await tenantDocs()).addDoc(tenant, MUTATIONS, {
           action: "budget_shift_failed",
           fromId: move.fromId,
           fromName: move.fromName,
@@ -244,7 +251,7 @@ export async function applyBudgetShift(
       };
     }
 
-    await firestore.collection("tenants").doc(tenant).collection("mutations").add({
+    await (await tenantDocs()).addDoc(tenant, MUTATIONS, {
       action: "budget_shift",
       fromId: move.fromId,
       fromName: move.fromName,
@@ -298,7 +305,7 @@ export async function restoreBudgets(
     for (const [resourceName, micros] of byBudget) {
       await setCampaignBudgetMicros(token, customerId, resourceName, micros);
     }
-    await firestore.collection("tenants").doc(tenant).collection("mutations").add({
+    await (await tenantDocs()).addDoc(tenant, MUTATIONS, {
       action: "budget_restore",
       budgets: [...byBudget.keys()],
       customerId,
@@ -340,15 +347,12 @@ export async function listMutationAudit(
   const entries: MutationAuditEntry[] = [];
   for (const t of tenants) {
     try {
-      const snap = await firestore
-        .collection("tenants")
-        .doc(t)
-        .collection("mutations")
-        .orderBy("at", "desc")
-        .limit(limit)
-        .get();
-      for (const d of snap.docs) {
-        const data = d.data() as Record<string, unknown>;
+      const rows = await (await tenantDocs()).listDocs(t, MUTATIONS, {
+        orderBy: { field: "at", dir: "desc" },
+        limit,
+      });
+      for (const d of rows) {
+        const data = d.data as Record<string, unknown>;
         entries.push({
           ...data,
           id: d.id,

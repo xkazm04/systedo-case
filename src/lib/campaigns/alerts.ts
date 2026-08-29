@@ -4,8 +4,17 @@
  *  ./alert-suppression) persisted on the tenant doc, so a campaign flickering
  *  across the critical boundary alerts once per cooldown window instead of every
  *  sync. The same path runs on the hourly cron and on a manual sync, so the inbox
- *  always reflects reality. Server-only. */
+ *  always reflects reality. Server-only.
+ *
+ *  The inbox itself (`tenants/{tenant}/alerts`) speaks through the generic
+ *  per-tenant document seam (ADR-0001), so it works on the node:sqlite twin under
+ *  LOCAL_DB. `firestore` is still imported for the two reads that are NOT under
+ *  that sub-collection and have no seam of their own: `users/{userId}` (the
+ *  notification address) and the tenant ROOT doc that carries
+ *  `criticalAlertState` — the latter is shared with ./anomaly-alerts.ts, so it
+ *  needs its own seam rather than a private one here. */
 import { firestore } from "@/lib/firebase";
+import { tenantDocs, type DocData } from "@/lib/tenant-docs/backend";
 import { SITE_NAME } from "@/lib/site";
 import { sendEmail, sendWebhook } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
@@ -22,9 +31,12 @@ import {
   type AlertStatus,
 } from "./alert-suppression";
 
-/** Max writes per Firestore batch (hard limit is 500). markAlertsRead chunks its
- *  unread sweep at this size so a tenant with >500 unread never throws. */
-const BATCH_CHUNK = 500;
+/** How many of the newest alerts the mark-all-read sweep considers. The inbox is
+ *  itself capped ({@link listAlerts} reads 20), so an alert outside this window is
+ *  unreachable in the product — and a bounded read is what lets the sweep run on
+ *  the generic document seam, whose equality query takes a string (`read` is a
+ *  boolean). See {@link markAlertsRead}. */
+const UNREAD_SWEEP_LIMIT = 200;
 
 export type AlertType = "critical" | "digest";
 
@@ -67,9 +79,12 @@ export interface AlertRecord extends AlertDoc {
   id: string;
 }
 
-function alertsCol(tenant: string) {
-  return firestore.collection("tenants").doc(tenant).collection("alerts");
-}
+/** The sub-collection under `tenants/{tenant}` the inbox lives in — unchanged;
+ *  addressed through the generic per-tenant document seam ({@link tenantDocs},
+ *  ADR-0001) so the inbox also works on the node:sqlite twin under LOCAL_DB. The
+ *  Firestore backend of that seam issues the same paths and the same
+ *  `orderBy("createdAt","desc").limit(n)` read this module issued before. */
+const ALERTS = "alerts";
 
 /** Persist one alert to the tenant's in-app inbox (always, even when no email/
  *  webhook is configured — so there's a durable record either way). New alerts
@@ -81,20 +96,53 @@ export async function recordAlert(
 ): Promise<string> {
   // Firestore rejects an `undefined` field, so only include href when set.
   const { href, ...rest } = alert;
-  const ref = await alertsCol(tenant).add({
+  return (await tenantDocs()).addDoc(tenant, ALERTS, {
     ...rest,
     ...(href ? { href } : {}),
     createdAt: new Date().toISOString(),
     read: false,
     status: "new" satisfies AlertStatus,
   });
-  return ref.id;
 }
 
 /** One alert by id (for scoping a staged change-set to its campaigns), or null. */
 export async function getAlert(tenant: string, id: string): Promise<AlertRecord | null> {
-  const snap = await alertsCol(tenant).doc(id).get();
-  return snap.exists ? { id, ...(snap.data() as AlertDoc) } : null;
+  const data = await (await tenantDocs()).getDoc(tenant, ALERTS, id);
+  return data ? { id, ...(data as AlertDoc) } : null;
+}
+
+/** Advance ONE alert's workflow status under a compare-and-set guard — the seam
+ *  equivalent of the read-check-write transaction `acknowledgeAlert` and
+ *  `resolveAlert` used before. `decide` is the pure policy (nextAckStatus /
+ *  resolveWrites) and sees the DEFAULTED status, exactly as the transaction did;
+ *  returning null means "no write", which is how both callers stay idempotent.
+ *  The guard is the status the decision was made on, so exactly one of two
+ *  concurrent writers lands — the same one-winner property the transaction gave
+ *  (the Firestore backend of `compareAndSet` IS a runTransaction on that field).
+ *
+ *  Legacy exception: a doc written before the workflow field existed carries no
+ *  `status`, and `compareAndSet` compares a string — there is nothing to guard on.
+ *  Those docs take a plain merge write, the same value the transaction would have
+ *  written. The property that lapses is first-writer-wins on `resolvedBy` for two
+ *  SIMULTANEOUS resolves of a pre-workflow alert; every alert written since the
+ *  workflow shipped carries `status` and keeps the guarded path, and a sequential
+ *  re-resolve still no-ops on either path. */
+async function advanceAlert(
+  tenant: string,
+  id: string,
+  decide: (current: AlertStatus) => DocData | null
+): Promise<void> {
+  const store = await tenantDocs();
+  const data = await store.getDoc(tenant, ALERTS, id);
+  if (!data) return;
+  const patch = decide(alertStatus(data as { status?: AlertStatus }));
+  if (!patch) return;
+  const from: unknown = data.status;
+  if (typeof from !== "string") {
+    await store.setDoc(tenant, ALERTS, id, patch, { merge: true });
+    return;
+  }
+  await store.compareAndSet(tenant, ALERTS, id, { field: "status", equals: from }, patch);
 }
 
 /** Move an alert to `acknowledged`: the operator has taken responsibility for it
@@ -103,12 +151,9 @@ export async function getAlert(tenant: string, id: string): Promise<AlertRecord 
  *  regresses a `resolved` alert (nor re-touches an already-acknowledged one). The
  *  decision is the pure {@link nextAckStatus}; the txn makes it race-safe. */
 export async function acknowledgeAlert(tenant: string, id: string): Promise<void> {
-  const ref = alertsCol(tenant).doc(id);
-  await firestore.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists) return;
-    const next = nextAckStatus(alertStatus(snap.data() as { status?: AlertStatus }));
-    if (next) tx.set(ref, { status: next satisfies AlertStatus }, { merge: true });
+  await advanceAlert(tenant, id, (current) => {
+    const next = nextAckStatus(current);
+    return next ? { status: next satisfies AlertStatus } : null;
   });
 }
 
@@ -123,37 +168,44 @@ export async function resolveAlert(
   id: string,
   changeSetId: string
 ): Promise<void> {
-  const ref = alertsCol(tenant).doc(id);
-  await firestore.runTransaction(async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists) return;
-    if (!resolveWrites(alertStatus(snap.data() as { status?: AlertStatus }))) return;
-    tx.set(ref, { status: "resolved" satisfies AlertStatus, resolvedBy: changeSetId }, { merge: true });
-  });
+  await advanceAlert(tenant, id, (current) =>
+    resolveWrites(current)
+      ? { status: "resolved" satisfies AlertStatus, resolvedBy: changeSetId }
+      : null
+  );
 }
 
 /** Newest alerts for a tenant's inbox. */
 export async function listAlerts(tenant: string, limit = 20): Promise<AlertRecord[]> {
-  const snap = await alertsCol(tenant).orderBy("createdAt", "desc").limit(limit).get();
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as AlertDoc) }));
+  const rows = await (await tenantDocs()).listDocs(tenant, ALERTS, {
+    orderBy: { field: "createdAt", dir: "desc" },
+    limit,
+  });
+  return rows.map((d) => ({ id: d.id, ...(d.data as AlertDoc) }));
 }
 
 /** Mark one alert (by id) or all unread alerts as read. */
 export async function markAlertsRead(tenant: string, id?: string): Promise<void> {
+  const store = await tenantDocs();
   if (id) {
-    await alertsCol(tenant).doc(id).set({ read: true }, { merge: true });
+    await store.setDoc(tenant, ALERTS, id, { read: true }, { merge: true });
     return;
   }
-  // Chunk at the Firestore 500-writes-per-batch limit so a tenant with a large
-  // unread backlog marks everything read across several commits instead of
-  // throwing on the 501st write.
-  const snap = await alertsCol(tenant).where("read", "==", false).get();
-  for (let i = 0; i < snap.docs.length; i += BATCH_CHUNK) {
-    const batch = firestore.batch();
-    for (const d of snap.docs.slice(i, i + BATCH_CHUNK)) {
-      batch.set(d.ref, { read: true }, { merge: true });
-    }
-    await batch.commit();
+  // The unread sweep is a newest-first page + an in-memory filter rather than a
+  // `where("read","==",false)` query: the generic document seam's equality query
+  // takes a STRING value and `read` is a boolean, and widening that contract for
+  // one call site is worse than bounding this one. Bounding it is free — the inbox
+  // surfaces read 20 alerts, so an alert older than UNREAD_SWEEP_LIMIT is not
+  // reachable to be seen, let alone left unread. Each write is the same per-doc
+  // merge-set the Firestore batch performed (the batch was already split across
+  // several commits at 500, so it was never one atomic sweep either).
+  const rows = await store.listDocs(tenant, ALERTS, {
+    orderBy: { field: "createdAt", dir: "desc" },
+    limit: UNREAD_SWEEP_LIMIT,
+  });
+  for (const row of rows) {
+    if (row.data.read) continue;
+    await store.setDoc(tenant, ALERTS, row.id, { read: true }, { merge: true });
   }
 }
 

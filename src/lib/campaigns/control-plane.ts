@@ -5,7 +5,7 @@
  *  form the governance ledger on top of the immutable per-mutation audit
  *  (tenants/{tenant}/mutations). Server-only — pure model lives in
  *  ./control-plane-types. */
-import { firestore } from "@/lib/firebase";
+import { tenantDocs } from "@/lib/tenant-docs/backend";
 import { listCampaigns } from "./store";
 import { withMetrics } from "./types";
 import { recommendBudgetMoves } from "./budget-moves";
@@ -31,18 +31,14 @@ import {
   type StatusSnapshot,
 } from "./control-plane-types";
 
-function changeSetsCol(tenant: string) {
-  return firestore.collection("tenants").doc(tenant).collection("changeSets");
-}
-
-/** Thrown inside the approve/revert claim transaction when the set can't be claimed
- *  (missing, or not in the required source status) — carries the current change-set
- *  so the caller returns it unchanged instead of a hard error (idempotent no-op). */
-class NotClaimable extends Error {
-  constructor(readonly cs: ChangeSet | null) {
-    super("change-set not claimable");
-  }
-}
+/** The sub-collection under `tenants/{tenant}` these sets live in — unchanged;
+ *  it is now addressed through the generic per-tenant document seam
+ *  ({@link tenantDocs}, ADR-0001) instead of `firestore` directly, so the whole
+ *  lifecycle also runs on the node:sqlite twin under LOCAL_DB. The Firestore
+ *  backend of that seam issues the same paths/queries this module issued before
+ *  (`tenants/{tenant}/changeSets`, `orderBy("createdAt","desc").limit(20)`,
+ *  `.add`, merge-set), so the production path is unchanged. */
+const CHANGE_SETS = "changeSets";
 
 /** Options for building a change-set. */
 export interface CreateChangeSetOptions {
@@ -108,14 +104,17 @@ export async function createChangeSet(
     // their exact prior shape in Firestore.
     ...(opts.marginPct !== undefined ? { marginPct: opts.marginPct } : {}),
   };
-  const ref = await changeSetsCol(tenant).add(doc);
-  return { id: ref.id, ...doc };
+  const id = await (await tenantDocs()).addDoc(tenant, CHANGE_SETS, doc);
+  return { id, ...doc };
 }
 
 export async function listChangeSets(tenant: string): Promise<ChangeSet[]> {
   try {
-    const snap = await changeSetsCol(tenant).orderBy("createdAt", "desc").limit(20).get();
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ChangeSet, "id">) }));
+    const rows = await (await tenantDocs()).listDocs(tenant, CHANGE_SETS, {
+      orderBy: { field: "createdAt", dir: "desc" },
+      limit: 20,
+    });
+    return rows.map((d) => ({ id: d.id, ...(d.data as Omit<ChangeSet, "id">) }));
   } catch (err) {
     console.error(`[control-plane] list failed for ${tenant}:`, err);
     return [];
@@ -123,8 +122,8 @@ export async function listChangeSets(tenant: string): Promise<ChangeSet[]> {
 }
 
 async function getChangeSet(tenant: string, id: string): Promise<ChangeSet | null> {
-  const snap = await changeSetsCol(tenant).doc(id).get();
-  return snap.exists ? { id, ...(snap.data() as Omit<ChangeSet, "id">) } : null;
+  const data = await (await tenantDocs()).getDoc(tenant, CHANGE_SETS, id);
+  return data ? { id, ...(data as Omit<ChangeSet, "id">) } : null;
 }
 
 /** Approve a pending change-set: apply every move through the audited mutation
@@ -145,9 +144,10 @@ export async function approveChangeSet(
   // Claim the change-set atomically (pending → applying) BEFORE any live mutation,
   // so a concurrent Approve (double-click / retried POST) can't both pass a
   // check-then-act guard and each run the whole apply loop → double-shifting budgets.
-  // Only the caller that wins the transaction proceeds; the loser sees a non-pending
+  // Only the caller that wins the claim proceeds; the loser sees a non-pending
   // status and returns it unchanged (idempotent). Guardrail violations are checked
-  // inside the txn so a claim is never taken for a set that would be rejected.
+  // before the claim is taken, so a claim is never held by a set that would be
+  // rejected.
   //
   // Recovery: a set stuck in "applying" past the claim TTL (the previous actor
   // crashed mid-loop) is settled to a terminal state here — NOT re-run, since
@@ -156,34 +156,41 @@ export async function approveChangeSet(
   // snapshots incrementally, so a stranded set carrying snapshots recovers to
   // "applied" (revertable), a snapshot-less one to "failed". The stamp
   // (`claimedAt`) written at claim time makes that distinction time-bounded.
-  const ref = changeSetsCol(tenant).doc(id);
+  //
+  // Read-then-compare-and-set on the seam: `getDoc` supplies the decision inputs
+  // (status, claim stamp, persisted snapshots) and `compareAndSet` takes the claim
+  // ONLY while the status is still the one the decision was made on. That is the
+  // same one-winner guarantee the read-check-write transaction gave — the Firestore
+  // backend of compareAndSet IS a runTransaction guarded on that field — and it is
+  // the only shape the sqlite twin can honour too.
+  const store = await tenantDocs();
   const now = Date.now();
-  let claim: { recovered: true; cs: ChangeSet } | { recovered: false; cs: ChangeSet };
-  try {
-    claim = await firestore.runTransaction(async (tx) => {
-      const snap = await tx.get(ref);
-      if (!snap.exists) throw new NotClaimable(null);
-      const cur = { id, ...(snap.data() as Omit<ChangeSet, "id">) };
-      const action = planApproveClaim(cur, now);
-      if (action.kind === "proceed") {
-        if (cur.violations.length > 0 && !opts.override) throw new GuardrailError(cur.violations);
-        tx.set(
-          ref,
-          { status: "applying" satisfies ChangeSetStatus, claimedAt: new Date(now).toISOString() },
-          { merge: true }
-        );
-        return { recovered: false as const, cs: cur };
-      }
-      if (action.kind === "recover") {
-        tx.set(ref, { status: action.status satisfies ChangeSetStatus }, { merge: true });
-        return { recovered: true as const, cs: { ...cur, status: action.status } };
-      }
-      throw new NotClaimable(cur); // not claimable → idempotent no-op
-    });
-  } catch (err) {
-    if (err instanceof NotClaimable) return err.cs;
-    throw err; // GuardrailError (and any real error) propagates unchanged
+  const raw = await store.getDoc(tenant, CHANGE_SETS, id);
+  if (!raw) return null; // missing → idempotent no-op (was: NotClaimable(null))
+  const cur = { id, ...(raw as Omit<ChangeSet, "id">) };
+  const action = planApproveClaim(cur, now);
+  if (action.kind !== "proceed" && action.kind !== "recover") return cur; // no-op
+  if (action.kind === "proceed" && cur.violations.length > 0 && !opts.override) {
+    // Guardrails are checked before the claim is taken, so a set that would be
+    // rejected never leaves a "applying" stamp behind.
+    throw new GuardrailError(cur.violations);
   }
+  const won = await store.compareAndSet(
+    tenant,
+    CHANGE_SETS,
+    id,
+    { field: "status", equals: cur.status },
+    action.kind === "proceed"
+      ? { status: "applying" satisfies ChangeSetStatus, claimedAt: new Date(now).toISOString() }
+      : { status: action.status satisfies ChangeSetStatus }
+  );
+  // Lost the claim to a concurrent actor → return the set as it now stands,
+  // unchanged (the same idempotent no-op the losing transaction produced).
+  if (!won) return await getChangeSet(tenant, id);
+  const claim: { recovered: true; cs: ChangeSet } | { recovered: false; cs: ChangeSet } =
+    action.kind === "proceed"
+      ? { recovered: false as const, cs: cur }
+      : { recovered: true as const, cs: { ...cur, status: action.status } };
 
   if (claim.recovered) {
     // Stranded claim reclaimed to a terminal state; no live mutation to run.
@@ -219,7 +226,13 @@ export async function approveChangeSet(
   // write must not abort the loop; the final settle below re-writes everything.
   const persistEvidence = async () => {
     try {
-      await ref.set({ results, budgetSnapshots, statusSnapshots }, { merge: true });
+      await store.setDoc(
+        tenant,
+        CHANGE_SETS,
+        id,
+        { results, budgetSnapshots, statusSnapshots },
+        { merge: true }
+      );
     } catch (err) {
       console.error(`[control-plane] incremental evidence write failed for ${id}:`, err);
     }
@@ -263,7 +276,7 @@ if (m.kind === "pause") {
     statusSnapshots,
     overridden: cs.violations.length > 0,
   };
-  await changeSetsCol(tenant).doc(id).set(updated, { merge: true });
+  await store.setDoc(tenant, CHANGE_SETS, id, updated, { merge: true });
 
   // Close the loop: if this set was staged off an alert, mark that alert resolved
   // with this set as the back-reference — but ONLY when the apply actually landed.
@@ -313,30 +326,24 @@ export async function revertChangeSet(
   // forward apply didn't land. A set stranded in "reverting" past the TTL is
   // re-claimed and re-run: the restore is an ABSOLUTE snapshot write (set exact
   // micros / resume), which is idempotent, so repeating it is safe.
-  const ref = changeSetsCol(tenant).doc(id);
+  // Same read-then-compare-and-set claim as approveChangeSet — see the comment
+  // there for why the guarded write is equivalent to the prior transaction.
+  const store = await tenantDocs();
   const now = Date.now();
-  let cs: ChangeSet;
-  try {
-    cs = await firestore.runTransaction(async (tx) => {
-      const snap = await tx.get(ref);
-      if (!snap.exists) throw new NotClaimable(null);
-      const cur = { id, ...(snap.data() as Omit<ChangeSet, "id">) };
-      const action = planRevertClaim(cur, now);
-      if (action.kind === "proceed" || action.kind === "reclaim") {
-        tx.set(
-          ref,
-          { status: "reverting" satisfies ChangeSetStatus, claimedAt: new Date(now).toISOString() },
-          { merge: true }
-        );
-        return cur;
-      }
-      if (action.kind === "refuse") throw new NoSnapshotsError();
-      throw new NotClaimable(cur);
-    });
-  } catch (err) {
-    if (err instanceof NotClaimable) return err.cs;
-    throw err; // NoSnapshotsError (and any real error) propagates unchanged
-  }
+  const raw = await store.getDoc(tenant, CHANGE_SETS, id);
+  if (!raw) return null; // missing → idempotent no-op
+  const cs = { id, ...(raw as Omit<ChangeSet, "id">) };
+  const action = planRevertClaim(cs, now);
+  if (action.kind === "refuse") throw new NoSnapshotsError();
+  if (action.kind !== "proceed" && action.kind !== "reclaim") return cs; // no-op
+  const won = await store.compareAndSet(
+    tenant,
+    CHANGE_SETS,
+    id,
+    { field: "status", equals: cs.status },
+    { status: "reverting" satisfies ChangeSetStatus, claimedAt: new Date(now).toISOString() }
+  );
+  if (!won) return await getChangeSet(tenant, id);
 
   // Exact revert from snapshots (guaranteed present — the claim refused otherwise):
   // restore every touched budget in one call, and resume every paused campaign.
@@ -375,7 +382,7 @@ export async function revertChangeSet(
     // must not carry a timestamp claiming it happened.
     ...(reverted ? { revertedAt: new Date().toISOString() } : {}),
   };
-  await changeSetsCol(tenant).doc(id).set(updated, { merge: true });
+  await store.setDoc(tenant, CHANGE_SETS, id, updated, { merge: true });
 
   await recordActivity(tenant, {
     kind: "budget_shift",
