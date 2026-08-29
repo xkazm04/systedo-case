@@ -103,3 +103,17 @@ Authority: `node_modules/next/dist/docs/` for route/data code; Design System Pri
 
 ## Skill improvement log
 - 2026-08-29: overlay created on adoption; law lifted from `.claude/perfect/config.md` and AGENTS.md.
+- 2026-08-29: `npm run check` is red at HEAD for a reason no sweep causes -
+  `uat/runs/2026-08-29-kanaly-l2/driver/lib.mjs:39` fails eslint with a parse error
+  (committed by `0a9ff824`). Lint your own paths with `npx eslint <paths>` to get a
+  clean signal; do not "fix" the UAT artifact, it is another loop's output.
+- 2026-08-29: the pre-commit hook runs `tsc --noEmit` over a tsconfig that includes
+  `.next/types/**`, so a stale generated validator blocks every commit. After a route
+  is deleted (e.g. the `/lp` retirement in `d8c5196f`), `rm .next/types/validator.ts`
+  and let the next build regenerate it. Never reach for `--no-verify`.
+- 2026-08-29: the LLM pre-commit gate is FAST here (static since 2026-08-05, a few
+  seconds) - the overlay's "background the commit" advice is stale for the everyday
+  case. Only `npm run test:llm` / `llm:quality` are the ~10min real-model paths.
+- 2026-08-29: `src/app/app/[projectId]/template.tsx` remounts every module on every
+  navigation beneath it. Read it BEFORE proposing any "state survives a project
+  switch" item in an `/app` module - it killed three candidates in one run.
