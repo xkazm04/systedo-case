@@ -58,3 +58,7 @@ carry any of this.
   a stabilize-tier pass. Convergence is the signal: 4 groups independently proposed
   the Sklik+Google spine and 5 the peer benchmark — corroboration count is on the
   deck (`docs/roadmap/moonshot-deck-2026-08-29.md`).
+- **2026-08-29 (wave 0 build)** — The worktree is checked out **CRLF** with `core.autocrlf=false`
+  while the index is LF: any file an editor touches comes back as a whole-file diff. Normalize
+  with `sed -i 's/\r$//' <files>` before staging. Unit tests must run with the loader flags from
+  the `test:unit` script (`--import ./test-llm/setup.mjs …`) or `@/lib` imports fail to resolve.
