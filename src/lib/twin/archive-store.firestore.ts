@@ -4,6 +4,7 @@
  *  path never pulls firebase-admin in. Mirrors the local backend's interface and
  *  the cron_runs eviction pattern (query one field, sort in memory to avoid needing
  *  a composite index, delete the overflow). */
+import { FieldValue } from "firebase-admin/firestore";
 import { firestore } from "@/lib/firebase";
 import { archivedAt, TWIN_ARCHIVE_CAP } from "./archive";
 import type { TwinDraft } from "./types";
@@ -48,6 +49,21 @@ export async function archiveDrafts(projectId: string, drafts: TwinDraft[]): Pro
   if (overflow.length) {
     const del = firestore.batch();
     for (const o of overflow) del.delete(col.doc(o.id));
+    // Recorded accounting: eviction DELETES audit records, and a deleted record
+    // cannot testify for itself — so the same batch that deletes writes a durable
+    // per-project tally outside the evicted set (change-logging; the
+    // FieldValue.increment + merge shape from analytics/store.firestore.ts).
+    del.set(
+      firestore.collection("twinArchiveEvictions").doc(projectId),
+      {
+        projectId,
+        cap: TWIN_ARCHIVE_CAP,
+        totalEvicted: FieldValue.increment(overflow.length),
+        lastEvictedAt: new Date().toISOString(),
+        lastBatch: overflow.map((o) => ({ id: o.id, archivedAt: o.archivedAt })),
+      },
+      { merge: true }
+    );
     await del.commit();
     console.warn(
       `[twin] archive cap ${TWIN_ARCHIVE_CAP} reached for ${projectId}: evicted ${overflow.length} oldest audit record(s)`
