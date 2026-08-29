@@ -164,6 +164,20 @@ export default function OrganicChannels({
 
   const ai = useAiTool<ChannelResearchResult>("channel-research");
 
+  /** Is the generation sitting in `ai` the very plan already pinned on screen?
+   *
+   *  `applied` is in-memory, but `useAiTool` rehydrates its last result from
+   *  localStorage on mount — so after a reload the "your tailored plan is ready /
+   *  replace the sample plan with it" banner came back on a page whose source pill
+   *  already read "Plán na míru (AI)", inviting the tenant to apply what they had
+   *  applied (measured in the 2026-08-29 L2 run). Compare identity with what the
+   *  SERVER rendered instead of trusting a flag that a reload resets. */
+  const pinnedIsThisPlan =
+    source === "ai" &&
+    !!ai.data &&
+    ai.data.result.channels.length === channels.length &&
+    ai.data.result.channels.every((c, i) => c.id === channels[i]?.id);
+
   /** The brand as it may be spoken. A demo/sample project is named "Klinika
    *  (ukázka)"; everything below either reaches the model or reaches the content
    *  engine as a brief, and the marker leaks straight back out in the rationale,
@@ -442,7 +456,7 @@ export default function OrganicChannels({
         ) : (
           <ToolError message={ai.error ?? ""} onRetry={runTailor} retryIn={ai.retryIn} upgradeUrl={ai.upgradeUrl} />
         ))}
-      {ai.status === "done" && ai.data && !applied && (
+      {ai.status === "done" && ai.data && !applied && !pinnedIsThisPlan && (
         <div className="animate-fade-up space-y-3 rounded-card border border-brand-200 bg-brand-50 p-4">
           <div className="flex items-center gap-2">
             <Sparkles width={16} height={16} className="text-brand-accent" />

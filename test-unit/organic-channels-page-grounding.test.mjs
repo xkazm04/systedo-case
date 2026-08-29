@@ -59,7 +59,15 @@ test("an empty project grounds nothing and claims no degradation", () => {
     competitors: [],
     competitorsUnavailable: false,
     profile: null,
+    // a caller that does not say keeps the pre-2026-08-29 behaviour: the rows it
+    // handed over are treated as the tenant's own and may ground the model
+    catalogIsSample: false,
   });
+});
+
+test("the page's catalog SOURCE reaches the builder", () => {
+  assert.equal(kanalyGroundingInput(reads({ catalogIsSample: true })).catalogIsSample, true);
+  assert.equal(kanalyGroundingInput(reads()).catalogIsSample, false);
 });
 
 // --- rule 1: CURATED competitors only ---------------------------------------

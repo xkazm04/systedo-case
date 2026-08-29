@@ -50,8 +50,13 @@ export default function ChannelTable({
   const L = locale === "en" ? "en" : "cs";
 
   return (
-    <div className="overflow-hidden rounded-card border border-line">
-      <table className="w-full text-sm">
+    // overflow-x-AUTO, not hidden. The table drops its fit and mode columns below
+    // sm/md, but the row CTA ("Nastavit kanál") still needs ~412px and the clipping
+    // container gave it 356px at a 390px viewport: the 2026-08-29 L2 run measured the
+    // primary per-row control cut off at the right edge with no way to scroll to it.
+    // `overflow-y-hidden` keeps the rounded corners clipping vertically as before.
+    <div className="overflow-x-auto overflow-y-hidden rounded-card border border-line">
+      <table className="w-full min-w-[26rem] text-sm">
         <thead>
           <tr className="border-b border-line bg-canvas text-left text-xs font-semibold uppercase tracking-wide text-muted">
             <th className="px-4 py-3">{t("colChannel")}</th>

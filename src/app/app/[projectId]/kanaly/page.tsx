@@ -12,7 +12,7 @@ import { planProvenance } from "@/lib/organic-channels/types";
 import { buildKanalyGrounding, kanalyGroundingInput } from "@/lib/organic-channels/grounding";
 import { buildSignpostContext, type SignpostContext } from "@/lib/organic-channels/next-step";
 import { resolveVisibilityPlan } from "@/lib/organic-channels/visibility-plan-resolve";
-import { loadProjectCatalog } from "@/lib/catalog/load";
+import { loadProjectCatalogWithSource } from "@/lib/catalog/load";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { getCompetitors } from "@/lib/competitors/store";
 import { getOnboarding } from "@/lib/onboarding/store";
@@ -34,8 +34,12 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // un-grounds regeneration, so the failure survives to the UI (degraded grounding).
   // A failed onboarding read simply means "no profile" — it can only ever cost a
   // gap-fill, never un-ground anything the catalog already said.
-  const [catalog, competitorRead, onboarding] = await Promise.all([
-    loadProjectCatalog(project),
+  const [catalogRead, competitorRead, onboarding] = await Promise.all([
+    // WITH SOURCE: a project that never saved a catalog is handed the illustrative
+    // SEED, whose rows are not facts about this tenant. The grounding builder needs
+    // to know which it got — asserting a seed row to the model is how a leadgen
+    // tenant ended up advised to write an article about "Ukázková služba A".
+    loadProjectCatalogWithSource(project),
     getCompetitors(project.id).then(
       (set) => ({ failed: false, set }),
       () => ({ failed: true, set: null })
@@ -48,7 +52,8 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // differently.
   const { grounding, sample: sampleContext } = buildKanalyGrounding(
     kanalyGroundingInput({
-      catalog,
+      catalog: catalogRead.offerings,
+      catalogIsSample: catalogRead.source === "sample",
       localities: localitiesFor(project),
       competitorRead: { failed: competitorRead.failed, competitors: competitorRead.set?.competitors },
       profile: onboarding?.scan ?? null,

@@ -219,3 +219,120 @@ test("prompt: the grounding the builder produces round-trips into the prompt", (
   assert.match(p, /dospělí v Brně a okolí/);
   assert.match(p, /zubař Brno, dentální hygiena Brno/);
 });
+
+// ── the SAMPLE-CATALOG rule (2026-08-29 L2 run) ────────────────────────────────
+//
+// `loadProjectCatalog` hands back the illustrative seed for any project that never
+// saved a catalog, and the builder used to assert those rows to the model as this
+// tenant's offering and keywords. The live run measured both halves of the damage:
+// a leadgen tenant advised to "Vytvořit článek na téma Ukázková služba A" (the
+// seed's own placeholder service name), and an app tenant whose applied website
+// scan was overruled by the seed's "Předplatné / Free / Pro / Team".
+
+test("sample catalog + no profile → the seed grounds nothing it could invent around", () => {
+  const { grounding } = buildKanalyGrounding(
+    input({
+      categories: ["Služby"],
+      offeringNames: ["Ukázková služba A", "Ukázková služba B"],
+      localities: ["Praha", "Brno"],
+      catalogIsSample: true,
+    })
+  );
+  assert.equal(grounding.offering, undefined);
+  assert.equal(grounding.keywords, undefined);
+  // Localities are derived from the project TYPE, not from the seed rows, so they
+  // stay: they are the one thing about this tenant the page actually knows.
+  assert.deepEqual(grounding.localities, ["Praha", "Brno"]);
+});
+
+test("sample catalog + profile → the tenant's own scan wins instead of the seed", () => {
+  const { grounding } = buildKanalyGrounding(
+    input({
+      categories: ["Předplatné"],
+      offeringNames: ["Free", "Pro", "Team"],
+      catalogIsSample: true,
+      profile: profile({
+        offering: "online fakturace, správa nákladů",
+        keywords: ["fakturace online", "vystavit fakturu"],
+      }),
+    })
+  );
+  assert.equal(grounding.offering, "online fakturace, správa nákladů");
+  assert.deepEqual(grounding.keywords, ["fakturace online", "vystavit fakturu"]);
+  assert.ok(!JSON.stringify(grounding).includes("Ukázk"));
+  assert.ok(!JSON.stringify(grounding).includes("Předplatné"));
+});
+
+test("a REAL catalog is unaffected — the flag is opt-in and defaults to off", () => {
+  const rows = { categories: ["Ořechy"], offeringNames: ["Kešu"], profile: profile() };
+  const off = buildKanalyGrounding(input({ ...rows })).grounding;
+  const explicitOff = buildKanalyGrounding(input({ ...rows, catalogIsSample: false })).grounding;
+  assert.deepEqual(explicitOff, off);
+  assert.equal(off.offering, "Ořechy");
+  assert.deepEqual(off.keywords, ["Kešu", "zubař Brno", "dentální hygiena Brno"]);
+});
+
+test("the SEEDED plan's fill still uses the sample category — that plan says it is a sample", () => {
+  const { sample } = buildKanalyGrounding(
+    input({ categories: ["Služby"], localities: ["Brno"], catalogIsSample: true })
+  );
+  assert.deepEqual(sample, { category: "Služby", locality: "Brno" });
+});
+
+// ── placeholder starter rows never ground the model ───────────────────────────
+//
+// `POST /api/projects` PERSISTS a starter catalog (src/lib/catalog/starter.ts) so a
+// new project's modules have project-owned data on day one. Those rows are saved, so
+// they are legitimately "the tenant's catalog" — but "Ukázková služba A" is not a fact
+// about the business, and the 2026-08-29 L2 run watched it come back as advice:
+// "Vytvořit článek na téma Ukázková služba A".
+
+test("a placeholder starter row is dropped from the grounding, in cs and en", () => {
+  const { grounding } = buildKanalyGrounding(
+    input({
+      categories: ["Služby"],
+      offeringNames: ["Ukázková služba A", "Ukázkový produkt B", "Sample plan", "Konzultace SEO"],
+      localities: ["Praha"],
+    })
+  );
+  assert.deepEqual(grounding.keywords, ["Konzultace SEO"]);
+  assert.ok(!JSON.stringify(grounding).includes("Ukázk"));
+  assert.ok(!JSON.stringify(grounding).includes("Sample"));
+});
+
+test("every placeholder row → the catalog grounds nothing and the profile fills in", () => {
+  const { grounding } = buildKanalyGrounding(
+    input({
+      categories: ["Ukázková kategorie"],
+      offeringNames: ["Ukázková služba A", "Ukázková služba B"],
+      profile: profile(),
+    })
+  );
+  assert.equal(grounding.offering, "zubní ordinace, dentální hygiena, implantáty");
+  assert.deepEqual(grounding.keywords, ["zubař Brno", "dentální hygiena Brno"]);
+});
+
+test("a real row that merely CONTAINS the word is kept — only a leading marker matches", () => {
+  const { grounding } = buildKanalyGrounding(
+    input({ categories: ["Ořechy"], offeringNames: ["Kešu na ukázku", "Vzorkovnice"] })
+  );
+  assert.deepEqual(grounding.keywords, ["Kešu na ukázku", "Vzorkovnice"]);
+});
+
+test("the starter catalog's stand-in CATEGORY is a placeholder too, and the scan fills it", () => {
+  const { grounding } = buildKanalyGrounding(
+    input({
+      categories: ["Hlavní kategorie"],
+      offeringNames: ["Ukázkový produkt A", "Ukázkový produkt B"],
+      profile: profile(),
+    })
+  );
+  assert.equal(grounding.offering, "zubní ordinace, dentální hygiena, implantáty");
+});
+
+test("a real category that merely CONTAINS the words is untouched (whole-string only)", () => {
+  const { grounding } = buildKanalyGrounding(
+    input({ categories: ["Hlavní kategorie kočárků"], offeringNames: [] })
+  );
+  assert.equal(grounding.offering, "Hlavní kategorie kočárků");
+});

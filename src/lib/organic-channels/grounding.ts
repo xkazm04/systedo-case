@@ -14,6 +14,12 @@
  *  previously got a type+brand-only prompt and "vaší firmy / vaší nabídky"
  *  placeholders in the seeded plan.
  *
+ *  ...UNLESS THE CATALOG IS THE SEED. `catalogIsSample` says the rows came from
+ *  `getProjectCatalog`, not from the tenant, and a seed row is not a fact about
+ *  this business. It then grounds NOTHING (the profile fills as it would for an
+ *  empty catalog) — the seeded PLAN's `{category}` fill is unaffected, because
+ *  that plan is labelled a sample on screen while the prompt is not.
+ *
  *  DELIBERATELY NOT MERGED: the profile's `competitors`. Those are the scan's
  *  SPECULATIVE guesses; the apply route lands them in the competitor store as
  *  UNCONFIRMED `scan` entries and `curatedCompetitors` filters them out until the
@@ -59,6 +65,11 @@ export interface KanalyGroundingInput {
   competitorsUnavailable: boolean;
   /** the applied website-scan profile, when the tenant ran + applied one */
   profile?: OnboardingScanProfile | null;
+  /** the catalog above is the ILLUSTRATIVE SEED, not the tenant's own rows
+   *  (`loadProjectCatalogWithSource` → `"sample"`). Then it may not ground the
+   *  MODEL: see the sample-catalog rule in `buildKanalyGrounding`. Defaults to
+   *  false, so a caller that does not know keeps today's behaviour. */
+  catalogIsSample?: boolean;
 }
 
 export interface KanalyGroundingResult {
@@ -82,6 +93,9 @@ export interface KanalyPageReads {
   competitorRead?: { failed: boolean; competitors: readonly Competitor[] | null | undefined };
   /** the applied website-scan profile, when the tenant ran + applied one */
   profile?: OnboardingScanProfile | null;
+  /** the `catalog` above is the illustrative SEED rather than the tenant's own
+   *  saved rows — `loadProjectCatalogWithSource(...).source === "sample"`. */
+  catalogIsSample?: boolean;
 }
 
 /** Turn one server page's raw reads into the pure builder's input.
@@ -112,6 +126,7 @@ export function kanalyGroundingInput(reads: KanalyPageReads): KanalyGroundingInp
     competitorsUnavailable:
       competitorsGrounding(reads.competitorRead?.failed ?? false, competitors) === "unavailable",
     profile: reads.profile ?? null,
+    catalogIsSample: reads.catalogIsSample ?? false,
   };
 }
 
@@ -124,6 +139,39 @@ const MAX_KEYWORDS = 8;
 
 const clean = (v: unknown, max: number): string =>
   (typeof v === "string" ? v.trim() : "").slice(0, max).trim();
+
+/** A row the product itself wrote as a fill-me-in placeholder — "Ukázkový produkt A",
+ *  "Ukázková služba B" (`src/lib/catalog/starter.ts`, persisted by `POST /api/projects`
+ *  so the modules have project-owned data from day one).
+ *
+ *  Those rows are SAVED, so `loadProjectCatalogWithSource` rightly calls them the
+ *  tenant's catalog and `catalogIsSample` is false for them — yet they are not facts
+ *  about the business, and grounding is handed to the model AS fact. The 2026-08-29 L2
+ *  run watched exactly that round-trip: a leadgen tenant's plan came back telling him to
+ *  "Vytvořit článek na téma Ukázková služba A" and to describe his listing with
+ *  "Ukázková služba A a Ukázková služba B". This is the same rule `promptSafeName`
+ *  applies to a demo project's NAME, moved to the values that travel beside it — the
+ *  marker is the product's own vocabulary, so matching it is not a guess.
+ *
+ *  Deliberately narrow: only a leading sample/demo marker. A renamed row stops matching
+ *  the moment the tenant edits it in Katalog, which is the intended exit. */
+/*  Unicode-aware on purpose: `\b` is ASCII-only in JS, so "Ukázková kategorie" has no
+ *  word boundary after the diacritic and an ASCII `\b` silently fails to match it.
+ *  The lookahead demands a NON-letter (or end) so "Demografie" is not a "demo". */
+const PLACEHOLDER_VALUE =
+  /^\s*(?:ukázkov\p{L}*|vzorov\p{L}*|sample|demo|example|placeholder)(?=\P{L}|$)/iu;
+
+/** The starter catalog's stand-in CATEGORY names, which carry no marker word but say
+ *  the same thing ("Hlavní kategorie" = "Main category"; `starter.ts` eshopStarter).
+ *  Whole-string, so a tenant category that merely contains the words is untouched.
+ *  NOT listed: "Předplatné" and "Služby" — the starter uses those too, but they are
+ *  ordinary Czech category words a real tenant may have meant, and grounding is not
+ *  the place to guess. That gap is the reason the starter rows need real provenance
+ *  (`source: "starter"`) rather than a longer denylist. */
+const PLACEHOLDER_EXACT = new Set(["hlavní kategorie", "main category", "ukázková kategorie"]);
+
+const isPlaceholderValue = (v: string): boolean =>
+  PLACEHOLDER_VALUE.test(v) || PLACEHOLDER_EXACT.has(v.trim().toLowerCase());
 
 /** The first named thing in a free-text offering ("kojenecké potřeby, autosedačky"
  *  → "kojenecké potřeby") — a usable stand-in for a catalog category in the seeded
@@ -139,10 +187,31 @@ function firstTerm(offering: string): string {
 export function buildKanalyGrounding(input: KanalyGroundingInput): KanalyGroundingResult {
   const profile = input.profile ?? null;
 
+  // THE SAMPLE-CATALOG RULE. `loadProjectCatalog` hands back the illustrative SEED
+  // for any project that has never saved a catalog — which is most of them — and the
+  // seed's rows are not facts about this tenant. Grounding is handed to the model AS
+  // FACT, so a seeded row asserted here comes back as advice: the 2026-08-29 L2 run
+  // measured a leadgen tenant told to "Vytvořit článek na téma Ukázková služba A"
+  // (the seed's own placeholder service name), and an app tenant whose applied
+  // website scan was overruled by the seed's "Předplatné / Free / Pro / Team".
+  // A sample catalog therefore grounds NOTHING: the profile fills the offering and
+  // the keywords as it would for an empty catalog, and with no profile the model is
+  // told the type, the brand and the localities and nothing it would have to invent
+  // around. The SEEDED PLAN's `{category}` fill below is deliberately untouched —
+  // that plan is labelled "Ukázkový plán" on screen, so its fill is disclosed.
+  // ...and, whichever store the rows came from, a row the PRODUCT wrote as a
+  // fill-me-in placeholder never grounds the model either (see isPlaceholderValue).
+  const groundingCategories = (input.catalogIsSample ? [] : input.categories).filter(
+    (c) => !isPlaceholderValue(c)
+  );
+  const groundingOfferingNames = (input.catalogIsSample ? [] : input.offeringNames).filter(
+    (n) => !isPlaceholderValue(n)
+  );
+
   // Offering — a scalar, so "catalog wins" is outright: the catalog string is used
   // verbatim (uncapped, as before; the wire validator caps it), and the profile's
   // offering is consulted ONLY when the catalog has no categories at all.
-  const catalogOffering = input.categories.slice(0, 4).join(", ");
+  const catalogOffering = groundingCategories.slice(0, 4).join(", ");
   const profileOffering = clean(profile?.offering, MAX_OFFERING);
   const offering = catalogOffering || profileOffering;
 
@@ -150,7 +219,7 @@ export function buildKanalyGrounding(input: KanalyGroundingInput): KanalyGroundi
   // first (deduped exactly as before), then scan keywords the catalog does not
   // already name, up to the same cap of 8. An empty profile leaves the catalog list
   // untouched, including its ordering and its exact-string de-dupe.
-  const catalogKeywords = [...new Set(input.offeringNames.filter(Boolean))].slice(0, MAX_KEYWORDS);
+  const catalogKeywords = [...new Set(groundingOfferingNames.filter(Boolean))].slice(0, MAX_KEYWORDS);
   const keywords = [...catalogKeywords];
   const seen = new Set(catalogKeywords.map((k) => k.toLowerCase()));
   for (const raw of profile?.keywords ?? []) {
