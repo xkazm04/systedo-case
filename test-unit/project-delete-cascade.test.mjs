@@ -32,6 +32,9 @@ for (const ext of ["", "-wal", "-shm"]) {
 }
 process.env.SYSTEDO_DB_FILE = dbFile;
 process.env.LOCAL_DB = "true";
+// The twin-inbound fixture mints a real (encrypted) intake secret — give the key
+// chain something deterministic to derive from, exactly like the outbound suites do.
+process.env.AUTH_SECRET ??= "cascade-test-secret";
 
 const { createProject } = await import("@/lib/projects/store");
 const { deleteProjectCascade, PROJECT_STORE_DELETERS } = await import("@/lib/projects/delete-cascade");
@@ -45,6 +48,10 @@ const { saveWebhookConfig, getWebhookConfig } = await import("@/lib/outbound/con
 const { appendDelivery, listDeliveries } = await import("@/lib/outbound/delivery-store");
 const { saveGoLink, listGoLinks } = await import("@/lib/organic-channels/outcomes-store");
 const { mintFeedToken, getProjectFeedToken } = await import("@/lib/catalog/feed-token-store");
+const { bumpLpCount, listLpCountProjects } = await import("@/lib/lp-exp/counts-store");
+const { appendConversionEvents, listConversionEvents } = await import("@/lib/leads/conversion-store");
+const { mintInboundToken, getInboundToken } = await import("@/lib/twin/inbound-store");
+const { upsertSocialMetricDay, listPostMetricDays } = await import("@/lib/social/metrics-store");
 const { starterCatalog } = await import("@/lib/catalog/starter");
 const { recordAnnotation, listAnnotations } = await import("@/lib/annotations/store");
 const { saveConnection, getConnection } = await import("@/lib/inventory/connection-store");
@@ -77,6 +84,10 @@ const CUSTOMER = "123-456-7890";
 
 /** One registered store's fixture: how to seed it, and how to see if it's still there.
  *  `name` MUST match the store's id in PROJECT_STORE_DELETERS (asserted below). */
+/** Minted intake tokens are random — remembered per project so `present` can look
+ *  the row up by its actual key after the cascade. */
+const inboundTokenByProject = new Map();
+
 const STORE_FIXTURES = [
   {
     name: "report-metrics",
@@ -118,6 +129,55 @@ const STORE_FIXTURES = [
     name: "annotations",
     seed: (u, p) => recordAnnotation(p, { date: "2026-05-10", text: "spuštění kampaně" }),
     present: async (u, p) => (await listAnnotations(p)).length > 0,
+  },
+  {
+    // WP W3-B: hosted-arm counters (project id rides each row for exactly this sweep).
+    name: "lp-arm-counts",
+    seed: (u, p) => bumpLpCount(`exp-${p}`, "cascade-arm", "2026-08-30", "views", p),
+    present: async (u, p) => (await listLpCountProjects()).includes(p),
+  },
+  {
+    // WP W3-C: the conversion ledger. Project-keyed, so `u` is unused.
+    name: "conversion-events",
+    seed: (u, p) =>
+      appendConversionEvents(p, [
+        {
+          id: "cascade-1_qualified",
+          contactId: "cascade-1",
+          kind: "qualified",
+          at: NOW,
+          sourceLabel: "Google Ads",
+          attribution: { source: "google-ads", gclid: "GCLCASCADE" },
+          value: null,
+        },
+      ]),
+    present: async (u, p) => (await listConversionEvents(p)).length > 0,
+  },
+  {
+    // WP W3-D: the public intake token (holds an encrypted signing secret).
+    name: "twin-inbound-tokens",
+    seed: async (u, p) => {
+      const { row } = await mintInboundToken(u, p, "social");
+      inboundTokenByProject.set(p, row.token);
+    },
+    present: async (u, p) => {
+      const token = inboundTokenByProject.get(p);
+      return token ? (await getInboundToken(token)) !== null : false;
+    },
+  },
+  {
+    // WP W3-D: read-back metric rows, tenant-keyed like the microsite entry.
+    name: "social-metrics",
+    seed: (u, p) =>
+      upsertSocialMetricDay({
+        postId: `post-${p}`,
+        day: "2026-08-30",
+        tenant: buildTenantKey(u, p),
+        reach: 100,
+        likes: 5,
+        comments: 1,
+      }),
+    present: async (u, p) => (await listPostMetricDays([`post-${p}`], "2000-01-01")).length > 0,
   },
   {
     name: "lp-experiments",

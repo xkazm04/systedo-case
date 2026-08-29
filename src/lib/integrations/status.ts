@@ -175,6 +175,14 @@ export async function integrationStatus(project: Project, userId: string | null)
       probeLeadContacts(project.id),
       probeWebhooks(userId, project.id),
     ]);
+  // WP W3-D — live probe: how many intake endpoints exist. Degrades to 0 (an honest
+  // "optional") on any failure, exactly like every probe above.
+  const inboundEndpoints = userId
+    ? await import("@/lib/twin/inbound-store")
+        .then((m) => m.listInboundTokens(userId, project.id))
+        .then((rows) => rows.length)
+        .catch(() => 0)
+    : 0;
   return computeIntegrationRows({
     googleAdsToken: has(e.GOOGLE_ADS_DEVELOPER_TOKEN),
     googleAdsCustomer: has(e.GOOGLE_ADS_LOGIN_CUSTOMER_ID),
@@ -203,5 +211,6 @@ export async function integrationStatus(project: Project, userId: string | null)
     leadContacts,
     webhooks: webhooks.count,
     webhooksFailing: webhooks.failing,
+    inboundEndpoints,
   });
 }

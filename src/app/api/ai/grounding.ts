@@ -41,6 +41,7 @@ import { sampleLessonsAllowed } from "@/lib/patterns/extract";
 import { adPatternQuery } from "@/lib/patterns/query";
 import { demoProjectById } from "@/lib/demo/projects";
 import { isDemoProjectId } from "@/lib/projects/demo";
+import { socialPerformanceGrounding } from "@/lib/social/performance-grounding";
 
 // ─── tenancy triad, resolved ONCE ────────────────────────────────────────────────
 
@@ -346,7 +347,16 @@ export async function resolveSocialContext(
     loadBrandContext(project, locale),
     getCompetitors(project.id).then((set) => competitorGroundingText(set, locale)),
   ]);
-  const grounding = [perfGrounding(data), competitors].filter(Boolean).join(" ");
+  const grounding = [
+    perfGrounding(data),
+    competitors,
+    // ── W3-D ── real engagement, when there is any: "" with no metric rows, and ""
+    // on a failed read (absence is not zero). Never moves a golden — grounding is a
+    // USER-prompt string concat (ai/tools/social.ts:59).
+    await socialPerformanceGrounding(userId, project.id, locale),
+  ]
+    .filter(Boolean)
+    .join(" ");
   return { grounding, brand: brandOverride ?? (autoBrand || undefined) };
 }
 
@@ -398,7 +408,7 @@ export async function resolveLeadSourceDiagnosis(
 ): Promise<ResolvedDiagnosis<LeadSourceDiagnosisRequest> | null> {
   const access = await resolveProjectAccess(projectId, userId);
   if (access.kind === "none") return null;
-  const resolved = await resolveLeadSourceDiagnosisRequest(access.project, source);
+  const resolved = await resolveLeadSourceDiagnosisRequest(access.project, source, userId);
   if (!resolved) return null;
   return { request: resolved.request, sample: resolved.sample, keyId: access.project.id };
 }

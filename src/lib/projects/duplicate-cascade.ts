@@ -31,6 +31,21 @@
  *     not setup: two projects sharing one feed URL would serve one catalog under both
  *     identities, and revoking either would silently break the other. The duplicate
  *     mints its own on first publish.
+ *   • lp_arm_counts (WP W3-B) — a hosted experiment's measured views/conversions.
+ *     Copying them into a duplicated project would hand the copy a test result it never
+ *     ran, and the sync step would then write those borrowed numbers onto the copy's
+ *     arms. The duplicate starts unhosted and un-measured, which is the truth about it.
+ *   • the CONVERSION LEDGER (WP W3-C) and its rolled-up summary — accumulated
+ *     operating data by this list's rule, and worse: the rows carry the SOURCE
+ *     client's Google click ids, so copying them would let a duplicate upload
+ *     another advertiser's conversions against clicks it never paid for.
+ *   • twin INTAKE endpoints (WP W3-D) — a capability URL is a secret ADDRESS, not
+ *     setup, and the row holds a signing SECRET: two projects sharing one intake URL
+ *     would drop one client's messages into the other's inbox. The duplicate mints
+ *     its own.
+ *   • social read-back metric rows (WP W3-D) — measured engagement belongs to the
+ *     posts that earned it; a fresh client starting with someone else's reach numbers
+ *     would ground its prompts on a lie.
  *   • the project's tenant-keyed campaign/series/snapshot/activity data
  *
  *  Same-owner only: a duplicate is created for the SAME user, so source and target

@@ -91,13 +91,35 @@ export function resolveCohortDiagnosisRequest(
  *  (nothing to diagnose). `sample` = the funnel is not on genuinely imported leads. */
 export async function resolveLeadSourceDiagnosisRequest(
   project: Project,
-  source: string
+  source: string,
+  userId?: string | null
 ): Promise<ResolvedDiagnosisRequest<LeadSourceDiagnosisRequest> | null> {
   const resolved = await resolveLeadSources(project.id, sourcesForProject(project));
   const rows = resolved.sources
     .map(sourceWithMetrics)
     .sort((a, b) => b.qualityScore - a.qualityScore);
-  const seeds = buildLeadSourceSeeds(rows);
+  // WP W3-C — the SAME per-label conversion join LeadQualityModule builds; both
+  // paths must carry it or `inputDigest` disagrees between the page and the click
+  // path and every stored diagnosis badges "stale". Best-effort: no ledger (or an
+  // anonymous demo read) simply grounds without the field.
+  let conversions;
+  if (userId) {
+    try {
+      const { getConversionSummary } = await import("@/lib/leads/conversion-state");
+      const summary = await getConversionSummary(userId, project.id);
+      if (summary) {
+        conversions = Object.fromEntries(
+          summary.bySource.map((c) => [
+            c.sourceLabel,
+            { qualified30d: c.qualified30d, won30d: c.won30d, gclidPct: c.gclidPct },
+          ])
+        );
+      }
+    } catch {
+      /* grounding stays conversion-free — absence, not zero */
+    }
+  }
+  const seeds = buildLeadSourceSeeds(rows, conversions);
   if (seeds.length === 0) return null;
   // Honour the client's picked source when it is one of the diagnosable seeds;
   // otherwise fall back to the worst (first) seed so a stale selection still returns

@@ -46,6 +46,10 @@ import { clearWebhookConfig } from "@/lib/outbound/config-store";
 import { clearDeliveries } from "@/lib/outbound/delivery-store";
 import { clearGoLinks } from "@/lib/organic-channels/outcomes-store";
 import { clearFeedTokens } from "@/lib/catalog/feed-token-store";
+import { clearLpCounts } from "@/lib/lp-exp/counts-store";
+import { clearConversionEvents } from "@/lib/leads/conversion-store";
+import { clearInboundTokens } from "@/lib/twin/inbound-store";
+import { clearSocialMetricsForTenant } from "@/lib/social/metrics-store";
 
 /** One registered per-project store. `delete` takes both keys; project-scoped
  *  (Family A) stores ignore `userId`, per-(user, project) stores (Family B) use it. */
@@ -68,6 +72,9 @@ export const PROJECT_STORE_DELETERS: ProjectStoreDeleter[] = [
   { name: "recaps", delete: (p) => clearRecaps(p) },
   { name: "annotations", delete: (p) => clearAnnotations(p) },
   { name: "lp-experiments", delete: (p) => clearExperiments(p) },
+  // WP W3-B: a hosted experiment's measured arm counters travel with the experiments
+  // they belong to.
+  { name: "lp-arm-counts", delete: (p) => clearLpCounts(p) },
   { name: "twin", delete: (p) => clearTwin(p) },
   { name: "twin-archive", delete: (p) => clearArchive(p) },
   { name: "project-goal", delete: (p) => clearProjectGoal(p) },
@@ -78,6 +85,10 @@ export const PROJECT_STORE_DELETERS: ProjectStoreDeleter[] = [
   // this wipes three tables/subcollections rather than one blob — and it holds the
   // most sensitive data in the product, which makes registering it non-optional.
   { name: "leads", delete: (p) => clearProjectLeads(p) },
+  // WP W3-C: the CRM conversion ledger. PII-free rows, but they are the project's
+  // attribution record and its rollup feeds an export — a deleted project must not
+  // keep either. Project-keyed (the leads family), so `userId` is unused.
+  { name: "conversion-events", delete: (p) => clearConversionEvents(p) },
   { name: "onboarding", delete: (p) => clearOnboarding(p) },
   { name: "catalog", delete: (p, u) => deleteCatalog(u, p) },
   { name: "catalog-events", delete: (p, u) => clearCatalogEvents(u, p) },
@@ -85,6 +96,10 @@ export const PROJECT_STORE_DELETERS: ProjectStoreDeleter[] = [
   // leave a live /api/feed/{token} URL serving its catalog to the channels — the same
   // orphan class the microsite registry below is cascaded for.
   { name: "feed-tokens", delete: (p, u) => clearFeedTokens(u, p) },
+  // WP W3-D: the project's PUBLIC intake addresses (and their encrypted signing
+  // secrets). A deleted project must not leave a live /api/twin/inbound/{token} URL
+  // minting drafts into a twin blob that no longer exists.
+  { name: "twin-inbound-tokens", delete: (p, u) => clearInboundTokens(u, p) },
   { name: "project-state", delete: (p, u) => deleteProjectState(u, p) },
   { name: "warehouse-connection", delete: (p, u) => deleteConnection(u, p) },
   // WP W1-E: the project's own outbound webhook endpoints (which hold ENCRYPTED
@@ -100,6 +115,9 @@ export const PROJECT_STORE_DELETERS: ProjectStoreDeleter[] = [
   // TENANT-keyed, not project-keyed: the microsite API publishes under
   // resolveTenant(…, { accountScoped: false }) === buildTenantKey(userId, projectId),
   // so the project's public /m/{slug} page is addressable by exactly that key.
+  // WP W3-D: TENANT-keyed like the microsite entry — social read-back rows ride the
+  // same accountScoped:false key the posts themselves do.
+  { name: "social-metrics", delete: async (p, u) => { await clearSocialMetricsForTenant(buildTenantKey(u, p)); } },
   { name: "microsite", delete: async (p, u) => { await clearMicrositeForTenant(buildTenantKey(u, p)); } },
 ];
 
