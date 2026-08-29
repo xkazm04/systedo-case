@@ -34,10 +34,9 @@ const T = {
     statDaysSub: "z {total} dní",
     statRequiredLabel: "Potřebné tempo",
     statRequiredSub: "vs. {recent}/den nyní",
-    statRequiredTitle:
-      "Průměrný denní obrat, který zbývající dny musí přinést, aby měsíční cíl vyšel. Při současném ROAS to znamená ≈ +{spend}/den výdajů navíc.",
-    statRequiredTitleOnPace:
-      "Průměrný denní obrat, který zbývající dny musí přinést, aby měsíční cíl vyšel. Současné tempo stačí.",
+    statRequiredTitle: "Průměrný denní obrat, který zbývající dny musí přinést, aby měsíční cíl vyšel. Při současném ROAS to znamená ≈ +{spend}/den výdajů navíc.",
+    statRequiredTitleCurve: "Průměrný denní obrat, který zbývající dny musí přinést, aby měsíční cíl vyšel. Podle křivky odezvy účtu to znamená ≈ +{spend}/den výdajů navíc.",
+    statRequiredTitleOnPace: "Průměrný denní obrat, který zbývající dny musí přinést, aby měsíční cíl vyšel. Současné tempo stačí.",
     impliedBasisCurve: "Výdaje navíc spočítané podle křivky odezvy účtu (mezní výnos další koruny).",
     impliedBasisAverage: "Výdaje navíc spočítané podle průměrného ROAS za posledních 28 dní.",
     historyLabel: "Plnění cíle v uzavřených měsících",
@@ -76,10 +75,9 @@ const T = {
     statDaysSub: "of {total} days",
     statRequiredLabel: "Required pace",
     statRequiredSub: "vs. {recent}/day now",
-    statRequiredTitle:
-      "Average daily revenue the remaining days must deliver to still hit the monthly goal. At the current ROAS that is ≈ +{spend}/day of extra spend.",
-    statRequiredTitleOnPace:
-      "Average daily revenue the remaining days must deliver to still hit the monthly goal. The current pace is enough.",
+    statRequiredTitle: "Average daily revenue the remaining days must deliver to still hit the monthly goal. At the current ROAS that is ≈ +{spend}/day of extra spend.",
+    statRequiredTitleCurve: "Average daily revenue the remaining days must deliver to still hit the monthly goal. Along the account's response curve that is ≈ +{spend}/day of extra spend.",
+    statRequiredTitleOnPace: "Average daily revenue the remaining days must deliver to still hit the monthly goal. The current pace is enough.",
     impliedBasisCurve: "Extra spend derived from the account's response curve (what the next unit actually buys).",
     impliedBasisAverage: "Extra spend derived from the trailing 28-day average ROAS.",
     historyLabel: "Goal attainment in closed months",
@@ -328,9 +326,11 @@ export default function GoalPacing({
               value={fmt.fmtCZK(requiredDailyRevenue)}
               sub={t("statRequiredSub", { recent: fmt.fmtCZKCompact(recentDailyRevenue) })}
               tone={requiredDailyRevenue > recentDailyRevenue ? "text-coral-600" : "text-positive"}
+              // W1-F carry-forward: the hover said "at current ROAS" even when the number was solved
+              // along the fitted RESPONSE CURVE — it now states the basis the footnote below states.
               title={
                 impliedExtraDailySpend >= 1
-                  ? t("statRequiredTitle", { spend: fmt.fmtCZKCompact(impliedExtraDailySpend) })
+                  ? t(pacing.impliedBasis === "curve" ? "statRequiredTitleCurve" : "statRequiredTitle", { spend: fmt.fmtCZKCompact(impliedExtraDailySpend) })
                   : t("statRequiredTitleOnPace")
               }
             />

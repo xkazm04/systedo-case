@@ -72,6 +72,16 @@ export function simulationConfidence(moves: BudgetMove[]): SimulationConfidence 
   return moves.some((m) => moveDonorShare(m) > SIM_LOW_CONFIDENCE_DONOR_SHARE) ? "low" : "high";
 }
 
+/** Options for {@link simulateBudgetShift}. Optional in full — omitting them
+ *  leaves the projection byte-identical to the uncalibrated one (pinned). */
+export interface SimulateOptions {
+  /** Correction applied to the RECIPIENT's predicted gains, from the tenant's
+   *  realized-vs-projected history (src/lib/campaigns/calibration.ts). Defaults
+   *  to 1 (uncalibrated). Anything non-finite or ≤ 0 also reads as 1 — a
+   *  calibration can only temper a projection, never invert or erase it. */
+  gainMultiplier?: number;
+}
+
 /**
  * Project the portfolio totals if `moves` are applied. Each move shifts spend
  * from a donor to a recipient; conversion value and conversions move with the
@@ -79,8 +89,25 @@ export function simulationConfidence(moves: BudgetMove[]): SimulationConfidence 
  * model — honest for a small reallocation, and clearly captioned as an estimate
  * in the UI). The same `aggregate` re-derives ratios, so the projected ROAS/PNO
  * are computed the identical way the live totals are.
+ *
+ * `opts.gainMultiplier` tempers the RECIPIENT half only. The donor half is
+ * arithmetic, not a prediction — the money demonstrably leaves the donor, and so
+ * does whatever it was buying — whereas "the recipient will keep converting at
+ * its current rate on the extra spend" is the claim the tenant's realized history
+ * actually has evidence about. Spend movement itself is never scaled on either
+ * side: the budget shift is exactly the amount that was shifted.
  */
-export function simulateBudgetShift(rows: Campaign[], moves: BudgetMove[]): SimulationResult {
+export function simulateBudgetShift(
+  rows: Campaign[],
+  moves: BudgetMove[],
+  opts: SimulateOptions = {}
+): SimulationResult {
+  // Multiplying by exactly 1 is an IEEE-754 identity, so the default path is
+  // byte-identical to the pre-calibration function (pinned in test-unit).
+  const gainMul =
+    typeof opts.gainMultiplier === "number" && Number.isFinite(opts.gainMultiplier) && opts.gainMultiplier > 0
+      ? opts.gainMultiplier
+      : 1;
   const before = aggregate(rows);
   const byId = new Map<string, Campaign>(rows.map((c) => [c.id, { ...c }]));
 
@@ -115,8 +142,8 @@ export function simulateBudgetShift(rows: Campaign[], moves: BudgetMove[]): Simu
     from.conversions = Math.max(0, from.conversions - amount * fromConvPerCzk);
 
     to.cost += amount;
-    to.conversionValue += amount * toValPerCzk;
-    to.conversions += amount * toConvPerCzk;
+    to.conversionValue += amount * toValPerCzk * gainMul;
+    to.conversions += amount * toConvPerCzk * gainMul;
   }
 
   return { before, after: aggregate([...byId.values()]) };

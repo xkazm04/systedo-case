@@ -125,6 +125,67 @@ export interface ChangeSet {
    *  a persisted cost model was threaded in. Drives the projected-PROFIT line on the
    *  proposal (alongside the projected value). Absent → margin-blind set, value only. */
   marginPct?: number;
+  /** what the touched campaigns ACTUALLY did in the 7 days after this set was
+   *  applied, versus the 7 before — the honest complement to the forward
+   *  projection {@link forwardProjectionApplies} stops showing once a set settles.
+   *  Written once, by the post-sync realization pass, and only for `applied` sets
+   *  on a genuinely live sync. Absent → not applied, not due yet, or written
+   *  before this field existed. */
+  realized?: RealizedImpact;
+  /** the calibration the projection on THIS set was scored under, stamped at
+   *  creation so the number the operator approved can be read back with the
+   *  assumption it carried. Absent → the set was projected uncalibrated
+   *  (multiplier 1), which is every set created before enough history existed. */
+  calibration?: AppliedCalibration;
+}
+
+// --- realized impact (WP W2-E) -----------------------------------------------
+
+/** Whether a realization produced a usable measurement. `insufficient` is the
+ *  honest outcome when the stored series does not cover enough of either window
+ *  — the per-campaign series doc holds only the account's ACTIVE period and is
+ *  overwritten wholesale on every sync, so a late realization can find the
+ *  before-window already rolled out of the stored range. */
+export type RealizedStatus = "measured" | "insufficient";
+
+/** What actually happened to the campaigns a change-set touched, measured from
+ *  the already-persisted per-campaign daily series (never a fresh provider read).
+ *  Rides the change-set document additively — `TenantDocs` is schemaless, so a
+ *  merge-set is the whole migration. */
+export interface RealizedImpact {
+  status: RealizedStatus;
+  /** ISO timestamp the measurement was taken */
+  computedAt: string;
+  /** the comparison window on each side, in days (fixed at 7) */
+  windowDays: 7;
+  /** how many distinct days of each window the stored series actually covers —
+   *  the input to the `insufficient` verdict, kept so the UI can explain it */
+  daysCovered: { before: number; after: number };
+  /** the touched campaigns only (donors + recipients), 7-day sums per side */
+  campaigns: Array<{
+    id: string;
+    costBefore: number;
+    costAfter: number;
+    valueBefore: number;
+    valueAfter: number;
+  }>;
+  /** Σ valueAfter − Σ valueBefore over the touched set (CZK) */
+  realizedValueDelta: number;
+  /** snapshot of {@link projectedValueGain} for this set, so the comparison is
+   *  self-contained even if the stored simulation is later reinterpreted */
+  projectedValueGain: number;
+  /** realizedValueDelta / projectedValueGain — null when the projection was ≤ 0
+   *  (nothing to divide by, and a ratio against a non-gain is meaningless) or
+   *  when the measurement is `insufficient` */
+  ratio: number | null;
+}
+
+/** The calibration a change-set's projection was built under, stamped on the set
+ *  itself. DISCLOSURE is the point: a silently calibrated projection would be
+ *  worse than an uncalibrated one, so the multiplier travels with the number. */
+export interface AppliedCalibration {
+  multiplier: number;
+  n: number;
 }
 
 /** Guardrail check — returns human-readable breaches, never throws. Enforced by

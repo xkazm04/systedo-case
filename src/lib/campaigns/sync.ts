@@ -176,5 +176,23 @@ export async function runTenantSync(
     actor,
   });
 
+  // Realized-impact ledger (WP W2-E): now that this sync's per-campaign series is
+  // persisted, score any APPLIED change-set whose 7-day after-window has elapsed
+  // against the projection it was approved on, and refresh the projection
+  // calibration. Gated on the SAME two honesty flags the alerting above uses —
+  // scoring a real projection against sample data would manufacture a track record
+  // out of demo numbers — plus a fresh per-campaign series to measure from.
+  // Lazily imported (the W1-A catalog-events precedent) so the change-set + mutation
+  // graph stays out of the sync module's static imports, and best-effort: a
+  // realization outage must never fail a sync.
+  if (seriesOk && campaignSeries && !degradation.series && !degradation.campaigns) {
+    try {
+      const { realizeAppliedChangeSets } = await import("./realize-run");
+      await realizeAppliedChangeSets(tenant, period);
+    } catch (err) {
+      console.error(`[campaigns] realized-impact pass failed for ${tenant}:`, err);
+    }
+  }
+
   return { campaigns, series, seriesOk, alerted, anomalies };
 }

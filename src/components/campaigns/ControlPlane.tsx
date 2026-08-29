@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Bolt, Check, Refresh, Info } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -12,10 +12,10 @@ import {
   projectedProfitGain,
   forwardProjectionApplies,
   type ChangeSet,
-  type ChangeSetStatus,
 } from "@/lib/campaigns/control-plane-types";
 import { simulationConfidence } from "@/lib/campaigns/simulate";
 import { revealThreadTarget, THREAD_ANCHORS } from "./thread";
+import ChangeSetLedgerRow from "./ChangeSetLedgerRow";
 
 const T = {
   cs: {
@@ -26,11 +26,11 @@ const T = {
       " s možností vrácení. Bezpečný způsob, jak nechat software sahat na reálnou útratu.",
     pendingHeading: "Návrh ke schválení",
     statusPending: "Čeká na schválení",
-    statusApplied: "Aplikováno",
-    statusReverted: "Vráceno",
-    statusApplying: "Aplikuje se…",
-    statusReverting: "Vrací se…",
-    statusFailed: "Selhalo",
+    calibrationPill: "kalibrace ×{m} (z {n} změn)",
+    calibrationTitle:
+      "Projekce je zmírněná podle toho, co dřívější aplikované balíčky na tomto účtu skutečně" +
+      " přinesly (medián realizace/projekce, omezený do rozumného pásma). Uvedeno otevřeně —" +
+      " tiše kalibrovaná projekce by byla horší než nekalibrovaná.",
     projectedGain: "Projektovaný přínos ≈",
     projectedProfit: "Projektovaný zisk ≈",
     marginStated: "při marži {m}",
@@ -47,9 +47,6 @@ const T = {
     ledgerHeading: "Historie balíčků",
     fromAlert: "Z upozornění",
     fromAlertTitle: "Zobrazit související upozornění ve schránce",
-    moves: "{n} přesunů",
-    applied: "{ok}/{total} aplikováno",
-    revert: "Vrátit zpět",
     errorFailed: "Akce se nezdařila.",
     errorServer: "Nepodařilo se spojit se serverem.",
   },
@@ -61,11 +58,11 @@ const T = {
       " with a rollback option. The safe way to let software touch real spend.",
     pendingHeading: "Proposal awaiting approval",
     statusPending: "Pending approval",
-    statusApplied: "Applied",
-    statusReverted: "Reverted",
-    statusApplying: "Applying…",
-    statusReverting: "Reverting…",
-    statusFailed: "Failed",
+    calibrationPill: "calibrated ×{m} (from {n} change sets)",
+    calibrationTitle:
+      "The projection is tempered by what earlier applied change sets on this account actually" +
+      " delivered (median realized-over-projected, clamped to a plausible band). Stated openly —" +
+      " a silently calibrated projection would be worse than an uncalibrated one.",
     projectedGain: "Projected gain ≈",
     projectedProfit: "Projected profit ≈",
     marginStated: "at a {m} margin",
@@ -82,22 +79,10 @@ const T = {
     ledgerHeading: "Change set history",
     fromAlert: "From alert",
     fromAlertTitle: "Show the related alert in the inbox",
-    moves: "{n} moves",
-    applied: "{ok}/{total} applied",
-    revert: "Revert",
     errorFailed: "Action failed.",
     errorServer: "Could not reach the server.",
   },
 } as const;
-
-const STATUS_STYLE: Record<ChangeSetStatus, string> = {
-  pending: "bg-coral-soft text-coral-600",
-  applying: "bg-coral-soft text-coral-600",
-  applied: "bg-positive-soft text-positive",
-  reverting: "bg-navy-50 text-muted",
-  reverted: "bg-navy-50 text-muted",
-  failed: "bg-coral-soft text-coral-600",
-};
 
 /** Ad-ops control plane: bundle recommended budget moves into a simulated,
  *  human-approved change-set with a reversible ledger. The governance envelope
@@ -134,14 +119,14 @@ export default function ControlPlane({
   const moneySigned = fmtMoneySigned ?? fmt.fmtSignedCZK;
   const t = useT(T);
 
-  const STATUS_LABEL: Record<ChangeSetStatus, string> = {
-    pending: t("statusPending"),
-    applying: t("statusApplying"),
-    applied: t("statusApplied"),
-    reverting: t("statusReverting"),
-    reverted: t("statusReverted"),
-    failed: t("statusFailed"),
-  };
+  // One clock for the whole ledger, and the first tick is SCHEDULED so the server
+  // and the first client render agree on the markup (the LeadQueue shape). Only the
+  // realized-impact countdown needs it, and it simply is not there until the tick.
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    const id = setTimeout(() => setNow(Date.now()), 0);
+    return () => clearTimeout(id);
+  }, []);
 
   // Reload on auth resolve and whenever the BudgetMoves panel proposes a new
   // change-set (refreshKey bump), so a fresh proposal surfaces here at once.
@@ -212,8 +197,25 @@ export default function ControlPlane({
                 </button>
               )}
             </span>
-            <span className={`pill ${STATUS_STYLE.pending}`}>{STATUS_LABEL.pending}</span>
+            <span className="pill bg-coral-soft text-coral-600">{t("statusPending")}</span>
           </div>
+
+          {/* WP W2-E: the projection below is tempered by this account's realized
+              history. Disclosed, never silent — the operator approves a number and
+              gets to see the assumption baked into it. Only shown when a
+              calibration actually applied (n ≥ the minimum history). */}
+          {pending.calibration && (
+            <p
+              className="mt-2 inline-flex items-center gap-1.5 rounded-pill bg-navy-50 px-2.5 py-1 text-[11px] font-medium text-muted"
+              title={t("calibrationTitle")}
+            >
+              <Info width={12} height={12} className="shrink-0" />
+              {t("calibrationPill", {
+                m: fmt.fmtDecimal(pending.calibration.multiplier, 2),
+                n: pending.calibration.n,
+              })}
+            </p>
+          )}
 
           <ul className="mt-3 space-y-1.5">
             {pending.moves.map((m, i) => (
@@ -315,38 +317,15 @@ export default function ControlPlane({
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">{t("ledgerHeading")}</h3>
           <ul className="mt-2 space-y-1.5">
             {sets.map((s) => (
-              <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2 text-sm">
-                <span className="flex items-center gap-2">
-                  <span className={`pill ${STATUS_STYLE[s.status]}`}>{STATUS_LABEL[s.status]}</span>
-                  {s.alertId && (
-                    <button
-                      type="button"
-                      onClick={() => revealThreadTarget(THREAD_ANCHORS.alertsInbox)}
-                      title={t("fromAlertTitle")}
-                      className="pill cursor-pointer bg-coral-soft text-coral-600 transition-shadow hover:shadow-card"
-                    >
-                      {t("fromAlert")}
-                    </button>
-                  )}
-                  <span className="text-navy-800">{t("moves", { n: s.moves.length })}</span>
-                  {s.results && (
-                    <span className="text-xs text-muted">
-                      {t("applied", { ok: s.results.filter((r) => r.ok).length, total: s.results.length })}
-                    </span>
-                  )}
-                  <time className="text-xs text-muted">{fmt.fmtRelative(s.createdAt)}</time>
-                </span>
-                {s.status === "applied" && (
-                  <button
-                    type="button"
-                    onClick={() => act("revert", s.id)}
-                    disabled={busy}
-                    className="text-xs font-medium text-brand-accent hover:underline disabled:opacity-60"
-                  >
-                    {t("revert")}
-                  </button>
-                )}
-              </li>
+              <ChangeSetLedgerRow
+                key={s.id}
+                set={s}
+                busy={busy}
+                now={now}
+                onRevert={() => act("revert", s.id)}
+                money={money}
+                moneySigned={moneySigned}
+              />
             ))}
           </ul>
         </div>

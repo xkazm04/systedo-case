@@ -15,6 +15,13 @@ import { recordActivity } from "./activity";
 import { resolveAlert } from "./alerts";
 import { fmtCZK } from "@/lib/format";
 import {
+  parseCalibration,
+  CALIBRATION_COLLECTION,
+  CALIBRATION_DOC_ID,
+  CALIBRATION_MIN_SETS,
+  type Calibration,
+} from "./calibration";
+import {
   checkPolicy,
   planApproveClaim,
   planRevertClaim,
@@ -39,6 +46,20 @@ import {
  *  (`tenants/{tenant}/changeSets`, `orderBy("createdAt","desc").limit(20)`,
  *  `.add`, merge-set), so the production path is unchanged. */
 const CHANGE_SETS = "changeSets";
+
+/** The tenant's projection calibration, as persisted by the post-sync realization
+ *  pass (./realize-run). Read best-effort at proposal time: a missing doc, an
+ *  unreachable store or a malformed payload all read as "no calibration", and the
+ *  projection stays exactly the uncalibrated one it has always been. */
+async function readCalibration(tenant: string): Promise<Calibration | null> {
+  try {
+    const data = await (await tenantDocs()).getDoc(tenant, CALIBRATION_COLLECTION, CALIBRATION_DOC_ID);
+    return parseCalibration(data);
+  } catch (err) {
+    console.error(`[control-plane] calibration read failed for ${tenant}:`, err);
+    return null;
+  }
+}
 
 /** Options for building a change-set. */
 export interface CreateChangeSetOptions {
@@ -87,7 +108,19 @@ export async function createChangeSet(
   });
   if (moves.length === 0) return null;
 
-  const simulation = simulateBudgetShift(campaigns, moves);
+  // WP W2-E: temper the projection with what this tenant's applied change-sets
+  // ACTUALLY delivered (median realized/projected, clamped). Below the minimum
+  // history the multiplier is exactly 1, so a tenant with no measured sets gets
+  // the byte-identical projection it always got. The multiplier is stamped on the
+  // doc — never applied silently — so the console can disclose what the number the
+  // operator is approving assumed.
+  const calibration = await readCalibration(tenant);
+  const calibrated = calibration !== null && calibration.n >= CALIBRATION_MIN_SETS;
+  const simulation = simulateBudgetShift(
+    campaigns,
+    moves,
+    calibrated ? { gainMultiplier: calibration.multiplier } : {}
+  );
   const doc: Omit<ChangeSet, "id"> = {
     createdAt: new Date().toISOString(),
     status: "pending",
@@ -103,6 +136,9 @@ export async function createChangeSet(
     // persist the scored margin only when profit-aware, so margin-blind sets keep
     // their exact prior shape in Firestore.
     ...(opts.marginPct !== undefined ? { marginPct: opts.marginPct } : {}),
+    // Only persisted when it actually shaped the projection, so an uncalibrated
+    // set keeps its exact prior shape in the store (and the UI shows no pill).
+    ...(calibrated ? { calibration: { multiplier: calibration.multiplier, n: calibration.n } } : {}),
   };
   const id = await (await tenantDocs()).addDoc(tenant, CHANGE_SETS, doc);
   return { id, ...doc };
