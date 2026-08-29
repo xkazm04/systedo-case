@@ -141,6 +141,7 @@ kpi-sim/*
 
 # BEGIN ai-registry linked skills (managed by ai-registry/scripts/link-registry.mjs)
 # Links are machine state; the declarations live in .ai/manifest.yaml (`skills:` and `knowledge.domains`).
+/.claude/skills/architect
 /.claude/skills/conform
 /.claude/skills/consult
 /.claude/skills/explorer
@@ -155,3 +156,4 @@ kpi-sim/*
 /.claude/rules/ai-registry-media-generation.md
 /.claude/rules/ai-registry-software-engineering.md
 # END ai-registry linked skills
+.architect/
