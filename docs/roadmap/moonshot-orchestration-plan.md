@@ -223,13 +223,65 @@ schema is 42 tables. 22 registered LLM tools (`local-page` golden `6f56f58e88915
   `readCalibration` in control-plane.ts is the function to generalise.
 - i18n:audit leftover 41 > baseline 40 (pre-existing, reporting rung — fix + lower together).
 
+## 3e. Wave 3 outcome (2026-08-30) — DONE
+
+Four parallel Opus builders in the MAIN checkout, specs committed after `be49615c`, landed
+in review order: A `0d05b49e` · B `a1f7fbbd` · C `38e5eaa5` · D `7f855752` · seams
+`b81a4de3`. `tsc` clean, `test:unit` 3350/3353 (3 skipped), llm-gate green (23 tools,
+`lp-variant-draft` golden `810b3dbbd4147162`), agents:surface green (unmapped back at the
+159 baseline), `sast` red only on the 4 pre-wave architect-backlog findings. Migrations
+v30 (`lp_arm_counts`) · v31 (`conversion_events`) · v32 (`twin_inbound_tokens`) · v33
+(`social_post_metrics`); schema is 46 tables. ~776 new assertions across the wave.
+
+**What changed against the plan:**
+- Director overrides held: W3-B's hosted pages ride the W2-C kind-branch (no
+  `/m/[slug]/lp/**`, no `/api/m/**` — the convert beacon lives OUTSIDE /api, `/go`
+  reasoning, no waiver); W3-A has no cron step (render-driven ledger — outcomes only
+  mean something for advice the operator could SEE) and left `assemble.ts` alone.
+- W3-A's accepted deviations: module-true subjectKey prefixes; `daysToStockout` kept in
+  the inverse list but INERT (producers emit higher-is-better `daysOfCover` instead —
+  inverting a days-of-cover would lie); no snapshot where semantics would invert.
+- W3-C found the coherence requirement the spec missed: the conversions join must reach
+  `resolveLeadSourceDiagnosisRequest` too or `inputDigest` disagrees between page and
+  click path and every stored diagnosis badges stale — landed in the seams commit
+  (userId threaded, best-effort read, absence ≠ zero).
+- W3-D widened `sanitizeDraft`'s "empty shell" rule to "neither side has text" so
+  inbound (replyless) drafts survive the read path — the three old empty-shell pins
+  stay green. `LinkedIn` insights reach is honestly 0 (needs an org URN this seam lacks).
+- The vibeman agent landed its own twin-archive eviction fix (`90d23632`) MID-WAVE —
+  the transient `twin_archive_evictions` reds in every builder's whole-tree run were
+  its half-work, correctly attributed and left alone. Its new orphan-walk files were
+  mapped in the seams commit to keep the unmapped ratchet at baseline.
+- Recurring trap (3rd offence): backticks inside `db.ts`'s SCHEMA template-literal
+  comments break the whole tree's parse. W3-D repaired W3-B's; put "no backticks in
+  SCHEMA comments" in every future builder brief.
+
+**Carried forward (owed):**
+- `lp-variant-draft` has no baked quality score (unbaked ratchet 8→9, reason recorded) —
+  bake together with `local-page`/`ads-diagnosis` on the next `npm run llm:quality` run.
+- The Overview experiments producer (`insights/aggregate.ts:234`) still reads
+  `SAMPLE_EXPERIMENTS` — W3-B's report (§6) documents the live swap: thread
+  `resolveExperiments` output in like `seoQueries`, drop `fixture()` only when
+  `experiment.hosted` exists (measured, not merely persisted).
+- W3-A: the portfolio feed passes `ledger={null}` (sightings recorded, dismiss/outcome
+  chips single-project only — reading N ledgers for an 8-row feed wasn't worth it).
+- `src/lib/session` import-graph trap: anything reachable from `portfolio-model.ts`
+  must lazy-import the session (`demo-portfolio-model.test.mjs` runs outside Next).
+- S2 (twin delivery) now has its substrate: intake mints pending drafts with
+  `risks:["inbound"]` (auto-approve refused by construction); S3 (live conversion
+  upload) has the exporter seam (`CONVERSION_EXPORTERS`) + gclid capture to build on.
+
 ## 4. What the Director does first (next session)
 
 1. ~~ADR-0010~~ ~~foundation specs~~ ~~F1–F4~~ — done (§3b).
 2. ~~Write the six Wave-1 specs~~ — done (§3c). ~~Write the five Wave-2 specs~~ — done (§3d).
-3. ~~Dispatch Wave 1~~ — done (§3c). ~~Dispatch Wave 2~~ — done (§3d). Next: write the four
-   Wave-3 specs (W3-A..D from §1; modes.ts → W3-B, insights producer → W3-A); read W2-E's
-   substrate notes in §3d before speccing W3-A. Then Wave 4 (S1 needs live Sklik creds).
+3. ~~Dispatch Wave 1~~ — done (§3c). ~~Dispatch Wave 2~~ — done (§3d). ~~Dispatch Wave 3~~ —
+   done (§3e). What remains is Wave 4 — S1 → S1b → S2 → S3, SERIAL, Director-driven or
+   paired, each irreversible or contract-breaking (§1). Preconditions: S1 needs ADR-0010
+   (accepted) + live Sklik creds for a fixture-then-real proof — ASK THE OWNER before
+   starting S1; S2 builds on W3-D's intake + W1-B's calendar cadence; S3 on W3-C's
+   exporter seam + F2's change-set envelope. Also owed before/alongside wave 4: bake the
+   three unbaked quality scores (`npm run llm:quality`), and the §3e carry-forwards.
 
 ## 5. Risks the plan accepts
 
