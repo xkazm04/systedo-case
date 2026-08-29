@@ -143,13 +143,51 @@ prints predate the wave).
 - `src/lib/db.ts:1070` says "28-table schema"; it is 36. Cosmetic, fix when next in the file.
 - `context-map.json` is Class C: the Director mapped the 8 new files this wave.
 
+## 3c. Wave 1 outcome (2026-08-29) — DONE
+
+Seven parallel Opus builders in the MAIN checkout (not worktrees), specs `62aa5b09`, landed in
+review order: A `c828de67` · F `b3ae8627` · C `390798c9` · D `5899d4ec` · G `2d55c793` ·
+E `6081f634` · B `0a598138` · seams `711503a7`. Whole-tree `check` (tsc+lint+build) green,
+`test:unit` 2940/2941 (1 skipped), seed/adr/llm-gate/llm-quality/agents-surface green; `sast`
+red on the SAME 3 pre-wave findings (architect backlog), raw-engine ratchet 15/15.
+
+**What changed against the plan:**
+- W1-G ran inside Wave 1 (the wave-0 carry-forward), so the wave was seven builders.
+- Migrations: A=v25 (`catalog_events`), E=v26 (`webhook_configs`/`webhook_deliveries`) — the two
+  builders self-coordinated contiguity in-tree; the Director staged each WP's migration into its
+  own commit via curated index blobs (`git hash-object` + `update-index`), since `git commit
+  <paths>` would have committed working-tree content.
+- **Trap (new):** the pre-commit whole-tree `tsc` + lint-staged's stash of unstaged halves of
+  partially-staged files means you CANNOT partially stage a file that other builders' unstaged
+  files depend on (W1-F's DashboardClient attempt failed exactly this way). Resolution: a
+  co-owned file lands whole with the LAST WP that needs it, noted in both commit messages.
+- W1-F rejected (not clamped) fitted slopes ≥ 1 — b=1 IS constant ROAS; on the sample dataset
+  nothing fits and every visible number is byte-identical. The feature activates on accounts
+  that genuinely saturate.
+- gitleaks blocked a test-fixture "secret" in `outbound-sign.test.mjs` → `// gitleaks:allow`.
+
+**Carried forward (owed):**
+- `ads-diagnosis` has no baked quality score: quality-gate unbaked ratchet raised 6→7 with the
+  reason recorded; bake on the next `npm run llm:quality` run and lower it back.
+- D's non-blocking seams: `useDiagnosisPersistence` should export a `DiagnosisResult` union
+  (delete the typed bridge in `AdsDiagnosisPanel.tsx`); `src/lib/ai/tools/index.ts` barrel
+  export for `ads-diagnosis`. `GoalPacing`'s `statRequiredTitle` hover still says "at current
+  ROAS", contradicting the curve footnote when basis="curve" (one-key fix).
+- W2-E can plug curves into `simulateBudgetShift` via `reallocateBudget(rows, {curves})` /
+  `marginalPoas`/`revenueAt` — `simulate.ts` untouched as planned.
+- The ads diagnosis reads change diffs / PNO goal from the PRIMARY tenant while rows are the
+  union — a union-aware change read is the follow-up if Sklik campaigns need per-row deltas.
+- Sklik pack/ladder data is import-only (CSV `engine` column); live Seznam rank fetching is out
+  of scope until a data source exists. W2-C overlays `local-signals/resolve.ts` next.
+- i18n:audit leftover 41 > baseline 40 (pre-existing, reporting rung — fix + lower together).
+
 ## 4. What the Director does first (next session)
 
 1. ~~ADR-0010~~ ~~foundation specs~~ ~~F1–F4~~ — done (§3b).
-2. Write the six Wave-1 specs (`docs/specs/wp-W1-*.md`) from §1, plus W1-G (§3b); copy the
+2. ~~Write the six Wave-1 specs~~ — done (§3c). Write the five Wave-2 specs (`docs/specs/wp-W1-*.md`) from §1, plus W1-G (§3b); copy the
    Wave-0 builder brief shape (spec-only, no commits, LF normalization, whole-tree gates may be
    red on another builder's path).
-3. Dispatch Wave 1 (6–7 builders, disjoint write sets); land each with a pathspec commit after
+3. ~~Dispatch Wave 1~~ — done (§3c). Dispatch Wave 2 (W2-A..E, modes.ts → W2-A); land each with a pathspec commit after
    review; seams commit between waves; `npm run build` once per wave.
 
 ## 5. Risks the plan accepts
