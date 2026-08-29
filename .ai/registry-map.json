@@ -8627,9 +8627,9 @@
           ],
           "grounding": "use_when",
           "confidence": "probable",
-          "state": "deviation",
-          "evidence": "S1 10693e1e: firestore archive-cap eviction now writes a durable per-project accounting doc (twinArchiveEvictions) in the delete batch; archive-store.local.ts still evicts audit records with only a console.warn",
-          "evaluatedAt": "2026-08-29",
+          "state": "conformant",
+          "evidence": "Deviation resolved by W3 W1-residual 90d23632: archive-store.local.ts now writes twin_archive_evictions (migration v34) in the same BEGIN IMMEDIATE transaction as the cap delete, mirroring the firestore twinArchiveEvictions field set (EvictionAccounting, archive.ts); readEvictionAccounting on both backends; clearArchive drops the tally with the archive.",
+          "evaluatedAt": "2026-08-30",
           "evaluatedAgainst": "sha256:1117665ec59c1168"
         }
       ],
