@@ -6,6 +6,7 @@ import ProfitReallocationPanel from "@/components/app/modules/ProfitReallocation
 import ProfitProductsPanel from "@/components/app/modules/ProfitProductsPanel";
 import type { ChannelRow } from "@/lib/metrics";
 import type { ChannelShare } from "@/lib/types";
+import type { ResponseCurve } from "@/lib/metrics/response-curve";
 import type { ChannelMargin, ProductCategory, ProfitTrendPoint } from "@/lib/profit/types";
 import type { FinanceInputs } from "@/lib/profit/finance-inputs/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -26,6 +27,7 @@ export default function ProfitModule({
   rowsByPeriod,
   trendByPeriod,
   channels,
+  curvesByPeriod,
   products,
   defaults,
   live = false,
@@ -37,6 +39,9 @@ export default function ProfitModule({
   rowsByPeriod: Record<string, ChannelRow[]>;
   trendByPeriod: Record<string, ProfitTrendPoint[]>;
   channels: ChannelShare[];
+  /** WP W1-F: per-period, per-channel response curves fitted on the server. Optional —
+   *  omitted (the demo mount) the reallocation keeps its constant-ROAS behaviour. */
+  curvesByPeriod?: Record<string, Record<string, ResponseCurve>>;
   products: ProductCategory[];
   defaults: ChannelMargin[];
   /** Direction 2: true when the resolved dataset is the tenant's own synced Ads data
@@ -64,6 +69,7 @@ export default function ProfitModule({
     rowsByPeriod,
     trendByPeriod,
     channels,
+    curvesByPeriod,
     products,
     defaults,
     live,

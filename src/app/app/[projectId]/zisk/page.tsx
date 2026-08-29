@@ -3,7 +3,8 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import ProfitModule from "@/components/app/modules/ProfitModule";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
-import { channelRows, totalsOf } from "@/lib/metrics";
+import { channelCurves, channelRows, scaleCurve, totalsOf } from "@/lib/metrics";
+import type { ResponseCurve } from "@/lib/metrics/response-curve";
 import { defaultMargins, SAMPLE_PRODUCTS } from "@/lib/profit/sample";
 import { categoryMixFromCatalog } from "@/lib/profit/products";
 import { loadProductsFor } from "@/lib/catalog/load";
@@ -62,6 +63,28 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     ])
   );
 
+  // WP W1-F — response curves: fit each channel's diminishing-returns curve
+  // (revenue = a · spend^b) once per period on the SERVER, so the "what if"
+  // reallocation allocates by MARGINAL profit instead of assuming a constant ROAS.
+  // Fitted here rather than in the client hook because the fit needs the whole daily
+  // series and the per-day channel mix, neither of which should cross into the bundle.
+  // The rows above are PERIOD totals while the fit is per-DAY: D identical days of
+  // spend s produce D · a · s^b, i.e. the same shape with a · D^(1−b) — which is
+  // exactly scaleCurve(c, D, D). Without that rescale the curve would be read at a
+  // 90-day budget on per-day parameters. A dataset with too few/too flat days simply
+  // yields unfitted curves and the reallocation keeps its previous behaviour.
+  const curvesByPeriod = Object.fromEntries(
+    Object.entries(PERIOD_DAYS).map(([key, days]) => {
+      const window = data.daily.slice(-days);
+      const perDay = channelCurves(window, data.channels, data.channelDaily);
+      const d = Math.max(1, window.length);
+      return [
+        key,
+        Object.fromEntries(Object.entries(perDay).map(([ch, c]) => [ch, scaleCurve(c, d, d)])),
+      ];
+    })
+  ) as Record<string, Record<string, ResponseCurve>>;
+
   // Server-bucket the daily series into a profit/POAS trend per period, applying
   // the default margin model. The client re-drives it when margins are edited.
   const trendByPeriod = Object.fromEntries(
@@ -84,6 +107,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         rowsByPeriod={rowsByPeriod}
         trendByPeriod={trendByPeriod}
         channels={data.channels}
+        curvesByPeriod={curvesByPeriod}
         products={products}
         defaults={margins}
         live={resolved.live}

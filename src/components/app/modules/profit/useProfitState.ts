@@ -11,6 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { aov, cr, pno, roas, type ChannelRow } from "@/lib/metrics";
 import type { ChannelShare } from "@/lib/types";
+import { scaleCurve, type ResponseCurve } from "@/lib/metrics/response-curve";
 import { monthsForDays } from "@/lib/profit/core";
 import { marginDivergence } from "@/lib/profit/reconcile";
 import { computeProfit, reallocateBudget } from "@/lib/profit/compute";
@@ -141,6 +142,8 @@ export type UseProfitStateArgs = {
   rowsByPeriod: Record<string, ChannelRow[]>;
   trendByPeriod: Record<string, ProfitTrendPoint[]>;
   channels: ChannelShare[];
+  /** WP W1-F: server-fitted response curves per period, per channel. */
+  curvesByPeriod?: Record<string, Record<string, ResponseCurve>>;
   products: ProductCategory[];
   defaults: ChannelMargin[];
   live: boolean;
@@ -153,6 +156,7 @@ export function useProfitState({
   rowsByPeriod,
   trendByPeriod,
   channels,
+  curvesByPeriod,
   products,
   defaults,
   financeInputs,
@@ -246,9 +250,20 @@ export function useProfitState({
   const [strategy, setStrategy] = useState<ReallocStrategy>("max-profit");
   const [budgetOverride, setBudgetOverride] = useState<number | null>(null);
   const budget = budgetOverride ?? summary.cost;
+  // WP W1-F: the response curves for the selected period, re-based onto the user's own
+  // numbers when the real-numbers override is active — the curves were fitted on the
+  // dataset's scale, so without this the marginal koruna would be priced in the wrong
+  // magnitude. Absent/unfitted curves leave `reallocateBudget` on its constant-ROAS path.
+  const curves = useMemo(() => {
+    const base = curvesByPeriod?.[period];
+    if (!base || !overridden) return base;
+    return Object.fromEntries(
+      Object.entries(base).map(([ch, c]) => [ch, scaleCurve(c, costScale, revScale)])
+    );
+  }, [curvesByPeriod, period, overridden, costScale, revScale]);
   const plan = useMemo(
-    () => reallocateBudget(rows, { totalBudget: budget, strategy }),
-    [rows, budget, strategy]
+    () => reallocateBudget(rows, { totalBudget: budget, strategy, curves }),
+    [rows, budget, strategy, curves]
   );
 
   // Unify with the report: publish this module's blended margin + overhead to the

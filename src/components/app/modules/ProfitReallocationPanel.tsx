@@ -4,16 +4,19 @@
  *  hold-revenue) and a total budget, and see each channel's suggested spend and
  *  the projected net-profit change. Co-located "use client" child of ProfitModule —
  *  the reallocation math (`reallocateBudget`) runs in the orchestrator; this panel
- *  receives the already-computed `plan` plus the budget/strategy state + setters. */
+ *  receives the already-computed `plan` plus the budget/strategy state + setters.
+ *  The per-channel rows — and their fitted-curve / linear disclosure — live in
+ *  ./profit/ReallocationTable. */
 
 import type { Dispatch, SetStateAction } from "react";
 import type { ReallocPlan, ReallocStrategy } from "@/lib/profit/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import ReallocationTable from "./profit/ReallocationTable";
 
 const T = {
   cs: {
     whatIfTitle: "Co kdyby: přerozdělení rozpočtu",
-    whatIfDesc: "Drží ROAS každého kanálu a přesouvá rozpočet do nejziskovějších kanálů.",
+    whatIfDesc: "Přesouvá rozpočet tam, kde další koruna vydělá nejvíc — podle křivky odezvy tam, kde na ni jsou data; jinde drží dnešní ROAS.",
     maxProfit: "Maximalizovat zisk",
     holdRevenue: "Udržet obrat",
     totalBudget: "Celkový rozpočet",
@@ -23,19 +26,15 @@ const T = {
     todayValue: "dnes {value}",
     profitChange: "Změna zisku",
     revenueSub: "obrat {projected} vs {current}",
-    colChannel: "Kanál",
-    colToday: "Dnes",
-    colProposal: "Návrh",
-    colChange: "Změna",
-    colProfitPerUnit: "Zisk / Kč",
-    colProjProfit: "Projekt. zisk",
     reallocationFooter: "Rozděleno {allocated} z {total} · strop 3× dnešní útraty kanálu.",
+    reallocationFooterCurve:
+      "Rozděleno {allocated} z {total} · mezní zisk po křivce odezvy tam, kde na ni jsou data; ostatní kanály drží strop 3× dnešní útraty.",
     liveHint: "Změna marže nebo rozpočtu se promítne živě.",
     currencyUnit: "Kč",
   },
   en: {
     whatIfTitle: "What if: budget reallocation",
-    whatIfDesc: "Holds each channel's ROAS and shifts budget to the most profitable channels.",
+    whatIfDesc: "Shifts budget to where the next unit earns most — by marginal profit along the fitted response curve where data allows, holding today's ROAS elsewhere.",
     maxProfit: "Maximize profit",
     holdRevenue: "Hold revenue",
     totalBudget: "Total budget",
@@ -45,13 +44,9 @@ const T = {
     todayValue: "today {value}",
     profitChange: "Profit change",
     revenueSub: "revenue {projected} vs {current}",
-    colChannel: "Channel",
-    colToday: "Today",
-    colProposal: "Proposed",
-    colChange: "Change",
-    colProfitPerUnit: "Profit / unit",
-    colProjProfit: "Proj. profit",
     reallocationFooter: "Allocated {allocated} of {total} · capped at 3× today's channel spend.",
+    reallocationFooterCurve:
+      "Allocated {allocated} of {total} · marginal profit along the response curve where data allows; the other channels keep the 3× spend cap.",
     liveHint: "Margin or budget changes apply live.",
     // "Kč", not "USD" — see profit/strings.ts; the budget input is koruny in
     // both locales and these two panels render on the same screen.
@@ -81,6 +76,9 @@ export default function ProfitReallocationPanel({
 }) {
   const fmt = useFormatters();
   const t = useT(T);
+  // At least one channel was actually allocated along a fitted curve — the footer must
+  // not promise curve math on a plan that ran the constant-ROAS path.
+  const curveDriven = plan.rows.some((r) => r.curve?.fitted);
 
   return (
     <div className="card overflow-hidden">
@@ -169,53 +167,14 @@ export default function ProfitReallocationPanel({
         </div>
       </div>
 
-      <div className="overflow-x-auto border-t border-line">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-              <th className="px-4 py-3 font-medium">{t("colChannel")}</th>
-              <th className="px-4 py-3 text-right font-medium">{t("colToday")}</th>
-              <th className="px-4 py-3 text-right font-medium">{t("colProposal")}</th>
-              <th className="px-4 py-3 text-right font-medium">{t("colChange")}</th>
-              <th className="px-4 py-3 text-right font-medium">{t("colProfitPerUnit")}</th>
-              <th className="px-4 py-3 text-right font-medium">{t("colProjProfit")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {plan.rows.map((r) => (
-              <tr key={r.channel} className="border-b border-line/70 last:border-0">
-                <td className="px-4 py-3">
-                  <span className="flex items-center gap-2 font-medium text-navy-800">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: r.color }} />
-                    {r.channel}
-                  </span>
-                </td>
-                <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.currentSpend)}</td>
-                <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{fmt.fmtCZKCompact(r.suggestedSpend)}</td>
-                <td
-                  className={`tnum px-4 py-3 text-right font-medium ${
-                    r.spendDelta > 0 ? "text-positive" : r.spendDelta < 0 ? "text-negative" : "text-muted"
-                  }`}
-                >
-                  {r.spendDelta > 0 ? "+" : r.spendDelta < 0 ? "−" : ""}
-                  {fmt.fmtCZKCompact(Math.abs(r.spendDelta))}
-                </td>
-                <td className="tnum px-4 py-3 text-right text-muted">{fmt.fmtMultiple(r.roas * r.marginPct)}</td>
-                <td
-                  className={`tnum px-4 py-3 text-right font-semibold ${
-                    r.projectedNetProfit >= 0 ? "text-positive" : "text-negative"
-                  }`}
-                >
-                  {fmt.fmtCZK(r.projectedNetProfit)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ReallocationTable plan={plan} />
+
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-4 py-3 text-xs text-muted">
         <span>
-          {t("reallocationFooter", { allocated: fmt.fmtCZKCompact(plan.allocatedSpend), total: fmt.fmtCZKCompact(plan.totalBudget) })}
+          {t(curveDriven ? "reallocationFooterCurve" : "reallocationFooter", {
+            allocated: fmt.fmtCZKCompact(plan.allocatedSpend),
+            total: fmt.fmtCZKCompact(plan.totalBudget),
+          })}
         </span>
         <span>{t("liveHint")}</span>
       </div>

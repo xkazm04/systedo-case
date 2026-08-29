@@ -1,3 +1,5 @@
+import type { ResponseCurve } from "@/lib/metrics/response-curve";
+
 /** Profit / POAS domain — margin-aware view over the channel mix. Framework-free.
  *  The killer idea: optimize for profit on ad spend (POAS), not ROAS, by applying
  *  a per-channel gross margin so channels that look fine on ROAS but lose money
@@ -186,6 +188,12 @@ export interface ReallocOptions {
   /** cap a channel's suggested spend at this multiple of its current spend
    *  (default 3). A channel with zero current spend is capped at 0. */
   maxSpendMultiple?: number;
+  /** Per-channel diminishing-returns response curves (`@/lib/metrics/response-curve`),
+   *  keyed by channel name. When at least ONE channel carries a `fitted` curve the
+   *  solver allocates by MARGINAL profit along those curves instead of assuming each
+   *  channel's ROAS is constant. Absent, empty, or all-unfitted → the constant-ROAS
+   *  path runs unchanged, output for output. */
+  curves?: Record<string, ResponseCurve>;
 }
 
 /** One channel's before/after spend in a reallocation plan. */
@@ -200,10 +208,19 @@ export interface ReallocChannel {
   suggestedSpend: number;
   /** suggestedSpend − currentSpend */
   spendDelta: number;
-  /** suggestedSpend × roas */
+  /** suggestedSpend × roas — or, on a curve-fitted channel, `revenueAt(curve, suggestedSpend)` */
   projectedRevenue: number;
   /** projectedRevenue × margin − suggestedSpend */
   projectedNetProfit: number;
+  /** Marginal profit per koruna AT the suggested spend, read off the fitted curve
+   *  (`marginalRoas × margin − 1`). Present only for a channel allocated along a fitted
+   *  curve; absent means `marginalProfit` (today's constant-ROAS term) is the honest
+   *  number to show. Falls with spend where the curve saturates, which is the point. */
+  marginalPoasAtSuggested?: number;
+  /** Provenance of this row's allocation, for the UI's per-row disclosure. Present only
+   *  when a `curves` entry existed for the channel; `fitted: false` means the row fell
+   *  back to the linear cap-and-fill even though a curve was offered. */
+  curve?: Pick<ResponseCurve, "fitted" | "b" | "r2" | "basis">;
 }
 
 export interface ReallocPlan {

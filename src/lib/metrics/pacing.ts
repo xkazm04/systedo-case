@@ -5,6 +5,7 @@ import { dailyRevenueSigma, dayOfWeek, normalCdf, weekdayWeights } from "./seaso
 import { totalsOf } from "./totals";
 import { WINDOWS } from "./config";
 import { goalForMonth, type GoalChange } from "./goal-history";
+import { revenueAt, type ResponseCurve } from "./response-curve";
 
 /** Trailing window whose ROAS converts a revenue-pace shortfall into the extra
  *  daily ad spend it would take to close it (matches the anomaly baseline span). */
@@ -72,8 +73,39 @@ export interface MonthlyPacing {
   requiredVsRecent: number;
   /** extra ad spend per day implied by the pace shortfall at the trailing 28-day
    *  ROAS: max(0, required − recent) / roas. The steering number — "at current
-   *  ROAS that's ≈ +X Kč/day of spend". 0 when on pace or ROAS is unknown. */
+   *  ROAS that's ≈ +X Kč/day of spend". 0 when on pace or ROAS is unknown.
+   *  When a fitted response curve is supplied this instead solves the curve for the
+   *  extra spend that actually buys the shortfall (see `impliedBasis`). */
   impliedExtraDailySpend: number;
+  /** How `impliedExtraDailySpend` was derived: `"curve"` = solved along a fitted
+   *  diminishing-returns response curve (the next koruna is priced at its MARGINAL
+   *  return, so a saturated account is told the truth); `"average"` = divided by the
+   *  trailing-window average ROAS, which assumes the next koruna performs like the
+   *  last 28 days did. Optional — absent on callers that pass no curve. */
+  impliedBasis?: "curve" | "average";
+}
+
+/** Extra daily spend needed to buy `need` more revenue per day, solved along the
+ *  curve at today's daily spend rather than at the trailing average ROAS.
+ *
+ *  Bisection on `revenueAt(cur + s) − revenueAt(cur) ≥ need` over `s ∈ [0, 3 × cur]`.
+ *  The 3× ceiling is both an honesty bound (a curve fitted on today's band says nothing
+ *  about tripling the account) and a termination bound; when even 3× cannot close the
+ *  gap the ceiling itself is returned, so the UI shows "at least this much" rather than
+ *  an invented number. */
+function extraSpendForRevenue(curve: ResponseCurve, currentDailySpend: number, need: number): number {
+  if (!(need > 0) || !(currentDailySpend > 0)) return 0;
+  const base = revenueAt(curve, currentDailySpend);
+  const ceiling = currentDailySpend * 3;
+  if (revenueAt(curve, currentDailySpend + ceiling) - base < need) return ceiling;
+  let lo = 0;
+  let hi = ceiling;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (revenueAt(curve, currentDailySpend + mid) - base >= need) hi = mid;
+    else lo = mid;
+  }
+  return hi;
 }
 
 /**
@@ -91,7 +123,11 @@ export function monthlyPacing(
   goal: number,
   // Precomputed revenue weekday weights, shared across a snapshot build. Omitted,
   // they are derived here — numerically identical, just an extra pass.
-  revenueWeights?: number[]
+  revenueWeights?: number[],
+  // Optional account-level response curve. When it is FITTED, the implied extra daily
+  // spend is solved along it (marginal, honest about saturation) instead of divided by
+  // the trailing average ROAS. Absent or unfitted → the previous formula, unchanged.
+  curve?: ResponseCurve
 ): MonthlyPacing | null {
   if (daily.length === 0) return null;
 
@@ -147,9 +183,20 @@ export function monthlyPacing(
   const requiredDailyRevenue = futureDays > 0 ? Math.max(0, goal - mtd) / futureDays : 0;
   const recentDailyRevenue = futureDays > 0 ? Math.max(0, projection - mtd) / futureDays : 0;
   const requiredVsRecent = recentDailyRevenue > 0 ? requiredDailyRevenue / recentDailyRevenue : 0;
-  const recentRoas = totalsOf(daily.slice(-ROAS_WINDOW_DAYS)).roas;
-  const impliedExtraDailySpend =
-    recentRoas > 0 ? Math.max(0, requiredDailyRevenue - recentDailyRevenue) / recentRoas : 0;
+  const roasWindow = daily.slice(-ROAS_WINDOW_DAYS);
+  const recentRoas = totalsOf(roasWindow).roas;
+  const revenueShortfall = Math.max(0, requiredDailyRevenue - recentDailyRevenue);
+  // With a fitted curve the next koruna is priced at its MARGINAL return at today's
+  // daily spend — a saturated account needs far more than the trailing-average answer.
+  const currentDailySpend = roasWindow.length > 0
+    ? roasWindow.reduce((a, p) => a + p.cost, 0) / roasWindow.length
+    : 0;
+  const fittedCurve = curve?.fitted && currentDailySpend > 0 ? curve : null;
+  const impliedExtraDailySpend = fittedCurve
+    ? extraSpendForRevenue(fittedCurve, currentDailySpend, revenueShortfall)
+    : recentRoas > 0
+      ? revenueShortfall / recentRoas
+      : 0;
 
   return {
     monthStart: `${ym}-01`,
@@ -173,6 +220,7 @@ export function monthlyPacing(
     recentDailyRevenue,
     requiredVsRecent,
     impliedExtraDailySpend,
+    impliedBasis: fittedCurve ? "curve" : "average",
   };
 }
 

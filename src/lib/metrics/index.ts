@@ -10,6 +10,7 @@ export * from "./ratios";
 export * from "./totals";
 export * from "./series";
 export * from "./seasonality";
+export * from "./response-curve";
 export * from "./pacing";
 export * from "./goal-history";
 export * from "./channels";
