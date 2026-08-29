@@ -221,6 +221,9 @@ export default function SpeedLeadModule({
   const fmt = useFormatters();
   const t = useT(T);
   const { locale } = useLocale();
+  /** The sign-off name for the deterministic draft — the same resolver the AI path
+   *  feeds its prompt, so both replies are signed by the business, not by "our team". */
+  const brand = promptSafeName(project.name);
 
   const [selectedId, setSelectedId] = useState(leads[0]?.id ?? "");
   /** id → captured BANT qualification; leads not yet touched fall back to EMPTY. */
@@ -233,7 +236,7 @@ export default function SpeedLeadModule({
   const firstBreachedRef = useRef<HTMLButtonElement | null>(null);
 
   const selected = leads.find((l) => l.id === selectedId) ?? leads[0];
-  const draft = useMemo(() => (selected ? draftReply(selected) : null), [selected]);
+  const draft = useMemo(() => (selected ? draftReply(selected, brand) : null), [selected, brand]);
 
   // AI reply generator (twin-reply tool, via /api/ai). The deterministic draft is
   // the initial value and the fallback; on success we swap in the model's reply.
@@ -246,7 +249,7 @@ export default function SpeedLeadModule({
   const [aiLeadId, setAiLeadId] = useState<string | null>(null);
   /** The reply currently shown in the textarea. Seeded from the deterministic
    *  draft, overwritten by the user's edits or an accepted AI reply. */
-  const [replyText, setReplyText] = useState(() => (selected ? draftReply(selected) : null)?.reply ?? "");
+  const [replyText, setReplyText] = useState(() => (selected ? draftReply(selected, brand) : null)?.reply ?? "");
   const [copied, setCopied] = useState(false);
   /** Set when a send banked the human's pre-send edit as a style fact. */
   const [editBanked, setEditBanked] = useState(false);
@@ -257,7 +260,7 @@ export default function SpeedLeadModule({
 
   if (selected && seededLeadId !== selectedId) {
     setSeededLeadId(selectedId);
-    setReplyText(draftReply(selected).reply);
+    setReplyText(draftReply(selected, brand).reply);
     setCopied(false);
     setEditBanked(false);
     if (aiLeadId && aiLeadId !== selectedId) reset();
@@ -331,7 +334,7 @@ export default function SpeedLeadModule({
     const expanded = expandSnippet(snippet.body, snippetVarsFor(selected));
     setReplyText((prev) => {
       const base = prev.trim();
-      const isDraft = base === draftReply(selected).reply.trim();
+      const isDraft = base === draftReply(selected, brand).reply.trim();
       return base.length === 0 || isDraft ? expanded : `${prev.trimEnd()}\n\n${expanded}`;
     });
     setCopied(false);
