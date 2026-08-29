@@ -8148,7 +8148,10 @@
             "store"
           ],
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "S1 10693e1e: firestore archive-cap eviction now writes a durable per-project accounting doc (twinArchiveEvictions) in the delete batch; archive-store.local.ts still evicts audit records with only a console.warn",
+          "evaluatedAt": "2026-08-29",
+          "evaluatedAgainst": "sha256:1117665ec59c1168"
         },
         {
           "subject": "supply-chain",
