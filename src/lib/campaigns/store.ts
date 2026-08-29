@@ -20,7 +20,7 @@
  *  through — both internal, intentionally not part of the public API). */
 import "server-only";
 import { resolveProjectTenants } from "./connector";
-import { getSyncMeta, listCampaigns } from "./store/campaigns";
+import { getSyncMeta, listCampaigns, type TenantRoot } from "./store/campaigns";
 import type { AdsSource, Campaign, CampaignPeriod } from "./types";
 
 export * from "./store/campaigns";
@@ -52,15 +52,38 @@ export async function listCampaignsForProject(
   period?: CampaignPeriod
 ): Promise<Campaign[]> {
   const tenants = await resolveProjectTenants(userId, projectId);
-  const perTenant = await Promise.all(
-    tenants.map(async ({ tenant, source }) => {
-      const [campaigns, meta] = await Promise.all([listCampaigns(tenant, period), getSyncMeta(tenant)]);
-      // The tenant's own recorded source wins over the precedence label: a tenant
-      // whose last sync degraded to sample data says "sample", and that is the honest
-      // tag for its rows.
+  return (await listCampaignsForTenants(tenants, period)).flat();
+}
+
+/** The union read's ROOT-THREADED half: the same per-tenant tagged campaign lists
+ *  {@link listCampaignsForProject} flattens, but one array PER tenant (index-parallel
+ *  to `tenants`) and able to reuse a caller's already-read tenant roots.
+ *
+ *  Why both: the campaigns API loads a whole payload per tenant (campaigns, series,
+ *  reports, snapshots, the change diff) off ONE `readTenantRoot` per tenant — the
+ *  read collapse that turned ~9 sequential round-trips into one root read plus a
+ *  parallel batch. A union read that called `listCampaigns`/`getSyncMeta` without a
+ *  root would silently re-read that root twice per tenant and undo it. Passing the
+ *  roots in keeps a two-tenant load at exactly two root reads.
+ *
+ *  `roots[i]` is optional per tenant: omit the array (or leave a hole) and that
+ *  tenant reads its own root, exactly as `listCampaignsForProject` always did. The
+ *  tagging rule is unchanged — the tenant's own recorded `SyncMeta.source` wins over
+ *  the precedence label, so a degraded tenant's rows honestly read "sample". */
+export async function listCampaignsForTenants(
+  tenants: readonly { tenant: string; source: AdsSource }[],
+  period?: CampaignPeriod,
+  roots?: readonly (TenantRoot | undefined)[]
+): Promise<Campaign[][]> {
+  return Promise.all(
+    tenants.map(async ({ tenant, source }, i) => {
+      const root = roots?.[i];
+      const [campaigns, meta] = await Promise.all([
+        listCampaigns(tenant, period, root),
+        getSyncMeta(tenant, root),
+      ]);
       const tenantSource = (meta?.source as AdsSource | undefined) ?? source;
       return campaigns.map((c) => (c.source ? c : { ...c, source: tenantSource }));
     })
   );
-  return perTenant.flat();
 }

@@ -3,89 +3,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useOptionalProject } from "@/lib/projects/context";
 import { serverErrorOr, rawError, type CampaignError } from "./errors";
-import type { CampaignReport, CampaignReportResult, EvalScope, ReportHistoryPoint } from "@/lib/ai-types";
-import type { SnapshotSummaryPoint } from "@/lib/campaigns/triage";
-import type {
-  Campaign,
-  CampaignPeriod,
-  ChangesSummary,
-  DailyPoint,
-} from "@/lib/campaigns/types";
+import {
+  EMPTY_STATE,
+  normalizeReport,
+  readCampaignsState,
+  type CampaignsPayload,
+  type CampaignsState,
+} from "./campaigns-state";
+import type { EvalScope, ReportHistoryPoint } from "@/lib/ai-types";
+import type { CampaignPeriod } from "@/lib/campaigns/types";
 
-/** Coerce the analyze response into a safe CampaignReport before it reaches the
- *  render tree. The route returns structured output, but a partial/trimmed payload
- *  (missing arrays, a non-numeric score) would otherwise crash ReportView, which
- *  maps over result.strengths/weaknesses/recommendations unconditionally. */
-function normalizeReport(raw: unknown): CampaignReport {
-  const rep = (raw ?? {}) as CampaignReport;
-  const res = (rep.result ?? {}) as Partial<CampaignReportResult>;
-  return {
-    ...rep,
-    result: {
-      verdict: typeof res.verdict === "string" ? res.verdict : "",
-      score:
-        typeof res.score === "number" && Number.isFinite(res.score)
-          ? Math.max(0, Math.min(100, res.score))
-          : 0,
-      summary: typeof res.summary === "string" ? res.summary : "",
-      strengths: Array.isArray(res.strengths) ? res.strengths : [],
-      weaknesses: Array.isArray(res.weaknesses) ? res.weaknesses : [],
-      recommendations: Array.isArray(res.recommendations) ? res.recommendations : [],
-    },
-  };
-}
-
-export interface CampaignsMeta {
-  source: string;
-  period: CampaignPeriod;
-  syncedAt: string;
-  /** the account's ISO-4217 currency (Direction 2). Absent → the base CZK, so money
-   *  surfaces render exactly as before; a non-CZK code relabels the amounts honestly
-   *  (no conversion). */
-  currency?: string;
-  /** the Sklik money-unit verdict (Direction 3): "halere-suspected" surfaces the
-   *  provenance confirm affordance. Absent for Google / sample. */
-  moneyVerdict?: "czk-plausible" | "halere-suspected" | "insufficient-data";
-  /** the last sync's live fetch fell back to sample data — the UI shows a
-   *  truth-in-labeling warning instead of presenting demo numbers as live */
-  degraded?: boolean;
-  /** error summary behind the fallback (a describeError string) — surfaced in the
-   *  provenance popover so "why am I seeing sample data?" is answerable */
-  degradedReason?: string | null;
-  /** when each period was last actually synced — powers the provenance popover's
-   *  per-period coverage + stale distinction. Already persisted in SyncMeta and
-   *  returned by the API, so exposing it needs no new fetch. */
-  syncedByPeriod?: Record<string, string>;
-}
-
-interface State {
-  campaigns: Campaign[];
-  meta: CampaignsMeta | null;
-  reports: Record<string, CampaignReport>;
-  /** report keys ("overall" or campaign id) whose stored evaluation was made on
-   *  data that a later sync changed — the UI badges them as stale */
-  staleKeys: string[];
-  /** full score history per key ("overall" or campaign id), oldest → newest */
-  histories: Record<string, ReportHistoryPoint[]>;
-  /** what changed since the prior sync (null until ≥2 syncs exist) */
-  changes: ChangesSummary | null;
-  /** per-campaign daily series (campaign id → points) for the table sparklines */
-  campaignSeries: Record<string, DailyPoint[]>;
-  /** rule-based triage per stored sync snapshot — the deterministic health
-   *  timeline (one point per sync, oldest → newest) */
-  snapshotSummaries: SnapshotSummaryPoint[];
-}
-
-const EMPTY: State = {
-  campaigns: [],
-  meta: null,
-  reports: {},
-  staleKeys: [],
-  histories: {},
-  changes: null,
-  campaignSeries: {},
-  snapshotSummaries: [],
-};
+export type { CampaignsMeta, CampaignsSourceMeta } from "./campaigns-state";
 
 /** Client lifecycle for the campaigns page: loads the synced state, re-syncs from
  *  the connector, and runs per-campaign / portfolio AI evaluations. Tracks busy
@@ -93,7 +21,7 @@ const EMPTY: State = {
 export function useCampaigns() {
   const project = useOptionalProject();
   const pid = project?.id;
-  const [state, setState] = useState<State>(EMPTY);
+  const [state, setState] = useState<CampaignsState>(EMPTY_STATE);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<CampaignError | null>(null);
@@ -115,18 +43,9 @@ export function useCampaigns() {
   const load = useCallback(async () => {
     try {
       const res = await fetch(pid ? `/api/campaigns?projectId=${encodeURIComponent(pid)}` : "/api/campaigns");
-      const json = (await res.json()) as State;
+      const json = (await res.json()) as CampaignsPayload;
       if (!res.ok) throw new Error("load failed");
-      setState({
-        campaigns: json.campaigns ?? [],
-        meta: json.meta ?? null,
-        reports: json.reports ?? {},
-        staleKeys: json.staleKeys ?? [],
-        histories: json.histories ?? {},
-        changes: json.changes ?? null,
-        campaignSeries: json.campaignSeries ?? {},
-        snapshotSummaries: json.snapshotSummaries ?? [],
-      });
+      setState(readCampaignsState(json));
     } catch {
       setError({ key: "loadFailed" });
     } finally {
@@ -160,16 +79,7 @@ export function useCampaigns() {
         setError(serverErrorOr(json?.error, "syncFailed"));
         return;
       }
-      setState({
-        campaigns: json.campaigns ?? [],
-        meta: json.meta ?? null,
-        reports: json.reports ?? {},
-        staleKeys: json.staleKeys ?? [],
-        histories: json.histories ?? {},
-        changes: json.changes ?? null,
-        campaignSeries: json.campaignSeries ?? {},
-        snapshotSummaries: json.snapshotSummaries ?? [],
-      });
+      setState(readCampaignsState(json as CampaignsPayload));
     } catch {
       setError({ key: "serverError" });
     } finally {

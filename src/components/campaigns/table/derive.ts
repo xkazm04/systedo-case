@@ -13,6 +13,7 @@
  *  (see test-unit/campaigns-table-derive.test.mjs). */
 import {
   withMetrics,
+  type AdsSource,
   type Campaign,
   type CampaignChange,
   type CampaignRow,
@@ -96,6 +97,10 @@ export interface RowFilter {
   typeFilter: CampaignType | "all";
   statusFilter: CampaignStatus | "all";
   attentionOnly: boolean;
+  /** ADR-0010 — narrow the union read to ONE ad network. Optional and defaulting
+   *  to "all", so a single-source project (which never offers the filter) and
+   *  every pre-union caller are byte-identical. */
+  sourceFilter?: AdsSource | "all";
 }
 
 /** Cheap layer: narrow the derived rows to the active filter. Reads only the
@@ -104,6 +109,7 @@ export interface RowFilter {
  *  re-classification. */
 export function filterCampaignRows(rows: DerivedRow[], f: RowFilter): DerivedRow[] {
   return rows.filter(({ c, tr }) => {
+    if (f.sourceFilter && f.sourceFilter !== "all" && c.source !== f.sourceFilter) return false;
     if (f.typeFilter !== "all" && c.type !== f.typeFilter) return false;
     if (f.statusFilter !== "all" && c.status !== f.statusFilter) return false;
     if (f.attentionOnly && tr.severity === "ok") return false;

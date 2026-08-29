@@ -1,16 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { Bolt, Gauge, Layers, Refresh, Share, Sparkles } from "@/components/icons";
 import { Button } from "@/components/ui";
 import {
   CAMPAIGN_PERIODS,
   campaignPeriodLabel,
-  TARGET_PNO,
-  aggregate,
   type CampaignChange,
   type CampaignPeriod,
   type CampaignType,
@@ -36,6 +33,7 @@ import CampaignTable from "./CampaignTable";
 import PillButton from "./PillButton";
 import { loadFilters } from "./table/filters";
 import HealthTimeline from "./HealthTimeline";
+import HeaderKpis from "./HeaderKpis";
 import ReportView from "./ReportView";
 import SyncProvenance from "./SyncProvenance";
 import { LOCALES } from "@/lib/format";
@@ -68,16 +66,14 @@ const T = {
     sourceSample: "Google Ads · ukázková data",
     sourceLive: "Google Ads · živá data",
     sourceSklik: "Sklik · živá data",
+    sourceUnion: "Více reklamních sítí",
     loading: "Načítám kampaně…",
-    emptyHeading: "Zatím žádná data z Google Ads",
+    emptyHeading: "Zatím žádná data z reklamních účtů",
     emptyBody:
-      "Připojte se ke Google Ads a načtěte kampaně. Bez přihlášení se použijí realistická ukázková data, abyste si prošli celý tok: porovnání podle typu i AI vyhodnocení, uložené per uživatele do Firestore.",
-    syncButton: "Synchronizovat z Google Ads",
+      "Připojte Google Ads nebo Sklik a načtěte kampaně. Bez přihlášení se použijí realistická ukázková data, abyste si prošli celý tok: porovnání podle typu i AI vyhodnocení, uložené per uživatele do Firestore.",
+    syncButton: "Synchronizovat data",
     syncing: "Synchronizuji…",
     syncShort: "Synchronizovat",
-    kpiCost: "Náklady",
-    kpiConvValue: "Hodnota konverzí",
-    kpiPnoHint: "cíl {target} · placené portfolio",
     breakEvenNote: "Váš break-even ROAS podle marže je {roas} (PNO {pno}). Pod ním kampaň po odečtení nákladů zboží prodělává.",
     breakEvenLoaded: "s režií {roas}",
     shareButton: "Sdílet report",
@@ -103,22 +99,22 @@ const T = {
     campaignCount: "{n} kampaní · analýza po řádcích",
     govHeading: "Řízení rozpočtů",
     degradedBanner:
-      "Živá data z Google Ads jsou dočasně nedostupná. Poslední synchronizace zobrazuje ukázková data. Zkuste synchronizovat znovu, případně obnovit připojení účtu.",
+      "Živá data ze sítě {source} jsou dočasně nedostupná. Poslední synchronizace zobrazuje ukázková data. Zkuste synchronizovat znovu, případně obnovit připojení účtu.",
+    netGoogle: "Google Ads",
+    netSklik: "Sklik",
   },
   en: {
     sourceSample: "Google Ads · sample data",
     sourceLive: "Google Ads · live data",
     sourceSklik: "Sklik · live data",
+    sourceUnion: "Multiple ad networks",
     loading: "Loading campaigns…",
-    emptyHeading: "No Google Ads data yet",
+    emptyHeading: "No ad account data yet",
     emptyBody:
-      "Connect to Google Ads to load campaigns. Without login, realistic sample data is used so you can walk through the full flow: type comparison and AI evaluation, stored per user in Firestore.",
-    syncButton: "Sync from Google Ads",
+      "Connect Google Ads or Sklik to load campaigns. Without login, realistic sample data is used so you can walk through the full flow: type comparison and AI evaluation, stored per user in Firestore.",
+    syncButton: "Sync data",
     syncing: "Syncing…",
     syncShort: "Sync",
-    kpiCost: "Cost",
-    kpiConvValue: "Conversion value",
-    kpiPnoHint: "target {target} · paid portfolio",
     breakEvenNote: "Your margin-based break-even ROAS is {roas} (PNO {pno}). Below it a campaign loses money once cost of goods is subtracted.",
     breakEvenLoaded: "with overhead {roas}",
     shareButton: "Share report",
@@ -144,7 +140,9 @@ const T = {
     campaignCount: "{n} campaigns · row-by-row analysis",
     govHeading: "Budget management",
     degradedBanner:
-      "Live Google Ads data is temporarily unavailable. The last sync is showing sample data. Try syncing again, or reconnect the account.",
+      "Live {source} data is temporarily unavailable. The last sync is showing sample data. Try syncing again, or reconnect the account.",
+    netGoogle: "Google Ads",
+    netSklik: "Sklik",
   },
 } as const;
 
@@ -202,48 +200,6 @@ export default function CampaignsClient({
   // tenant), so anonymous visitors don't see a button that can't work.
   const { status: sessionStatus } = useSession();
   const authed = sessionStatus === "authenticated";
-  // Portal host for the header badges (rendered into ModulePage's header slot,
-  // opposite the title). Resolved after mount so the target div exists in the DOM.
-  const [headerHost, setHeaderHost] = useState<HTMLElement | null>(null);
-  // When the header slot never commits (a Suspense/streaming boundary, a layout
-  // refactor, or a page that reuses this component without the slot) fall back to
-  // rendering the KPI badges in-flow instead of losing them silently.
-  const [inlineKpiFallback, setInlineKpiFallback] = useState(false);
-  useEffect(() => {
-    const slotId = "module-header-actions";
-    // Try to bind the portal host; returns whether the slot was found.
-    const resolveHost = (): boolean => {
-      const el = document.getElementById(slotId);
-      if (el) {
-        setHeaderHost(el);
-        setInlineKpiFallback(false);
-      }
-      return Boolean(el);
-    };
-    if (resolveHost()) return;
-    // Not committed on this frame — watch the DOM for it rather than giving up
-    // after a single query, and only fall back (+ warn in dev) if it truly never
-    // appears, so the common case never flashes an in-flow row.
-    const obs = new MutationObserver(() => {
-      if (resolveHost()) {
-        obs.disconnect();
-        clearTimeout(timer);
-      }
-    });
-    obs.observe(document.body, { childList: true, subtree: true });
-    const timer = setTimeout(() => {
-      if (!document.getElementById(slotId)) {
-        setInlineKpiFallback(true);
-        if (process.env.NODE_ENV !== "production") {
-          console.warn(`[CampaignsClient] header slot #${slotId} never appeared — KPI badges render in-flow.`);
-        }
-      }
-    }, 3000);
-    return () => {
-      obs.disconnect();
-      clearTimeout(timer);
-    };
-  }, []);
   // The user's explicit pick wins; otherwise mirror the synced period (so the
   // toolbar highlight matches the data on screen after a reload) and default to 30d.
   const [selected, setSelected] = useState<CampaignPeriod | null>(null);
@@ -366,6 +322,15 @@ export default function CampaignsClient({
     );
 
   const hasData = Boolean(meta) && campaigns.length > 0;
+  // ADR-0010 — a union read degrades per SECTION, so the banner names whichever
+  // network actually fell back to sample data instead of always blaming Google.
+  const degradedSection = meta?.sources?.find((s) => s.meta?.degraded);
+  const degraded = Boolean(meta?.degraded) || Boolean(degradedSection);
+  const degradedNet =
+    (degradedSection?.source ?? meta?.source) === "sklik" ? t("netSklik") : t("netGoogle");
+  // Mutations stay Google-only until the Sklik write path lands: never seed the
+  // budget-move preview with Sklik rows (the control-plane route refuses them).
+  const actionable = useMemo(() => campaigns.filter((c) => c.source !== "sklik"), [campaigns]);
   // Index the sync-over-sync diff by campaign id so the table's triage can flag
   // ROAS craters / spend spikes vs the prior sync (empty until ≥2 syncs exist).
   // Memoised on `changes` so the object identity is stable across unrelated parent
@@ -424,34 +389,17 @@ export default function CampaignsClient({
     );
   }
 
-  const totals = aggregate(campaigns);
-  const kpis = [
-    { label: t("kpiCost"), value: fmtMoney(totals.cost) },
-    { label: t("kpiConvValue"), value: fmtMoney(totals.conversionValue) },
-    { label: "ROAS", value: fmt.fmtMultiple(totals.roas) },
-    { label: "PNO", value: fmt.fmtPct(totals.pno), hint: t("kpiPnoHint", { target: fmt.fmtPct(TARGET_PNO, 0) }) },
-  ];
-
   return (
     <div className="stagger space-y-8">
       {/* Portfolio KPIs, minimized to badges in the page header (opposite the
-          title) via a portal into ModulePage's header slot. Falls back to an
-          in-flow row if that slot never commits, so the totals never vanish. */}
-      {(() => {
-        const kpiBadges = kpis.map((k) => (
-          <span
-            key={k.label}
-            title={k.hint}
-            className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-2.5 py-1 text-xs"
-          >
-            <span className="text-muted">{k.label}</span>
-            <span className="tnum font-semibold text-navy-800">{k.value}</span>
-          </span>
-        ));
-        if (headerHost) return createPortal(<>{kpiBadges}</>, headerHost);
-        if (inlineKpiFallback) return <div className="flex flex-wrap gap-2">{kpiBadges}</div>;
-        return null;
-      })()}
+          title) via a portal into ModulePage's header slot — or, for a union read
+          whose accounts are in different currencies, per-network totals in flow. */}
+      <HeaderKpis
+        campaigns={campaigns}
+        fmtMoney={fmtMoney}
+        sources={meta?.sources}
+        mixedCurrency={meta?.mixedCurrency}
+      />
 
       {/* toolbar */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -476,7 +424,7 @@ export default function CampaignsClient({
             <SyncProvenance
               meta={meta}
               period={period}
-              sourceLabel={t(SOURCE_KEY[meta.source] ?? "sourceSample")}
+              sourceLabel={meta.sources ? t("sourceUnion") : t(SOURCE_KEY[meta.source] ?? "sourceSample")}
             />
           )}
         </div>
@@ -533,9 +481,9 @@ export default function CampaignsClient({
       )}
 
       {/* truth-in-labeling: the last live sync fell back to sample data */}
-      {meta?.degraded && (
+      {degraded && (
         <p className="rounded-card border border-coral-400/40 bg-coral-soft px-4 py-3 text-sm text-coral-600">
-          {t("degradedBanner")}
+          {t("degradedBanner", { source: degradedNet })}
         </p>
       )}
 
@@ -574,6 +522,7 @@ export default function CampaignsClient({
           onTypeFilterChange={setTypeFilter}
           onPreparePackage={authed ? preparePackage : undefined}
           goals={goals ?? undefined}
+          sources={meta?.sources}
         />
       </section>
 
@@ -602,7 +551,7 @@ export default function CampaignsClient({
           <h2 className="text-base font-semibold text-navy-800">{t("govHeading")}</h2>
         </div>
         <BudgetMoves
-          campaigns={campaigns}
+          campaigns={actionable}
           marginPct={marginPct}
           period={period}
           fmtMoney={fmtMoney}

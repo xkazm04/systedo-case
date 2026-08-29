@@ -8,6 +8,7 @@ import { CAMPAIGN_PERIODS, campaignPeriodLabel, type CampaignPeriod } from "@/li
 import { isForeignCurrency, normalizeCurrency } from "@/lib/campaigns/currency";
 import type { CampaignsMeta } from "./useCampaigns";
 import { useDismiss } from "./useDismiss";
+import { SourceProvenanceList } from "./SourceSections";
 
 const T = {
   cs: {
@@ -24,8 +25,6 @@ const T = {
     shown: "zobrazeno",
     stale: "zastaralé",
     neverSynced: "nesynchronizováno",
-    live: "živá data",
-    sample: "ukázková data",
     currencyLabel: "Měna účtu",
     currencyNote:
       "Účet je veden v měně {currency}. Částky zobrazujeme v této měně bez přepočtu na Kč.",
@@ -51,8 +50,6 @@ const T = {
     shown: "shown",
     stale: "stale",
     neverSynced: "not synced",
-    live: "live data",
-    sample: "sample data",
     currencyLabel: "Account currency",
     currencyNote:
       "This account is billed in {currency}. Amounts are shown in that currency, not converted to CZK.",
@@ -206,6 +203,8 @@ export default function SyncProvenance({
             </div>
           </dl>
 
+          {/* ADR-0010 — a union read: one line per network + the mixed-currency note. */}
+          {meta.sources && <SourceProvenanceList sources={meta.sources} mixedCurrency={meta.mixedCurrency} />}
           {/* account currency (Direction 2): only flagged when it is a captured,
               non-CZK code — CZK / unknown accounts add no note (nothing changed). */}
           {isForeignCurrency(meta.currency) && (

@@ -2,7 +2,11 @@
  *  (POST), per-tenant in Firestore. Each signed-in user reads/writes their own
  *  tenant; anonymous visitors share a `sample` tenant. Node runtime. */
 import { currentUserId } from "@/lib/session";
-import { resolveCampaignContext, resolveTenant } from "@/lib/campaigns/connector";
+import {
+  resolveCampaignContext,
+  resolveProjectTenants,
+  resolveTenant,
+} from "@/lib/campaigns/connector";
 import { getProject } from "@/lib/projects/store";
 import { rejectUnknownProject } from "@/lib/projects/api-guard";
 import {
@@ -13,13 +17,15 @@ import {
   getSeries,
   getSyncMeta,
   listCampaigns,
+  listCampaignsForTenants,
   listSnapshotSummaries,
   readTenantRoot,
   setActivePeriod,
+  type TenantRoot,
 } from "@/lib/campaigns/store";
-import { assembleCampaignsState } from "./state";
+import { assembleProjectCampaignsState, type CampaignsStateInputs } from "./state";
 import { runTenantSync } from "@/lib/campaigns/sync";
-import { isCampaignPeriod, type CampaignPeriod } from "@/lib/campaigns/types";
+import { isCampaignPeriod, type Campaign, type CampaignPeriod } from "@/lib/campaigns/types";
 import { consume, refund } from "@/lib/usage";
 import {
   RATE_RULES,
@@ -37,7 +43,16 @@ import { describeRefusal } from "@/lib/ai/paid-guard";
  *  score history, and the sync-over-sync change diff — all scoped to the tenant.
  *  `requestedPeriod` reads a specific period's stored state (the store keeps
  *  every synced period now); omitted, it serves the active one. */
-async function loadState(tenant: string, requestedPeriod?: CampaignPeriod) {
+async function loadTenantInputs(
+  tenant: string,
+  requestedPeriod?: CampaignPeriod,
+  // Pre-read by the project-level loader so a union costs exactly ONE root read
+  // and ONE campaigns listing per tenant — no more than the single-tenant path.
+  preRoot?: TenantRoot,
+  // A promise, so the per-tenant campaign listings run alongside (not before) the
+  // rest of each tenant's parallel read batch.
+  preCampaigns?: Promise<Campaign[]>
+): Promise<CampaignsStateInputs> {
   // ONE tenant-root read per request: the root carries the sync meta AND the
   // active-period pointer that listCampaigns/getSeries/getCampaignSeries/
   // listSnapshotSummaries/getLatestChanges each used to re-read (5+ root reads per
@@ -45,13 +60,16 @@ async function loadState(tenant: string, requestedPeriod?: CampaignPeriod) {
   // everything else, so the reads run in parallel instead of ~9 sequential
   // round-trips. activePeriod semantics are unchanged — `root.activePeriod` is
   // exactly what `activePeriod(tenant)` returned before.
-  const root = await readTenantRoot(tenant);
+  const root = preRoot ?? (await readTenantRoot(tenant));
   const meta = await getSyncMeta(tenant, root);
   const period = requestedPeriod ?? meta?.period;
 
   const [campaigns, changes, reportsBundle, histories, series, campaignSeries, snapshotSummaries] =
     await Promise.all([
-      listCampaigns(tenant, period, root),
+      // Already listed (and source-tagged) by listCampaignsForTenants when the
+      // project-level loader threaded it in; `period` resolves identically there,
+      // because root.activePeriod IS meta.period.
+      preCampaigns ?? listCampaigns(tenant, period, root),
       getLatestChanges(tenant, period, root),
       meta && period
         ? getReportsForPeriodWithHashes(tenant, period)
@@ -64,9 +82,7 @@ async function loadState(tenant: string, requestedPeriod?: CampaignPeriod) {
       listSnapshotSummaries(tenant, 12, period, root),
     ]);
 
-  // Pure assembly (stale-report detection + non-active-period meta rewrite) lives
-  // in ./state so the exact response shape is unit-tested without Firestore.
-  return assembleCampaignsState({
+  return {
     meta,
     period,
     campaigns,
@@ -77,7 +93,51 @@ async function loadState(tenant: string, requestedPeriod?: CampaignPeriod) {
     series,
     campaignSeries,
     snapshotSummaries,
-  });
+  };
+}
+
+/** ADR-0010 — the PROJECT's state: the union of its per-account tenants, in
+ *  precedence order (Google first, then Sklik), assembled into ONE payload.
+ *
+ *  A single-source project resolves to exactly one tenant, so the response is
+ *  byte-identical to the pre-union one — `assembleProjectCampaignsState` of one
+ *  part IS `assembleCampaignsState` of its inputs, adding no key.
+ *
+ *  This is a READ. Every write surface (change-sets, alerts, analyze, the sync
+ *  below) stays on `resolveTenant`'s single tenant: "a union read must not be
+ *  mistaken for a union write" (ADR-0010 "Consequences"). Every tenant here is
+ *  built by `buildTenantKey` from the SESSION's user id, so a union widens what
+ *  one user's project reads across THEIR OWN accounts and can never span users.
+ *
+ *  Exported so `test-unit/campaigns-route-union.test.mjs` can drive it against a
+ *  LOCAL_DB temp database without a Next request. */
+export async function loadProjectState(
+  userId: string | null,
+  projectId?: string,
+  requestedPeriod?: CampaignPeriod
+) {
+  const tenants = await resolveProjectTenants(userId, projectId);
+  // ONE root read per tenant, then EVERYTHING else concurrently: the source-tagged
+  // campaign listings (root-threaded, so they issue no second root read) and each
+  // tenant's own parallel batch. A two-tenant union therefore costs exactly twice
+  // the single-tenant path's reads, and no extra round-trip depth.
+  const roots = await Promise.all(tenants.map(({ tenant }) => readTenantRoot(tenant)));
+  const tagged = listCampaignsForTenants(tenants, requestedPeriod, roots);
+  const parts = await Promise.all(
+    tenants.map(async ({ tenant, source }, i) => ({
+      source,
+      inputs: await loadTenantInputs(
+        tenant,
+        requestedPeriod,
+        roots[i],
+        tagged.then((lists) => lists[i] ?? [])
+      ),
+    }))
+  );
+  // Pure assembly (stale-report detection, the non-active-period meta rewrite and
+  // the union merge rules) lives in ./state so the exact response shape is
+  // unit-tested without Firestore.
+  return assembleProjectCampaignsState(parts);
 }
 
 export async function GET(request: Request) {
@@ -94,8 +154,7 @@ export async function GET(request: Request) {
     // (indistinguishable from a real cold project) and leaves an orphan behind.
     const unknown = await rejectUnknownProject(userId, projectId);
     if (unknown) return unknown;
-    const tenant = await resolveTenant(userId, projectId);
-    return Response.json(await loadState(tenant, period));
+    return Response.json(await loadProjectState(userId, projectId, period));
   } catch (err) {
     console.error("[campaigns] loadState failed:", err);
     return Response.json({ error: "Nepodařilo se načíst stav kampaní." }, { status: 500 });
@@ -141,9 +200,11 @@ export async function POST(request: Request) {
   // pointer moves so the (gate-locked) analyze route evaluates exactly the
   // period on screen. Falls through to a real sync when the period is cold.
   if (preferStored) {
+    // The pointer flip is a WRITE, so it stays on the single resolveTenant tenant;
+    // what comes back is the project's union read for that period.
     const tenant = await resolveTenant(userId, projectId);
     const flipped = await setActivePeriod(tenant, period);
-    if (flipped) return Response.json(await loadState(tenant, period));
+    if (flipped) return Response.json(await loadProjectState(userId, projectId, period));
   }
 
   // Per-user daily sync quota (signed-in users).
@@ -194,5 +255,7 @@ export async function POST(request: Request) {
     );
   }
 
-  return Response.json(await loadState(tenant, period));
+  // The sync wrote ONE tenant (single-tenant write); the response is the project's
+  // union read, so a dual-network console shows both networks after either sync.
+  return Response.json(await loadProjectState(userId, projectId, period));
 }

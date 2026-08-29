@@ -126,8 +126,8 @@ export const MODULES: ModuleDef[] = [
     icon: "campaigns",
     section: "growth",
     availableFor: ["eshop", "app", "leadgen", "local"],
-    blurb: "Kampaně Google Ads, triáž, AI vyhodnocení a přesuny rozpočtu.",
-    blurbEn: "Google Ads campaigns, triage, AI evaluation and budget moves.",
+    blurb: "Kampaně z Google Ads a Skliku, triáž, AI vyhodnocení a přesuny rozpočtu.",
+    blurbEn: "Campaigns from Google Ads and Sklik, triage, AI evaluation and budget moves.",
   },
   {
     key: "klicova-slova",

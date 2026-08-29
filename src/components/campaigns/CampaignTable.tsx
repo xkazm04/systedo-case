@@ -45,6 +45,10 @@ import { loadFilters, saveFilters } from "./table/filters";
 import { useBatchRunner } from "./table/useBatchRunner";
 import { exportCampaignsCsv } from "./table/csv";
 import { deriveCampaignRows, filterCampaignRows, sortCampaignRows } from "./table/derive";
+import SourceBadge, { SourceReadOnlyHint } from "./table/SourceBadge";
+import SourceFilter, { type SourceFilterValue } from "./table/SourceFilter";
+import RowFunnel from "./table/RowFunnel";
+import type { CampaignsSourceMeta } from "./useCampaigns";
 
 const T = {
   cs: {
@@ -107,12 +111,6 @@ const T = {
       "Souhrn právě vyfiltrovaných kampaní: ROAS a PNO jsou přepočítané ze součtů, ne průměrované",
     severityPillTitle: "Zobrazit nálezy triáže v detailu řádku",
     triageHeading: "Proč vyžaduje pozornost",
-    funnelHeading: "Trychtýř za období",
-    funnelImpressions: "Zobrazení",
-    funnelClicks: "Prokliky",
-    funnelConversions: "Konverze",
-    funnelConvRate: "konv. poměr",
-    funnelBudget: "Rozpočet {budget}/den · čerpáno {pacing}",
     csvImpressions: "Zobrazení",
     csvClicks: "Prokliky",
     csvConvRate: "Konv. poměr %",
@@ -177,12 +175,6 @@ const T = {
       "Aggregate of the currently filtered campaigns: ROAS and PNO are re-derived from sums, not averaged",
     severityPillTitle: "Show the triage findings in the row detail",
     triageHeading: "Why it needs attention",
-    funnelHeading: "Funnel over the period",
-    funnelImpressions: "Impressions",
-    funnelClicks: "Clicks",
-    funnelConversions: "Conversions",
-    funnelConvRate: "conv. rate",
-    funnelBudget: "Budget {budget}/day · {pacing} spent",
     csvImpressions: "Impressions",
     csvClicks: "Clicks",
     csvConvRate: "Conv. rate %",
@@ -235,6 +227,7 @@ export default function CampaignTable({
   onTypeFilterChange,
   onPreparePackage,
   goals,
+  sources,
 }: {
   campaigns: Campaign[];
   reports: Record<string, CampaignReport>;
@@ -278,6 +271,10 @@ export default function CampaignTable({
    *  measure against the SAME goal. Omitted → the module constants (byte-identical
    *  default). */
   goals?: TriageGoals;
+  /** ADR-0010 — the union read's sections, present ONLY when the project resolved
+   *  to more than one per-account tenant. Absent (every single-network project) →
+   *  no source column, no source filter, byte-identical table. */
+  sources?: CampaignsSourceMeta[];
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -304,6 +301,11 @@ export default function CampaignTable({
   const [query, setQuery] = useState(() => loadFilters().query);
   const [statusFilter, setStatusFilter] = useState<CampaignStatus | "all">(() => loadFilters().statusFilter);
   const [attentionOnly, setAttentionOnly] = useState(() => loadFilters().attentionOnly);
+  // ADR-0010 — the union's network filter. Deliberately NOT persisted alongside
+  // the other filters: a stored "sklik only" would silently hide every row for a
+  // project that later drops back to one network.
+  const [sourceFilter, setSourceFilter] = useState<SourceFilterValue>("all");
+  const unionSources = sources && sources.length > 1 ? sources : null;
 
   // Persist the chosen sort so the table reopens the way the user left it.
   useEffect(() => {
@@ -379,6 +381,7 @@ export default function CampaignTable({
     onTypeFilterChange("all");
     setStatusFilter("all");
     setAttentionOnly(false);
+    setSourceFilter("all");
   };
 
   // Trend column only when per-campaign series exist (older tenants re-sync
@@ -413,7 +416,7 @@ export default function CampaignTable({
 
   const q = query.trim().toLowerCase();
   const filtersActive =
-    q !== "" || typeFilter !== "all" || statusFilter !== "all" || attentionOnly;
+    q !== "" || typeFilter !== "all" || statusFilter !== "all" || attentionOnly || sourceFilter !== "all";
 
   // Flagged rows still lacking a report — the "evaluate all flagged" queue. A
   // cheap filter over the already-triaged rows (and consumed by the earlier
@@ -424,8 +427,8 @@ export default function CampaignTable({
   // Cheap layers over the already-triaged rows: the filter re-runs on a search
   // keystroke (only `q` changed), the sort only when the sort state changes.
   const filtered = useMemo(
-    () => filterCampaignRows(allRows, { query: q, typeFilter, statusFilter, attentionOnly }),
-    [allRows, q, typeFilter, statusFilter, attentionOnly]
+    () => filterCampaignRows(allRows, { query: q, typeFilter, statusFilter, attentionOnly, sourceFilter }),
+    [allRows, q, typeFilter, statusFilter, attentionOnly, sourceFilter]
   );
   const view = useMemo(() => sortCampaignRows(filtered, sort), [filtered, sort]);
 
@@ -463,6 +466,12 @@ export default function CampaignTable({
             className="w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 text-sm text-navy-800 transition-colors placeholder:text-muted hover:border-navy-200"
           />
         </div>
+
+        {/* ADR-0010 — one segment per network the project actually reads. Only a
+            genuine union renders it (a single-source console is unchanged). */}
+        {unionSources && (
+          <SourceFilter value={sourceFilter} onChange={setSourceFilter} sources={unionSources} />
+        )}
 
         <select
           value={typeFilter}
@@ -640,10 +649,18 @@ export default function CampaignTable({
                             <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
                             {severityLabel(triageResult.severity, locale)}
                           </button>
+                          {/* ADR-0010 — a union READ is not a union WRITE: Sklik
+                              rows are read-only until the Sklik write path lands
+                              (the control-plane route refuses them anyway), so the
+                              row states that instead of offering a button that
+                              cannot work. */}
+                          {triageResult.severity === "critical" &&
+                            onPreparePackage &&
+                            c.source === "sklik" && <SourceReadOnlyHint />}
                           {/* Critical rows get a direct path to the fix: stage a
                               governed change-set (scoped to this campaign's alert
                               when one exists) without hunting through the inbox. */}
-                          {triageResult.severity === "critical" && onPreparePackage && (
+                          {triageResult.severity === "critical" && onPreparePackage && c.source !== "sklik" && (
                             <>
                               <button
                                 type="button"
@@ -667,7 +684,8 @@ export default function CampaignTable({
                     </td>
                     <td className="px-5 py-3">
                       <div className="font-medium text-navy-800">{c.name}</div>
-                      <div className="mt-1 flex items-center gap-2">
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        {unionSources && <SourceBadge source={c.source} />}
                         <span className="inline-flex items-center gap-1.5 text-xs text-muted">
                           <span
                             className="h-2 w-2 rounded-full"
@@ -818,40 +836,7 @@ export default function CampaignTable({
                         {/* The funnel layer under the money metrics — the same
                             CTR/CR/CPC evidence the AI prompt reasons from, so the
                             human and the model look at identical numbers. */}
-                        <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2 rounded-card border border-line bg-surface px-4 py-3 text-sm">
-                          <span className="mr-2 text-xs font-semibold uppercase tracking-wide text-muted">
-                            {t("funnelHeading")}
-                          </span>
-                          <span className="text-navy-700">
-                            <span className="text-xs text-muted">{t("funnelImpressions")}</span>{" "}
-                            <span className="tnum font-medium text-navy-800">{fmt.fmtInt(c.impressions)}</span>
-                          </span>
-                          <span className="text-muted" aria-hidden>→</span>
-                          <span className="text-navy-700">
-                            <span className="text-xs text-muted">{t("funnelClicks")}</span>{" "}
-                            <span className="tnum font-medium text-navy-800">{fmt.fmtInt(c.clicks)}</span>{" "}
-                            <span className="tnum text-xs text-muted">
-                              (CTR {c.impressions > 0 ? fmt.fmtPct(c.ctr, 2) : "—"} · CPC{" "}
-                              {c.clicks > 0 ? money(c.cpc) : "—"})
-                            </span>
-                          </span>
-                          <span className="text-muted" aria-hidden>→</span>
-                          <span className="text-navy-700">
-                            <span className="text-xs text-muted">{t("funnelConversions")}</span>{" "}
-                            <span className="tnum font-medium text-navy-800">{fmt.fmtInt(c.conversions)}</span>{" "}
-                            <span className="tnum text-xs text-muted">
-                              ({t("funnelConvRate")} {c.clicks > 0 ? fmt.fmtPct(c.convRate, 2) : "—"})
-                            </span>
-                          </span>
-                          {pacing && (
-                            <span className="tnum ml-auto text-xs text-muted">
-                              {t("funnelBudget", {
-                                budget: money(c.budgetPerDay ?? 0),
-                                pacing: fmt.fmtPct(pacing.pacing, 0),
-                              })}
-                            </span>
-                          )}
-                        </div>
+                        <RowFunnel c={c} pacing={pacing} money={money} />
                         {isAnalyzing && !report ? (
                           <div className="flex items-center gap-3 text-sm text-muted">
                             <Gauge width={18} height={18} className="animate-pulse text-brand-600" />

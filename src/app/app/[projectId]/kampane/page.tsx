@@ -1,4 +1,5 @@
-/** Kampaně — the Google Ads campaign console, re-hosted inside the project shell.
+/** Kampaně — the ad-network campaign console (Google Ads + Sklik, ADR-0010 union
+ *  read), re-hosted inside the project shell.
  *  The header note adapts to the project type's channel focus. */
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
@@ -16,10 +17,10 @@ import { currentUserId } from "@/lib/session";
 
 const T = {
   cs: {
-    desc: "Kampaně Google Ads, triáž, AI vyhodnocení a přesuny rozpočtu. Zaměření pro tento typ projektu: {focus}.",
+    desc: "Kampaně z Google Ads a Skliku, triáž, AI vyhodnocení a přesuny rozpočtu. Zaměření pro tento typ projektu: {focus}.",
   },
   en: {
-    desc: "Google Ads campaigns, triage, AI evaluation and budget moves. Focus for this project type: {focus}.",
+    desc: "Campaigns from Google Ads and Sklik, triage, AI evaluation and budget moves. Focus for this project type: {focus}.",
   },
 } as const;
 

@@ -88,3 +88,8 @@ same shape).
   already the rule (`resolveReportDataset` is the only door).
 - Mutations remain Google-only until the Sklik write path lands (deck card 1,
   special-care rung S1); a union read must not be mistaken for a union write.
+- The campaigns console reads the union since W1-G: `GET/POST /api/campaigns`
+  assembles one payload per project (`loadProjectState`), rows carry `source`,
+  and `sources` + `mixedCurrency` are additive keys present ONLY above one
+  tenant — a single-source response is byte-identical, and every write surface
+  (change-sets, alerts, analyze, the sync itself) still resolves one tenant.
