@@ -8,8 +8,10 @@ import { fileURLToPath } from "node:url";
 
 export const RUN_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
 export const SHOTS = join(RUN_DIR, "shots");
-/** Textual evidence lives OUTSIDE shots/: `uat/.gitignore` drops `runs/*/shots/`
- *  (large, reproducible captures), while the dumps a report cites must survive. */
+/** Textual evidence lives OUTSIDE shots/: `uat/.gitignore` drops each run's shots
+ *  directory (large, reproducible captures), while the dumps a report cites must
+ *  survive. (The glob is spelled out in that .gitignore — writing it here would
+ *  end this block comment early: an asterisk-slash inside it is a parse bomb.) */
 export const EVIDENCE = join(RUN_DIR, "evidence");
 export const BASE = process.env.BASE_URL ?? "http://localhost:3107";
 const STATE = join(RUN_DIR, "driver", "state.json");
