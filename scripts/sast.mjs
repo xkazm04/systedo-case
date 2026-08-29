@@ -122,6 +122,48 @@ const GUARD_RE =
 
 const RULES = [
   {
+    id: "raw-engine-outside-seam",
+    rung: "reporting",
+    // 18 files import an engine outside a backend file today (2026-08-29). The
+    // number is a debt count, not a budget: lower it when a module grows a store,
+    // and graduate a permanently-legitimate one (src/auth.ts needs the Firestore
+    // adapter by construction) into the allowlist with a written reason instead.
+    ratchet: 18,
+    title: "Store engine imported outside the dual-store seam",
+    why:
+      "ADR-0001 says every persisted domain speaks through ONE interface module with a " +
+      ".firestore.ts / .local.ts pair beside it. A module that opens firestore or getDb " +
+      "itself is outside that seam: it has no local twin, so it is a hole in offline dev " +
+      "and in every self-hosted install, and it is invisible to the pair convention that " +
+      "caught the original twelve Firestore-only modules. It also re-scatters the question " +
+      "ADR-0002 depends on — 'what writes to tenants/{tenant}?' should be a directory " +
+      "listing, not an investigation across a dozen modules.",
+    // Matched against `noComments`, which keeps string contents: an import's module
+    // specifier IS a string literal, so the `codeOnly` view (which blanks literals)
+    // cannot see it at all. Comments are stripped so a doc comment mentioning
+    // firebase-admin — several of them do — is not a finding.
+    run: () => {
+      // The seam itself: the two engine owners, plus every backend implementation.
+      // `users/local.ts` and `campaigns/store/local-docs.ts` are backends whose names
+      // predate the .local.ts convention; excluded as implementations, not waivers.
+      const SEAM =
+        /(^src\/lib\/firebase\.ts$|^src\/lib\/db\.ts$|\.firestore\.ts$|\.local\.ts$|^src\/lib\/users\/local\.ts$|^src\/lib\/campaigns\/store\/local-docs\.ts$|^src\/lib\/tenant-docs\/(firestore|local)\.ts$)/;
+      const ENGINE = /from\s+"(firebase-admin[^"]*|@\/lib\/firebase|@\/lib\/db)"/;
+      const out = [];
+      for (const f of files) {
+        if (SEAM.test(f.path)) continue;
+        const m = ENGINE.exec(f.noComments);
+        if (!m) continue;
+        out.push({
+          path: f.path,
+          line: f.noComments.slice(0, m.index).split("\n").length,
+          detail: `imports ${m[1]} with no .firestore/.local twin`,
+        });
+      }
+      return out;
+    },
+  },
+  {
     id: "route-auth",
     title: "API route with no caller identity established",
     why:
@@ -222,10 +264,20 @@ const RULES = [
 const blocking = [];
 const waived = [];
 
+// A rule is BLOCKING by default: it passes on the tree today, so any finding is a
+// regression and fails the job (ADR-0007's first rung). A rule may instead declare
+// `rung: "reporting"` with a numeric `ratchet` — the second rung, for an invariant
+// that is right but that the tree does not satisfy YET. Its findings are counted
+// and printed in full, and it fails only when the count RISES above the ratchet.
+// Fix findings and lower the ratchet in the same commit; never raise it. This is
+// the rung that lets a boundary be stated and measured on the day it is agreed,
+// instead of waiting for a big-bang cleanup that never comes.
+const reporting = [];
 for (const rule of RULES) {
   for (const finding of rule.run()) {
     const reason = allowed(rule.id, finding.path);
     if (reason) waived.push({ rule, ...finding, reason });
+    else if (rule.rung === "reporting") reporting.push({ rule, ...finding });
     else blocking.push({ rule, ...finding });
   }
 }
@@ -276,6 +328,24 @@ if (stale.length) {
   for (const s of stale) say(`  • ${s}`);
 }
 
+// Reporting rung: counted against each rule's ratchet. Over budget is a failure;
+// under budget is a request to lower the number while the win is fresh.
+const overRatchet = [];
+for (const rule of RULES.filter((r) => r.rung === "reporting")) {
+  const found = reporting.filter((f) => f.rule.id === rule.id);
+  say("");
+  say(`${found.length > rule.ratchet ? "✗" : "•"} [${rule.id}] ${rule.title} — ${found.length} finding(s), ratchet ${rule.ratchet}`);
+  say(`    why: ${rule.why}`);
+  for (const f of found) say(`  ${f.path}:${f.line} — ${f.detail}`);
+  if (found.length > rule.ratchet) {
+    overRatchet.push(rule.id);
+    say(`    ✗ ${found.length} > ${rule.ratchet}. This rule is on the reporting rung: it fails only when the`);
+    say(`      count RISES. Route the new one through the seam, or allowlist it with a written reason.`);
+  } else if (found.length < rule.ratchet) {
+    say(`    ↓ ${found.length} < ${rule.ratchet} — lower the ratchet to ${found.length} in this commit.`);
+  }
+}
+
 if (WANT_INVENTORY || SUMMARY_FILE) {
   say("");
   say("API route guard inventory:");
@@ -295,4 +365,4 @@ if (SUMMARY_FILE) {
   }
 }
 
-process.exit(blocking.length ? 1 : 0);
+process.exit(blocking.length || overRatchet.length ? 1 : 0);
