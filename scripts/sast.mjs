@@ -124,11 +124,12 @@ const RULES = [
   {
     id: "raw-engine-outside-seam",
     rung: "reporting",
-    // 18 files import an engine outside a backend file today (2026-08-29). The
+    // 15 files import an engine outside a backend file today (2026-08-29, after
+    // wave 0 moved microsite, control-plane and mutations behind seams). The
     // number is a debt count, not a budget: lower it when a module grows a store,
     // and graduate a permanently-legitimate one (src/auth.ts needs the Firestore
     // adapter by construction) into the allowlist with a written reason instead.
-    ratchet: 18,
+    ratchet: 15,
     title: "Store engine imported outside the dual-store seam",
     why:
       "ADR-0001 says every persisted domain speaks through ONE interface module with a " +

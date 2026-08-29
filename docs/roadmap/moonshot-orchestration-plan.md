@@ -112,11 +112,45 @@ Wave 4  S1 ──► S1b ──► S2 ──► S3              (serial, special
 ## Rollback (what to revert; what data a rollback strands)
 ```
 
+## 3b. Wave 0 outcome (2026-08-29) — DONE
+
+Landed on master, in this order: F4 `7e5d858e` · F3 `e55eabbe` · F2 `d923d8f9` · F1 `ed6477f0`
+(ADR-0010 + specs `77b7093d`). Whole-tree `build` green, `test:unit` 2662/2662, `agents:surface`
++ `adr:check` green; `sast` raw-engine ratchet lowered 18 → 15 (the 3 blocking findings it
+prints predate the wave).
+
+**What changed against the plan, and why:**
+- ADR-0010 replaced the "composite tenant suffix" idea: per-account tenants already exist, so
+  a project *reads the union* — no key migration. The "channel ledger" is the per-source
+  `sources` sections inside the report-metrics blob, not a new table.
+- The four builders ran in parallel in the main checkout (disjoint write sets), not in
+  worktrees — the serial-review promise held (every hunk reviewed before its commit).
+- The worktree is checked out CRLF with `autocrlf=false`: every touched file must be LF-normalized
+  (`sed -i 's/$//'`) before commit or the diff is whole-file. Builders caught it; the Director
+  hit it once. Put it in every builder brief.
+
+**Carried forward (not blockers, but owed):**
+- **W1-G (new, M): campaigns console union read.** `listCampaignsForProject` exists and is
+  tested; `api/campaigns/route.ts` + `state.ts` still assemble a single-tenant state. Switch the
+  route + state assembly + client derive together, and only then change the `kampane` copy
+  from "Google Ads". Owner: whoever takes W2-E or a Wave-1 slot.
+- `alerts.ts` still imports firestore for the tenant ROOT doc (`criticalAlertState`) shared
+  with `anomaly-alerts.ts` — needs a root-doc pair on `TenantDocs` (M, no owner yet).
+- `src/app/api/microsite/route.ts:111-115` maps every non-`invalid-slug` error to 409;
+  `invalid-kind` needs its own branch + cs/en string when W2-C/W3-B add a kind picker.
+- Sklik report section window is 90d (the adapter takes a `CampaignPeriod`), Google's is 400d;
+  stamped honestly on the section's `days`. Widening it is an adapter change.
+- `src/lib/db.ts:1070` says "28-table schema"; it is 36. Cosmetic, fix when next in the file.
+- `context-map.json` is Class C: the Director mapped the 8 new files this wave.
+
 ## 4. What the Director does first (next session)
 
-1. Write **ADR-0010** (composite tenant suffix for two ad accounts; grants no second identity — that is card 7, parked).
-2. Write the four foundation specs; build F1–F4 with one Opus each, serially, reviewing every hunk.
-3. Write the six Wave-1 specs while F-work verifies; dispatch Wave 1 the moment F4 lands.
+1. ~~ADR-0010~~ ~~foundation specs~~ ~~F1–F4~~ — done (§3b).
+2. Write the six Wave-1 specs (`docs/specs/wp-W1-*.md`) from §1, plus W1-G (§3b); copy the
+   Wave-0 builder brief shape (spec-only, no commits, LF normalization, whole-tree gates may be
+   red on another builder's path).
+3. Dispatch Wave 1 (6–7 builders, disjoint write sets); land each with a pathspec commit after
+   review; seams commit between waves; `npm run build` once per wave.
 
 ## 5. Risks the plan accepts
 
