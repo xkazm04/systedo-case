@@ -24,7 +24,14 @@ import { localSignalsPromptText } from "@/lib/local-signals/summary";
 import { getCompetitors } from "@/lib/competitors/store";
 import { competitorGroundingText } from "@/lib/competitors/grounding";
 import { getCostModel } from "@/lib/cost-model/store";
-import { profitGroundingText, historyGroundingText } from "@/lib/report/recap-context";
+import {
+  adviceOutcomesGroundingText,
+  profitGroundingText,
+  historyGroundingText,
+} from "@/lib/report/recap-context";
+import { getAdviceLedger } from "@/lib/advice/store";
+import { changeSetOutcomesGroundingText } from "@/lib/advice/changesets";
+import { listChangeSets } from "@/lib/campaigns/control-plane";
 import { getAnnotations } from "@/lib/annotations/store";
 import { annotationsGroundingText } from "@/lib/annotations/types";
 import { resolveTenant } from "@/lib/campaigns/connector";
@@ -97,6 +104,10 @@ export interface GroundingResult {
  *  the recap cache. */
 async function mergeGrounding(
   projectId: string,
+  // WP W3-A: the OWNER, when the caller owns this project. Gates the two
+  // outcome reads below — a demo/unowned resolution never touches them, so the
+  // public demo path stays byte-identical (and store-read-identical) to before.
+  owner: string | null,
   leadText: string | null,
   // R06: map-pack coverage + review sentiment for a local project (null otherwise),
   // resolved by the caller (it needs the project object, not just the id).
@@ -113,11 +124,21 @@ async function mergeGrounding(
   // re-import invalidates the recap cache — the lead grounding text is real data.
   leadVersion?: string
 ): Promise<{ text?: string; keySuffix?: string }> {
-  const [set, costModel, annotations] = await Promise.all([
+  const [set, costModel, annotations, ledger, changeSets] = await Promise.all([
     getCompetitors(projectId),
     getCostModel(projectId),
     getAnnotations(projectId).catch(() => null),
+    // WP W3-A: the project's advice ledger — what the app already recommended, and
+    // what the signal behind it did. Owner-only and best-effort: an unreadable
+    // ledger costs a grounding line, never the recap.
+    owner ? getAdviceLedger(owner, projectId) : null,
+    owner
+      ? resolveTenant(owner, projectId)
+          .then((tenant) => listChangeSets(tenant))
+          .catch(() => [])
+      : [],
   ]);
+  const now = new Date();
   const merged = [
     leadText,
     localText,
@@ -128,10 +149,31 @@ async function mergeGrounding(
     // system-prompt/fingerprint change); "" when there are no in-window notes, so
     // the prompt stays byte-identical for projects without annotations.
     annotationsGroundingText(annotations?.items ?? [], data, windowDays, locale),
+    // WP W3-A: the loop, closed — the app's own advice, scored on the signal's own
+    // metric, plus the realized impact of budget changes actually applied (W2-E).
+    // Both are "" for a project with nothing measured, which is most of them.
+    adviceOutcomesGroundingText(ledger, locale),
+    changeSetOutcomesGroundingText(changeSets, locale, now),
   ]
     .filter(Boolean)
     .join(" ");
-  const keySuffix = [set?.updatedAt, costModel?.updatedAt, annotations?.updatedAt, leadVersion]
+  // The ledger's `updatedAt` is REQUIRED in the cache key: without it a recap
+  // generated before an outcome landed would keep being served after it landed —
+  // a stale narrative about a loop that has since closed. The newest realization
+  // timestamp does the same job for the change-set half.
+  const realizedAt = changeSets
+    .map((s) => s.realized?.computedAt ?? "")
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+  const keySuffix = [
+    set?.updatedAt,
+    costModel?.updatedAt,
+    annotations?.updatedAt,
+    leadVersion,
+    ledger?.updatedAt,
+    realizedAt,
+  ]
     .filter(Boolean)
     .join("|");
   return { text: merged || undefined, keySuffix: keySuffix || undefined };
@@ -161,7 +203,10 @@ export async function resolveGrounding(
     const data = getProjectDataset(demo);
     const localText = await localSignalsPromptText(demo, locale);
     const lead = await resolveLeadSignals(demo, targetLeads(data));
-    const comp = await mergeGrounding(demo.id, lead.text, localText, data, locale, windowDaysFor(period), period, lead.version);
+    // `owner: null` — a demo project is public, has no ledger (record.ts skips demo
+    // ids at the seam) and no tenant change-sets. Passing the viewer's id would buy
+    // two empty store reads on the most-hit path in the app.
+    const comp = await mergeGrounding(demo.id, null, lead.text, localText, data, locale, windowDaysFor(period), period, lead.version);
     return {
       data,
       // C3: the grounding inputs' versions enter the cache key so edits re-generate.
@@ -180,7 +225,10 @@ export async function resolveGrounding(
   const resolved = await resolveReportDataset(project);
   const localText = await localSignalsPromptText(project, locale);
   const lead = await resolveLeadSignals(project, targetLeads(resolved.data));
-  const comp = await mergeGrounding(project.id, lead.text, localText, resolved.data, locale, windowDaysFor(period), period, lead.version);
+  // `access.kind === "owned"` is exactly the proof that `userId` owns this project
+  // (resolveProjectAccess only returns it after getProject succeeded for that uid),
+  // so this is the one place the outcome reads are allowed to happen.
+  const comp = await mergeGrounding(project.id, userId, lead.text, localText, resolved.data, locale, windowDaysFor(period), period, lead.version);
   // D1: when the live series is stale, the recap gets a one-line caveat so the
   // narrative acknowledges the data age instead of presenting month-old numbers
   // as current. USER-prompt only (groundingContext) — no system-prompt / golden

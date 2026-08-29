@@ -12,6 +12,10 @@ import { claimWeeklyDigest, releaseWeeklyDigest } from "@/lib/cron/sent-guard";
 import { isoWeekKey } from "@/lib/cron/schedule";
 import { recordCronRun } from "@/lib/cron/run";
 import { getLatestChanges, getSyncMeta, listCampaigns } from "@/lib/campaigns/store";
+import { listChangeSets } from "@/lib/campaigns/control-plane";
+import { getAdviceLedger } from "@/lib/advice/store";
+import { adviceOutcomeRows, renderAdviceOutcomes } from "@/lib/advice/digest";
+import { changeSetOutcomeRows } from "@/lib/advice/changesets";
 import { recommendBudgetMoves } from "@/lib/campaigns/budget-moves";
 import { aggregate, indexChanges, withMetrics } from "@/lib/campaigns/types";
 import { triage } from "@/lib/campaigns/triage";
@@ -186,6 +190,9 @@ export async function GET(request: Request) {
       // not sample-only).
       let diagnosisHtml = "";
       let insightHtml = "";
+      // WP W3-A — "Výsledky rad": what the app's OWN advice did. "" when nothing was
+      // measured this week, which is the section idiom every block here follows.
+      let adviceHtml = "";
       let diagnosisNotes: string[] | undefined;
       if (project && !diagnosedProjects.has(project.id)) {
         diagnosedProjects.add(project.id);
@@ -237,6 +244,27 @@ export async function GET(request: Request) {
           });
           insightHtml = insightBriefHtml(insightLines, resolved.live, "cs");
         }
+
+        // Výsledky rad: recommendations whose signal went quiet in the last 7 days
+        // and which carried a real number, plus the realized impact of budget
+        // changes actually applied (W2-E, read-only). Zero new LLM calls and zero
+        // new maths — the ledger was written on render, the realization by the
+        // control plane. Sample-derived advice cannot appear: it never gets scored.
+        const adviceRows = [
+          ...adviceOutcomeRows(await getAdviceLedger(userId, project.id), now),
+          ...changeSetOutcomeRows(await listChangeSets(tenant), now, "cs"),
+        ];
+        const advice = renderAdviceOutcomes(adviceRows);
+        if (advice.alertBody) {
+          await recordAlert(tenant, {
+            type: "digest",
+            title: "Výsledky rad",
+            body: advice.alertBody,
+            items: [],
+            href: `/app/${project.id}`,
+          });
+          adviceHtml = advice.html;
+        }
       }
 
       const email = await getUserEmail(userId);
@@ -258,6 +286,7 @@ export async function GET(request: Request) {
           `<p style="margin-top:12px">${criticals} kampaní vyžaduje pozornost.</p>` +
           movesHtml +
           insightHtml +
+          adviceHtml +
           diagnosisHtml +
           `<p style="margin-top:16px">Otevřete přehled v Adamant pro detail a AI vyhodnocení.</p>`;
         await sendEmail(email, `Adamant: ${title}`, html);

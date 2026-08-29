@@ -7,6 +7,7 @@
  *     so we never fabricate a year of history.
  *  Pure. Fed through the recap `groundingContext` channel (no LLM fingerprint change). */
 import { buildSnapshot } from "@/lib/snapshot";
+import { scoredAdviceOutcomes, type AdviceLedger, type AdviceOutcomeStatus } from "@/lib/advice/ledger";
 import { periodProfit, PERIOD_MONTHS } from "@/lib/cost-model/compute";
 import type { CostModel } from "@/lib/cost-model/types";
 import type { PerformanceData } from "@/lib/types";
@@ -101,4 +102,50 @@ export function historyGroundingText(
       ? ` Net profit after costs: ${f.fmtCZK(curNet)}, ${f.fmtSignedPct(yoy)} YoY.`
       : ` Čistý zisk po nákladech: ${f.fmtCZK(curNet)}, ${f.fmtSignedPct(yoy)} meziročně.`;
   return base + netLine;
+}
+
+/** How many scored outcomes the recap grounding quotes. The narrative wants the
+ *  shape of the loop, not a transcript of it. */
+const ADVICE_GROUNDING_LIMIT = 4;
+
+const ADVICE_VERDICT: Record<AdviceOutcomeStatus, { cs: string; en: string }> = {
+  improved: { cs: "zlepšeno", en: "improved" },
+  unchanged: { cs: "beze změny", en: "unchanged" },
+  worse: { cs: "zhoršeno", en: "worse" },
+};
+
+/** WP W3-A — what the app's OWN advice did. Each line is a recommendation that was
+ *  actually shown to the operator, whose signal has since gone quiet, with the signed
+ *  move of the metric the signal itself reported (first sighting → last sighting).
+ *
+ *  "" when nothing is scored — which is the common case and must stay byte-identical
+ *  to the pre-W3-A prompt. It is also the case for a project whose advice is entirely
+ *  sample-derived: those records carry no outcome at all (see advice/ledger.ts), so a
+ *  demo/unconnected project can never have the recap narrate a fixture as a result.
+ *  User-prompt only (rides `groundingContext`) — no LLM fingerprint moves. Pure. */
+export function adviceOutcomesGroundingText(
+  ledger: AdviceLedger | null | undefined,
+  locale: SupportedLocale
+): string {
+  const scored = scoredAdviceOutcomes(ledger).slice(0, ADVICE_GROUNDING_LIMIT);
+  if (scored.length === 0) return "";
+  const f = createFormatters(locale);
+  const en = locale === "en";
+  // Quotation marks follow the locale, like every other quoted string in the app:
+  // Czech uses low-high „…“, English uses “…”.
+  const [open, close] = en ? ["“", "”"] : ["„", "“"];
+  const items = scored
+    .map((r) => {
+      const verdict = ADVICE_VERDICT[r.outcome!.status][en ? "en" : "cs"];
+      const delta = r.outcome!.deltaPct;
+      const measured =
+        r.snapshot && delta !== null && Number.isFinite(delta)
+          ? ` (${r.snapshot.key} ${f.fmtSignedPct(delta)})`
+          : "";
+      return `${open}${r.title}${close} — ${verdict}${measured}`;
+    })
+    .join("; ");
+  return en
+    ? `Outcomes of the advice this app already gave: ${items}. These are measured on the signal's own metric between the first and last time the recommendation was shown. Say whether the advice moved the numbers; never claim a result that is not in this list.`
+    : `Výsledky rad, které aplikace už dala: ${items}. Měřeno na vlastní metrice signálu mezi prvním a posledním zobrazením doporučení. Napiš, zda se rady promítly do čísel; nikdy netvrď výsledek, který v tomto seznamu není.`;
 }

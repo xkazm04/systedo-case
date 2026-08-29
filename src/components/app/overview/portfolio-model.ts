@@ -35,6 +35,7 @@ import {
 import { channelPlanForProject } from "@/lib/organic-channels/sample";
 import { resolveOrganicChannels } from "@/lib/organic-channels/resolve";
 import { byImpact, type Recommendation } from "@/lib/insights/types";
+import { recordAdviceSighting } from "@/lib/advice/record";
 import { SAMPLE_QUERIES, type CompareQuery } from "@/lib/seo-compare/sample";
 import { comparisonQueriesFromCatalog } from "@/lib/seo-compare/catalog";
 import { getCompetitors } from "@/lib/competitors/store";
@@ -207,15 +208,26 @@ async function buildPortfolioModel(
         totals: totalsOf(data.daily.slice(-30)),
         revenueSpark: bucketize(data.daily.slice(-365), "month").map((b) => b.revenue),
       };
-      // Re-keyed per project (rec ids aren't project-scoped) and tagged for the feed.
-      const recs: PortfolioRec[] = collectRecommendations(
+      const collected = collectRecommendations(
         p,
         locale,
         localInput,
         seoQueries,
         synced,
         channelPlan
-      ).map(
+      );
+      // WP W3-A: the SAME render hook the single-project overview fires, so a
+      // portfolio operator who never opens an individual project still accumulates a
+      // ledger. Fire-and-forget and demo-skipped inside `recordAdviceSighting`, so the
+      // all-demo memo path below stays I/O-free. `demo` is checked here too, to keep
+      // even the function call off that path.
+      if (!demo) void recordAdviceSighting(p.id, collected);
+      // Re-keyed per project (rec ids aren't project-scoped) and tagged for the feed.
+      // NOTE the split of duties: `id` stays the React key and is project-scoped here;
+      // `subjectKey` is the LEDGER's identity and is deliberately NOT re-keyed — it is
+      // already unique within a project, and the ledger is a per-project blob, so
+      // prefixing it would only make the same signal look like two subjects.
+      const recs: PortfolioRec[] = collected.map(
         (r) => ({
           ...r,
           id: `${p.id}:${r.id}`,

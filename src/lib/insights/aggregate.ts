@@ -33,16 +33,28 @@ import { channelPlanForProject } from "@/lib/organic-channels/sample";
 import type { ChannelTrack, OrganicChannel } from "@/lib/organic-channels/types";
 import { CHANNEL_KEY_LABELS } from "@/lib/publishing/channel-key";
 import type { CadenceCheck } from "@/lib/publishing/types";
-import { byImpact, type Recommendation, type Severity } from "./types";
+import {
+  byImpact,
+  subjectSlug,
+  type Recommendation,
+  type RecommendationSnapshot,
+  type Severity,
+} from "./types";
 
+/** WP W3-A: `subjectKey` sits FOURTH, before the localized title, so the type system
+ *  itself forces every producer to supply one — a new rec cannot compile without an
+ *  identity. `snapshot` is last and optional: only a producer with a real number
+ *  behind its signal passes one (see RecommendationSnapshot's registered keys). */
 function rec(
   locale: SupportedLocale,
   module: string,
   severity: Severity,
+  subjectKey: string,
   title: string,
   detail: string,
   metric?: string,
-  impactCzk?: number
+  impactCzk?: number,
+  snapshot?: RecommendationSnapshot
 ): Recommendation {
   // Look the module def up defensively: the non-null assertion here threw inside
   // moduleLabel BEFORE the `?? module` fallback could apply, so one renamed/removed
@@ -51,6 +63,7 @@ function rec(
   const def = MODULES.find((m) => m.key === module);
   return {
     id: `${module}:${title}`,
+    subjectKey,
     module,
     moduleLabel: def ? moduleLabel(def, locale) : module,
     severity,
@@ -58,6 +71,7 @@ function rec(
     detail,
     metric,
     impactCzk,
+    ...(snapshot ? { snapshot } : {}),
   };
 }
 
@@ -89,13 +103,18 @@ function eshopRecs(project: Project, locale: SupportedLocale, metricsLive: boole
   const { rows: profit } = computeProfit(rows, defaultMargins(data.channels));
   for (const r of profit.filter((p) => !p.profitable)) {
     out.push(from(metricsLive, rec(locale, "zisk", "critical",
+      `zisk:unprofitable-channel:${subjectSlug(r.channel)}`,
       locale === "en"
         ? `${r.channel} loses money after margin`
         : `${r.channel} prodělává po marži`,
       locale === "en"
         ? `ROAS ${f.fmtMultiple(r.roas)} is below break-even ${f.fmtMultiple(r.breakEvenRoas)}. Shift budget to profitable channels.`
         : `ROAS ${f.fmtMultiple(r.roas)} je pod bodem zvratu ${f.fmtMultiple(r.breakEvenRoas)}. Přesuňte rozpočet do ziskových kanálů.`,
-      f.fmtCZK(r.netProfit), Math.abs(r.netProfit))));
+      f.fmtCZK(r.netProfit), Math.abs(r.netProfit),
+      // POAS is the margin-aware profit-on-ad-spend of THIS channel: higher is
+      // better, and acting on the advice (shifting budget away, fixing margin)
+      // moves it. The registered key lives in types.ts.
+      { key: "poas", value: r.poas })));
   }
 
   // Reference "now" derived from the dataset's last day → deterministic projected dates.
@@ -108,30 +127,35 @@ function eshopRecs(project: Project, locale: SupportedLocale, metricsLive: boole
   // (always disclosed) regardless of the metrics seam.
   for (const s of stock.filter((s) => s.status === "pause")) {
     out.push(fixture(rec(locale, "sklad-sezonnost", "warning",
+      `sklad-sezonnost:stockout:${subjectSlug(s.product.sku)}`,
       locale === "en"
         ? `${s.product.title} runs out soon`
         : `${s.product.title} brzy dojde`,
       locale === "en"
         ? `Stock for ${Math.round(s.daysOfCover)} days. Consider pausing ads for this product.`
         : `Zásoba na ${Math.round(s.daysOfCover)} dní. Zvažte pozastavení reklamy na tento produkt.`,
-      `${Math.round(s.daysOfCover)} ${locale === "en" ? "days" : "dní"}`, s.coverValue)));
+      `${Math.round(s.daysOfCover)} ${locale === "en" ? "days" : "dní"}`, s.coverValue,
+      { key: "daysOfCover", value: s.daysOfCover })));
   }
 
   // Stock → early warning: SKUs trending toward stockout (< 14 dní), not yet a hard pauza.
   for (const s of stock.filter((s) => s.atRisk)) {
     out.push(fixture(rec(locale, "sklad-sezonnost", "opportunity",
+      `sklad-sezonnost:stockout-risk:${subjectSlug(s.product.sku)}`,
       locale === "en"
         ? `${s.product.title} approaching stockout`
         : `${s.product.title} se blíží vyprodání`,
       locale === "en"
         ? `Stock dropping below ${AT_RISK_DAYS} days (${Math.round(s.daysOfCover)} days left). Restock before you need to pause ads.`
         : `Zásoba klesá pod ${AT_RISK_DAYS} dní (zbývá ${Math.round(s.daysOfCover)} dní). Doplňte sklad včas, než bude nutné pozastavit reklamu.`,
-      `${Math.round(s.daysOfCover)} ${locale === "en" ? "days" : "dní"}`, s.coverValue)));
+      `${Math.round(s.daysOfCover)} ${locale === "en" ? "days" : "dní"}`, s.coverValue,
+      { key: "daysOfCover", value: s.daysOfCover })));
   }
 
   // Stock → paused SKU with a scheduled restock inside the horizon (resuming).
   for (const s of stock.filter((s) => s.status === "resuming")) {
     out.push(fixture(rec(locale, "sklad-sezonnost", "info",
+      `sklad-sezonnost:restock-scheduled:${subjectSlug(s.product.sku)}`,
       locale === "en"
         ? `Refresh: ${s.product.title}`
         : `${s.product.title} se brzy obnoví`,
@@ -146,6 +170,7 @@ function eshopRecs(project: Project, locale: SupportedLocale, metricsLive: boole
   const topMove = budgetChangeSet(stock).moves[0];
   if (topMove) {
     out.push(fixture(rec(locale, "sklad-sezonnost", "opportunity",
+      `sklad-sezonnost:budget-shift:${subjectSlug(topMove.fromSku)}|${subjectSlug(topMove.toSku)}`,
       locale === "en"
         ? `Shift budget: ${topMove.fromTitle} → ${topMove.toTitle}`
         : `Přesunout rozpočet: ${topMove.fromTitle} → ${topMove.toTitle}`,
@@ -163,6 +188,9 @@ function eshopRecs(project: Project, locale: SupportedLocale, metricsLive: boole
     // Seasonality is computed from the same performance dataset as the profit recs,
     // so it follows the same metrics-seam provenance.
     out.push(from(metricsLive, rec(locale, "sklad-sezonnost", "opportunity",
+      // The MONTH INDEX, not the (Czech-only) month label — the identity must read
+      // the same whichever locale rendered the sentence.
+      `sklad-sezonnost:seasonal-peak:${next.month}`,
       locale === "en"
         ? `${next.label} is a seasonal peak`
         : `${next.label} bývá sezónní špička`,
@@ -192,16 +220,20 @@ function appRecs(project: Project, locale: SupportedLocale, seoQueries: CompareQ
   const ltv = ltvSummary(resolveCohorts(project));
   if (ltv.avgLtvCac < 3) {
     out.push(fixture(rec(locale, "ltv", ltv.avgLtvCac < 1 ? "critical" : "warning",
+      // One global subject per project — no entity part.
+      "ltv:ltv-cac-below-target",
       locale === "en"
         ? "LTV:CAC below target"
         : "LTV:CAC pod cílem",
       locale === "en"
         ? `Ratio ${f.fmtMultiple(ltv.avgLtvCac)} (target ≥ 3×). Before adding budget, improve retention/ARPU or reduce CAC.`
         : `Poměr ${f.fmtMultiple(ltv.avgLtvCac)} (cíl ≥ 3×). Než přidáte rozpočet, zlepšete retenci/ARPU nebo snižte CAC.`,
-      f.fmtMultiple(ltv.avgLtvCac))));
+      f.fmtMultiple(ltv.avgLtvCac), undefined,
+      { key: "ltvCac", value: ltv.avgLtvCac })));
   }
   for (const w of SAMPLE_EXPERIMENTS.map(evaluate).filter((r) => r.significant)) {
     out.push(fixture(rec(locale, "experimenty-lp", "opportunity",
+      `experimenty-lp:ship-winner:${subjectSlug(w.cluster)}`,
       locale === "en"
         ? `Ship the winner: ${w.cluster}`
         : `Nasadit vítěze: ${w.cluster}`,
@@ -214,6 +246,7 @@ function appRecs(project: Project, locale: SupportedLocale, seoQueries: CompareQ
   const top = scoreQueries(seoQueries).find((q) => q.opportunity === "high");
   if (top) {
     out.push(fixture(rec(locale, "srovnani-seo", "opportunity",
+      `srovnani-seo:content-gap:${subjectSlug(top.query)}`,
       locale === "en"
         ? `Content for query ${top.query}`
         : `Obsah pro dotaz ${top.query}`,
@@ -231,13 +264,17 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
   // static fixture with no CRM/inbox import seam yet — all fixture-tagged.
   for (const s of SAMPLE_SOURCES.map(leadMetrics).filter((s) => s.junk)) {
     out.push(fixture(rec(locale, "kvalita-leadu", "warning",
+      `kvalita-leadu:junk-source:${subjectSlug(s.source)}`,
       locale === "en"
         ? `${s.source}: cheap but low-quality leads`
         : `${s.source}: levné, ale nekvalitní leady`,
       locale === "en"
         ? `Qualification rate ${f.fmtPct(s.qualRate)}, CPQL ${f.fmtCZK(s.cpql)}. Optimize bidding toward qualified leads.`
         : `Míra kvalifikace ${f.fmtPct(s.qualRate)}, CPQL ${f.fmtCZK(s.cpql)}. Optimalizujte bidding na kvalifikované leady.`,
-      f.fmtCZK(s.spend), s.spend)));
+      f.fmtCZK(s.spend), s.spend,
+      // The SAME metric the lead-source diagnosis snapshots (diagnoses/outcome.ts),
+      // so the two outcome chips can never disagree about this source.
+      { key: "qualRate", value: s.qualRate })));
   }
   const overdue = SAMPLE_LEADS.filter((l) => l.minutesAgo > SLA_TARGET_MIN).length;
   if (overdue > 0) {
@@ -245,6 +282,9 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
     // a permanent tenant-independent false alarm; the sample chip is exactly the
     // disclosure the type asks for, and the demo Overview keeps its urgency.
     out.push(fixture(rec(locale, "schranka", "critical",
+      // The COUNT is the metric, not the identity — a subject key carrying it would
+      // mint a new tracked subject every time one more lead slipped the SLA.
+      "schranka:sla-breach",
       locale === "en"
         ? `${overdue} leads past SLA`
         : `${overdue} poptávek po SLA`,
@@ -256,6 +296,7 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
   const gap = gaps(SAMPLE_TARGETS)[0];
   if (gap) {
     out.push(fixture(rec(locale, "lokalni", "opportunity",
+      coverageGapSubjectKey(gap.service, gap.area),
       locale === "en"
         ? `Missing page: ${gap.service} ${gap.area}`
         : `Chybí stránka: ${gap.service} ${gap.area}`,
@@ -264,6 +305,14 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
         : `${f.fmtInt(gap.monthlyVolume)} hledání/měs. bez pokrytí. Nasaďte lokální microsite.`)));
   }
   return out;
+}
+
+/** ONE identity for the coverage gap, minted by both the leadgen fallback branch
+ *  above and the local producer below — the same service×area is the same tracked
+ *  subject whichever branch produced the rec. `|` joins the two entity halves, the
+ *  same separator `coverageKey` uses for the same pair. */
+function coverageGapSubjectKey(service: string, area: string): string {
+  return `lokalni:coverage-gap:${subjectSlug(service)}|${subjectSlug(area)}`;
 }
 
 /** Per-signal liveness for a local project — which of the local-signals seams are on
@@ -328,6 +377,7 @@ function localRecs(locale: SupportedLocale, input: LocalRecsInput): Recommendati
   const gap = gaps(input.targets)[0];
   if (gap) {
     out.push(from(live.coverage, rec(locale, "lokalni", "opportunity",
+      coverageGapSubjectKey(gap.service, gap.area),
       locale === "en"
         ? `Missing page: ${gap.service} ${gap.area}`
         : `Chybí stránka: ${gap.service} ${gap.area}`,
@@ -342,6 +392,7 @@ function localRecs(locale: SupportedLocale, input: LocalRecsInput): Recommendati
   const weakest = sortLadder(input.ladder).at(-1);
   if (weakest && weakest.current > 3) {
     out.push(from(live.ladder, rec(locale, "lokalni", "warning",
+      `lokalni:weak-rank:${subjectSlug(weakest.keyword)}|${subjectSlug(weakest.area)}`,
       locale === "en"
         ? `Weak position: ${weakest.keyword}`
         : `Slabá pozice: ${weakest.keyword}`,
@@ -355,6 +406,8 @@ function localRecs(locale: SupportedLocale, input: LocalRecsInput): Recommendati
   const negative = input.reviews.filter((r) => bandOf(r.rating) === "negative").length;
   if (negative > 0) {
     out.push(from(live.reviews, rec(locale, "lokalni", "warning",
+      // Count in the metric, never in the identity (see schranka:sla-breach).
+      "lokalni:unanswered-negative-reviews",
       locale === "en"
         ? `${negative} negative reviews need a reply`
         : `${negative} negativních recenzí čeká na odpověď`,
@@ -373,13 +426,17 @@ function contentRecs(locale: SupportedLocale): Recommendation[] {
   // SAMPLE_DECAY is a static fixture (no Search Console import seam) → always tagged.
   for (const p of decayingPosts(SAMPLE_DECAY)) {
     out.push(fixture(rec(locale, "obsahovy-engine", p.trafficChangePct <= -0.3 ? "warning" : "info",
+      `obsahovy-engine:decaying-post:${subjectSlug(p.title)}`,
       locale === "en"
         ? `Refresh: ${p.title}`
         : `Obnovit: ${p.title}`,
       locale === "en"
         ? `Traffic ${f.fmtPct(p.trafficChangePct)} year-on-year. Update and re-link into the cluster.`
         : `Návštěvnost ${f.fmtPct(p.trafficChangePct)} meziročně. Aktualizujte a znovu prolinkujte do klastru.`,
-      f.fmtPct(p.trafficChangePct))));
+      f.fmtPct(p.trafficChangePct), undefined,
+      // Signed YoY change: a decaying post recovering means this rises. A negative
+      // baseline is handled by the ledger's |base| denominator.
+      { key: "trafficChangePct", value: p.trafficChangePct })));
   }
   return out;
 }
@@ -449,6 +506,10 @@ function channelRecs(
       locale,
       "kanaly",
       "opportunity",
+      // The channel's own stable slug (`OrganicChannel.id`), never its display name.
+      // No snapshot: `fit` is a scoring constant of the plan, not something acting on
+      // the advice moves, so a snapshot here would mint permanent "unchanged" chips.
+      `kanaly:free-channel:${subjectSlug(quickWin.id)}`,
       locale === "en" ? `Free channel: ${quickWin.name}` : `Kanál zdarma: ${quickWin.name}`,
       quick
         ? locale === "en"
@@ -499,6 +560,8 @@ function publishingRecs(
           locale,
           "kanaly",
           "warning",
+          // The raw ChannelKey, not CHANNEL_KEY_LABELS[...] — the label is display.
+          `kanaly:over-cap:${subjectSlug(check.channel)}`,
           locale === "en" ? `${name}: over the cadence cap` : `${name}: nad limitem kadence`,
           locale === "en"
             ? `${check.count} items are planned this week against a cap of ${check.cap}. The cap is enforced when scheduling, so this week was let through by an explicit override — thin it out or raise the cap in Kanály.`
@@ -512,6 +575,7 @@ function publishingRecs(
           locale,
           "kanaly",
           "info",
+          `kanaly:zero-planned:${subjectSlug(check.channel)}`,
           locale === "en" ? `${name}: nothing planned this week` : `${name}: tento týden nic v plánu`,
           locale === "en"
             ? `You set a cadence of ${check.cap}× a week for this channel and nothing is planned on it. Open the plan and fill the week.`

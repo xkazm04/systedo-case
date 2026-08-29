@@ -64,6 +64,21 @@ export const PROJECT_STATE_KEYS = {
   // number it liked into a panel labelled "measured", which is the one thing a
   // measurement must never allow.
   organicOutcomes: { owner: "kanaly", version: 1, http: false },
+  // W3-A — the advice ledger: what recommendations were actually SHOWN to the
+  // operator, and what the signal behind each one did before it went quiet.
+  // SERVER-OWNED (`http: false`) for exactly the organicOutcomes reason above: the
+  // outcomes on it are a MEASUREMENT. A client that could POST the blob wholesale
+  // could write itself "improved" chips, which is the one thing an outcome must
+  // never allow. The narrow client affordance (dismiss / undo one subject) goes
+  // through /api/projects/[id]/advice, which touches one record, never the blob.
+  adviceLedger: { owner: "prehled", version: 1, http: false },
+  // W3-C — the rolled-up conversion summary (30-day qualified / won counts, the
+  // per-source split, and gclid coverage), recomputed by the `conversion-rollup`
+  // ledger step from the `conversion_events` rows. SERVER-OWNED (`http: false`) for
+  // the organicOutcomes reason: this blob is a MEASUREMENT, and the strip it feeds
+  // decides how many conversions the operator believes they can upload. A client
+  // that could POST it wholesale could write itself any coverage number it liked.
+  conversionSummary: { owner: "kvalita-leadu", version: 1, http: false },
 } as const satisfies Record<string, ProjectStateKeySpec>;
 
 /** Every registered key, as a union — the type every store/route API takes. */

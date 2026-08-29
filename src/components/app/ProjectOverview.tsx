@@ -4,13 +4,13 @@
  *  falls back to that project's own KPI band + trend. KPI figures come from the
  *  shared performance dataset (scaled + varied per project), relabelled per business
  *  type. Server component. */
-import Link from "next/link";
 import Sparkline from "@/components/charts/Sparkline";
 import { Pill } from "@/components/ui";
-import { ArrowRight, Bulb } from "@/components/icons";
+import { Bulb } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
 import PortfolioCompare from "@/components/app/overview/PortfolioCompare";
 import LocationsOverviewSection from "@/components/app/overview/LocationsOverviewSection";
+import NeedsAttention from "@/components/app/overview/NeedsAttention";
 import { projectDataSource } from "@/lib/project-data/source";
 import { hasSyncedMetrics } from "@/lib/report-metrics/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
@@ -32,48 +32,31 @@ import {
   type KpiMetric,
 } from "@/lib/projects/modules";
 import { projectTypeMeta, PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
-import type { Severity } from "@/lib/insights/types";
+import { getAdviceLedger } from "@/lib/advice/store";
+import { recordAdviceSighting } from "@/lib/advice/record";
+import { isDemoProjectId } from "@/lib/projects/demo";
+import { currentUserId } from "@/lib/session";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
-import type { TFn } from "@/lib/i18n/interpolate";
 import { getServerLocale } from "@/lib/i18n/locale";
 
 const T = {
   cs: {
     revenue30: "Obrat za posledních 30 dní",
     dataAsOf: "Data k",
-    needsAttention: "Vyžaduje pozornost",
     locations: "Pobočky",
-    allGood: "Vše vypadá v pořádku: žádná upozornění napříč projekty.",
-    priority: "Priorita",
     portfolioEyebrow: "Portfolio",
     portfolioTitle: "Přehled portfolia",
     portfolioLead: "Souhrn napříč {n} projekty · obrat {revenue} · ROAS {roas}",
-    sampleBadge: "Ukázková data",
-    sampleHint:
-      "Toto doporučení vychází z ilustrativních dat, ne z vašeho importu. Po napojení zdroje v modulu se přepočítá na reálná čísla.",
   },
   en: {
     revenue30: "Revenue, last 30 days",
     dataAsOf: "Data as of",
-    needsAttention: "Needs attention",
     locations: "Locations",
-    allGood: "Everything looks good: no alerts across projects.",
-    priority: "Priority",
     portfolioEyebrow: "Portfolio",
     portfolioTitle: "Portfolio overview",
     portfolioLead: "Across {n} projects · revenue {revenue} · ROAS {roas}",
-    sampleBadge: "Sample data",
-    sampleHint:
-      "This recommendation runs on illustrative data, not your import. Connect the source in the module and it recomputes on real numbers.",
   },
 } as const;
-
-const SEVERITY_DOT: Record<Severity, string> = {
-  critical: "bg-negative",
-  warning: "bg-coral-500",
-  opportunity: "bg-positive",
-  info: "bg-navy-300",
-};
 
 function kpiValue(t: Totals, metric: KpiMetric): number {
   switch (metric) {
@@ -112,94 +95,10 @@ function fmtKpi(v: number, format: KpiFormat, fmt: Formatters): string {
 /** A recommendation tagged with the project it belongs to (for the combined feed). */
 type ProjRec = PortfolioRec;
 
-/** Shared "Needs attention" feed — a single project's recommendations, or the
- *  combined cross-project feed (when `showProject`, each row names its project). */
-function NeedsAttention({
-  recs,
-  count,
-  moduleHref,
-  t,
-  showProject,
-}: {
-  recs: ProjRec[];
-  count: number;
-  moduleHref: (projectId: string, moduleKey: string) => string;
-  t: TFn<keyof typeof T.cs>;
-  showProject: boolean;
-}) {
-  return (
-    <div className="mt-8">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted">
-          {t("needsAttention")}
-        </h3>
-        {count > 0 && <Pill tone="neutral">{count}</Pill>}
-      </div>
-      {recs.length === 0 ? (
-        <div className="mt-3 flex items-center gap-3 rounded-card border border-line bg-canvas px-4 py-4 text-sm text-muted">
-          <span className="h-2 w-2 rounded-full bg-positive" aria-hidden />
-          {t("allGood")}
-        </div>
-      ) : (
-        <div className="mt-3 card divide-y divide-line overflow-hidden">
-          {recs.map((r, i) => (
-            <Link
-              key={r.id}
-              href={moduleHref(r.projectId, r.module)}
-              className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-navy-50"
-            >
-              <span
-                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${SEVERITY_DOT[r.severity]}`}
-                aria-hidden
-              />
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-2">
-                    {i < 3 && (
-                      <span className="shrink-0 rounded-pill bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-accent">
-                        {t("priority")} {i + 1}
-                      </span>
-                    )}
-                    {showProject && (
-                      <span className="flex shrink-0 items-center gap-1.5 rounded-pill bg-canvas px-2 py-0.5 text-[11px] font-medium text-navy-700">
-                        <span
-                          className="h-1.5 w-1.5 rounded-full"
-                          style={{ backgroundColor: r.projectAccent }}
-                          aria-hidden
-                        />
-                        {r.projectName}
-                      </span>
-                    )}
-                    {/* Provenance, not decoration: a rec derived from seeded sample
-                        signals says so, using the SAME "Ukázková data" chip the
-                        module pages carry (SampleDataNote / ModulePage's `sample`
-                        gutter). Tagged rather than suppressed — see the commit note. */}
-                    {r.sample && (
-                      <span className="shrink-0" title={t("sampleHint")}>
-                        <Pill tone="navy">{t("sampleBadge")}</Pill>
-                      </span>
-                    )}
-                    <span className="text-sm font-semibold text-navy-800">{r.title}</span>
-                  </span>
-                  {r.metric && (
-                    <span className="tnum shrink-0 text-xs font-medium text-muted">{r.metric}</span>
-                  )}
-                </span>
-                <span className="mt-0.5 block text-sm leading-relaxed text-muted">{r.detail}</span>
-                <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-brand-accent">
-                  {r.moduleLabel}
-                  <ArrowRight width={13} height={13} />
-                </span>
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* The local-signals / SEO-slate resolvers and the portfolio view-model live in
+/* The "Needs attention" feed (with its advice-ledger affordances) lives in
+ * ./overview/NeedsAttention — extracted in WP W3-A.
+ *
+ * The local-signals / SEO-slate resolvers and the portfolio view-model live in
  * ./overview/portfolio-model — one owner for the computation, plus the demo
  * fast path (pure sample inputs + module-level memo) the public /dashboard uses. */
 
@@ -253,6 +152,14 @@ export default async function ProjectOverview({
       projectName: project.name,
       projectAccent: project.accentColor,
     }));
+    // WP W3-A. The read is awaited (the feed renders from it); the WRITE is not —
+    // `recordAdviceSighting` catches everything internally and is a fire-and-forget
+    // observation, so a slow or broken ledger can never delay or fail this page. The
+    // read is one project_state round-trip and is skipped entirely for a demo id and
+    // for an anonymous viewer, keeping the public /dashboard path I/O-free.
+    const uid = isDemoProjectId(project.id) ? null : await currentUserId();
+    const ledger = uid ? await getAdviceLedger(uid, project.id) : null;
+    void recordAdviceSighting(project.id, recs);
     const meta = projectTypeMeta(project.type, locale);
     const typeIcon = PROJECT_TYPE_META[project.type].icon;
     const ds = projectDataSource(synced, locale);
@@ -348,8 +255,8 @@ export default async function ProjectOverview({
           recs={recs}
           count={recs.length}
           moduleHref={moduleHref}
-          t={t}
           showProject={false}
+          ledger={ledger}
         />
       </div>
     );
@@ -401,12 +308,15 @@ export default async function ProjectOverview({
         />
       )}
 
-      {/* combined cross-project needs-attention */}
+      {/* combined cross-project needs-attention. No ledger: it is per-project, and
+          reading one per project on every portfolio render would cost N round-trips
+          for a feed that is already truncated to eight rows. Sightings ARE recorded
+          per project (portfolio-model), so the outcomes still land — they surface on
+          each project's own overview. */}
       <NeedsAttention
         recs={topCombined}
         count={combined.length}
         moduleHref={moduleHref}
-        t={t}
         showProject
       />
     </div>
