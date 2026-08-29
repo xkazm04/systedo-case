@@ -15,6 +15,7 @@ import {
   PromptDisclosure,
   RefineBar,
   ResultMeta,
+  type ResultHistoryItem,
   TimeoutState,
   ToolError,
 } from "./primitives";
@@ -29,6 +30,11 @@ export interface AiPanelTool<T> {
   upgradeUrl: string | null;
   timedOut: boolean;
   expectedMs: number | null;
+  /** past generations for this tool, newest first (persisted by the hook) */
+  history: ResultHistoryItem[];
+  /** which entry is on screen; -1 when the result came from outside the hook */
+  activeIndex: number;
+  restore: (index: number) => void;
   reset: () => void;
   refine: (note: string) => void;
   canRefine: boolean;
@@ -123,6 +129,7 @@ export function AiToolPanel<T>({
   resultFooter?: ReactNode;
 }) {
   const { status, data, error, retryIn, upgradeUrl, timedOut, expectedMs, reset, refine, canRefine } = tool;
+  const { history, activeIndex, restore } = tool;
   // Persisted results carry no AiMeta; the panel bodies read only the result, so a
   // stub meta keeps renderResult's signature satisfied without a live generation.
   const STUB_META: AiMeta = { model: "", demo: false, prompt: "", tookMs: 0 };
@@ -151,9 +158,18 @@ export function AiToolPanel<T>({
 
         {status === "done" && data && (
           <div className="animate-fade-up space-y-5">
-            {/* `reset` returns the panel to its idle controls — the same "try again"
+            {/* The hook already persists every generation; passing its history
+                through is what makes the strip appear, so a panel on this kit
+                can go back to the previous answer instead of paying for it
+                again. `reset` returns the panel to its idle controls — the same "try again"
                 semantics ToolError already uses — so a degraded answer offers a way out. */}
-            <ResultMeta meta={data.meta} onRetry={reset} />
+            <ResultMeta
+              meta={data.meta}
+              onRetry={reset}
+              history={history}
+              activeIndex={activeIndex}
+              onRestore={restore}
+            />
             {renderResult(data.result, data.meta)}
             {resultFooter}
             {canRefine && <RefineBar onRefine={refine} />}
