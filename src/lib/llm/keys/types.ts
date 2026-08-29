@@ -207,6 +207,7 @@ export const BYOM_OPERATIONS: ByomOperation[] = [
   { id: "monthly-recap", label: "Měsíční rekapitulace", labelEn: "Monthly recap" },
   { id: "channel-research", label: "Výzkum bezplatných kanálů", labelEn: "Organic channel research" },
   { id: "onboarding-scan", label: "Úvodní sken webu", labelEn: "Onboarding website scan" },
+  { id: "local-page", label: "Lokální stránka", labelEn: "Local landing page" },
 ];
 
 /** The operation labels as a colocated {cs, en} translation table, so the matrix

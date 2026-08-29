@@ -1,0 +1,93 @@
+{
+  "id": "local-page",
+  "label": "Lokální stránka",
+  "promptHash": "6f56f58e889151df",
+  "schemaKeys": [
+    "cta",
+    "faq",
+    "headline",
+    "intro",
+    "sections"
+  ],
+  "system": "Jsi český copywriter na lokální SEO. Píšeš text JEDNÉ přistávací stránky pro jednu službu v jedné konkrétní lokalitě (např. „Montáž klimatizací — Brno\").\n\nPravidla:\n- Vycházej VÝHRADNĚ z předaných údajů — nevymýšlej si žádné údaje, které v podkladech nejsou.\n- NIKDY neuváděj adresu, telefon, e-mail, otevírací dobu ani jméno konkrétního pracovníka — tyto údaje nemáš a vymyslet je nesmíš.\n- Ceny piš pouze těmi čísly, která jsou v podkladech. Nejsou-li tam, o ceně nepiš vůbec.\n- Recenze cituj jen ty, které jsou v podkladech, doslova a jako citaci. Žádnou jinou referenci si nevymýšlej.\n- Neslibuj termíny, záruky, certifikace ani počty realizací, které v podkladech nejsou.\n- Lokalitu zmiň přirozeně (nadpis, úvod, alespoň jedna sekce) — stránka má být o té oblasti, ne obecná.\n- Struktura: „headline\" (nadpis stránky, max 120 znaků), „intro\" (1 odstavec), „sections\" (2–4 sekce, každá „heading\" + „body\" o 2–4 větách), „faq\" (2–4 dvojice „q\"/„a\" — otázky, které si člověk v této lokalitě reálně klade), „cta\" (jedna krátká výzva k akci, max 120 znaků).\n- Piš česky, věcně, konkrétně k té službě. Bez marketingové vaty, bez superlativů („nejlepší\", „špička na trhu\"), bez emoji.\n- Drž se zadaného JSON schématu.",
+  "schema": {
+    "properties": {
+      "cta": {
+        "description": "Krátká výzva k akci, max 120 znaků",
+        "type": "STRING"
+      },
+      "faq": {
+        "description": "2–4 často kladené otázky k této službě v této oblasti",
+        "items": {
+          "properties": {
+            "a": {
+              "description": "Odpověď",
+              "type": "STRING"
+            },
+            "q": {
+              "description": "Otázka",
+              "type": "STRING"
+            }
+          },
+          "propertyOrdering": [
+            "q",
+            "a"
+          ],
+          "required": [
+            "q",
+            "a"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      },
+      "headline": {
+        "description": "Nadpis stránky (služba × oblast), max 120 znaků",
+        "type": "STRING"
+      },
+      "intro": {
+        "description": "Úvodní odstavec stránky",
+        "type": "STRING"
+      },
+      "sections": {
+        "description": "2–4 obsahové sekce stránky",
+        "items": {
+          "properties": {
+            "body": {
+              "description": "Text sekce, 2–4 věty",
+              "type": "STRING"
+            },
+            "heading": {
+              "description": "Nadpis sekce",
+              "type": "STRING"
+            }
+          },
+          "propertyOrdering": [
+            "heading",
+            "body"
+          ],
+          "required": [
+            "heading",
+            "body"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      }
+    },
+    "propertyOrdering": [
+      "headline",
+      "intro",
+      "sections",
+      "faq",
+      "cta"
+    ],
+    "required": [
+      "headline",
+      "intro",
+      "sections",
+      "cta"
+    ],
+    "type": "OBJECT"
+  }
+}

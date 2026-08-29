@@ -137,15 +137,69 @@ test("a malformed slug is refused before any write", async () => {
 });
 
 test("a kind with no renderer is refused (invalid-kind), so no blank page reaches a public URL", async () => {
-  for (const kind of ["local-landing", "lp"]) {
-    await assert.rejects(
-      () => enableMicrosite(T_A, { slug: "gamma", clientName: "Gamma", kind }),
-      (err) => err instanceof MicrositeSlugError && err.code === "invalid-kind"
-    );
-  }
+  // `lp` still has no renderer (W3-B). `local-landing` got one in W2-C, so it is no
+  // longer refused for its KIND — but it IS refused without its page payload, which
+  // is the same failure one level down: an empty page at an indexable public URL.
+  await assert.rejects(
+    () => enableMicrosite(T_A, { slug: "gamma", clientName: "Gamma", kind: "lp" }),
+    (err) => err instanceof MicrositeSlugError && err.code === "invalid-kind"
+  );
+  await assert.rejects(
+    () => enableMicrosite(T_A, { slug: "gamma", clientName: "Gamma", kind: "local-landing" }),
+    (err) => err instanceof MicrositeSlugError && err.code === "invalid-kind"
+  );
   assert.equal(rawRow("gamma"), undefined);
   // …while the publishable kind goes through, explicitly or by default.
   assert.equal((await enableMicrosite(T_A, { slug: "gamma", clientName: "Gamma", kind: "performance" })).kind, "performance");
+});
+
+test("W2-C: a local-landing publish stores its page payload and reads back by slug", async () => {
+  const local = {
+    service: "Montáž klimatizací",
+    area: "Brno",
+    page: {
+      headline: "Montáž klimatizací Brno",
+      intro: "Montujeme klimatizace v Brně.",
+      sections: [{ heading: "Jak to probíhá", body: "Domluvíme termín a přijedeme." }],
+      faq: [{ q: "Kolik to stojí?", a: "Od 12 900 Kč." }],
+      cta: "Napište nám.",
+    },
+    price: 12900,
+    priceModel: "from",
+    currency: "Kč",
+    generatedAt: "2026-08-29T10:00:00.000Z",
+  };
+  const cfg = await enableMicrosite(T_A, {
+    slug: "acme-montaz-brno",
+    clientName: "Acme s.r.o.",
+    kind: "local-landing",
+    local,
+  });
+  assert.equal(cfg.kind, "local-landing");
+  assert.deepEqual(cfg.local, local);
+  const stored = await getMicrosite("acme-montaz-brno");
+  assert.equal(stored.kind, "local-landing");
+  assert.equal(stored.local.service, "Montáž klimatizací");
+  assert.equal(stored.local.price, 12900);
+  // A `performance` publish never grows a `local` key — the payload is omitted, not
+  // written as undefined, so no existing blob changes shape.
+  assert.equal(JSON.parse(rawRow("gamma").data).local, undefined);
+});
+
+test("W2-C: listByTenant returns EVERY slug a tenant owns, slug-ordered (getByTenant still caps at one)", async () => {
+  const all = await store.listByTenant(T_A);
+  const slugs = all.map((c) => c.slug);
+  assert.deepEqual(slugs, [...slugs].sort(), "slug-ordered on both drivers (ADR-0001)");
+  assert.ok(slugs.includes("acme"), "the performance site");
+  assert.ok(slugs.includes("acme-montaz-brno"), "the local landing page");
+  assert.ok(slugs.length >= 3, "more than the single row getByTenant caps at");
+  // The capped single-site read is untouched — the performance card still gets one.
+  const one = await getMicrositeForTenant(T_A);
+  assert.equal(one.slug, "acme");
+  assert.deepEqual(await store.listByTenant("u_nobody_proj_x"), []);
+  // Normalization runs on the list too: the pre-`kind` legacy row reads as performance.
+  const legacy = (await store.listByTenant(T_B)).find((c) => c.slug === "legacy");
+  if (legacy) assert.equal(legacy.kind, "performance");
 });
 
 test("disable → the public read goes dark, the management read keeps the config for re-enabling", async () => {

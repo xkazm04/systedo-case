@@ -1092,6 +1092,68 @@ Vrať „summary" (jedna věta o největší bezplatné příležitosti) a „ch
       isStrArr(r.keywords, 1) &&
       Array.isArray(r.competitors),
   },
+  {
+    id: "local-page",
+    label: "Lokální stránka",
+    // system = production LOCAL_PAGE_SYSTEM (src/lib/ai/tools/local-page.ts), with the
+    // shared antiFabrication fragment resolved — keep in sync with the tool.
+    system:
+      "Jsi český copywriter na lokální SEO. Píšeš text JEDNÉ přistávací stránky pro jednu službu v jedné konkrétní lokalitě (např. „Montáž klimatizací — Brno\").\n\nPravidla:\n- Vycházej VÝHRADNĚ z předaných údajů — nevymýšlej si žádné údaje, které v podkladech nejsou.\n- NIKDY neuváděj adresu, telefon, e-mail, otevírací dobu ani jméno konkrétního pracovníka — tyto údaje nemáš a vymyslet je nesmíš.\n- Ceny piš pouze těmi čísly, která jsou v podkladech. Nejsou-li tam, o ceně nepiš vůbec.\n- Recenze cituj jen ty, které jsou v podkladech, doslova a jako citaci. Žádnou jinou referenci si nevymýšlej.\n- Neslibuj termíny, záruky, certifikace ani počty realizací, které v podkladech nejsou.\n- Lokalitu zmiň přirozeně (nadpis, úvod, alespoň jedna sekce) — stránka má být o té oblasti, ne obecná.\n- Struktura: „headline\" (nadpis stránky, max 120 znaků), „intro\" (1 odstavec), „sections\" (2–4 sekce, každá „heading\" + „body\" o 2–4 větách), „faq\" (2–4 dvojice „q\"/„a\" — otázky, které si člověk v této lokalitě reálně klade), „cta\" (jedna krátká výzva k akci, max 120 znaků).\n- Piš česky, věcně, konkrétně k té službě. Bez marketingové vaty, bez superlativů („nejlepší\", „špička na trhu\"), bez emoji.\n- Drž se zadaného JSON schématu.",
+    prompt:
+      "Napiš text lokální přistávací stránky pro službu „Montáž klimatizací“ v oblasti „Brno“. Podklady (jiné údaje nemáš a nesmíš je doplnit): Firma: Klima Profi; Obor: klimatizace a vzduchotechnika; Služba: Montáž klimatizací; Oblast: Brno; Cena z ceníku: 12 900 Kč (cena od). Kontext značky (drž se tohoto sortimentu a slovníku): Klima Profi — montáž, servis a revize klimatizací a tepelných čerpadel pro domácnosti i firmy; ceny služeb 1 490–34 900 Kč. Reálné recenze z oblasti Brno (smíš je citovat DOSLOVA a označit jako citaci; jiné reference si nevymýšlej): Jana K. (5/5): „Montáž proběhla v domluveném termínu, technik vše vysvětlil a po sobě uklidil.“; Petr M. (4/5): „Rychlá domluva, klimatizace šlape půl roku bez problému.“ Vrať „headline“ (max 120 znaků), „intro“ (jeden odstavec), „sections“ (2–4 sekce s „heading“ a „body“), „faq“ (2–4 dvojice „q“/„a“) a „cta“ (max 120 znaků). Žádnou adresu, telefon ani otevírací dobu neuváděj.",
+    // schema mirrors production LOCAL_PAGE_SCHEMA verbatim (descriptions and
+    // propertyOrdering included), so the golden fingerprints the real contract.
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        headline: { type: Type.STRING, description: "Nadpis stránky (služba × oblast), max 120 znaků" },
+        intro: { type: Type.STRING, description: "Úvodní odstavec stránky" },
+        sections: {
+          type: Type.ARRAY,
+          description: "2–4 obsahové sekce stránky",
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              heading: { type: Type.STRING, description: "Nadpis sekce" },
+              body: { type: Type.STRING, description: "Text sekce, 2–4 věty" },
+            },
+            required: ["heading", "body"],
+            propertyOrdering: ["heading", "body"],
+          },
+        },
+        faq: {
+          type: Type.ARRAY,
+          description: "2–4 často kladené otázky k této službě v této oblasti",
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              q: { type: Type.STRING, description: "Otázka" },
+              a: { type: Type.STRING, description: "Odpověď" },
+            },
+            required: ["q", "a"],
+            propertyOrdering: ["q", "a"],
+          },
+        },
+        cta: { type: Type.STRING, description: "Krátká výzva k akci, max 120 znaků" },
+      },
+      required: ["headline", "intro", "sections", "cta"],
+      propertyOrdering: ["headline", "intro", "sections", "faq", "cta"],
+    },
+    // Lenient on shape (production backfills an empty field from the deterministic
+    // floor, so asserting exact wording would flake), STRICT on the one thing this
+    // tool must never do: the page is public and indexable, and the repo has no NAP
+    // data model — so a fabricated phone number or e-mail address in the output is a
+    // hard failure, not a style note.
+    validate: (r) => {
+      if (!r || !isStr(r.headline) || !isStr(r.intro) || !isStr(r.cta)) return false;
+      if (!Array.isArray(r.sections) || r.sections.length < 2) return false;
+      if (!r.sections.every((s) => s && isStr(s.heading) && isStr(s.body))) return false;
+      if (r.faq !== undefined && !Array.isArray(r.faq)) return false;
+      const text = JSON.stringify(r);
+      if (/[\w.+-]+@[\w-]+\.[a-z]{2,}/i.test(text)) return false; // invented e-mail
+      return !/(\+ ?420 ?)?\d{3} ?\d{3} ?\d{3}\b/.test(text); // invented phone number
+    },
+  },
 ];
 
 /** The exact `ChannelResearchRequest` the `channel-research` fixture's `prompt` was

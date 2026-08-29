@@ -169,7 +169,63 @@ export interface ResolvedCoverage {
   live: boolean;
   syncedAt?: string;
   sourceUrl?: string;
+  /** W2-C — how many PUBLISHED local-landing microsites were overlaid onto the
+   *  matrix. Absent/0 means none; the UI uses it to say why a cell flipped. This is
+   *  a count of live registry rows, never a stored number: unpublishing a page drops
+   *  it on the next render. */
+  pages?: number;
 }
+
+/** One published service×area landing page (W2-C). */
+export interface PublishedLocalPage {
+  service: string;
+  area: string;
+  slug: string;
+}
+
+/** How `resolveCoverage` learns which service×area pages are actually published.
+ *  Injectable so the unit tests can pin the overlay without dragging the session /
+ *  registry import graph into node:test — production always uses the default. */
+export type PublishedPagesReader = (projectId: string) => Promise<PublishedLocalPage[]>;
+
+/** The real reader: the signed-in caller's own tenant for this project (the SAME key
+ *  `enableMicrosite` published under — `resolveTenant(..., {accountScoped:false})`),
+ *  then its enabled `local-landing` configs. Everything is imported lazily so this
+ *  module keeps its light, framework-free import graph for the callers that never
+ *  reach the overlay. Any failure (no session, a registry hiccup) degrades to "no
+ *  published pages" — the matrix then reads exactly as it did before W2-C rather
+ *  than breaking the module. */
+const livePublishedPages: PublishedPagesReader = async (projectId) => {
+  try {
+    // A DEMO project publishes nothing by construction, and the surfaces that render
+    // one (the public portfolio / marketing dashboard) are reached signed-out — so
+    // exit BEFORE the session read rather than making those pages read cookies for an
+    // answer that is always the empty list.
+    const { isDemoProjectId } = await import("@/lib/projects/demo");
+    if (isDemoProjectId(projectId)) return [];
+    const [{ currentUserId }, { resolveTenant }, { listMicrositesForTenant }] = await Promise.all([
+      import("@/lib/session"),
+      import("@/lib/campaigns/connector"),
+      import("@/lib/microsite"),
+    ]);
+    const userId = await currentUserId();
+    if (!userId) return [];
+    const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
+    const sites = await listMicrositesForTenant(tenant);
+    return sites
+      .filter((c) => c.enabled && c.kind === "local-landing" && c.local)
+      .map((c) => ({ service: c.local!.service, area: c.local!.area, slug: c.slug }));
+  } catch {
+    return [];
+  }
+};
+
+/** ONE registry read per project per REQUEST, for the same reason `signalsForRequest`
+ *  exists: /lokalni, the portfolio Overview and the diagnosis resolver all call
+ *  resolveCoverage on the same request. */
+const pagesForRequest = cache(
+  async (projectId: string): Promise<PublishedLocalPage[]> => livePublishedPages(projectId)
+);
 
 /** The active coverage matrix for a project (D1): live page-presence resolved OVER the
  *  catalog-seeded targets per (service, locality). A matching imported row flips the
@@ -181,9 +237,28 @@ export interface ResolvedCoverage {
  *  Same live-over-sample seam as ladder/reviews/locations. */
 export async function resolveCoverage(
   projectId: string,
-  seed: LocalTarget[]
+  seed: LocalTarget[],
+  opts: { pages?: PublishedPagesReader } = {}
 ): Promise<ResolvedCoverage> {
-  const signals = await signalsForRequest(projectId);
+  const [signals, published] = await Promise.all([
+    signalsForRequest(projectId),
+    opts.pages ? opts.pages(projectId) : pagesForRequest(projectId),
+  ]);
+  // W2-C — the PUBLISHED-page overlay, keyed through the same fold as the import so a
+  // page published for "Montáž klimatizací / Plzeň" flips the "Montaz klimatizaci /
+  // Plzen" seed too. This is LIVE truth read from the registry on every render: take
+  // the page offline and the cell un-flips on the next load. No import row is forged
+  // to fake it, which is why the count is reported separately rather than folded into
+  // the import's `source`/`live` provenance.
+  const publishedKeys = new Set(published.map((p) => coverageKey(p.service, p.area)));
+  /** A combo with a published page: it HAS a page, and the seeded rank beside it is
+   *  fiction (the page is new — nothing has ranked it yet), so the rank is nulled and
+   *  the matrix renders the honest "má stránku" state. */
+  const withPages = (targets: LocalTarget[]): LocalTarget[] =>
+    targets.map((t) =>
+      publishedKeys.has(coverageKey(t.service, t.area)) ? { ...t, hasPage: true, rank: null } : t
+    );
+
   const coverage = signals?.coverage;
   if (coverage && coverage.rows.length > 0) {
     const byKey = new Map(coverage.rows.map((r) => [coverageKey(r.service, r.locality), r]));
@@ -197,12 +272,22 @@ export async function resolveCoverage(
       return { ...t, hasPage: hit ? hit.hasPage : t.hasPage, rank: null };
     });
     return {
-      targets,
+      // The published-page overlay runs AFTER the import overlay: a page that really
+      // exists outranks an import row that says it does not (the import is a snapshot,
+      // the registry is now).
+      targets: withPages(targets),
       source: coverage.meta.source,
       live: true,
       syncedAt: coverage.meta.syncedAt,
       sourceUrl: coverage.meta.sourceUrl,
+      ...(published.length > 0 ? { pages: published.length } : {}),
     };
+  }
+  // The no-import fast path must still see published pages — a project can publish a
+  // local landing page long before it ever imports a coverage CSV. With neither, the
+  // seed array is returned BY IDENTITY exactly as before.
+  if (published.length > 0) {
+    return { targets: withPages(seed), source: "sample", live: false, pages: published.length };
   }
   return { targets: seed, source: "sample", live: false };
 }

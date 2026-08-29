@@ -46,6 +46,7 @@ export const GATE_COVERED_IDS = [
   "monthly-recap",
   "channel-research",
   "onboarding-scan",
+  "local-page",
 ] as const;
 
 /** The admission set the registry gates on. Derived from GATE_COVERED_IDS so it can

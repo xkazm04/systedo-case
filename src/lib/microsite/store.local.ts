@@ -48,6 +48,20 @@ export async function getByTenant(tenant: string): Promise<MicrositeConfig | nul
   return parse(row, tenant);
 }
 
+/** EVERY config a tenant owns, enabled or not — the coverage overlay reads this to
+ *  learn which service×area pages are actually live (W2-C). Deliberately NOT
+ *  `getByTenant` without its cap: that one stays byte-identical (the performance card
+ *  wants exactly one row), and this one keeps the same `ORDER BY slug` so both drivers
+ *  return the same ORDER, not just the same set (ADR-0001). */
+export async function listByTenant(tenant: string): Promise<MicrositeConfig[]> {
+  const rows = getDb()
+    .prepare("SELECT data FROM microsites WHERE tenant = ? ORDER BY slug")
+    .all(tenant) as unknown as RegistryRow[];
+  return rows
+    .map((row) => parse(row, tenant))
+    .filter((cfg): cfg is MicrositeConfig => cfg !== null);
+}
+
 export async function upsert(cfg: MicrositeConfig): Promise<void> {
   getDb()
     .prepare(

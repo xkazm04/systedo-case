@@ -44,6 +44,15 @@ export async function getByTenant(tenant: string): Promise<MicrositeConfig | nul
   return cfg && normalizeConfig(cfg);
 }
 
+/** Every config a tenant owns (enabled or not), slug-ordered on both drivers. The
+ *  single-row `getByTenant` above stays exactly as it was — the performance card
+ *  wants one site; the local coverage overlay wants all of them. Each row goes
+ *  through `normalizeConfig`, so a pre-`kind` document reads back as `performance`
+ *  here too rather than as an untyped blob. */
+export async function listByTenant(tenant: string): Promise<MicrositeConfig[]> {
+  return (await (await backend()).listByTenant(tenant)).map(normalizeConfig);
+}
+
 /** Create-or-merge the config at `cfg.slug`. Merge, not replace: see the header. */
 export async function upsert(cfg: MicrositeConfig): Promise<void> {
   return (await backend()).upsert(cfg);

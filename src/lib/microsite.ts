@@ -20,8 +20,13 @@
  *  slug, tenant ownership, which kinds may be published, and the degrade-to-demo
  *  fallback. The store has no policy at all (ADR-0001, ADR-0002). */
 import { isValidMicrositeSlug } from "@/lib/microsite-identity";
-import { getBySlug, getByTenant, setEnabled, upsert } from "@/lib/microsite/store";
-import { isMicrositeKind, type MicrositeConfig, type MicrositeKind } from "@/lib/microsite/types";
+import { getBySlug, getByTenant, listByTenant, setEnabled, upsert } from "@/lib/microsite/store";
+import {
+  isMicrositeKind,
+  type LocalPagePayload,
+  type MicrositeConfig,
+  type MicrositeKind,
+} from "@/lib/microsite/types";
 import { scaledDataset, seedScale } from "@/lib/project-data/dataset";
 import { buildMetricsSnapshot, type MetricsSnapshot } from "@/lib/metrics";
 import { snapshotToArticle } from "@/lib/snapshot-to-article";
@@ -34,13 +39,14 @@ import type { Article } from "@/lib/article";
 // The data contract lives beside the store (so the sqlite backend can import it
 // without reaching back through this module) and is re-exported here, because
 // `@/lib/microsite` is the module every caller already imports.
-export type { MicrositeConfig, MicrositeKind };
+export type { LocalPagePayload, MicrositeConfig, MicrositeKind };
 
-/** The kinds `enableMicrosite` will actually publish today. `local-landing` and `lp`
- *  are declared in the type — the registry can already carry them and a document
- *  written by a later deploy reads back correctly — but their renderers do not exist
- *  yet, and accepting one here would publish a blank page at a real public URL. */
-const PUBLISHABLE_KINDS: readonly MicrositeKind[] = ["performance"];
+/** The kinds `enableMicrosite` will actually publish today. `lp` is declared in the
+ *  type — the registry can already carry it and a document written by a later deploy
+ *  reads back correctly — but its renderer does not exist yet, and accepting one here
+ *  would publish a blank page at a real public URL. `local-landing` joined the list in
+ *  W2-C, when its renderer (`/m/[slug]`'s local branch) actually landed. */
+const PUBLISHABLE_KINDS: readonly MicrositeKind[] = ["performance", "local-landing"];
 
 /** A built-in microsite so /m/mionelo works with zero setup (matches the
  *  case-study client) — mirrors how the rest of the app ships demo-ready. */
@@ -114,7 +120,7 @@ export class MicrositeSlugError extends Error {
  *  all), hijacking its stable URL. */
 export async function enableMicrosite(
   tenant: string,
-  input: { slug: string; clientName: string; segment?: string; brandName?: string; accentColor?: string; logoUrl?: string; periodDays?: number; projectId?: string; kind?: MicrositeKind }
+  input: { slug: string; clientName: string; segment?: string; brandName?: string; accentColor?: string; logoUrl?: string; periodDays?: number; projectId?: string; kind?: MicrositeKind; local?: LocalPagePayload }
 ): Promise<MicrositeConfig> {
   if (!isValidMicrositeSlug(input.slug)) {
     throw new MicrositeSlugError("invalid-slug", `Invalid microsite slug: "${input.slug}"`);
@@ -125,6 +131,13 @@ export async function enableMicrosite(
   const kind: MicrositeKind = input.kind ?? "performance";
   if (!isMicrositeKind(kind) || !PUBLISHABLE_KINDS.includes(kind)) {
     throw new MicrositeSlugError("invalid-kind", `Microsite kind "${kind}" cannot be published yet`);
+  }
+  // A local-landing slug with no payload renders an empty page at a public, INDEXABLE
+  // URL — the same failure the kind gate above exists to prevent, one level down. It
+  // is `invalid-kind` rather than a new code because it is the same refusal: this
+  // request cannot be published as this kind.
+  if (kind === "local-landing" && !input.local) {
+    throw new MicrositeSlugError("invalid-kind", "A local-landing microsite needs its page payload");
   }
   // The built-in demo slug is reserved for its own tenant — it exists even when no
   // registry document does, so the ownership read below cannot protect it.
@@ -156,6 +169,9 @@ export async function enableMicrosite(
     // Written on EVERY upsert, so the default-on-read in the store is only ever
     // needed for documents that predate the field.
     kind,
+    // The local-landing page content. Omitted (not written as undefined) for every
+    // other kind, so a performance re-publish never adds a null field to its blob.
+    ...(input.local ? { local: input.local } : {}),
     // The STORED flag stays true: whether the page may drop the disclosure + index
     // is decided per REQUEST by resolveMicrositeView (sync state changes over time —
     // a cleared sync must revert the page to disclosed sample without a registry
@@ -172,6 +188,30 @@ export async function enableMicrosite(
 export async function disableMicrosite(tenant: string): Promise<void> {
   const existing = await getMicrositeForTenant(tenant);
   if (existing) await setEnabled(existing.slug, false);
+}
+
+/** Every microsite a tenant owns (W2-C). Best-effort, like the other public reads:
+ *  a registry hiccup degrades to "this tenant publishes nothing" rather than
+ *  breaking the surface that asked. Ownership is the tenant argument itself — the
+ *  caller derives it from the signed-in user (ADR-0002), never from a request body. */
+export async function listMicrositesForTenant(tenant: string): Promise<MicrositeConfig[]> {
+  try {
+    return await listByTenant(tenant);
+  } catch (err) {
+    console.error(`[microsite] tenant list failed for ${tenant}:`, err);
+    return [];
+  }
+}
+
+/** Take ONE of a tenant's slugs offline — the local-landing case, where a tenant
+ *  owns many pages and `disableMicrosite` (which caps at one) would darken the wrong
+ *  one. Refuses a slug the tenant does not own: the stored config's `tenant` is the
+ *  authority, exactly as it is for publishing. Returns whether anything moved. */
+export async function disableMicrositeSlug(tenant: string, slug: string): Promise<boolean> {
+  const existing = await getBySlug(slug);
+  if (!existing || existing.tenant !== tenant) return false;
+  await setEnabled(slug, false);
+  return true;
 }
 
 /** The rendered microsite view. `live` is the page's honest source signal: robots

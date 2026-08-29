@@ -534,3 +534,85 @@ test("sample-flag composition: live coverage alone makes the diagnosis non-sampl
   assert.equal(compose(true, false, false), false);
   assert.equal(compose(false, true, false), false);
 });
+
+// ─── W2-C · published local-landing pages overlay the coverage matrix ────────────
+// The overlay reads LIVE registry state through an injectable reader (the production
+// default resolves the session → tenant → registry; the tests inject, so node:test
+// never drags the auth graph in). Honest coverage means exactly this: no import row
+// is forged to fake a page, and unpublishing un-flips the cell on the next render.
+
+/** An injectable published-pages reader over a plain list. */
+const PAGES = (...rows) => async () => rows;
+
+test("W2-C resolveCoverage: a published page flips a SEED combo (no import at all)", async () => {
+  const seed = [TGT({ hasPage: false, rank: null }), TGT({ area: "Brno", hasPage: false, rank: null })];
+  const before = await resolveCoverage("proj-pages-seed", seed, { pages: PAGES() });
+  assert.equal(before.targets, seed, "no pages, no import → the seed array BY IDENTITY");
+  assert.equal(before.pages, undefined, "no count when nothing is published");
+
+  const after = await resolveCoverage("proj-pages-seed", seed, {
+    pages: PAGES({ service: "Montáž klimatizací", area: "Praha", slug: "acme-montaz-praha" }),
+  });
+  const praha = after.targets.find((t) => t.area === "Praha");
+  const brno = after.targets.find((t) => t.area === "Brno");
+  assert.equal(praha.hasPage, true, "the published combo flipped");
+  assert.equal(brno.hasPage, false, "an unpublished combo is untouched");
+  assert.equal(after.pages, 1, "the count says WHY the cell flipped");
+  assert.equal(after.live, false, "the MATRIX is still seed-provenance — pages are reported separately");
+  assert.equal(seed[0].hasPage, false, "the caller's seed array was not mutated");
+});
+
+test("W2-C resolveCoverage: a published page beats an imported hasPage:false row", async () => {
+  const seed = [TGT({ hasPage: false, rank: null })];
+  await saveLocalSignals("proj-pages-import", {
+    meta: { source: "import", syncedAt: "2026-08-01T00:00:00Z", rowCount: 0 },
+    ladder: [],
+    coverage: {
+      meta: { source: "import", syncedAt: "2026-08-01T00:00:00Z", rowCount: 1 },
+      rows: [{ service: "Montáž klimatizací", locality: "Praha", hasPage: false }],
+    },
+  });
+  const imported = await resolveCoverage("proj-pages-import", seed, { pages: PAGES() });
+  assert.equal(imported.targets[0].hasPage, false, "the import says there is no page");
+
+  const overlaid = await resolveCoverage("proj-pages-import", seed, {
+    pages: PAGES({ service: "Montáž klimatizací", area: "Praha", slug: "s" }),
+  });
+  assert.equal(overlaid.live, true, "still an imported matrix");
+  assert.equal(overlaid.targets[0].hasPage, true, "the page that really exists wins over the snapshot");
+  assert.equal(overlaid.targets[0].rank, null, "a brand-new page has no rank to claim");
+  assert.equal(overlaid.pages, 1);
+  await clearLocalSignals("proj-pages-import");
+});
+
+test("W2-C resolveCoverage: unpublishing UN-flips the cell (live read, not a stored flag)", async () => {
+  const seed = [TGT({ hasPage: false, rank: null })];
+  const published = await resolveCoverage("proj-pages-unflip", seed, {
+    pages: PAGES({ service: "Montáž klimatizací", area: "Praha", slug: "s" }),
+  });
+  assert.equal(published.targets[0].hasPage, true);
+  // The registry now reports nothing (the page was taken offline) — same seed, same
+  // project, no import row was ever written, so the cell simply goes back.
+  const unpublished = await resolveCoverage("proj-pages-unflip", seed, { pages: PAGES() });
+  assert.equal(unpublished.targets[0].hasPage, false, "no page → no claim");
+  assert.equal(unpublished.pages, undefined);
+});
+
+test("W2-C resolveCoverage: the page overlay folds diacritics the same way the import does", async () => {
+  const seed = [TGT({ area: "Plzeň", service: "Montáž klimatizací", hasPage: false })];
+  const after = await resolveCoverage("proj-pages-fold", seed, {
+    pages: PAGES({ service: "Montaz klimatizaci", area: "Plzen", slug: "s" }),
+  });
+  assert.equal(after.targets[0].hasPage, true, "coverageKey fold matched the published page to the seed");
+});
+
+test("W2-C resolveCoverage: a nulled seeded rank never survives a flip", async () => {
+  // The seed's rank is deterministic fiction. A combo that just got its first page
+  // has ranked nowhere yet, so publishing must not leave a fabricated position on it.
+  const seed = [TGT({ hasPage: false, rank: 7 })];
+  const after = await resolveCoverage("proj-pages-rank", seed, {
+    pages: PAGES({ service: "Montáž klimatizací", area: "Praha", slug: "s" }),
+  });
+  assert.equal(after.targets[0].hasPage, true);
+  assert.equal(after.targets[0].rank, null);
+});

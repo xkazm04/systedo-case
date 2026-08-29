@@ -14,6 +14,7 @@ import LocalDiagnosisPanel from "@/components/app/modules/LocalDiagnosisPanel";
 import LocalSourcePanel from "@/components/app/modules/LocalSourcePanel";
 import ProvenanceChip from "@/components/app/modules/ProvenanceChip";
 import CoverageCell from "@/components/app/modules/CoverageCell";
+import GapPageAction from "@/components/app/modules/local/GapPageAction";
 import type { LocalSignalsSource } from "@/lib/local-signals/types";
 
 const T = {
@@ -44,6 +45,7 @@ const T = {
     missingPage: "Chybí stránka",
     gapActionCol: "Akce",
     exploreGap: "Prozkoumat klíčová slova",
+    publishedPages: "{n} publikovaných stránek",
     gapsNote: "Pro každou mezeru nasaďte lokální microsite (/m/…) + Google Business Profile. Seam: rank tracker + reviews API + call tracking.",
     reputationTitle: "Reputace podle oblasti",
     reviewCount: "{n} recenzí",
@@ -75,6 +77,7 @@ const T = {
     missingPage: "No page",
     gapActionCol: "Action",
     exploreGap: "Explore keywords",
+    publishedPages: "{n} published pages",
     gapsNote: "For each gap, deploy a local microsite (/m/…) + Google Business Profile. Seam: rank tracker + reviews API + call tracking.",
     reputationTitle: "Reputation by area",
     reviewCount: "{n} reviews",
@@ -109,6 +112,7 @@ export default async function LocalModule({
   coverageSource,
   coverageSyncedAt,
   coverageSourceUrl,
+  coveragePages = 0,
 }: {
   targets: LocalTarget[];
   reviews: ReviewProfile[];
@@ -124,6 +128,9 @@ export default async function LocalModule({
   coverageSource?: "sample" | LocalSignalsSource;
   coverageSyncedAt?: string;
   coverageSourceUrl?: string;
+  /** W2-C — how many published `local-landing` microsites the coverage overlay
+   *  matched (resolveCoverage's `pages`). 0 / absent hides the pill. */
+  coveragePages?: number;
   /** what this business actually does, derived from the catalog — grounds the AI
    *  review replies instead of a hardcoded industry (BM-L1-07). */
   businessType?: string;
@@ -201,6 +208,9 @@ export default async function LocalModule({
             <ProvenanceChip live={coverageLive} />
           </h3>
           <div className="flex items-center gap-2">
+            {/* W2-C — why a cell says "má stránku": N published local landing pages
+                are overlaid live over the seed/import (resolveCoverage). */}
+            {coveragePages > 0 && <Pill tone="navy">{t("publishedPages", { n: coveragePages })}</Pill>}
             <Pill tone="positive">{t("legendTop3")}</Pill>
             <Pill tone="coral">{t("legend4to10")}</Pill>
             <Pill tone="negative">{t("legend11plus")}</Pill>
@@ -281,12 +291,17 @@ export default async function LocalModule({
                   </td>
                   {projectId && (
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/app/${projectId}/klicova-slova?seed=${encodeURIComponent(`${tgt.service} ${tgt.area}`)}`}
-                        className="text-xs font-semibold text-brand-accent hover:underline"
-                      >
-                        {t("exploreGap")} →
-                      </Link>
+                      <div className="flex flex-col items-start gap-2">
+                        <Link
+                          href={`/app/${projectId}/klicova-slova?seed=${encodeURIComponent(`${tgt.service} ${tgt.area}`)}`}
+                          className="text-xs font-semibold text-brand-accent hover:underline"
+                        >
+                          {t("exploreGap")} →
+                        </Link>
+                        {/* W2-C — close the gap directly: generate the service×area
+                            page, preview it, publish it at /m/{slug}. */}
+                        <GapPageAction projectId={projectId} service={tgt.service} area={tgt.area} />
+                      </div>
                     </td>
                   )}
                 </tr>

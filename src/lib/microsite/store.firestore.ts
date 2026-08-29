@@ -24,6 +24,14 @@ export async function getByTenant(tenant: string): Promise<MicrositeConfig | nul
   return snap.empty ? null : (snap.docs[0].data() as MicrositeConfig);
 }
 
+/** EVERY config a tenant owns (W2-C). Same `where("tenant", "==", …)` predicate
+ *  `clearForTenant` already uses, so it needs no new composite index; ordered by
+ *  `__name__` (the doc id — the slug) to match the sqlite twin's `ORDER BY slug`. */
+export async function listByTenant(tenant: string): Promise<MicrositeConfig[]> {
+  const snap = await registry().where("tenant", "==", tenant).orderBy("__name__").get();
+  return snap.docs.map((doc) => doc.data() as MicrositeConfig);
+}
+
 export async function upsert(cfg: MicrositeConfig): Promise<void> {
   await registry().doc(cfg.slug).set(cfg, { merge: true });
 }

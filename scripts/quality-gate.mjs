@@ -58,9 +58,13 @@ const FLOOR = 6.5;
 /** Reporting-rung ratchet. Fix findings and lower these in the same commit;
  *  never raise them. Measured 2026-08-26 against the 2026-07-07 bake. */
 const RATCHET = {
-  /** registry tools with no baked score: channel-research, local-diagnosis,
-   *  monthly-recap, onboarding-scan, twin-reply, twin-style. */
-  unbaked: 7,
+  /** registry tools with no baked score: ads-diagnosis, channel-research,
+   *  local-diagnosis, monthly-recap, onboarding-scan, twin-reply, twin-style —
+   *  plus `local-page` (W2-C, 2026-08-29), the same +1 ads-diagnosis took in
+   *  Wave 1: a tool lands with its contract golden, and its quality cells are
+   *  measured on the next full `npm run llm:quality` bake. Lower this back to 6
+   *  when both are baked; never raise it for anything else. */
+  unbaked: 8,
   /** baked operations no longer in the registry: lead-reply (retired when the
    *  twin absorbed it). It is still on the public scorecard. */
   retired: 1,

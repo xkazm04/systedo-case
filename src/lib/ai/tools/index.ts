@@ -32,3 +32,10 @@ export { generateLeadSourceDiagnosis } from "./lead-source-diagnosis";
 export { generateLocalDiagnosis } from "./local-diagnosis";
 export { generateChannelResearch } from "./channel-research";
 export { generateOnboardingScan } from "./onboarding-scan";
+// W1-D carry-forward: the ads diagnosis was landed with a DIRECT module import in
+// dispatch.ts because the barrel was outside that work package's write set. The
+// export it was owed lands here; re-pointing dispatch.ts at it is the Director's
+// one-line seam (dispatch.ts belongs to another WP this wave).
+export { generateAdsDiagnosis } from "./ads-diagnosis";
+// W2-C: the service×area local landing page draft.
+export { generateLocalPage } from "./local-page";

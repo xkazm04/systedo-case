@@ -10,6 +10,41 @@
  *  a public URL. Absent on a stored doc → `performance` (see `normalizeConfig`). */
 export type MicrositeKind = "performance" | "local-landing" | "lp";
 
+/** W2-C — the payload a `local-landing` microsite renders: ONE service×area page
+ *  generated from the coverage gap. `service` and `area` are stored verbatim (the
+ *  catalog's own strings), because the coverage overlay matches them back through
+ *  the same `coverageKey` fold the import uses — a re-worded copy here would silently
+ *  stop flipping the cell it was published for.
+ *
+ *  Price is carried as the CATALOG number, never as model prose: the renderer prints
+ *  this field, so a published page can only ever show a price the server resolved.
+ *  There is deliberately no address / phone / opening-hours field — the repo has no
+ *  NAP data model and inventing one for a public page would be fabrication. */
+export interface LocalPagePayload {
+  /** the catalog service the page is about (verbatim, for coverage folding) */
+  service: string;
+  /** the locality the page targets (verbatim) */
+  area: string;
+  /** the generated page text (see LocalPageResult in @/lib/ai-types) */
+  page: {
+    headline: string;
+    intro: string;
+    sections: { heading: string; body: string }[];
+    faq: { q: string; a: string }[];
+    cta: string;
+    /** "fallback" when the text is the deterministic floor, not a model draft */
+    source?: "fallback";
+  };
+  price?: number;
+  priceModel?: string;
+  currency?: string;
+  /** a contact line the OPERATOR typed (tel:/mailto:) — never generated. Absent on
+   *  every page nobody typed one for, and the renderer then shows no contact CTA. */
+  contact?: string;
+  /** ISO timestamp the draft was generated at */
+  generatedAt: string;
+}
+
 export interface MicrositeConfig {
   /** stable public slug (the /m/{slug} URL) */
   slug: string;
@@ -34,6 +69,11 @@ export interface MicrositeConfig {
    *  before this field existed have no `kind`), never absent on a value handed to a
    *  caller — every read goes through `normalizeConfig`. */
   kind?: MicrositeKind;
+  /** W2-C — the local-landing renderer's content. Additive and optional: absent on
+   *  every `performance` site, so no stored blob changes shape and `normalizeConfig`
+   *  needs no new branch. A `local-landing` config without it renders nothing and is
+   *  refused at publish time (see enableMicrosite). */
+  local?: LocalPagePayload;
   /** true when the figures are the scaled case-study series, not a tenant's real
    *  synced data — the page then discloses it and is NOT search-indexed, so demo
    *  numbers are never published as indexed "proof". A real, Ads-connected tenant

@@ -75,3 +75,11 @@ ads-diagnosis: new ads-performance diagnosis tool (WP W1-D) — first golden for
 | tool | from | to |
 |---|---|---|
 | ads-diagnosis | — | 62d270ef58c2532e |
+
+## 2026-08-29 — local-page
+
+local-page: new gap-to-page local landing tool — first golden for its system prompt and page schema (headline/intro/sections/faq/cta), with the no-NAP anti-fabrication rules baked into the contract
+
+| tool | from | to |
+|---|---|---|
+| local-page | — | 6f56f58e889151df |
