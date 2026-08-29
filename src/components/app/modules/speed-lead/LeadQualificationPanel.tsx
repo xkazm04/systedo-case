@@ -182,12 +182,21 @@ export default function LeadQualificationPanel({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="text-[11px] font-medium text-navy-700">{t("rating")}</span>
-        <div className="inline-flex rounded-pill border border-line bg-surface p-0.5">
+        <span id="lead-disposition-label" className="text-[11px] font-medium text-navy-700">
+          {t("rating")}
+        </span>
+        {/* The chosen rating is announced, not only drawn: the selected pill differs
+            visually alone, which reaches nobody on a screen reader. */}
+        <div
+          role="group"
+          aria-labelledby="lead-disposition-label"
+          className="inline-flex rounded-pill border border-line bg-surface p-0.5"
+        >
           {DISPOSITION_OPTIONS.map((o) => (
             <button
               key={o.value}
               type="button"
+              aria-pressed={qual.disposition === o.value}
               onClick={() => onChange("disposition", o.value)}
               className={`rounded-pill px-2.5 py-1 text-xs font-medium transition-colors ${
                 qual.disposition === o.value

@@ -449,10 +449,14 @@ export default function SpeedLeadModule({
     reset();
   };
 
+  /** Escalate: put the caret on the oldest breaching lead, not just the viewport.
+   *  Scrolling alone moved the page out from under a keyboard user while their
+   *  focus stayed parked on the escalate button. */
   const focusFirstBreached = () => {
     const el = firstBreachedRef.current;
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    el.focus({ preventScroll: true });
     const first = sortedLeads.find(isOverdue);
     if (first) setSelectedId(first.id);
   };
@@ -560,6 +564,7 @@ export default function SpeedLeadModule({
                 key={l.id}
                 ref={isFirstBreached ? firstBreachedRef : undefined}
                 type="button"
+                aria-pressed={active}
                 onClick={() => setSelectedId(l.id)}
                 className={`w-full rounded-card border p-3 text-left transition-colors ${
                   active
