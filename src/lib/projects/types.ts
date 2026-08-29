@@ -187,6 +187,13 @@ export interface Project {
   tenant?: string;
   /** linked Google Ads customerId once an account is connected to this project */
   adsCustomerId?: string;
+  /** ADR-0010: does the owner's Sklik connection feed THIS project? Sklik has no
+   *  per-account id to link on (one per-user token, one `sklik` tenant), so linkage
+   *  is an explicit boolean — the exact counterpart of `adsCustomerId` for Google,
+   *  and for the same data-isolation reason: without it, a multi-client workspace
+   *  would file one client's Sklik spend under every other client's report. Absent /
+   *  false → the project never reads or syncs Sklik, byte-identically to before. */
+  sklikLinked?: boolean;
   /** ISO timestamps */
   createdAt: string;
   updatedAt: string;
@@ -204,7 +211,9 @@ export interface NewProjectInput {
  *  as-is"; an empty/whitespace string on a nullable field (logoUrl/domain/
  *  adsCustomerId) CLEARS it. A blank `name` is rejected (see normalizeProjectPatch),
  *  not applied — a project always has a display name. */
-export type ProjectPatch = Partial<Pick<Project, "name" | "type" | "accentColor" | "logoUrl" | "domain" | "adsCustomerId">>;
+export type ProjectPatch = Partial<
+  Pick<Project, "name" | "type" | "accentColor" | "logoUrl" | "domain" | "adsCustomerId" | "sklikLinked">
+>;
 
 /** A ProjectPatch resolved to its stored representation: only the keys actually
  *  being changed are present; a nullable field carries `null` to CLEAR it (vs.
@@ -218,6 +227,10 @@ export interface NormalizedProjectPatch {
   logoUrl?: string | null;
   domain?: string | null;
   adsCustomerId?: string | null;
+  /** ADR-0010 Sklik linkage. A boolean flag, not a nullable text field: `false` IS
+   *  the off state, so it is stored rather than cleared (both backends persist the
+   *  literal value; there is no "absent means maybe" third state to interpret). */
+  sklikLinked?: boolean;
 }
 
 /** Single source of truth for patch normalization, shared by both store backends so
@@ -238,6 +251,9 @@ export function normalizeProjectPatch(patch: ProjectPatch): NormalizedProjectPat
   if (patch.logoUrl !== undefined) out.logoUrl = patch.logoUrl.trim() || null;
   if (patch.domain !== undefined) out.domain = patch.domain.trim() || null;
   if (patch.adsCustomerId !== undefined) out.adsCustomerId = patch.adsCustomerId.trim() || null;
+  // Coerced, not trusted: the value crosses an API boundary, and a truthy non-boolean
+  // stored here would reach `project.sklikLinked` as data the sync treats as a link.
+  if (patch.sklikLinked !== undefined) out.sklikLinked = Boolean(patch.sklikLinked);
   return out;
 }
 

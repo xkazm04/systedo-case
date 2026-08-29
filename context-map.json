@@ -3670,7 +3670,8 @@
         "src/components/app/modules/AccountSecurity.tsx",
         "src/components/app/modules/ProjectSettings.tsx",
         "src/components/app/modules/IntegrationStatusModule.tsx",
-        "src/components/app/onboarding/OnboardingChecklist.tsx"
+        "src/components/app/onboarding/OnboardingChecklist.tsx",
+        "src/components/app/modules/ProjectDataSources.tsx"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
@@ -4626,7 +4627,8 @@
         "src/lib/report-metrics/store.firestore.ts",
         "src/lib/report-metrics/store.local.ts",
         "src/lib/report-metrics/sync.ts",
-        "src/lib/report-metrics/types.ts"
+        "src/lib/report-metrics/types.ts",
+        "src/lib/report-metrics/blend.ts"
       ],
       "group": "Analytics & Reporting",
       "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",

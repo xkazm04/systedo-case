@@ -33,6 +33,9 @@ function toProject(id: string, data: FirebaseFirestore.DocumentData): Project {
     domain: data.domain || undefined,
     tenant: data.tenant || undefined,
     adsCustomerId: data.adsCustomerId || undefined,
+    // ADR-0010: absent on every doc written before the flag existed → undefined,
+    // which reads as "not linked" everywhere. Only a stored `true` links.
+    ...(data.sklikLinked === true ? { sklikLinked: true } : {}),
     createdAt: data.createdAt ?? new Date(0).toISOString(),
     updatedAt: data.updatedAt ?? data.createdAt ?? new Date(0).toISOString(),
   };

@@ -177,6 +177,11 @@ function toCampaign(r: FirebaseFirestore.DocumentData): Campaign {
     ...(typeof r.budgetPerDay === "number" && r.budgetPerDay > 0
       ? { budgetPerDay: Number(r.budgetPerDay) }
       : {}),
+    // ADR-0010 row provenance, stamped at sync time. Absent on every doc written
+    // before the ledger existed — the project-level union read then falls back to the
+    // tenant's own SyncMeta.source, which is always right because the tenant is
+    // per-account. Never invented here.
+    ...(typeof r.source === "string" ? { source: r.source as Campaign["source"] } : {}),
   };
 }
 

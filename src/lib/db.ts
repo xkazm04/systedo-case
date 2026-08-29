@@ -84,6 +84,9 @@ const SCHEMA = `
     domain          TEXT,
     tenant          TEXT,
     ads_customer_id TEXT,
+    -- ADR-0010: explicit per-project Sklik linkage (1 = the project syncs the
+    -- user's Sklik account into its own report section). NULL/0 = not linked.
+    sklik_linked    INTEGER,
     created_at      TEXT NOT NULL,
     updated_at      TEXT NOT NULL
   );
@@ -915,6 +918,12 @@ const MIGRATIONS: Migration[] = [
       db.exec("CREATE INDEX IF NOT EXISTS idx_microsites_tenant ON microsites (tenant)");
     },
     applied: (db) => tableExists(db, "microsites") && indexExists(db, "idx_microsites_tenant"),
+  },
+  {
+    version: 24,
+    name: "projects.sklik_linked (ADR-0010 explicit Sklik linkage per project)",
+    up: (db) => db.exec("ALTER TABLE projects ADD COLUMN sklik_linked INTEGER"),
+    applied: (db) => hasColumn(db, "projects", "sklik_linked"),
   },
 ];
 

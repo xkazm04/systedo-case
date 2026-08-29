@@ -4,7 +4,8 @@
  *  export an identical interface. Project-scoped (not per-user): the synced series
  *  belongs to the project. Server-only. */
 import { LOCAL_DB } from "@/lib/local-mode";
-import { isLiveMetrics, type ReportMetrics } from "./types";
+import { primarySection, readSections } from "./blend";
+import { isLiveMetrics, type MetricsSource, type ReportMetrics, type ReportMetricsSection } from "./types";
 
 function backend() {
   return LOCAL_DB ? import("./store.local") : import("./store.firestore");
@@ -36,4 +37,30 @@ export async function saveReportMetrics(projectId: string, metrics: ReportMetric
 /** Drop a project's synced metrics (→ reverts the report to sample data). */
 export async function clearReportMetrics(projectId: string): Promise<void> {
   return (await backend()).clearReportMetrics(projectId);
+}
+
+/** ONE platform's section of the project's blob (ADR-0010), or null when that
+ *  platform has never synced into this project. Honours the legacy-read rule, so a
+ *  pre-sections blob answers for the source its own meta names and null for the
+ *  other. This is the per-source freshness probe the cron's due-gate reads — asking
+ *  the top-level `meta.syncedAt` would report Google's age for a Sklik decision. */
+export async function getReportSection(
+  projectId: string,
+  source: MetricsSource
+): Promise<ReportMetricsSection | null> {
+  return readSections(await getReportMetrics(projectId))[source] ?? null;
+}
+
+/** Drop ONE platform's section, leaving the others intact and rewriting the legacy
+ *  top-level `meta`/`rows` from whatever is still primary. Clearing the LAST section
+ *  clears the whole blob (→ the report reverts to sample data), which is exactly
+ *  what `clearReportMetrics` has always meant. A no-op when the section is absent,
+ *  so it is safe to call blind. */
+export async function clearReportSection(projectId: string, source: MetricsSource): Promise<void> {
+  const sections = readSections(await getReportMetrics(projectId));
+  if (!sections[source]) return;
+  delete sections[source];
+  const primary = primarySection(sections);
+  if (!primary) return clearReportMetrics(projectId);
+  return saveReportMetrics(projectId, { meta: primary.meta, rows: primary.rows, sources: sections });
 }

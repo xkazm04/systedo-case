@@ -25,7 +25,24 @@ export interface MetricRow {
   impressions?: number;
 }
 
-export type MetricsSource = "google-ads";
+/** A platform a project's report series can be synced FROM. ADR-0010: a project
+ *  holds one section per source, keyed per-account in the campaign stores; the
+ *  platform IS the channel dimension the blended report reads. */
+export type MetricsSource = "google-ads" | "sklik";
+
+/** Blend order + the enumerable source set. "google-ads" is first, so it is the
+ *  PRIMARY section whenever it exists (see `readSections` / `primarySection`). */
+export const METRICS_SOURCES: readonly MetricsSource[] = ["google-ads", "sklik"];
+
+/** Narrow an unvalidated stored `source` string to a known MetricsSource. Stored
+ *  blobs are cast, never validated, so a legacy / drifted value must not poison the
+ *  total `Record<MetricsSource, …>` lookups the blend runs. Unknown → "google-ads",
+ *  which is what every pre-ADR-0010 blob actually is. */
+export function coerceMetricsSource(v: unknown): MetricsSource {
+  return typeof v === "string" && (METRICS_SOURCES as readonly string[]).includes(v)
+    ? (v as MetricsSource)
+    : "google-ads";
+}
 
 /** Provenance for the synced series — drives the honest "živá data" label. */
 export interface MetricsSyncMeta {
@@ -53,10 +70,27 @@ export interface MetricsSyncMeta {
   currencyCode?: string;
 }
 
-/** The persisted blob per project: provenance + the daily series. */
+/** One platform's slice of a project's report series — provenance + its own daily
+ *  rows. Exactly the legacy `{meta, rows}` pair, so a pre-ADR-0010 blob IS one
+ *  section (see `readSections` in ./blend). */
+export interface ReportMetricsSection {
+  meta: MetricsSyncMeta;
+  rows: MetricRow[];
+}
+
+/** The persisted blob per project: provenance + the daily series.
+ *
+ *  ADR-0010: the blob now holds ONE SECTION PER SOURCE under `sources` (additive,
+ *  optional). The top-level `meta`/`rows` keep their legacy meaning — they are the
+ *  PRIMARY section (Google when present, else Sklik), rewritten from it on every
+ *  write — so every reader written before sections existed keeps working unchanged,
+ *  and a blob written before sections exist reads as the single section its own
+ *  `meta.source` names. Nothing migrates: no schema changed (ADR-0001). */
 export interface ReportMetrics {
   meta: MetricsSyncMeta;
   rows: MetricRow[];
+  /** per-source sections; absent on every blob written before ADR-0010 */
+  sources?: Partial<Record<MetricsSource, ReportMetricsSection>>;
 }
 
 /** The single, honest definition of "live data": a project is live once it has
@@ -73,5 +107,14 @@ export interface ReportMetrics {
  *  report page. Checking the shape here degrades such a blob to "not live" (→ the
  *  sample dataset), which is what every caller already does for "never synced". */
 export function isLiveMetrics(metrics: ReportMetrics | null): metrics is ReportMetrics {
-  return !!metrics && !!metrics.meta && Array.isArray(metrics.rows) && metrics.rows.length > 0;
+  return isLiveSection(metrics);
+}
+
+/** The SAME "live" rule, applied to one section. A section counts only with a
+ *  well-formed meta and at least one row — so a half-written / cleared section can
+ *  never contribute a channel row to a blend, or be picked as the primary. */
+export function isLiveSection(
+  section: ReportMetricsSection | null | undefined
+): section is ReportMetricsSection {
+  return !!section && !!section.meta && Array.isArray(section.rows) && section.rows.length > 0;
 }

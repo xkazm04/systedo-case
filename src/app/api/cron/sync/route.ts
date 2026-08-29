@@ -10,14 +10,19 @@
 import { listConnectedAccounts, listConnectedUserIds } from "@/lib/campaigns/connection";
 import { listSklikConnectedUserIds } from "@/lib/campaigns/sklik-connection";
 import { unionConnectedUserIds } from "@/lib/campaigns/provider-precedence";
-import { resolveCampaignContext } from "@/lib/campaigns/connector";
+import { resolveCampaignContext, resolveCampaignContextForSource } from "@/lib/campaigns/connector";
 import { listProjects } from "@/lib/projects/store";
 import { getSyncMeta } from "@/lib/campaigns/store";
 import { runTenantSync } from "@/lib/campaigns/sync";
 import type { CampaignPeriod } from "@/lib/campaigns/types";
 import { cronAuthorized } from "@/lib/cron-auth";
-import { getReportMetrics } from "@/lib/report-metrics/store";
-import { syncReportMetricsFromAds, syncReportMetricsShared, type SyncResult } from "@/lib/report-metrics/sync";
+import { getReportMetrics, getReportSection } from "@/lib/report-metrics/store";
+import {
+  syncReportMetricsFromAds,
+  syncReportMetricsFromSklik,
+  syncReportMetricsShared,
+  type SyncResult,
+} from "@/lib/report-metrics/sync";
 import type { DailySeriesBundle } from "@/lib/google/ads";
 import { isResyncDue } from "@/lib/report-metrics/freshness";
 import { recordCronRun } from "@/lib/cron/run";
@@ -45,6 +50,10 @@ export async function GET(request: Request) {
     listSklikConnectedUserIds(),
   ]);
   const userIds = unionConnectedUserIds(googleUserIds, sklikUserIds);
+  // Membership probe for the ADR-0010 Sklik report section below: "does this user
+  // have a per-user Sklik connection at all". Derived from the listing we already
+  // did, so the extra section costs no extra connection read per user.
+  const sklikUsers = new Set(sklikUserIds);
   const results: { userId: string; projectId?: string; customerId?: string; reason?: string; ok: boolean; alerted?: number; anomalies?: number; error?: string }[] = [];
   // Direction 1: the report's live series re-synced alongside the campaign sync. The
   // report had NO cron — refresh was manual-only, so syncedAt silently drifted and
@@ -53,7 +62,7 @@ export async function GET(request: Request) {
   // linked targets a report sync needs and runs hourly, so a per-project due-gate
   // (~20h) turns it into an effectively-daily, quota-safe refresh. One
   // syncReportMetricsFromAds call per linked project per run, bounded by that gate.
-  const reportResults: { userId: string; projectId: string; ok: boolean; skipped?: boolean; error?: string }[] = [];
+  const reportResults: { userId: string; projectId: string; source?: string; ok: boolean; skipped?: boolean; error?: string }[] = [];
 
   // Per-project tenancy with account→project mapping: an Ads account is synced
   // ONLY into the project(s) explicitly linked to it via project.adsCustomerId
@@ -67,7 +76,11 @@ export async function GET(request: Request) {
       listConnectedAccounts(userId),
       listProjects(userId),
     ]);
-    const targets = planSyncTargets({ accounts, projects });
+    // ADR-0010: a user with BOTH connections gets an ADDITIONAL Sklik target per
+    // `sklikLinked` project, so both networks sync in the same run into their own
+    // per-account tenants. Single-source users get the identical plan as before.
+    const hasSklik = sklikUsers.has(userId);
+    const targets = planSyncTargets({ accounts, projects, hasSklik });
     for (const target of targets) {
     // Report-metrics refresh for the LINKED project behind this target. Only a
     // project that carries its own adsCustomerId can sync a report (the sync resolves
@@ -75,7 +88,11 @@ export async function GET(request: Request) {
     // single-project fallback is skipped here. Resolve the due-gate UP FRONT so a due
     // report can share ONE date-segmented Ads read with the campaigns series below
     // (Direction 3). The due-gate keeps a report refresh to ~once/day/project.
-    const linked = target.projectId
+    // `!target.source` — an ADR-0010 Sklik target must never trigger the GOOGLE
+    // report sync: the same project can now carry both targets, and the Google
+    // section belongs to the Google one (running it on both would double the
+    // 400-day Ads read every run).
+    const linked = target.projectId && !target.source
       ? projects.find((p) => p.id === target.projectId && p.adsCustomerId)
       : undefined;
     let reportDue = false;
@@ -93,12 +110,12 @@ export async function GET(request: Request) {
     let reportSync: { result: SyncResult; bundle: DailySeriesBundle | null } | null = null;
 
     try {
-      const { connector, tenant } = await resolveCampaignContext(
-        userId,
-        target.projectId,
-        target.projectType,
-        target.customerId
-      );
+      // A Sklik target resolves that ONE provider into its own `…_sklik` tenant —
+      // the registry's first-wins walk would hand a dual user Google here and sync
+      // Google's data twice. Every other target keeps the unchanged walk.
+      const { connector, tenant } = target.source
+        ? await resolveCampaignContextForSource(userId, target.projectId, target.projectType, target.source)
+        : await resolveCampaignContext(userId, target.projectId, target.projectType, target.customerId);
       const meta = await getSyncMeta(tenant);
       const period: CampaignPeriod = meta?.period ?? "30d";
 
@@ -154,6 +171,49 @@ export async function GET(request: Request) {
           }
         }
         reportResults.push({ userId, projectId: linked.id, ok: result.ok, ...(result.error ? { error: result.error } : {}) });
+      }
+    }
+
+    // ADR-0010 — the SKLIK section of this project's report, refreshed beside the
+    // Google one and gated independently. Two things must both be true: the project
+    // carries the explicit `sklikLinked` flag (Sklik has no account id to link on),
+    // and the owner actually has a per-user Sklik connection. The due-gate reads the
+    // SKLIK SECTION's own syncedAt — reading the blob's top-level meta would answer
+    // with Google's age and either skip a stale Sklik section forever or re-pull it
+    // every run. Never throws: syncReportMetricsFromSklik returns a classified
+    // result, and the section read is wrapped so a store hiccup just defers to the
+    // next run rather than failing the whole cron.
+    // Exactly ONE target per project may own the Sklik section: the explicit Sklik
+    // target when the user also has Google (a dual project has two targets), else the
+    // project's own account-less target (a Sklik-only user has just that one).
+    const ownsSklikSection = target.source === "sklik" || !target.customerId;
+    const sklikProject = target.projectId && ownsSklikSection
+      ? projects.find((p) => p.id === target.projectId && p.sklikLinked)
+      : undefined;
+    if (sklikProject && hasSklik) {
+      try {
+        const section = await getReportSection(sklikProject.id, "sklik");
+        if (!isResyncDue(section?.meta.syncedAt, new Date())) {
+          reportResults.push({ userId, projectId: sklikProject.id, source: "sklik", ok: true, skipped: true });
+        } else {
+          const result = await syncReportMetricsFromSklik(sklikProject, userId);
+          reportResults.push({
+            userId,
+            projectId: sklikProject.id,
+            source: "sklik",
+            ok: result.ok,
+            ...(result.error ? { error: result.error } : {}),
+          });
+        }
+      } catch (err) {
+        console.error(`[cron] Sklik report sync failed for ${userId}/${sklikProject.id}:`, err);
+        reportResults.push({
+          userId,
+          projectId: sklikProject.id,
+          source: "sklik",
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
     }

@@ -48,6 +48,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     patch.logoUrl = logoUrl;
   }
   if (typeof body.domain === "string") patch.domain = body.domain.trim();
+  // ADR-0010: the explicit Sklik linkage. Unlike the Ads link there is no account id
+  // to verify (one per-user Sklik token, one `sklik` tenant), so the boolean is
+  // accepted as-is — a strict `typeof` check, never a truthiness one, so a stray
+  // string can't silently link a project to another client's network.
+  if (typeof body.sklikLinked === "boolean") patch.sklikLinked = body.sklikLinked;
 
   // The Ads link is the one field with consequences OUTSIDE this project: the sync
   // fan-out follows it, so an unverified or double-claimed id lands real spend in the

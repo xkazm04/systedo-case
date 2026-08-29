@@ -27,6 +27,7 @@ interface ProjectRow {
   domain: string | null;
   tenant: string | null;
   ads_customer_id: string | null;
+  sklik_linked: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -41,6 +42,7 @@ function toProject(r: ProjectRow): Project {
     domain: r.domain || undefined,
     tenant: r.tenant || undefined,
     adsCustomerId: r.ads_customer_id || undefined,
+    ...(r.sklik_linked ? { sklikLinked: true } : {}),
     createdAt: r.created_at ?? new Date(0).toISOString(),
     updatedAt: r.updated_at ?? r.created_at ?? new Date(0).toISOString(),
   };
@@ -109,11 +111,12 @@ export async function updateProject(
     logo_url: "logoUrl" in norm ? norm.logoUrl ?? null : row.logo_url,
     domain: "domain" in norm ? norm.domain ?? null : row.domain,
     ads_customer_id: "adsCustomerId" in norm ? norm.adsCustomerId ?? null : row.ads_customer_id,
+    sklik_linked: "sklikLinked" in norm ? (norm.sklikLinked ? 1 : 0) : row.sklik_linked,
     updated_at: new Date().toISOString(),
   };
   db.prepare(
     `UPDATE projects
-       SET name = ?, type = ?, accent_color = ?, logo_url = ?, domain = ?, ads_customer_id = ?, updated_at = ?
+       SET name = ?, type = ?, accent_color = ?, logo_url = ?, domain = ?, ads_customer_id = ?, sklik_linked = ?, updated_at = ?
      WHERE id = ? AND user_id = ?`
   ).run(
     next.name,
@@ -122,6 +125,7 @@ export async function updateProject(
     next.logo_url,
     next.domain,
     next.ads_customer_id,
+    next.sklik_linked,
     next.updated_at,
     projectId,
     userId

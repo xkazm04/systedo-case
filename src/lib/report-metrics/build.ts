@@ -3,7 +3,7 @@
  *  per-project spine) and swaps in the live daily series. Extracted from the seam so
  *  it's unit-testable without the store. The MetricRow fields are exactly
  *  PerformanceData.daily's, so the series drops straight in. */
-import type { PerformanceData } from "@/lib/types";
+import type { ChannelDailyShare, ChannelShare, PerformanceData } from "@/lib/types";
 import type { Project } from "@/lib/projects/types";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { normalizeCurrency } from "@/lib/campaigns/currency";
@@ -15,7 +15,10 @@ import type { MetricRow } from "./types";
  *  illustrative content that must NOT be presented under the "Živá data" label:
  *  - `channels` is a sample ChannelShare mix; projecting it onto the client's REAL
  *    totals fabricates a per-channel revenue/PNO/ROAS breakdown the account-level
- *    Ads sync has no data for. Neutralize to [] (consumers suppress the block).
+ *    Ads sync has no data for. Neutralize to [] (consumers suppress the block) —
+ *    UNLESS the caller supplies a SUBSTANTIATED mix (ADR-0010: a project synced from
+ *    two platforms derives one real channel per platform from its own section
+ *    totals). Absent `opts`, every field below is byte-identical to before.
  *  - `events` is the demo story-event calendar ("Black Friday — špička poptávky",
  *    etc.) annotated onto sample dates; dropping it keeps demo events off real dates.
  *  - `meta` on the sample spine is {disclaimer, asOf, days, seed}: the sample-data
@@ -31,10 +34,19 @@ import type { MetricRow } from "./types";
  *    values. Absent / CZK → the base default, byte-identical to before.
  *  `goals` is retained: it is a forward-looking target (the pacing/anomaly engine
  *  needs a non-zero PNO threshold), not a fabricated historical result. */
+/** The substantiated channel mix a multi-source project derives on read (ADR-0010).
+ *  Both fields travel together — `channelDaily.shares` is index-parallel to
+ *  `channels` — so a caller either supplies a real mix or supplies nothing. */
+export interface LiveDatasetMix {
+  channels: ChannelShare[];
+  channelDaily?: ChannelDailyShare[];
+}
+
 export function buildLiveDataset(
   project: Project,
   rows: MetricRow[],
-  currencyCode?: string | null
+  currencyCode?: string | null,
+  mix?: LiveDatasetMix
 ): PerformanceData {
   const base = getProjectDataset(project);
   // Carry the account's captured currency into the tile model; a junk / absent code
@@ -61,5 +73,16 @@ export function buildLiveDataset(
     days: daily.length,
     seed: 0,
   };
-  return { ...base, client, channels: [], events: undefined, daily, meta };
+  return {
+    ...base,
+    client,
+    channels: mix?.channels ?? [],
+    events: undefined,
+    daily,
+    meta,
+    // Only a supplied mix touches channelDaily. Without one the sample spine's own
+    // per-day mix rides along exactly as it did before (channels is [], so every
+    // consumer suppresses the block) — that is the byte-identity guarantee.
+    ...(mix ? { channelDaily: mix.channelDaily } : {}),
+  };
 }

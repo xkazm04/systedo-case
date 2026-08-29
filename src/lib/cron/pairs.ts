@@ -28,11 +28,15 @@ export function buildSyncPairs(input: {
   userId: string;
   accounts: ConnectedAccount[];
   projects: Project[];
+  /** ADR-0010: the user has a per-user Sklik connection, so their `sklikLinked`
+   *  projects get an ADDITIONAL Sklik pair (account null — Sklik has no account id)
+   *  beside their Google one. Omitted → the pre-ledger plan, pair for pair. */
+  hasSklik?: boolean;
 }): SyncPair[] {
-  const { userId, accounts, projects } = input;
+  const { userId, accounts, projects, hasSklik } = input;
   const accountById = new Map(accounts.map((a) => [a.customerId, a]));
   const projectById = new Map(projects.map((p) => [p.id, p]));
-  return planSyncTargets({ accounts, projects }).map((target) => ({
+  return planSyncTargets({ accounts, projects, hasSklik }).map((target) => ({
     userId,
     target,
     account: target.customerId ? accountById.get(target.customerId) ?? null : null,

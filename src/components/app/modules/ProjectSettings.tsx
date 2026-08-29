@@ -3,23 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "@/components/icons";
-import { Pill } from "@/components/ui";
 import { ModuleIcon } from "@/components/app/icon-map";
+import ProjectDataSources from "@/components/app/modules/ProjectDataSources";
 import { useProject } from "@/lib/projects/context";
-import { projectDataSource } from "@/lib/project-data/source";
 import {
   PROJECT_TYPES,
   PROJECT_TYPE_META,
   type ProjectType,
 } from "@/lib/projects/types";
 import { useT } from "@/lib/i18n/client";
-import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
   cs: {
-    dataSourceTitle: "Zdroj dat",
-    dataSourceLive: "Projekt používá živá data z Google Ads.",
-    dataSourceDemo: "Připojte účet Google Ads v modulu Kampaně pro živá data.",
     projectName: "Název projektu",
     website: "Web",
     websiteOptional: "(nepovinné)",
@@ -35,9 +30,6 @@ const T = {
     errorGeneric: "Něco se pokazilo.",
   },
   en: {
-    dataSourceTitle: "Data source",
-    dataSourceLive: "This project uses live data from Google Ads.",
-    dataSourceDemo: "Connect a Google Ads account in the Campaigns module for live data.",
     projectName: "Project name",
     website: "Website",
     websiteOptional: "(optional)",
@@ -61,7 +53,6 @@ const inputClass =
 
 export default function ProjectSettings({ live }: { live: boolean }) {
   const t = useT(T);
-  const { locale } = useLocale();
   const project = useProject();
   const router = useRouter();
   const [name, setName] = useState(project.name);
@@ -106,19 +97,11 @@ export default function ProjectSettings({ live }: { live: boolean }) {
     }
   }
 
-  const ds = projectDataSource(live, locale);
-
   return (
     <div className="stagger max-w-2xl space-y-8">
-      <div className="card flex items-center justify-between gap-3 p-5">
-        <div>
-          <p className="text-sm font-semibold text-navy-800">{t("dataSourceTitle")}</p>
-          <p className="mt-0.5 text-xs text-muted">
-            {ds.live ? t("dataSourceLive") : t("dataSourceDemo")}
-          </p>
-        </div>
-        <Pill tone={ds.live ? "positive" : "neutral"}>{ds.label}</Pill>
-      </div>
+      {/* Which platforms feed this project's report — Google Ads status + the
+          ADR-0010 Sklik linkage toggle. Its own component (it owns a write). */}
+      <ProjectDataSources live={live} />
 
       <form onSubmit={save} className="card space-y-6 p-6">
         <div className="grid gap-4 sm:grid-cols-2">

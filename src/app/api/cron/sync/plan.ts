@@ -10,6 +10,7 @@
  *  conservative fallback so pre-existing single-account/single-project users who
  *  never set the link are not stranded. */
 import type { ProjectType } from "@/lib/projects/types";
+import type { AdsSource } from "@/lib/campaigns/types";
 
 export interface PlanAccount {
   customerId: string;
@@ -19,6 +20,9 @@ export interface PlanProject {
   id: string;
   type?: ProjectType;
   adsCustomerId?: string | null;
+  /** ADR-0010: the project's explicit Sklik linkage (Sklik has no account id to link
+   *  on). Only a linked project gets the extra Sklik target below. */
+  sklikLinked?: boolean;
 }
 
 export interface SyncTarget {
@@ -27,6 +31,10 @@ export interface SyncTarget {
   /** the project tenant to sync into, or undefined → the per-user tenant */
   projectId?: string;
   projectType?: ProjectType;
+  /** ADR-0010: the network this target syncs. Present ONLY on the additional Sklik
+   *  targets — every Google/fallback target omits it and is resolved exactly as
+   *  before, through the first-wins registry. */
+  source?: AdsSource;
   /** why this pairing was chosen — surfaced in the cron result for diagnostics.
    *  `user-load-failed` is never planned here: the fan-out spine synthesises it for a
    *  user whose own stores failed to load, so that failure still reaches the cron's
@@ -36,16 +44,41 @@ export interface SyncTarget {
 
 const digits = (s: string | null | undefined): string => (s ?? "").replace(/\D/g, "");
 
+/** ADR-0010 — the ADDITIONAL Sklik targets for a user who has a Google account AND a
+ *  per-user Sklik connection: one per project that carries the explicit `sklikLinked`
+ *  flag, syncing into that project's own `…_sklik` tenant beside the Google one.
+ *
+ *  Only for a user with Google accounts: a Sklik-ONLY user's projects already get a
+ *  null-account target above, which the first-wins registry resolves to the Sklik
+ *  provider and the same `…_sklik` tenant — adding a second target there would sync
+ *  the identical tenant twice per run. This is the one and only place the fan-out
+ *  widens, so a single-source user's plan is byte-identical to before. */
+function sklikTargets(projects: PlanProject[]): SyncTarget[] {
+  return projects
+    .filter((p) => p.sklikLinked)
+    .map((p) => ({
+      customerId: null,
+      projectId: p.id,
+      projectType: p.type,
+      source: "sklik" as const,
+      reason: "linked" as const,
+    }));
+}
+
 /** Resolve the (account, project) pairs the cron should sync for one user. */
 export function planSyncTargets(args: {
   accounts: PlanAccount[];
   projects: PlanProject[];
+  /** ADR-0010: the user has a per-user Sklik connection. Omitted/false → the plan is
+   *  exactly what it was before the channel ledger, target for target. */
+  hasSklik?: boolean;
 }): SyncTarget[] {
-  const { accounts, projects } = args;
+  const { accounts, projects, hasSklik } = args;
 
   // No connected accounts at all: preserve the prior null-account fallback so the
   // project(s) still get a (sample) sync, exactly as before. listConnectedUserIds
-  // pre-filters to ≥1 account, but this keeps the helper total.
+  // pre-filters to ≥1 account, but this keeps the helper total. A Sklik-only user
+  // lands here, and their null-account targets ARE their Sklik sync (see above).
   if (accounts.length === 0) {
     if (projects.length === 0) return [{ customerId: null, reason: "no-project-fallback" }];
     return projects.map((p) => ({
@@ -55,6 +88,8 @@ export function planSyncTargets(args: {
       reason: "no-project-fallback" as const,
     }));
   }
+
+  const extra = hasSklik ? sklikTargets(projects) : [];
 
   // Conservative fallback for the classic single-account + single-project (or
   // no-project) user who never set the adsCustomerId link: keep syncing that one
@@ -72,6 +107,7 @@ export function planSyncTargets(args: {
         projectType: p?.type,
         reason: p ? "single-project-fallback" : "no-project-fallback",
       },
+      ...extra,
     ];
   }
 
@@ -93,5 +129,5 @@ export function planSyncTargets(args: {
       }
     }
   }
-  return targets;
+  return [...targets, ...extra];
 }

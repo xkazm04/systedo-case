@@ -102,8 +102,15 @@ export async function runTenantSync(
     !degradation.campaigns && connector.diagnoseMoneyUnit
       ? connector.diagnoseMoneyUnit(campaigns, period)
       : undefined;
-  await upsertCampaigns(tenant, campaigns, {
-    source: degradation.campaigns ? "sample" : connector.source,
+  // ADR-0010: the row's own provenance, stamped from the connector at sync time so a
+  // project-level UNION read can tag every row with the network it came from without
+  // re-deriving it. Uses the SAME truthful source the sync meta records, so a
+  // degraded (sample-fallback) fetch stamps "sample" on the rows too rather than
+  // labelling demo numbers as a live network's.
+  const rowSource = degradation.campaigns ? "sample" : connector.source;
+  const stamped = campaigns.map((c) => ({ ...c, source: rowSource }));
+  await upsertCampaigns(tenant, stamped, {
+    source: rowSource,
     period,
     // The account's captured currency (base CZK for sample / a degraded fetch). Lets
     // the money surfaces label a non-CZK account honestly without converting.

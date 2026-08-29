@@ -16,11 +16,18 @@ import {
   type SearchRow,
 } from "@/lib/google/ads";
 import { normalizeCurrency } from "@/lib/campaigns/currency";
-import type { CampaignPeriod } from "@/lib/campaigns/types";
+import { CAMPAIGN_PERIOD_DAYS, type CampaignPeriod } from "@/lib/campaigns/types";
 import { getUserAccessToken, hasAdsScope } from "@/lib/google/token";
+import { SklikClient, httpSklikTransport } from "@/lib/sklik/client";
+import { fetchSklikSeries } from "@/lib/sklik/adapter";
+import type { SklikMoneyMode } from "@/lib/sklik/types";
+import { getSklikConnection } from "@/lib/campaigns/sklik-connection";
+import { decryptToken } from "@/lib/inventory/token-crypto";
+import { SKLIK_TENANT_SUFFIX } from "@/lib/campaigns/store-keys";
 import { mapAdsRowsToMetrics, type AdsMetricRow } from "./map";
+import { primarySection, readSections, sklikPointsToMetricRows } from "./blend";
 import { getReportMetrics, saveReportMetrics } from "./store";
-import type { MetricRow } from "./types";
+import type { MetricRow, MetricsSource } from "./types";
 
 /** Trailing window to fetch. 400d supports the 365-day report tiles and their
  *  period-over-period deltas on shorter windows. It does NOT reach the 12-month
@@ -31,6 +38,14 @@ import type { MetricRow } from "./types";
  *  "enable" YoY; raise SYNC_DAYS to ~740 instead (a quota/cost decision) if live YoY
  *  grounding is wanted. */
 const SYNC_DAYS = 400;
+
+/** The window the Sklik section syncs. Sklik's stats surface is read through the
+ *  campaigns adapter's period vocabulary (`fetchSklikSeries` takes a CampaignPeriod,
+ *  not a day count), so the report takes its LONGEST period rather than inventing a
+ *  second Sklik fetcher — deliberately shorter than the Google window, and stamped
+ *  honestly on the section's `days`. Widening it is an adapter change, not a change
+ *  here. */
+const SKLIK_SYNC_PERIOD: CampaignPeriod = "90d";
 
 export interface SyncResult {
   ok: boolean;
@@ -67,16 +82,26 @@ async function resolveAdsAccess(project: Project, userId: string | null): Promis
   return { ok: true, token, customerId };
 }
 
-/** Persist the mapped daily rows as the project's live report source. The ONE place
- *  the sync meta is stamped, so the standalone and shared paths write byte-identical
- *  blobs from the same rows. */
+/** Persist the mapped daily rows as ONE of the project's live report sections. The
+ *  ONE place a report sync meta is stamped, so every path (standalone Google, shared
+ *  Google, Sklik) writes the same shape from the same rows.
+ *
+ *  ADR-0010: the write is per-source and additive. The named source's section is
+ *  replaced; every other section is read back and carried forward untouched, and the
+ *  blob's legacy top-level `meta`/`rows` are rewritten from the PRIMARY section
+ *  (Google when present, else Sklik) so every reader that predates sections keeps
+ *  seeing exactly what it saw before. A Google-only project therefore stores the
+ *  identical top-level pair it stored before this change, plus `sources`. */
 async function persistMetrics(
   project: Project,
   customerId: string,
   rows: MetricRow[],
   timeZone: string | null,
-  currencyCode: string | null
+  currencyCode: string | null,
+  opts: { source?: MetricsSource; days?: number } = {}
 ): Promise<SyncResult> {
+  const source = opts.source ?? "google-ads";
+  const days = opts.days ?? SYNC_DAYS;
   if (rows.length === 0) {
     // Keep-last-known-good: a 0-row fetch writes NOTHING, so the previously stored
     // series (and its syncedAt) survives — this protects a live report from being
@@ -84,17 +109,24 @@ async function persistMetrics(
     // keeps showing months-old numbers as "live" until someone manually clears it
     // (clearReportMetrics). `emptyWindow` marks this as a real empty account, not a
     // broken integration, so the caller can act on that distinction.
-    return { ok: false, emptyWindow: true, error: "Google Ads nevrátil pro účet žádná data za období." };
+    return {
+      ok: false,
+      emptyWindow: true,
+      error:
+        source === "sklik"
+          ? "Sklik nevrátil pro účet žádná data za období."
+          : "Google Ads nevrátil pro účet žádná data za období.",
+    };
   }
   // Additive: only stamp a well-formed ISO-4217 code (junk degrades to base CZK, so the
   // report is byte-identical to before for CZK / un-captured accounts).
   const currency = normalizeCurrency(currencyCode);
-  await saveReportMetrics(project.id, {
+  const section = {
     meta: {
-      source: "google-ads",
+      source,
       customerId,
       syncedAt: new Date().toISOString(),
-      days: SYNC_DAYS,
+      days,
       rowCount: rows.length,
       // Additive: only stamp a real zone (never undefined). Absent keeps the UTC window.
       ...(timeZone ? { timeZone } : {}),
@@ -102,7 +134,14 @@ async function persistMetrics(
       ...(currency ? { currencyCode: currency } : {}),
     },
     rows,
-  });
+  };
+  // Carry the OTHER sections forward. A read hiccup degrades to "this is the only
+  // section" rather than failing the sync — the same keep-going contract the rest of
+  // this file has; the lost section re-syncs on its own schedule.
+  const sections = { ...readSections(await getReportMetrics(project.id).catch(() => null)), [source]: section };
+  // `?? section` is unreachable (we just put one in) — it keeps this total.
+  const primary = primarySection(sections) ?? section;
+  await saveReportMetrics(project.id, { meta: primary.meta, rows: primary.rows, sources: sections });
   return { ok: true, rowCount: rows.length, customerId };
 }
 
@@ -186,5 +225,61 @@ export async function syncReportMetricsShared(
   } catch (err) {
     console.error(`[report-metrics] shared Ads sync failed for ${project.id}:`, err);
     return { result: { ok: false, error: "Načtení dat z Google Ads selhalo." }, bundle: null };
+  }
+}
+
+/** ADR-0010 — sync `project`'s SKLIK section. Independent of the Google section: it
+ *  writes only `sources.sklik` (persistMetrics carries the rest forward), so a
+ *  project can hold both networks and the resolver blends them on read.
+ *
+ *  Linkage is EXPLICIT, exactly as it is for Google: Sklik data reaches a project
+ *  only through `project.sklikLinked`. There is deliberately no "the user's only
+ *  Sklik account" fallback — in a multi-client workspace that would file one
+ *  client's real spend under another client's report, the same data-isolation breach
+ *  `resolveCustomerId` refuses for Google.
+ *
+ *  Credential-gated and classified like the Ads paths (never throws): the caller's
+ *  own encrypted per-user token first, the deployment-wide env token as the
+ *  documented dev/self-host fallback, and the connection's CONFIRMED money unit —
+ *  "halere" (÷100, applied inside the adapter) only once the owner confirmed it,
+ *  else native CZK. This function never rescales money itself. */
+export async function syncReportMetricsFromSklik(project: Project, userId: string | null): Promise<SyncResult> {
+  if (!userId) return { ok: false, error: "Nejste přihlášeni." };
+  if (!project.sklikLinked) return { ok: false, error: "Sklik není napojený na tento projekt." };
+
+  let token: string | null = null;
+  let mode: SklikMoneyMode = "czk";
+  try {
+    const conn = await getSklikConnection(userId);
+    token = (conn?.tokenEnc ? decryptToken(conn.tokenEnc) : null) ?? process.env.SKLIK_API_TOKEN ?? null;
+    mode = conn?.halereConfirmed ? "halere" : "czk";
+  } catch (err) {
+    console.error(`[report-metrics] Sklik connection read failed for ${project.id}:`, err);
+    return { ok: false, error: "Načtení připojení Skliku selhalo." };
+  }
+  if (!token) return { ok: false, error: "Chybí přístup ke Skliku — připojte účet Sklik v Nastavení." };
+
+  try {
+    const points = await fetchSklikSeries(
+      new SklikClient(httpSklikTransport(), token),
+      SKLIK_SYNC_PERIOD,
+      mode
+    );
+    return await persistMetrics(
+      project,
+      // Sklik has no per-account customer id the way Google Ads does; the section is
+      // stamped with the same stable synthetic account component its campaign tenant
+      // keys under (SKLIK_TENANT_SUFFIX), so provenance reads consistently.
+      SKLIK_TENANT_SUFFIX,
+      sklikPointsToMetricRows(points),
+      // Sklik windows its own dates (no GAQL account clock) → no zone to capture.
+      null,
+      // Seznam is a Czech platform: the amounts are native CZK, never converted here.
+      "CZK",
+      { source: "sklik", days: CAMPAIGN_PERIOD_DAYS[SKLIK_SYNC_PERIOD] }
+    );
+  } catch (err) {
+    console.error(`[report-metrics] Sklik sync failed for ${project.id}:`, err);
+    return { ok: false, error: "Načtení dat ze Skliku selhalo." };
   }
 }

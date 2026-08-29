@@ -157,6 +157,16 @@ export const TARGET_ROAS = PAID_PORTFOLIO_TARGET_ROAS;
 
 // --- the model ---------------------------------------------------------------
 
+/** Stable id of the data source behind a connector, persisted alongside the data
+ *  and surfaced in the UI. An OPEN union: new providers extend it without reshaping
+ *  the seam (the store already types SyncMeta.source as string).
+ *
+ *  Lives here (and is re-exported from `./connector` for every existing importer)
+ *  because ADR-0010 made it part of the DATA model — `Campaign.source` — and the
+ *  framework-free model must not import the server-only connector to name its own
+ *  field. */
+export type AdsSource = "sample" | "google-ads" | "sklik";
+
 /** Raw, additive metrics — exactly what the Ads connector returns and what the
  *  SQLite store persists. */
 export interface Campaign {
@@ -175,6 +185,11 @@ export interface Campaign {
    *  without a resolvable campaign budget omit it). Never aggregated: budgets are
    *  caps, not spend, so summing them across campaigns would be meaningless. */
   budgetPerDay?: number;
+  /** ADR-0010: which network this row came from, stamped at sync time. OPTIONAL —
+   *  every row synced before the ledger existed omits it, and such a row reads as
+   *  its own tenant's `SyncMeta.source` (the tenant is per-account, so the tenant
+   *  always knows). Never inferred from the row itself. */
+  source?: AdsSource;
 }
 
 /** One day of portfolio totals — the date-segmented series behind the trend

@@ -38,16 +38,16 @@ import {
 } from "@/lib/sklik/adapter";
 import type { SklikMoneyMode } from "@/lib/sklik/types";
 import { classifySklikMoneyUnit, type SklikMoneyVerdict } from "@/lib/sklik/money-verdict";
-import { CAMPAIGN_PERIOD_DAYS, type Campaign, type CampaignPeriod, type DailyPoint } from "./types";
+import { CAMPAIGN_PERIOD_DAYS, type AdsSource, type Campaign, type CampaignPeriod, type DailyPoint } from "./types";
 import { buildTenantKey, SKLIK_TENANT_SUFFIX } from "./store-keys";
 import { getSklikConnection } from "./sklik-connection";
 import { decryptToken } from "@/lib/inventory/token-crypto";
 import type { ProjectType } from "@/lib/projects/types";
 
-/** Stable id of the data source behind a connector, persisted alongside the data
- *  and surfaced in the UI. An OPEN union: new providers extend it without
- *  reshaping the seam (the store already types SyncMeta.source as string). */
-export type AdsSource = "sample" | "google-ads" | "sklik";
+/** Re-exported from the framework-free model (ADR-0010 made it a Campaign field, so
+ *  `./types` owns it now). Kept exported HERE so every existing importer — routes,
+ *  stores, UI — keeps its import path unchanged. */
+export type { AdsSource };
 
 /** Per-request outcome of the live→sample fallback. The sync route persists it
  *  so degraded data is labeled truthfully — a tenant whose token expired must
@@ -446,6 +446,85 @@ export function resolveTenantForAccount(
   customerId: string
 ): string {
   return buildTenantKey(userId, projectId, customerId);
+}
+
+/** ADR-0010 — every tenant this project reads, in precedence order, with the source
+ *  behind each. The read-side counterpart of the sync fan-out: a user with a Google
+ *  connection AND a per-user Sklik connection covers TWO tenants for the same
+ *  project (`…_{customerId}` and `…_sklik`), and a project-level read is their union.
+ *
+ *  Single-source users are unchanged by construction: the union of one tenant is
+ *  exactly the tenant {@link resolveTenant} already returns for them, including the
+ *  legacy env-only-Sklik case (no per-user connection → the historical BASE key, so
+ *  pre-existing env-token data is never stranded).
+ *
+ *  Deliberately NOT gated on `project.sklikLinked`: that flag governs whether Sklik
+ *  data is SYNCED INTO a project, and this function only says where a project's
+ *  already-written data lives. Un-gating the read is what keeps a Sklik user's
+ *  history addressable after they connect Google (ADR-0002's original reason for the
+ *  fixed `sklik` suffix).
+ *
+ *  Isolation: every key comes from `buildTenantKey(userId, …)`, so a union widens
+ *  what ONE user's project reads across THEIR OWN accounts and can never span users. */
+export async function resolveProjectTenants(
+  userId: string | null,
+  projectId?: string | null
+): Promise<{ tenant: string; source: AdsSource }[]> {
+  if (!userId) return [{ tenant: "sample", source: "sample" }];
+  const [connection, sklikSuffix] = await Promise.all([
+    getAdsConnection(userId),
+    sklikAccountSuffix(userId),
+  ]);
+  const tenants: { tenant: string; source: AdsSource }[] = [];
+  if (connection?.customerId) {
+    tenants.push({ tenant: buildTenantKey(userId, projectId, connection.customerId), source: "google-ads" });
+  }
+  if (sklikSuffix) {
+    tenants.push({ tenant: buildTenantKey(userId, projectId, sklikSuffix), source: "sklik" });
+  }
+  // Neither account-scoped tenant applies → the base per-project key, which is where
+  // a sample copy and legacy env-token Sklik data live. Same key as resolveTenant.
+  if (tenants.length === 0) tenants.push({ tenant: buildTenantKey(userId, projectId), source: "sample" });
+  return tenants;
+}
+
+/** ADR-0010 — resolve ONE NAMED provider into its OWN tenant, instead of the
+ *  first-wins registry walk {@link resolveCampaignContext} does.
+ *
+ *  This is what lets the sync fan out over both networks in one run. The registry's
+ *  Sklik resolver bows out the moment a Google connection exists (`if (connection)
+ *  return null`) — correct for "which single provider serves this request", wrong for
+ *  "sync the Sklik tenant". Rather than weakening that rule for everyone, a Sklik-
+ *  targeted call resolves the Sklik provider with NO Google connection in context, so
+ *  the yield never triggers; every existing caller keeps the first-wins behaviour
+ *  untouched.
+ *
+ *  The tenant is the SAME key the read side computes for that source
+ *  ({@link resolveProjectTenants}), so sync and read can never disagree. A source
+ *  whose credentials don't resolve degrades to the sample connector under its own
+ *  tenant — never to another network's data. */
+export async function resolveCampaignContextForSource(
+  userId: string | null,
+  projectId: string | null | undefined,
+  projectType: ProjectType | undefined,
+  source: AdsSource
+): Promise<{ connector: AdsConnector; tenant: string }> {
+  const sample = () => sampleProvider(projectType, projectId ?? undefined);
+  if (!userId) return { connector: sample(), tenant: "sample" };
+
+  if (source === "google-ads") {
+    const connection = await getAdsConnection(userId);
+    const tenant = buildTenantKey(userId, projectId, connection?.customerId);
+    const connector = await resolveGoogle({ userId, connection, fallback: sample() });
+    return { connector: connector ?? sample(), tenant };
+  }
+  if (source === "sklik") {
+    const tenant = buildTenantKey(userId, projectId, await sklikAccountSuffix(userId));
+    // `connection: null` is the whole trick — see the doc comment above.
+    const connector = await resolveSklik({ userId, connection: null, fallback: sample() });
+    return { connector: connector ?? sample(), tenant };
+  }
+  return { connector: sample(), tenant: buildTenantKey(userId, projectId) };
 }
 
 /** Resolve both the connector and the tenant for a request in one pass: live
