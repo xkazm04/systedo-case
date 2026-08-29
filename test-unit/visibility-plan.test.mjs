@@ -333,3 +333,41 @@ test("demo e-shop fixture: with no library at all it is still the channel-only p
   const plan = buildVisibilityPlan({ channels, limit: 0 });
   assert.equal(JSON.stringify(plan.rows), JSON.stringify(channelOnlyRows(channels)));
 });
+
+/* ── WP W2-A: the measured leg, stamped onto rows and nothing else ───────────── */
+
+test("measured clicks are stamped on the matching row only, and never on an unclicked one", () => {
+  const outcomes = [
+    { channel: "Google Business Profile", links: 2, clicks7d: 4, clicks30d: 18, lastClickAt: "2026-08-29" },
+    { channel: "blog", links: 1, clicks7d: 0, clicks30d: 0 },
+  ];
+  const plan = buildVisibilityPlan({ channels: CHANNELS, outcomes, limit: 0 });
+  const byId = Object.fromEntries(plan.rows.map((r) => [r.channel.id, r]));
+  assert.equal(byId.gbp.measuredClicks, 18);
+  for (const [id, row] of Object.entries(byId)) {
+    if (id === "gbp") continue;
+    assert.equal("measuredClicks" in row, false, `${id}: no clicks means no number, not a zero`);
+  }
+});
+
+test("THE BYTE-IDENTITY RULE holds for the measured leg too", () => {
+  const base = buildVisibilityPlan({ channels: CHANNELS, limit: 0 });
+  for (const outcomes of [undefined, [], [{ channel: "Neznámý", links: 1, clicks7d: 0, clicks30d: 9 }]]) {
+    assert.equal(
+      JSON.stringify(buildVisibilityPlan({ channels: CHANNELS, outcomes, limit: 0 })),
+      JSON.stringify(base),
+      "nothing measured (or measured for a channel not in the plan) changes not one byte"
+    );
+  }
+});
+
+test("a measured channel does not jump the queue — the plan stays a to-do list", () => {
+  const outcomes = [{ channel: "blog", links: 1, clicks7d: 9, clicks30d: 40, lastClickAt: "2026-08-29" }];
+  const withMeasure = buildVisibilityPlan({ channels: CHANNELS, outcomes, limit: 0 });
+  const without = buildVisibilityPlan({ channels: CHANNELS, limit: 0 });
+  assert.deepEqual(
+    withMeasure.rows.map((r) => r.channel.id),
+    without.rows.map((r) => r.channel.id),
+    "measurement informs, it does not reorder"
+  );
+});

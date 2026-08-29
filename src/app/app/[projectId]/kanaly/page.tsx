@@ -62,7 +62,10 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
 
   const sample = channelPlanForProject(project, sampleContext);
   const [resolved, twin, savedTwin] = await Promise.all([
-    resolveOrganicChannels(project.id, sample),
+    // `userId` unlocks the MEASURED leg (WP W2-A): the `go-rollup` blob rides
+    // project_state, which is keyed per (user, project). Best-effort inside the
+    // resolver — nothing measured is the normal case and costs the plan nothing.
+    resolveOrganicChannels(project.id, sample, { userId }),
     resolveTwin(project.id, project.type),
     // The RAW saved twin, read alongside resolveTwin's own read: the resolved
     // state cannot say whether its channel list is the tenant's or the seed's
@@ -107,6 +110,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         grounding={grounding}
         signpost={signpost}
         visibilityPlan={visibilityPlan}
+        outcomes={resolved.outcomes}
       />
     </ModulePage>
   );

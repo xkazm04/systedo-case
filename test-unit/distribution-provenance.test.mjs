@@ -14,7 +14,9 @@ import {
   panelProvenance,
   pageSampleGutter,
   isProvenanceCoherent,
+  attributionIsLive,
 } from "@/lib/distribution/provenance";
+import { measuredAttribution } from "@/lib/distribution/measured";
 
 test("a fresh project: everything is illustrative and the blanket gutter is allowed", () => {
   const panels = panelProvenance({ sourceOrigin: "sample" });
@@ -71,4 +73,60 @@ test("a project on live analytics but still on the fixture ARTICLE discloses onl
   assert.deepEqual(p, { source: true, variants: true, attribution: false, learnings: false });
   // mixed provenance means the blanket claim is unavailable in BOTH directions
   assert.equal(isProvenanceCoherent(true, p), false);
+});
+
+/* ── WP W2-A: the seam that was hypothetical is now the /go outcome ledger ───── */
+
+const outcome = (channel, clicks30d, links = 1) => ({
+  channel,
+  links,
+  clicks7d: 0,
+  clicks30d,
+  lastClickAt: clicks30d > 0 ? "2026-08-29" : undefined,
+});
+
+test("attributionIsLive: one counted click is the bar, a minted link is not", () => {
+  assert.equal(attributionIsLive(undefined), false, "nothing measured fails closed");
+  assert.equal(attributionIsLive([]), false);
+  assert.equal(
+    attributionIsLive([outcome("LinkedIn", 0, 4)]),
+    false,
+    "four minted links and no clicks is setup, not measurement"
+  );
+  assert.equal(attributionIsLive([outcome("LinkedIn", 0, 4), outcome("Newsletter", 1)]), true);
+});
+
+test("THE FLIP: measured clicks turn both bottom panels live, and the sample path is unchanged", () => {
+  const live = panelProvenance({
+    sourceOrigin: "sample",
+    attributionLive: attributionIsLive([outcome("LinkedIn", 3)]),
+  });
+  assert.equal(live.attribution, false, "the table is now measurement, not a fixture");
+  assert.equal(live.learnings, false, "and the rollup over it follows, as it always must");
+
+  // Byte-identical to the pre-W2-A behaviour for everyone with nothing measured.
+  const nothing = panelProvenance({
+    sourceOrigin: "sample",
+    attributionLive: attributionIsLive([outcome("LinkedIn", 0, 2)]),
+  });
+  assert.deepEqual(nothing, { source: true, variants: true, attribution: true, learnings: true });
+});
+
+test("the blanket gutter answers to the measured half too (it would otherwise over-claim)", () => {
+  // Fixture article + measured clicks: the page must NOT say "everything here is
+  // illustrative", and isProvenanceCoherent is what proves it would have been a lie.
+  const panels = panelProvenance({ sourceOrigin: "sample", attributionLive: true });
+  assert.equal(pageSampleGutter(false, true), false);
+  assert.ok(isProvenanceCoherent(pageSampleGutter(false, true), panels));
+  assert.equal(isProvenanceCoherent(true, panels), false, "the old gutter here was an over-claim");
+  // …and with nothing measured the gutter behaves exactly as before.
+  assert.equal(pageSampleGutter(false), true);
+  assert.equal(pageSampleGutter(false, false), true);
+  assert.equal(pageSampleGutter(true, false), false);
+});
+
+test("measuredAttribution: only clicked channels become rows, reach carries LINKS", () => {
+  const rows = measuredAttribution([outcome("LinkedIn", 12, 3), outcome("Reddit", 0, 5)]);
+  assert.deepEqual(rows, [{ channel: "LinkedIn", reach: 3, clicks: 12 }]);
+  assert.deepEqual(measuredAttribution([]), []);
 });

@@ -5,6 +5,8 @@
  *  local-signals/resolve. Server-only (reads the organic-channels store). */
 import "server-only";
 import { getOrganicChannels } from "./store";
+import { getOrganicOutcomes } from "./outcomes-state";
+import type { ChannelOutcome } from "./outcomes";
 import { sanitizeChannelState, type ChannelTrack, type OrganicChannel } from "./types";
 
 export interface ResolvedChannels {
@@ -20,6 +22,13 @@ export interface ResolvedChannels {
   degraded: boolean;
   /** ISO timestamp of the last save, when there is saved state */
   updatedAt?: string;
+  /** MEASURED per-channel outcomes from the tenant's own `/go` links (WP W2-A) —
+   *  the `go-rollup` ledger step's blob. ABSENT means "nothing measured", which is
+   *  not the same as "measured as zero": the UI shows a badge only where clicks
+   *  exist, so a channel that was never linked reads exactly as it did before this
+   *  ledger existed. Never merged into `fit` — the curated score is a prediction and
+   *  this is an observation; blending them would make both unreadable. */
+  outcomes?: ChannelOutcome[];
 }
 
 /** The active channel plan + statuses for a project: the pinned AI plan when the
@@ -27,8 +36,20 @@ export interface ResolvedChannels {
  *  caller (channelPlanForProject) so this stays free of the catalog plumbing. */
 export async function resolveOrganicChannels(
   projectId: string,
-  sample: OrganicChannel[]
+  sample: OrganicChannel[],
+  opts: { userId?: string } = {}
 ): Promise<ResolvedChannels> {
+  // The measured leg is BEST-EFFORT and separate from the plan: a rollup that has
+  // never run, or a read that blinks, means "nothing measured" — it must never
+  // degrade the plan itself, which is the thing the tenant came for. Skipped
+  // entirely when the caller has no userId (the blob is keyed per user, project).
+  const outcomes = opts.userId
+    ? await getOrganicOutcomes(opts.userId, projectId)
+        .then((o) => o?.channels)
+        .catch(() => undefined)
+    : undefined;
+  const measured = outcomes && outcomes.length > 0 ? { outcomes } : {};
+
   let state = null;
   let degraded = false;
   try {
@@ -40,7 +61,7 @@ export async function resolveOrganicChannels(
     degraded = true;
   }
   if (!state) {
-    return { channels: sample, tracks: {}, source: "sample", degraded };
+    return { channels: sample, tracks: {}, source: "sample", degraded, ...measured };
   }
   // Re-sanitize on read: coerces the stored blob AND migrates pre-lifecycle blobs
   // (flat `statuses` strings) onto the ChannelTrack shape in one pass.
@@ -54,5 +75,6 @@ export async function resolveOrganicChannels(
     source: pinned ? (clean.planSource ?? "ai") : "sample",
     degraded: false,
     updatedAt: state.updatedAt,
+    ...measured,
   };
 }

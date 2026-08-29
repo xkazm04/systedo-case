@@ -15,7 +15,9 @@ import NextSteps from "@/components/app/NextSteps";
 import SectionSkeleton from "@/components/app/SectionSkeleton";
 import { repurpose } from "@/lib/distribution/generate";
 import type { ChannelPerf, SourceArticle } from "@/lib/distribution/sample";
-import { panelProvenance } from "@/lib/distribution/provenance";
+import { attributionIsLive, panelProvenance } from "@/lib/distribution/provenance";
+import { measuredAttribution } from "@/lib/distribution/measured";
+import type { ChannelOutcome } from "@/lib/organic-channels/outcomes";
 import {
   applyStoredVariants,
   selectSource,
@@ -56,9 +58,15 @@ const T = {
 export default function DistributionModule({
   source,
   attribution,
+  outcomes,
 }: {
   source: SourceArticle;
   attribution: ChannelPerf[];
+  /** MEASURED per-channel outcomes from the tenant's own `/go` links (WP W2-A).
+   *  With at least one counted click these REPLACE the illustrative attribution
+   *  rows and both bottom panels stop disclosing themselves — they read one signal,
+   *  so they flip together (lib/distribution/provenance). */
+  outcomes?: ChannelOutcome[];
 }) {
   const t = useT(T);
   const { locale } = useLocale();
@@ -116,8 +124,17 @@ export default function DistributionModule({
 
   // Provenance PER PANEL, not per project: the source/variants follow the chosen
   // article, the attribution table and the insights rolled up from it follow the
-  // (still absent) analytics seam. See lib/distribution/provenance.
-  const provenance = panelProvenance({ sourceOrigin: active.origin });
+  // analytics seam — which is now real (the `/go` outcome ledger) and still fails
+  // closed. See lib/distribution/provenance.
+  const attributionLive = attributionIsLive(outcomes);
+  const provenance = panelProvenance({ sourceOrigin: active.origin, attributionLive });
+  /** The rows both bottom panels read: measured when there is measurement, the
+   *  illustrative fixture otherwise. One expression, so the table and the insights
+   *  rolled up FROM it can never disagree about which world they are in. */
+  const rows = useMemo(
+    () => (attributionLive && outcomes ? measuredAttribution(outcomes) : attribution),
+    [attributionLive, outcomes, attribution]
+  );
 
   return (
     <div className="stagger space-y-6">
@@ -156,9 +173,9 @@ export default function DistributionModule({
         ))}
       </div>
 
-      <AttributionTable attribution={attribution} sample={provenance.attribution} />
+      <AttributionTable attribution={rows} sample={provenance.attribution} live={attributionLive} />
 
-      <LearningsPanel attribution={attribution} variants={shown} sample={provenance.learnings} />
+      <LearningsPanel attribution={rows} variants={shown} sample={provenance.learnings} />
 
       <NextSteps steps={[{ to: "socialni", label: t("nextStepLabel"), hint: t("nextStepHint") }]} />
     </div>

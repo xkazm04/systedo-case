@@ -27,12 +27,32 @@ export interface DistributionSeams {
    *  article, or one the user handed over from a draft. */
   sourceOrigin: SourceOrigin;
   /** True once per-variant click analytics (UTM-tagged clicks) actually feed the
-   *  attribution rows. There is no such import seam yet — `attributionForProject`
-   *  is a per-project SCALING of a static fixture, not measurement — so this
-   *  fails CLOSED: omitted → false → the panel discloses itself. When the seam
-   *  lands, thread its liveness here and both panels stop disclosing together,
-   *  because both read this one signal. */
+   *  attribution rows. It fails CLOSED: omitted → false → the panel discloses
+   *  itself, and both panels stop disclosing together because both read this one
+   *  signal.
+   *
+   *  THE SEAM LANDED (WP W2-A). The tenant's own `/go/{id}` links are measured —
+   *  the public redirect bumps a daily counter and the `go-rollup` ledger step
+   *  folds them into per-channel outcomes — so this is now derived rather than
+   *  hypothetical: `attributionIsLive(outcomes)` below. It stays a BOOLEAN and
+   *  stays fail-closed, because "the tenant minted a link" is not measurement
+   *  either; only a counted click is. `attributionForProject` is untouched and
+   *  remains the illustrative path for everyone with no measured clicks. */
   attributionLive?: boolean;
+}
+
+/** Do these rolled-up channel outcomes constitute MEASUREMENT?
+ *
+ *  One counted click is the bar, and it is deliberately not lower. A minted link
+ *  with no clicks proves the tenant set something up, not that anything happened —
+ *  flipping the panel on a mint would replace a labelled fixture with an honest but
+ *  entirely empty table, which reads as "your channels produced nothing" rather than
+ *  "nothing has been measured yet". Shaped to take the outcome rows directly so the
+ *  page, the module and the test all ask the same question of the same data. */
+export function attributionIsLive(
+  outcomes: readonly { clicks30d: number }[] | null | undefined
+): boolean {
+  return !!outcomes && outcomes.some((o) => o.clicks30d > 0);
 }
 
 /** True = "this panel is illustrative, say so". Per panel, never per project. */
@@ -66,8 +86,13 @@ export function panelProvenance({ sourceOrigin, attributionLive = false }: Distr
  *
  *  Kept here rather than inline in the page so the gutter and the panel chips are
  *  derived from ONE module and can be pinned against each other in one test. */
-export function pageSampleGutter(hasOwnArticles: boolean): boolean {
-  return !hasOwnArticles;
+export function pageSampleGutter(hasOwnArticles: boolean, attributionLive = false): boolean {
+  // WP W2-A: the attribution/insights half can now go live INDEPENDENTLY of the
+  // article (a tenant can measure `/go` clicks while still distributing the fixture
+  // article). The blanket claim must therefore answer to both halves, or a project
+  // with real measured rows would sit under a banner calling the whole page
+  // illustrative — the exact over-claim `isProvenanceCoherent` exists to catch.
+  return !hasOwnArticles && !attributionLive;
 }
 
 /** Does this render make a claim that contradicts itself? True when the blanket

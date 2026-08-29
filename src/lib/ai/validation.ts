@@ -1163,8 +1163,56 @@ export function validateChannelResearchRequest(input: unknown, locale: Supported
   if (keywords.length > 0) value.keywords = keywords;
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
+  // ── W2-A ───────────────────────────────────────────────────────────────────
+  // Measured `/go` outcomes. The wire door is deliberately strict: this is the one
+  // request field the prompt calls GROUND TRUTH, so a client cannot post a channel
+  // name of unbounded length or a fractional/negative/absurd click count and have
+  // the model reason about it as fact. Rows with no channel or no clicks are dropped
+  // (a zero is "not measured", never "measured as zero" — see lib/organic-channels/
+  // outcomes.measuredGrounding, which applies the same rule at the source).
+  const measured = parseMeasuredChannels(o.measured);
+  if (measured.length > 0) value.measured = measured;
+  // ── /W2-A ──────────────────────────────────────────────────────────────────
   return { valid: true, value };
 }
+
+// ── W2-A ─────────────────────────────────────────────────────────────────────
+/** Bounds for the measured-outcome grounding rows (mirrors MEASURED_GROUNDING_CAP
+ *  and GO_LINK_CAP on the producing side). */
+const MAX_MEASURED_ROWS = 12;
+const MAX_MEASURED_CHANNEL = 80;
+const MAX_MEASURED_COUNT = 10_000_000;
+
+function parseMeasuredCount(v: unknown, max: number): number {
+  const n = Math.trunc(Number(v));
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(n, max);
+}
+
+/** Sanitize the `measured` rows: bounded channel names, positive integer counts,
+ *  deduped by channel (first row wins), capped in count. */
+function parseMeasuredChannels(
+  v: unknown
+): Array<{ channel: string; clicks30d: number; links: number }> {
+  if (!Array.isArray(v)) return [];
+  const seen = new Set<string>();
+  const out: Array<{ channel: string; clicks30d: number; links: number }> = [];
+  for (const item of v.slice(0, MAX_MEASURED_ROWS * 2)) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const channel = str(row.channel).slice(0, MAX_MEASURED_CHANNEL);
+    if (!channel) continue;
+    const key = channel.toLowerCase();
+    if (seen.has(key)) continue;
+    const clicks30d = parseMeasuredCount(row.clicks30d, MAX_MEASURED_COUNT);
+    if (clicks30d <= 0) continue;
+    seen.add(key);
+    out.push({ channel, clicks30d, links: parseMeasuredCount(row.links, MAX_MEASURED_COUNT) });
+    if (out.length >= MAX_MEASURED_ROWS) break;
+  }
+  return out;
+}
+// ── /W2-A ────────────────────────────────────────────────────────────────────
 
 export function validateOnboardingScanRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<OnboardingScanRequest> {
   if (typeof input !== "object" || input === null) {
@@ -1194,6 +1242,107 @@ export function validateOnboardingScanRequest(input: unknown, locale: SupportedL
   if (PROJECT_TYPE_SET.has(projectType)) value.projectType = projectType;
   const brand = str(o.brand);
   if (brand) value.brand = brand.slice(0, 120);
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
+}
+
+// ─── W2-C · gap-to-page local microsites (llm-tool `local-page`) ─────────────────
+// One bounded, appended region so this wave's co-owner (W2-A) and this WP never
+// touch the same lines. The type import is deliberately its own statement rather
+// than a line spliced into the shared import block above, for the same reason.
+import type { LocalPageRequest, LocalPageReviewQuote } from "../ai-types";
+
+/** The WIRE shape of a local-page request: the caller names WHICH gap to write,
+ *  never the numbers. Price, business type, brand facts and review quotes are all
+ *  re-derived server-side (`resolveLocalPage`), so a tampered body cannot put an
+ *  invented price or a fabricated testimonial onto a public, indexable page. */
+export interface LocalPageIntent {
+  projectId: string;
+  service: string;
+  area: string;
+  refine?: string;
+}
+
+export function validateLocalPageIntent(
+  input: unknown,
+  locale: SupportedLocale = "cs"
+): Valid<LocalPageIntent> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const projectId = parseIntentProjectId(o);
+  if (!projectId) {
+    return { valid: false, error: t(locale, "Chybí projekt pro stránku.", "Missing project for the page.") };
+  }
+  const service = str(o.service).slice(0, 120);
+  const area = str(o.area).slice(0, 120);
+  if (!service || !area) {
+    return {
+      valid: false,
+      error: t(locale, "Vyberte službu i oblast.", "Select both a service and an area."),
+    };
+  }
+  const value: LocalPageIntent = { projectId, service, area };
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
+}
+
+/** Bound a server-rebuilt local-page request before it reaches the prompt. Not a
+ *  wire validator (the wire carries the intent above) — it is the last clamp on the
+ *  grounding: strings capped, at most two review quotes, a non-finite / negative
+ *  price dropped rather than printed. Exported so the grounding resolver and any
+ *  batch caller share ONE bound. */
+export function validateLocalPageRequest(
+  input: unknown,
+  locale: SupportedLocale = "cs"
+): Valid<LocalPageRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const service = str(o.service).slice(0, 120);
+  const area = str(o.area).slice(0, 120);
+  if (!service || !area) {
+    return {
+      valid: false,
+      error: t(locale, "Vyberte službu i oblast.", "Select both a service and an area."),
+    };
+  }
+  const brand = str(o.brand).slice(0, 120);
+  if (!brand) {
+    return { valid: false, error: t(locale, "Chybí název firmy.", "Missing business name.") };
+  }
+  const value: LocalPageRequest = {
+    service,
+    area,
+    businessType: str(o.businessType).slice(0, 120),
+    brand: promptSafeName(brand) || brand,
+  };
+  const price = Number(o.price);
+  if (Number.isFinite(price) && price > 0) value.price = price;
+  const priceModel = str(o.priceModel);
+  if (priceModel === "from" || priceModel === "fixed" || priceModel === "quote") {
+    value.priceModel = priceModel;
+  }
+  const currency = str(o.currency).slice(0, 8);
+  if (currency) value.currency = currency;
+  const brandContext = str(o.brandContext);
+  if (brandContext) value.brandContext = brandContext.slice(0, 1200);
+  const reviews = Array.isArray(o.reviews)
+    ? (o.reviews as unknown[])
+        .filter((r): r is Record<string, unknown> => Boolean(r) && typeof r === "object")
+        .map((r): LocalPageReviewQuote => ({
+          author: str(r.author).slice(0, 80),
+          rating: Number(r.rating),
+          text: str(r.text).slice(0, 400),
+        }))
+        .filter((r) => r.text && Number.isFinite(r.rating))
+        .slice(0, 2)
+    : [];
+  if (reviews.length > 0) value.reviews = reviews;
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
   return { valid: true, value };

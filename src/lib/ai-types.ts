@@ -1303,6 +1303,16 @@ export interface ChannelResearchRequest {
   /** optional free-text refinement note from a re-run („méně kanálů", „víc lokálních") —
    *  appended to the user prompt only and naturally busts the input-hash cache */
   refine?: string;
+  // ── W2-A ─────────────────────────────────────────────────────────────────────
+  /** MEASURED per-channel results from the tenant's OWN `/go` links (the organic
+   *  outcome ledger): 30-day clicks and how many links back them. This is the only
+   *  field in the request that is an OBSERVATION rather than context — the prompt
+   *  hands it over as ground truth and forbids the model from inventing numbers
+   *  around it. Absent on every tenant who has measured nothing, which is most of
+   *  them, so the request shape is unchanged for them. Capped at 12 rows on the
+   *  wire (validateChannelResearchRequest). */
+  measured?: Array<{ channel: string; clicks30d: number; links: number }>;
+  // ── /W2-A ────────────────────────────────────────────────────────────────────
 }
 
 export interface ChannelResearchResult {
@@ -1515,4 +1525,68 @@ export interface AdsDiagnosisResult {
   /** the campaigns the diagnosis is about — normalised to ids that were actually
    *  supplied in the request (an invented id is dropped; empty is allowed) */
   affectedCampaignIds: string[];
+}
+
+// ─── W2-C · gap-to-page local microsites (llm-tool `local-page`) ─────────────────
+// Appended as one bounded region so this wave's co-owner (W2-A) and this WP never
+// touch the same lines. Nothing above this marker was moved or reformatted.
+
+/** A REAL public review, quoted verbatim into the page prompt. The tool may only
+ *  cite reviews the request actually carried (≤2) — the normalizer drops anything
+ *  else, so a landing page can never invent a testimonial. */
+export interface LocalPageReviewQuote {
+  author: string;
+  /** star rating 1–5 */
+  rating: number;
+  text: string;
+}
+
+/** The grounding for ONE service×area landing page. Every figure is pre-computed
+ *  server-side from the project's catalog + resolved reviews; the model is given
+ *  numbers and quotes, never a licence to produce them. */
+export interface LocalPageRequest {
+  /** the catalog service the page is about (verbatim, so coverage folding matches) */
+  service: string;
+  /** the locality the page targets */
+  area: string;
+  /** what the business actually does, derived from the catalogue */
+  businessType: string;
+  /** the business name the page speaks as */
+  brand: string;
+  /** the catalog price, when the service carries one */
+  price?: number;
+  priceModel?: "from" | "fixed" | "quote";
+  /** ISO-4217 / display currency the price is denominated in */
+  currency?: string;
+  /** at most two real reviews from THIS area, quoted verbatim and marked as citace */
+  reviews?: LocalPageReviewQuote[];
+  /** the shared brand fact-block (deriveBrandContext), when the catalogue has one */
+  brandContext?: string;
+  /** optional free-text refinement note from a re-run — user prompt only */
+  refine?: string;
+  /** true when the grounding rests on the illustrative sample. SERVER-injected. */
+  sample?: boolean;
+}
+
+export interface LocalPageSection {
+  heading: string;
+  body: string;
+}
+
+export interface LocalPageFaq {
+  q: string;
+  a: string;
+}
+
+export interface LocalPageResult {
+  headline: string;
+  intro: string;
+  /** 2–4 body sections */
+  sections: LocalPageSection[];
+  /** 2–4 question/answer pairs */
+  faq: LocalPageFaq[];
+  cta: string;
+  /** present only on the deterministic (non-model) text, so a stored page payload
+   *  records honestly that no model wrote it */
+  source?: "fallback";
 }

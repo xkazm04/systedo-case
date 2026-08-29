@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { runMigrations, rebuildTable, MIGRATION_VERSIONS } from "@/lib/db";
 
-const LATEST = 26;
+const LATEST = 29;
 
 test("MIGRATIONS versions are unique + contiguous from 1 (the header's contract)", () => {
   const v = [...MIGRATION_VERSIONS];

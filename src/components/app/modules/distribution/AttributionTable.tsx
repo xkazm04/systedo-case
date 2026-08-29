@@ -19,9 +19,11 @@ const T = {
     title: "Atribuce podle kanálu",
     descPre: "Řádky odpovídají hodnotám ",
     descPost: " z odkazů výše.",
+    descLive: "Změřeno na vašich odkazech /go za posledních 30 dní.",
     bestClicks: "Nejvíc prokliků: {n}",
     colChannel: "Kanál",
     colReach: "Dosah",
+    colLinks: "Odkazy",
     colClicks: "Prokliky",
     colShare: "Podíl",
     empty: "Zatím žádná data atribuce. Připojte analytiku a řádky se doplní.",
@@ -30,9 +32,11 @@ const T = {
     title: "Attribution by channel",
     descPre: "Rows correspond to the ",
     descPost: " values from the links above.",
+    descLive: "Measured on your own /go links over the last 30 days.",
     bestClicks: "Most clicks: {n}",
     colChannel: "Channel",
     colReach: "Reach",
+    colLinks: "Links",
     colClicks: "Clicks",
     colShare: "Share",
     empty: "No attribution data yet. Connect analytics and rows will fill in.",
@@ -42,10 +46,16 @@ const T = {
 export default function AttributionTable({
   attribution,
   sample,
+  live = false,
 }: {
   attribution: ChannelPerf[];
   /** provenance of THESE rows — see lib/distribution/provenance */
   sample: boolean;
+  /** the rows are MEASURED `/go` outcomes, not the fixture (WP W2-A). Then `reach`
+   *  is the count of minted LINKS, so the column is relabelled and the CTR column
+   *  disappears — clicks-per-link is not a click-through rate, and printing it
+   *  under a "CTR" header would be a number the product cannot stand behind. */
+  live?: boolean;
 }) {
   const t = useT(T);
   const fmt = useFormatters();
@@ -62,9 +72,15 @@ export default function AttributionTable({
         <div className="min-w-0">
           <h3 className="text-base font-semibold text-navy-800">{t("title")}</h3>
           <p className="mt-0.5 text-xs text-muted">
-            {t("descPre")}
-            <code className="font-mono text-[0.7rem] text-navy-700">utm_source</code>
-            {t("descPost")}
+            {live ? (
+              t("descLive")
+            ) : (
+              <>
+                {t("descPre")}
+                <code className="font-mono text-[0.7rem] text-navy-700">utm_source</code>
+                {t("descPost")}
+              </>
+            )}
           </p>
         </div>
         <span className="flex shrink-0 flex-wrap items-center justify-end gap-2">
@@ -78,16 +94,18 @@ export default function AttributionTable({
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-5 py-3 font-medium">{t("colChannel")}</th>
               <th className="px-4 py-3 font-medium">utm_source</th>
-              <th className="px-4 py-3 text-right font-medium">{t("colReach")}</th>
+              <th className="px-4 py-3 text-right font-medium">
+                {live ? t("colLinks") : t("colReach")}
+              </th>
               <th className="px-4 py-3 text-right font-medium">{t("colClicks")}</th>
-              <th className="px-4 py-3 text-right font-medium">CTR</th>
+              {!live && <th className="px-4 py-3 text-right font-medium">CTR</th>}
               <th className="px-4 py-3 text-right font-medium">{t("colShare")}</th>
             </tr>
           </thead>
           <tbody>
             {attribution.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-8 text-center text-sm text-muted">
+                <td colSpan={live ? 5 : 6} className="px-5 py-8 text-center text-sm text-muted">
                   {t("empty")}
                 </td>
               </tr>
@@ -100,9 +118,11 @@ export default function AttributionTable({
                 </td>
                 <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtInt(c.reach)}</td>
                 <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtInt(c.clicks)}</td>
-                <td className="tnum px-4 py-3 text-right text-navy-700">
-                  {fmt.fmtPct(c.reach > 0 ? c.clicks / c.reach : 0)}
-                </td>
+                {!live && (
+                  <td className="tnum px-4 py-3 text-right text-navy-700">
+                    {fmt.fmtPct(c.reach > 0 ? c.clicks / c.reach : 0)}
+                  </td>
+                )}
                 <td className="tnum px-4 py-3 text-right font-medium text-navy-800">
                   {fmt.fmtPct(totalClicks > 0 ? c.clicks / totalClicks : 0)}
                 </td>

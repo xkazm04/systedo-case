@@ -582,6 +582,62 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_pending
     ON webhook_deliveries (status, next_at);
+
+  -- The ORGANIC OUTCOME LEDGER (WP W2-A). go_links is a GLOBAL registry, not a
+  -- per-tenant one — /go/{id} is a public address space, so the id is the key and the
+  -- owner rides as a column (the microsites shape). The rolled-up per-channel
+  -- outcomes are NOT here: they ride project_state under "organicOutcomes".
+  CREATE TABLE IF NOT EXISTS go_links (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    url        TEXT NOT NULL,
+    channel    TEXT NOT NULL,
+    campaign   TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_go_links_project ON go_links (project_id);
+
+  -- Aggregated daily click counters — the analytics_daily privacy posture, per link:
+  -- a key, a UTC day and a count, and nothing whatsoever about the visitor.
+  CREATE TABLE IF NOT EXISTS go_clicks (
+    link_id TEXT NOT NULL,
+    day     TEXT NOT NULL,
+    count   INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (link_id, day)
+  );
+
+  -- The PUBLIC-SCAN CLAIM parking lot (WP W2-B). GLOBAL, not per-tenant — a claim is
+  -- minted by an anonymous visitor on /sken before any account exists, so the key is
+  -- the 128-bit token itself and there is no user_id to scope it by (hence no
+  -- project-deletion cascade entry either: rows are user-free and self-expiring).
+  -- created_at is an ISO-8601 UTC string so the TTL prune is a lexicographic range
+  -- delete — the same ordering the Firestore twin's range query uses.
+  CREATE TABLE IF NOT EXISTS scan_claims (
+    token      TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  -- The OUTBOUND PRODUCT-FEED capability URLs (WP W2-D). GLOBAL, not per-tenant, for
+  -- the microsites reason: the token is a public address space every tenant shares, so
+  -- making it the primary key is what makes "one project cannot serve another's
+  -- catalog" a property of the TABLE rather than of a query — the public
+  -- /api/feed/{token} route reads the owner pair out of the row it addressed
+  -- (ADR-0002) instead of taking one from the wire. Stored in plaintext on purpose: it
+  -- is a capability URL the owner must be able to re-read, not a secret to verify
+  -- against (contrast webhook_configs' encrypted signing secrets). The (user_id,
+  -- project_id) index backs the panel's by-project lookup and the delete cascade.
+  CREATE TABLE IF NOT EXISTS feed_tokens (
+    token      TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_feed_tokens_project
+    ON feed_tokens (user_id, project_id);
 `;
 
 /** One ordered, versioned schema change. `up` performs it; `applied` reports
@@ -1029,6 +1085,69 @@ const MIGRATIONS: Migration[] = [
       tableExists(db, "webhook_configs") &&
       tableExists(db, "webhook_deliveries") &&
       indexExists(db, "idx_webhook_deliveries_pending"),
+  },
+  {
+    version: 27,
+    name: "go_links / go_clicks (organic outcome ledger, WP W2-A)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS go_links (
+          id         TEXT PRIMARY KEY,
+          user_id    TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          url        TEXT NOT NULL,
+          channel    TEXT NOT NULL,
+          campaign   TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )`
+      );
+      db.exec("CREATE INDEX IF NOT EXISTS idx_go_links_project ON go_links (project_id)");
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS go_clicks (
+          link_id TEXT NOT NULL,
+          day     TEXT NOT NULL,
+          count   INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (link_id, day)
+        )`
+      );
+    },
+    applied: (db) =>
+      tableExists(db, "go_links") &&
+      tableExists(db, "go_clicks") &&
+      indexExists(db, "idx_go_links_project"),
+  },
+  {
+    version: 28,
+    name: "scan_claims (public /sken claim tokens, WP W2-B)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS scan_claims (
+          token      TEXT PRIMARY KEY,
+          data       TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )`
+      );
+    },
+    applied: (db) => tableExists(db, "scan_claims"),
+  },
+  {
+    version: 29,
+    name: "feed_tokens (public outbound product-feed capability URLs, WP W2-D)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS feed_tokens (
+          token      TEXT PRIMARY KEY,
+          user_id    TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )`
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_feed_tokens_project ON feed_tokens (user_id, project_id)"
+      );
+    },
+    applied: (db) =>
+      tableExists(db, "feed_tokens") && indexExists(db, "idx_feed_tokens_project"),
   },
 ];
 

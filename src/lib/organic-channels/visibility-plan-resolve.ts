@@ -39,7 +39,7 @@ import {
 /** The channel leg, resolved the way /kanaly resolves it minus the competitor read
  *  (competitors ground the AI REGENERATION prompt, not the seeded plan's fill — so
  *  omitting them cannot change which channels or which text this plan shows). */
-async function resolveChannelLeg(project: Project): Promise<ResolvedChannels> {
+async function resolveChannelLeg(project: Project, userId: string): Promise<ResolvedChannels> {
   const [catalog, onboarding] = await Promise.all([
     loadProjectCatalog(project),
     getOnboarding(project.id).catch(() => null),
@@ -54,7 +54,9 @@ async function resolveChannelLeg(project: Project): Promise<ResolvedChannels> {
       profile: onboarding?.scan ?? null,
     })
   );
-  return resolveOrganicChannels(project.id, channelPlanForProject(project, sampleContext));
+  return resolveOrganicChannels(project.id, channelPlanForProject(project, sampleContext), {
+    userId,
+  });
 }
 
 /** The project's one visibility plan, or null when its type does not have all
@@ -67,7 +69,7 @@ export async function resolveVisibilityPlan(
   if (!hasVisibilityPlan(project.type)) return null;
 
   const [resolved, lists, library] = await Promise.all([
-    opts.resolved ? Promise.resolve(opts.resolved) : resolveChannelLeg(project),
+    opts.resolved ? Promise.resolve(opts.resolved) : resolveChannelLeg(project, userId),
     resolveTenant(userId, project.id)
       .then(listKeywordLists)
       .catch(() => []),
@@ -78,6 +80,9 @@ export async function resolveVisibilityPlan(
     channels: resolved.channels,
     tracks: resolved.tracks,
     channelSource: resolved.source,
+    // The measured leg rides the channel leg — one resolver read, so the plan card
+    // and the channel table always show the same numbers (WP W2-A).
+    ...(resolved.outcomes ? { outcomes: resolved.outcomes } : {}),
     queries: queriesFromKeywordLists(lists),
     content: contentFromLibrary(libraryEntries(library)),
     ...(opts.limit !== undefined ? { limit: opts.limit } : {}),

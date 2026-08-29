@@ -57,6 +57,13 @@ export const PROJECT_STATE_KEYS = {
   distributionVariants: { owner: "distribuce", version: 1, http: false },
   contentLibrary: { owner: "ulozeny-obsah", version: 1, http: false },
   orphanLedger: { owner: "nastaveni", version: 1, http: false },
+  // WP W2-A — the rolled-up per-channel outcomes of the tenant's own /go links
+  // (clicks7d / clicks30d per channel). SERVER-OWNED (`http: false`) on purpose:
+  // this blob is a MEASUREMENT, recomputed by the `go-rollup` ledger step from the
+  // click counters. A client that could POST it wholesale could write itself any
+  // number it liked into a panel labelled "measured", which is the one thing a
+  // measurement must never allow.
+  organicOutcomes: { owner: "kanaly", version: 1, http: false },
 } as const satisfies Record<string, ProjectStateKeySpec>;
 
 /** Every registered key, as a union — the type every store/route API takes. */

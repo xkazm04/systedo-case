@@ -108,6 +108,26 @@ export function buildChannelResearchPrompt(req: ChannelResearchRequest): string 
   if (req.keywords && req.keywords.length > 0) {
     lines.push(`Klíčová slova, která publikum hledá: ${req.keywords.join(", ")}`);
   }
+  // MEASURED OUTCOMES (WP W2-A). Everything above this line is CONTEXT the model
+  // reasons from; these are the only NUMBERS in the prompt, and they were counted,
+  // not estimated. They are therefore framed as ground truth with the anti-fabrication
+  // clause restated at the point of use — the system prompt's blanket "nevymýšlej si
+  // čísla" is about competitors, and a block of real figures is exactly where a model
+  // is most tempted to produce plausible neighbours for them. Only channels with
+  // real clicks reach here (see measuredGrounding), so there is no zero to
+  // misread as a verdict.
+  if (req.measured && req.measured.length > 0) {
+    lines.push(
+      "",
+      "Měřené výsledky (kliknutí za 30 dní z vlastních odkazů — SKUTEČNÁ data, nevymýšlej si čísla ani je nedopočítávej):"
+    );
+    for (const m of req.measured) {
+      lines.push(`- ${m.channel}: ${m.clicks30d} kliknutí z ${m.links} odkazů`);
+    }
+    lines.push(
+      `U těchto kanálů má „fit" odpovídat naměřené realitě, ne jen odhadu — kanál, který prokazatelně přivádí lidi, patří výš; kanál bez výsledků neposunuj nahoru jen proto, že bývá obvyklý. O kanálech, které v seznamu nejsou, nic naměřeného netvrď.`
+    );
+  }
   lines.push(
     "",
     `Vrať „summary" (jedna věta o největší bezplatné příležitosti) a „channels" — 6–9 kanálů seřazených podle „fit" sestupně, každý s poli name, category, fit, effort, rationale, payoff, firstActions (volitelně url, contentAngle).`

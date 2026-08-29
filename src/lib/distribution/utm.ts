@@ -55,6 +55,31 @@ export function campaignSlug({ title, url }: { title: string; url: string }): st
   return "clanek";
 }
 
+/** The public path of a minted, MEASURABLE short link (WP W2-A).
+ *
+ *  Deliberately short and UTM-free: the whole point of the hop is that the tenant
+ *  copies `/go/{id}` into a bio, a forum post or a directory listing — places where
+ *  a 120-character UTM tail is either ugly, truncated or stripped — and the redirect
+ *  composes `withUtm` server-side, so the destination still sees the same
+ *  utm_source/medium/campaign it would have seen from a directly stamped link. */
+export function goHref(id: string): string {
+  return `/go/${id}`;
+}
+
+/** Strip the three UTM params this module stamps, recovering the link's real
+ *  destination. Used when a UTM'd link is all a caller has and the raw target is
+ *  what must be stored (the mint path) — re-stamping happens at the redirect, so
+ *  storing an already-stamped URL would double the tail. */
+export function withoutUtm(url: string): string {
+  try {
+    const u = new URL(url);
+    for (const key of ["utm_source", "utm_medium", "utm_campaign"]) u.searchParams.delete(key);
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 /** Convenience: the fully-stamped link for one channel of one article. */
 export function variantLink(
   url: string,

@@ -32,6 +32,8 @@ const T = {
     provSeeded: "Ukázka",
     provAi: "AI",
     provUser: "Vaše data",
+    measured: "{n} kliknutí",
+    measuredTitle: "Změřeno na vašich odkazech /go za 30 dní.",
   },
   en: {
     publish: "Publish",
@@ -48,6 +50,8 @@ const T = {
     provSeeded: "Sample",
     provAi: "AI",
     provUser: "Your data",
+    measured: "{n} clicks",
+    measuredTitle: "Measured on your own /go links over 30 days.",
   },
 } as const;
 
@@ -110,6 +114,13 @@ export default function VisibilityPlanRow({
       </span>
 
       <span className="flex shrink-0 items-center gap-2">
+        {/* Measured clicks, when there are any — beside the provenance chip, because
+            it IS a provenance statement: this row's channel has real numbers. */}
+        {row.measuredClicks ? (
+          <span className="pill bg-brand-50 text-brand-700" title={t("measuredTitle")}>
+            {t("measured", { n: row.measuredClicks })}
+          </span>
+        ) : null}
         <span className={`pill ${prov.tone}`}>{t(prov.label)}</span>
         {to && (
           <Link

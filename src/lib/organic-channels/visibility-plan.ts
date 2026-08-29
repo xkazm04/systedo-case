@@ -38,6 +38,7 @@
 import type { KeywordList } from "@/lib/keywords/types";
 import type { SavedContentEntry } from "@/lib/content-library/entries";
 import { SCAN_LIST_SEED } from "@/lib/onboarding/seed";
+import { measuredBadge, outcomeFor, type ChannelOutcome } from "./outcomes";
 import { isModuleAvailable } from "@/lib/projects/modules";
 import type { ProjectType } from "@/lib/projects/types";
 import {
@@ -122,6 +123,12 @@ export interface VisibilityRow {
   content: PlanContent | null;
   step: VisibilityStep;
   provenance: PlanLegProvenance;
+  /** MEASURED 30-day clicks on this channel's own `/go` links (WP W2-A). ABSENT
+   *  when nothing was measured — which is not the same as zero, so the row shows
+   *  the number only where one exists. It does not enter the ordering: the plan is
+   *  a "what to do next" queue, and letting a measured channel jump the queue would
+   *  starve exactly the channels the tenant has not started yet. */
+  measuredClicks?: number;
 }
 
 export interface VisibilityPlan {
@@ -182,6 +189,10 @@ export function buildVisibilityPlan(input: {
   queries?: readonly PlanQuery[];
   content?: readonly PlanContent[];
   channelSource?: "sample" | "ai";
+  /** measured per-channel outcomes (WP W2-A) — stamped onto the matching rows and
+   *  nothing more; the composition, the ordering and the caps are untouched, so a
+   *  project with no measurement produces a byte-identical plan. */
+  outcomes?: readonly ChannelOutcome[];
   /** rows to keep; 0 means uncapped */
   limit?: number;
 }): VisibilityPlan {
@@ -221,6 +232,11 @@ export function buildVisibilityPlan(input: {
         a.query.localeCompare(b.query, "cs")
     );
 
+  // Measured clicks, looked up per row. `measuredBadge` is the same null-on-nothing
+  // rule the channel table uses, so the two surfaces can never disagree about
+  // whether a channel counts as measured.
+  const measuredOf = (name: string) => measuredBadge(outcomeFor(input.outcomes, name));
+
   let next = 0;
   const rows: VisibilityRow[] = input.channels.map((c) => {
     const stage: ChannelStage = tracks[c.id]?.stage ?? "identified";
@@ -258,6 +274,7 @@ export function buildVisibilityPlan(input: {
       query,
       content: matched,
       step,
+      ...(measuredOf(c.name) ? { measuredClicks: measuredOf(c.name)!.clicks30d } : {}),
       provenance: strongest(
         channelProvenance,
         ...(query ? [query.provenance] : []),

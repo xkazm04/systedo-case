@@ -33,7 +33,9 @@ import { deriveChannelNext, type SignpostContext } from "@/lib/organic-channels/
 import { reconcilePlanTracks } from "@/lib/organic-channels/reconcile";
 import type { VisibilityPlan } from "@/lib/organic-channels/visibility-plan";
 import VisibilityPlanCard from "@/components/app/visibility/VisibilityPlanCard";
+import { measuredGrounding, type ChannelOutcome } from "@/lib/organic-channels/outcomes";
 import ChannelNextSteps from "@/components/app/channels/ChannelNextSteps";
+import ChannelNotices from "@/components/app/channels/ChannelNotices";
 import ChannelPipeline from "@/components/app/channels/ChannelPipeline";
 import ChannelQuickWin from "@/components/app/channels/ChannelQuickWin";
 import ChannelTable from "@/components/app/channels/ChannelTable";
@@ -62,17 +64,10 @@ const T = {
     applyPlan: "Použít tento plán",
     dismiss: "Zavřít",
     revertSample: "Zpět na ukázkový plán",
-    degradedBanner:
-      "Uložený plán se nepodařilo načíst. Zobrazujeme ukázkový plán jen ke čtení. Změny stavu jsou dočasně vypnuté, aby nepřepsaly vaši uloženou práci. Obnovte stránku a zkuste to znovu.",
-    saveFailedBanner:
-      "Poslední změnu se nepodařilo uložit — zobrazený stav je jen v tomto okně a po obnovení stránky zmizí. Zkuste akci zopakovat.",
     generatedMeta: "Vygenerováno {date} z podkladů projektu",
     groundingDegraded:
       "Konkurenci se teď nepodařilo načíst — nový plán by vznikl bez ní. Zkuste to později.",
     defaultTopic: "{channel}: příspěvek pro {brand}",
-    orphanNote: "V novém plánu už nejsou tyto dříve nastavené kanály:",
-    orphanRemove: "Odebrat jejich nastavení",
-    orphanKeep: "Ponechat",
   },
   en: {
     sourceSample: "Sample plan",
@@ -88,17 +83,10 @@ const T = {
     applyPlan: "Use this plan",
     dismiss: "Dismiss",
     revertSample: "Back to sample plan",
-    degradedBanner:
-      "Couldn't load your saved plan. Showing a read-only sample. Status changes are temporarily disabled so they can't overwrite your saved work. Refresh the page to try again.",
-    saveFailedBanner:
-      "The last change couldn't be saved — what you see lives only in this window and will disappear on reload. Try the action again.",
     generatedMeta: "Generated {date} from your project's data",
     groundingDegraded:
       "Competitors couldn't be loaded right now — a new plan would be built without them. Try again later.",
     defaultTopic: "{channel}: post for {brand}",
-    orphanNote: "These previously configured channels are no longer in the new plan:",
-    orphanRemove: "Remove their setup",
-    orphanKeep: "Keep",
   },
 } as const;
 
@@ -113,6 +101,7 @@ export default function OrganicChannels({
   grounding,
   signpost,
   visibilityPlan,
+  outcomes,
 }: {
   channels: OrganicChannel[];
   /** the SEEDED plan, which is not the same list as `channels` whenever a pinned AI
@@ -133,6 +122,10 @@ export default function OrganicChannels({
   /** the composed query → content → channel plan; null when the project type
    *  lacks one of the three modules (hasVisibilityPlan) */
   visibilityPlan?: VisibilityPlan | null;
+  /** MEASURED per-channel clicks from the tenant's own `/go` links (WP W2-A) —
+   *  shown beside each row's curated `fit` and handed to the AI as ground truth on
+   *  a regenerate. Absent = nothing measured; `fit` is never overwritten. */
+  outcomes?: ChannelOutcome[];
 }) {
   const project = useProject();
   const router = useRouter();
@@ -234,6 +227,9 @@ export default function OrganicChannels({
     setWizardQueue(q);
   };
 
+  /** The measured rows the AI may be told about — clicked channels only, capped. */
+  const measured = useMemo(() => measuredGrounding(outcomes), [outcomes]);
+
   const runTailor = () => {
     setApplied(false);
     ai.run({
@@ -245,6 +241,10 @@ export default function OrganicChannels({
       ...(grounding.keywords?.length ? { keywords: grounding.keywords } : {}),
       ...(grounding.businessSummary ? { businessSummary: grounding.businessSummary } : {}),
       ...(grounding.audience ? { audience: grounding.audience } : {}),
+      // What the tenant's own links actually produced. Handed over as GROUND TRUTH
+      // (the prompt says so explicitly) so a regenerate can re-rank around real
+      // clicks instead of re-deriving the same prediction from the same context.
+      ...(measured.length ? { measured } : {}),
     });
   };
 
@@ -399,54 +399,14 @@ export default function OrganicChannels({
       {/* The signpost strip: lifecycle counts at a glance */}
       <ChannelPipeline channels={channels} tracks={tracks} />
 
-      {degraded && (
-        <div
-          role="status"
-          className="rounded-card border border-coral-400 bg-coral-soft px-4 py-3 text-sm leading-relaxed text-coral-600"
-        >
-          {t("degradedBanner")}
-        </div>
-      )}
-
-      {/* A failed persist must not masquerade as a saved change (the degraded
-          pattern's sibling: state is local-only until a save lands). */}
-      {saveFailed && !degraded && (
-        <div
-          role="status"
-          className="rounded-card border border-coral-400 bg-coral-soft px-4 py-3 text-sm leading-relaxed text-coral-600"
-        >
-          {t("saveFailedBanner")}
-        </div>
-      )}
-
-      {/* Honest leftovers: configured channels the regenerated plan no longer names */}
-      {orphans.length > 0 && (
-        <div
-          role="status"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-canvas px-4 py-3 text-sm"
-        >
-          <p className="min-w-0 leading-relaxed text-muted">
-            {t("orphanNote")}{" "}
-            <span className="font-medium text-navy-800">{orphans.map((o) => o.name).join(", ")}</span>
-          </p>
-          <span className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={removeOrphans}
-              className="rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:border-coral-400 hover:text-coral-600"
-            >
-              {t("orphanRemove")}
-            </button>
-            <button
-              type="button"
-              onClick={() => setOrphans([])}
-              className="text-xs font-medium text-muted transition-colors hover:text-navy-800"
-            >
-              {t("orphanKeep")}
-            </button>
-          </span>
-        </div>
-      )}
+      {/* The three honesty banners (read failed / save failed / orphaned setup) */}
+      <ChannelNotices
+        degraded={degraded}
+        saveFailed={saveFailed}
+        orphans={orphans}
+        onRemoveOrphans={removeOrphans}
+        onKeepOrphans={() => setOrphans([])}
+      />
 
       {/* AI generation states */}
       {ai.status === "loading" && <LoadingTimer expectedMs={ai.expectedMs} />}
@@ -511,6 +471,7 @@ export default function OrganicChannels({
         tracks={tracks}
         nextOf={nextOf}
         degraded={degraded}
+        outcomes={outcomes}
         onOpen={setOpenId}
         onNext={doNext}
       />

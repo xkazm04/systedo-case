@@ -8,6 +8,7 @@ import { useT } from "@/lib/i18n/client";
 import { ArrowRight } from "@/components/icons";
 import type { ChannelTrack, OrganicChannel } from "@/lib/organic-channels/types";
 import type { ChannelNext } from "@/lib/organic-channels/next-step";
+import { measuredBadge, outcomeFor, type ChannelOutcome } from "@/lib/organic-channels/outcomes";
 import { CATEGORY_LABELS, EFFORT_LABELS, MODE_LABELS, NEXT_LABELS, STAGE_LABELS } from "./labels";
 import { interactiveRowProps } from "@/lib/a11y/rowActivation";
 
@@ -18,6 +19,9 @@ const T = {
     colMode: "Režim",
     colStage: "Stav",
     colNext: "Další krok",
+    measured: "{n} kliknutí",
+    measuredTitle: "Změřeno na vašich odkazech /go za 30 dní. Poslední proklik {date}.",
+    measuredTitleNoDate: "Změřeno na vašich odkazech /go za 30 dní.",
   },
   en: {
     colChannel: "Channel",
@@ -25,6 +29,9 @@ const T = {
     colMode: "Mode",
     colStage: "Status",
     colNext: "Next step",
+    measured: "{n} clicks",
+    measuredTitle: "Measured on your own /go links over 30 days. Last click {date}.",
+    measuredTitleNoDate: "Measured on your own /go links over 30 days.",
   },
 } as const;
 
@@ -33,11 +40,18 @@ export default function ChannelTable({
   tracks,
   nextOf,
   degraded,
+  outcomes,
   onOpen,
   onNext,
 }: {
   channels: OrganicChannel[];
   tracks: Record<string, ChannelTrack>;
+  /** MEASURED per-channel clicks from the tenant's own `/go` links (WP W2-A).
+   *  Rendered BESIDE the curated `fit`, never folded into it: `fit` is a prediction
+   *  about whether the channel suits this business, this is an observation of what
+   *  happened, and a blend would leave neither number readable. A channel with no
+   *  counted clicks gets NO badge — "not measured" is not "measured as zero". */
+  outcomes?: ChannelOutcome[];
   /** the derived next step per channel (availability-gated by the parent) */
   nextOf: (c: OrganicChannel) => ChannelNext;
   /** saved state unreadable — local-action CTAs disable (writes are blocked) */
@@ -71,6 +85,7 @@ export default function ChannelTable({
             const track = tracks[c.id];
             const stage = track?.stage ?? "identified";
             const next = nextOf(c);
+            const badge = measuredBadge(outcomeFor(outcomes, c.name));
             return (
               <tr
                 key={c.id}
@@ -91,6 +106,18 @@ export default function ChannelTable({
                       <span className="block h-full rounded-full bg-brand-500" style={{ width: `${c.fit}%` }} />
                     </span>
                     <span className="tnum text-xs font-semibold text-navy-800">{c.fit}</span>
+                    {badge && (
+                      <span
+                        className="pill bg-brand-50 text-brand-700"
+                        title={
+                          badge.lastClickAt
+                            ? t("measuredTitle", { date: badge.lastClickAt })
+                            : t("measuredTitleNoDate")
+                        }
+                      >
+                        {t("measured", { n: badge.clicks30d })}
+                      </span>
+                    )}
                   </span>
                 </td>
                 <td className="hidden px-4 py-3 md:table-cell">
