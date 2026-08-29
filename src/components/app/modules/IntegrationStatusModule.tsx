@@ -64,6 +64,8 @@ const COPY: Record<SupportedLocale, Copy> = {
       "leads-planned": "Připravujeme. Podmínky a omezení najdete na kartě Napojení — přečtěte si je dřív, než na tento kanál vsadíte.",
       "webhooks-none": "Upozornění, souhrny a reporty tohoto projektu můžete dostávat na vlastní adresu jako podepsaný JSON. Zatím žádný cíl.",
       "webhooks-failing": "Cíl je nastavený, ale poslední doručení selhalo — upozornění nikam nedorazila. Zkontrolujte historii v Nastavení.",
+      "inbound-none": "Zprávy z kanálů zatím zadáváte ručně. Ve Schránce si můžete vygenerovat podepsanou adresu, na kterou je platforma pošle sama.",
+      "inbound-live": "Adresa pro příjem je aktivní: podepsané zprávy padají rovnou do Schránky jako návrhy čekající na vaši odpověď.",
     },
     items: {
       "google-ads": "Google Ads", sklik: "Sklik", "ai-llm": "AI generování (Gemini / vlastní klíč)",
@@ -72,6 +74,7 @@ const COPY: Record<SupportedLocale, Copy> = {
       "email-reports": "E-mail & reporty (Resend)", lighttrack: "LightTrack (LLM telemetrie)",
       persistence: "Datové úložiště", warehouse: "Datový sklad / feed", webhooks: "Odchozí webhooky (projekt)",
       auth: "Přihlášení (Google OAuth)", cron: "Automatizace (cron)",
+      "twin-inbound": "Příjem zpráv do Schránky",
       "leads-csv": "CSV / ruční zadání", "leads-gsheet": "Google Sheets", "leads-gmail": "Gmail",
       "leads-whatsapp": "WhatsApp", "leads-linkedin": "LinkedIn Lead Sync",
     },
@@ -104,6 +107,8 @@ const COPY: Record<SupportedLocale, Copy> = {
       "leads-planned": "Coming soon. The conditions and limits are on the Connections tab — read them before betting on this channel.",
       "webhooks-none": "This project's alerts, digests and reports can be POSTed to your own URL as signed JSON. No destination yet.",
       "webhooks-failing": "A destination is configured, but the last delivery failed — the alerts reached nobody. Check the history in Settings.",
+      "inbound-none": "Messages from your channels are still entered by hand. The Inbox can mint a signed address a platform posts them to itself.",
+      "inbound-live": "Intake is live: signed messages land straight in the Inbox as drafts awaiting your reply.",
     },
     items: {
       "google-ads": "Google Ads", sklik: "Sklik", "ai-llm": "AI generation (Gemini / own key)",
@@ -112,6 +117,7 @@ const COPY: Record<SupportedLocale, Copy> = {
       "email-reports": "Email & reports (Resend)", lighttrack: "LightTrack (LLM telemetry)",
       persistence: "Data store", warehouse: "Data warehouse / feed", webhooks: "Outgoing webhooks (project)",
       auth: "Sign-in (Google OAuth)", cron: "Automation (cron)",
+      "twin-inbound": "Message intake into the Inbox",
       "leads-csv": "CSV / manual entry", "leads-gsheet": "Google Sheets", "leads-gmail": "Gmail",
       "leads-whatsapp": "WhatsApp", "leads-linkedin": "LinkedIn Lead Sync",
     },
@@ -133,6 +139,8 @@ const LINK_PATH: Record<IntLink, string> = {
   home: "", socialni: "/socialni", mapa: "/mapa", branding: "/branding", nastaveni: "/nastaveni",
   // The lead-connector rows' action lives on this module's own second tab.
   "leads-connect": "/integrace?tab=napojeni",
+  // WP W3-D: the intake address is minted where the messages it accepts arrive.
+  schranka: "/schranka",
 };
 
 const CATEGORY_ORDER: IntCategory[] = ["ads", "ai", "content", "leads", "reviews", "reports", "infra"];

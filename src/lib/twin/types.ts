@@ -524,7 +524,15 @@ function sanitizeDraft(raw: unknown, i: number): TwinDraft | null {
   const o = raw as Record<string, unknown> | null;
   if (!o || !isTwinChannel(o.channel)) return null;
   const reply = str(o.reply, 4000);
-  if (!reply) return null;
+  const inbound = str(o.inbound, 4000);
+  // ── W3-D ── A record needs CONTENT on at least one side of the conversation. It used
+  // to need a `reply`, full stop, which was right while every draft was something the
+  // twin wrote. It no longer is: the intake mints a record that IS the arriving message
+  // — `inbound` filled, `reply: ""` until a human writes one — and the read path
+  // sanitizes too (persisted.ts), so the old rule would have silently deleted every
+  // real inbound message on the very next read. The rule's PURPOSE (drop an empty
+  // shell) is unchanged; only its idea of "empty" widens to "neither side has text".
+  if (!reply && !inbound) return null;
   const status = (DRAFT_STATUSES as readonly string[]).includes(o.status as string)
     ? (o.status as DraftStatus)
     : "pending";
@@ -535,7 +543,7 @@ function sanitizeDraft(raw: unknown, i: number): TwinDraft | null {
     id: str(o.id, 60) || `d${i}`,
     channel: o.channel,
     contact: str(o.contact, 120),
-    inbound: str(o.inbound, 4000),
+    inbound,
     reply,
     questions: strList(o.questions, 5, 300),
     confidence: clamp(o.confidence, 0, 100, 0),

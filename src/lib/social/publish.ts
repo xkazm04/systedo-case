@@ -20,6 +20,12 @@ export interface PublishResult {
   /** true when the publish was simulated (no real provider configured/connected). */
   simulated: boolean;
   externalUrl?: string;
+  /** The platform's own id for the created post — present ONLY on a real publish that
+   *  returned one (WP W3-D). It is what makes a later insights read possible: the
+   *  permalink is for humans, this is the API handle. A simulated publish has no
+   *  platform-side object and therefore no id, which is exactly why the read-back can
+   *  never mistake a simulation for a measurable post. */
+  externalId?: string;
   error?: string;
 }
 
@@ -53,7 +59,14 @@ export async function publishPost(
         { token: ctx.token as string, content },
         ctx.transport ?? httpSocialTransport()
       );
-      return { ok: true, simulated: false, externalUrl: res.url };
+      return {
+        ok: true,
+        simulated: false,
+        externalUrl: res.url,
+        // Only when the adapter actually mapped one — an empty id is not an id, and a
+        // record carrying "" would make the read-back call the API with a blank handle.
+        ...(res.externalId ? { externalId: res.externalId } : {}),
+      };
     } catch (err) {
       // Raw provider error stays server-side; the record fails honestly (not fake-published).
       console.error(`[social] real publish failed (${platform}):`, err instanceof Error ? err.message : err);

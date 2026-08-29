@@ -41,6 +41,10 @@ export type IntItemId =
   | "webhooks"
   | "auth"
   | "cron"
+  // WP W3-D: the project's PUBLIC intake addresses — where real inbound messages
+  // (a Meta page webhook, a mail forwarder, a Google Business bridge) become pending
+  // drafts in the Schránka. Opt-in, so none registered is "optional", not "missing".
+  | "twin-inbound"
   // Lead connectors (src/lib/leads/connectors/registry.ts). Only CSV/manual ingest
   // exists today; the other four are registered-but-unbuilt and say so — a board
   // that quietly omitted them would read as "we have no lead ingestion", and one
@@ -72,11 +76,22 @@ export type IntDetail =
   | "leads-csv-idle"
   | "leads-planned"
   | "webhooks-none"
-  | "webhooks-failing";
+  | "webhooks-failing"
+  | "inbound-none"
+  | "inbound-live";
 
 /** Where the row's action lives. A hint that names a step must be able to TAKE the
  *  reader there; module slugs are resolved against the current project by the UI. */
-export type IntLink = "home" | "socialni" | "mapa" | "branding" | "nastaveni" | "leads-connect";
+export type IntLink =
+  | "home"
+  | "socialni"
+  | "mapa"
+  | "branding"
+  | "nastaveni"
+  | "leads-connect"
+  // WP W3-D: the Schránka is where an intake endpoint is minted and where the messages
+  // it accepts arrive, so it is the one control that changes the twin-inbound row.
+  | "schranka";
 
 export interface IntegrationRow {
   id: IntItemId;
@@ -153,6 +168,11 @@ export interface ProvisionInput {
    *  endpoint that exists but is not receiving is worse than none — it reads as
    *  "alerts are wired up" while the alerts go nowhere — so it gets "action". */
   webhooksFailing?: boolean;
+  /** live probe (WP W3-D): how many TWIN INTAKE endpoints this project has minted —
+   *  the addresses a platform POSTs real inbound messages to. Optional so a caller
+   *  that predates the row (and every existing test fixture) still compiles; absent
+   *  degrades to 0 = "not set up", which is the honest reading of "we cannot see one". */
+  inboundEndpoints?: number;
 }
 
 const CATEGORY_ORDER: IntCategory[] = ["ads", "ai", "content", "leads", "reviews", "reports", "infra"];
@@ -250,6 +270,19 @@ function webhooksRow(p: ProvisionInput): IntegrationRow {
   return { id: "webhooks", category: "reports", status: "connected" };
 }
 
+/** The project's inbound intake (WP W3-D). Opt-in, so no endpoint is "optional", not
+ *  "missing" — an operator who reviews everything by hand is not misconfigured. There is
+ *  deliberately NO third state here: unlike a webhook, an intake endpoint has nothing
+ *  that can quietly stop working from our side (no delivery we attempt, no last-status to
+ *  go stale), so claiming a health verdict we cannot observe would be the exact
+ *  papering-over this board exists to refuse. */
+function twinInboundRow(p: ProvisionInput): IntegrationRow {
+  const base = { id: "twin-inbound", category: "leads", link: "schranka" } as const;
+  return p.inboundEndpoints
+    ? { ...base, status: "connected", detail: "inbound-live" }
+    : { ...base, status: "optional", detail: "inbound-none" };
+}
+
 /** Derive the readiness rows for the current environment + project. Pure. */
 export function computeIntegrationRows(p: ProvisionInput): IntegrationRow[] {
   const adsPlatform = p.googleAdsToken && p.googleAdsCustomer && p.googleOAuth;
@@ -286,6 +319,7 @@ export function computeIntegrationRows(p: ProvisionInput): IntegrationRow[] {
       status: p.googleOAuth ? "connected" : p.devAuth ? "action" : "missing",
     },
     { id: "cron", category: "infra", status: p.cron ? "connected" : "missing" },
+    twinInboundRow(p),
     ...leadRows(p),
   ];
   return rows.sort(

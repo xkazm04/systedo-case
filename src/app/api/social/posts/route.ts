@@ -187,7 +187,16 @@ export async function POST(request: Request) {
   const post = await createPost(tenant, { platform, content, status: "draft" });
   const result = await publishPost(platform, content, post.id, await publishContextFor(platform));
   const patch = result.ok
-    ? { status: "published" as const, publishedAt: new Date().toISOString(), externalUrl: result.externalUrl, simulated: result.simulated }
+    ? {
+        status: "published" as const,
+        publishedAt: new Date().toISOString(),
+        externalUrl: result.externalUrl,
+        simulated: result.simulated,
+        // WP W3-D: keep the PLATFORM's own post id, not just the permalink — it is the
+        // handle the read-back cron reads engagement with. Only present on a real
+        // publish; spread so a simulated one writes no empty field.
+        ...(result.externalId ? { externalId: result.externalId } : {}),
+      }
     : { status: "failed" as const, error: result.error ?? "Publikování se nezdařilo.", simulated: result.simulated };
   await updatePost(tenant, post.id, patch);
   // Publish-now: success IS the moment the content left for the channel, so this

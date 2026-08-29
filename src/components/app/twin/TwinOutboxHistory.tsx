@@ -9,7 +9,8 @@ import { Pill } from "@/components/ui";
 import { Send } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import type { TwinDraft } from "@/lib/twin/types";
-import { REASON_LABELS } from "./labels";
+import { isInboundDraft } from "@/lib/twin/inbound-id";
+import { CHANNEL_LABELS, REASON_LABELS } from "./labels";
 
 const T = {
   cs: {
@@ -22,6 +23,7 @@ const T = {
     approved: "Schváleno",
     sent: "Odesláno",
     rejected: "Zamítnuto",
+    received: "Přijato",
   },
   en: {
     history: "History",
@@ -33,6 +35,7 @@ const T = {
     approved: "Approved",
     sent: "Sent",
     rejected: "Rejected",
+    received: "Received",
   },
 } as const;
 
@@ -77,6 +80,14 @@ export default function TwinOutboxHistory({
                         ? t("rejected")
                         : t("needsReview")}
                 </Pill>
+                {/* PROVENANCE (WP W3-D): this message ARRIVED from a platform through a
+                    signed intake endpoint — nobody here typed it. Channel-labelled, the
+                    socials inbox's "Ukázka" posture applied to the opposite fact. */}
+                {isInboundDraft(d) && (
+                  <span className="pill bg-navy-50 text-muted">
+                    {t("received")} · {CHANNEL_LABELS[d.channel][locale]}
+                  </span>
+                )}
                 {d.contact && <span className="text-xs font-medium text-navy-800">{d.contact}</span>}
                 <span className="tnum text-xs text-muted">{d.confidence} %</span>
                 {d.rejectReason && (

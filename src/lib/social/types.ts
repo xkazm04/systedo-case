@@ -108,6 +108,12 @@ export interface SocialPost {
   createdAt: string;
   /** URL of the published post (a real permalink, or a demo.social preview marker) */
   externalUrl?: string;
+  /** The PLATFORM'S OWN id for the published post (WP W3-D). The adapter has always
+   *  returned it and the app has always thrown it away, which made a read-back
+   *  impossible: a permalink is not an API handle. Absent on simulated publishes (there
+   *  is no platform-side object), on failures, and on every record written before this
+   *  field existed — the read-back simply skips a post it cannot address. */
+  externalId?: string;
   /** true when the publish was SIMULATED (no real provider configured/connected) — the
    *  UI labels it honestly instead of dressing the demo.social URL up as a real post.
    *  Absent on legacy/pre-seam records; the UI still falls back to sniffing the URL. */

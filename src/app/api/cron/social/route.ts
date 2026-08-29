@@ -91,6 +91,9 @@ export async function GET(request: Request) {
                 publishedAt: new Date().toISOString(),
                 externalUrl: result.externalUrl,
                 simulated: result.simulated,
+                // WP W3-D: the platform's own post id, the handle the social-readback
+                // ledger step reads engagement with. Real publishes only.
+                ...(result.externalId ? { externalId: result.externalId } : {}),
               });
               await recordPublished(tenant, post.platform, result.simulated);
               published++;
@@ -120,6 +123,7 @@ export async function GET(request: Request) {
                       publishedAt: new Date().toISOString(),
                       externalUrl: result.externalUrl,
                       simulated: result.simulated,
+                      ...(result.externalId ? { externalId: result.externalId } : {}),
                     }
                   : {
                       status: "failed",
