@@ -719,6 +719,22 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_social_post_metrics_tenant
     ON social_post_metrics (tenant);
+
+  -- TWIN-ARCHIVE EVICTION ACCOUNTING (W1 residual, spec
+  -- docs/specs/2026-08-30-local-archive-eviction-accounting.md). The archive cap
+  -- DELETES audit records, and a deleted record cannot testify for itself — so the
+  -- same transaction that deletes writes this per-project tally, the sqlite
+  -- counterpart of the Firestore twinArchiveEvictions doc (commit 10693e1e): the
+  -- cap that fired, the lifetime count, and the last run's victims as JSON.
+  -- Written/read by twin/archive-store.local.ts; dropped with clearArchive so a
+  -- gone project keeps no history.
+  CREATE TABLE IF NOT EXISTS twin_archive_evictions (
+    project_id      TEXT PRIMARY KEY,
+    cap             INTEGER NOT NULL,
+    total_evicted   INTEGER NOT NULL,
+    last_evicted_at TEXT NOT NULL,
+    last_batch      TEXT NOT NULL
+  );
 `;
 
 /** One ordered, versioned schema change. `up` performs it; `applied` reports
@@ -1315,6 +1331,22 @@ const MIGRATIONS: Migration[] = [
     },
     applied: (db) =>
       tableExists(db, "social_post_metrics") && indexExists(db, "idx_social_post_metrics_tenant"),
+  },
+  {
+    version: 34,
+    name: "twin_archive_evictions (durable accounting for archive-cap deletes, W1 residual)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS twin_archive_evictions (
+          project_id      TEXT PRIMARY KEY,
+          cap             INTEGER NOT NULL,
+          total_evicted   INTEGER NOT NULL,
+          last_evicted_at TEXT NOT NULL,
+          last_batch      TEXT NOT NULL
+        )`
+      );
+    },
+    applied: (db) => tableExists(db, "twin_archive_evictions"),
   },
 ];
 

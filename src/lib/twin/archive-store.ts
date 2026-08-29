@@ -30,7 +30,17 @@ export async function listArchivedRejects(projectId: string, limit?: number): Pr
   return (await backend()).listArchivedRejects(projectId, limit);
 }
 
-/** Drop a project's whole archive (→ untrain wipes history too). */
+/** Drop a project's whole archive (→ untrain wipes history too), tally included. */
 export async function clearArchive(projectId: string): Promise<void> {
   return (await backend()).clearArchive(projectId);
+}
+
+/** The durable per-project tally of what the cap has evicted — the accounting the
+ *  delete writes in the same atomic step (Firestore batch / sqlite transaction),
+ *  because a deleted audit record cannot testify for itself. Null until the cap
+ *  first fires. One field set for both backends (archive.ts EvictionAccounting). */
+export async function readEvictionAccounting(
+  projectId: string
+): Promise<import("./archive").EvictionAccounting | null> {
+  return (await backend()).readEvictionAccounting(projectId);
 }

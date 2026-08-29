@@ -7,10 +7,11 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { runMigrations, rebuildTable, MIGRATION_VERSIONS } from "@/lib/db";
 
-// Wave 3 appends in parallel (W3-B = v30, W3-C = v31, W3-D = v32/33). This is the
+// Wave 3 appends in parallel (W3-B = v30, W3-C = v31, W3-D = v32/33, W1-residual
+// twin_archive_evictions = v34). This is the
 // highest version present in the tree; the Director settles it at the seams commit
 // once every builder's migration has landed.
-const LATEST = 33;
+const LATEST = 34;
 
 test("MIGRATIONS versions are unique + contiguous from 1 (the header's contract)", () => {
   const v = [...MIGRATION_VERSIONS];
@@ -60,7 +61,7 @@ test("fresh db → all migrations applied, ledger stamped to latest, full shape"
   assert.deepEqual(ledger(db), Array.from({ length: LATEST }, (_, i) => i + 1));
   // v1 base tables present… (incl. v7's lead_imports + v8's cron_sent_guard, also
   // created via v1's CREATE)
-  for (const t of ["rate_limits", "users", "projects", "warehouse_connection", "byom_config", "lead_imports", "cron_sent_guard", "cron_runs", "inventory_plan", "finance_inputs", "twin_archive", "project_goal", "sklik_connection", "ai_response_cache", "campaign_docs", "tenant_docs"]) {
+  for (const t of ["rate_limits", "users", "projects", "warehouse_connection", "byom_config", "lead_imports", "cron_sent_guard", "cron_runs", "inventory_plan", "finance_inputs", "twin_archive", "project_goal", "sklik_connection", "ai_response_cache", "campaign_docs", "tenant_docs", "twin_archive_evictions"]) {
     assert.ok(
       db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(t),
       `${t} should exist`

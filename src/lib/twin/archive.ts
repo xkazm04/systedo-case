@@ -86,3 +86,22 @@ export const TWIN_ARCHIVE_CAP = 1000;
 export function rejectsForChannel(drafts: TwinDraft[], channel: TwinChannel): TwinDraft[] {
   return drafts.filter((d) => d.status === "rejected" && d.channel === channel);
 }
+
+/** The durable per-project record of what the archive cap has DELETED. Eviction
+ *  removes audit records, and a deleted record cannot testify for itself — so both
+ *  backends write this tally in the same atomic step as the delete (Firestore: the
+ *  delete batch, twinArchiveEvictions/{projectId}; sqlite: a BEGIN IMMEDIATE
+ *  transaction over twin_archive_evictions). ONE vocabulary for both backends —
+ *  the field set is defined here and nowhere else (spec:
+ *  docs/specs/2026-08-30-local-archive-eviction-accounting.md). */
+export interface EvictionAccounting {
+  projectId: string;
+  /** the cap that forced the eviction (TWIN_ARCHIVE_CAP at write time) */
+  cap: number;
+  /** lifetime count of audit records this project's cap has deleted */
+  totalEvicted: number;
+  /** ISO of the most recent eviction */
+  lastEvictedAt: string;
+  /** the most recent run's victims — id + the archivedAt they were ordered by */
+  lastBatch: { id: string; archivedAt: string }[];
+}

@@ -22,7 +22,7 @@ for (const ext of ["", "-wal", "-shm"]) {
 process.env.SYSTEDO_DB_FILE = dbFile;
 process.env.LOCAL_DB = "true";
 
-let archiveDrafts, listArchivedDrafts, listArchivedRejects, clearArchive, TWIN_ARCHIVE_CAP;
+let archiveDrafts, listArchivedDrafts, listArchivedRejects, clearArchive, readEvictionAccounting, TWIN_ARCHIVE_CAP;
 
 let seq = 0;
 /** A terminal draft with a strictly increasing archived-at stamp (via createdAt),
@@ -55,6 +55,7 @@ before(async () => {
   listArchivedDrafts = store.listArchivedDrafts;
   listArchivedRejects = store.listArchivedRejects;
   clearArchive = store.clearArchive;
+  readEvictionAccounting = store.readEvictionAccounting;
   TWIN_ARCHIVE_CAP = archive.TWIN_ARCHIVE_CAP;
 });
 
@@ -112,4 +113,50 @@ test("a store keyed per project — one project's archive never bleeds into anot
   await archiveDrafts("proj-a", [terminal("sent")]);
   assert.equal((await listArchivedDrafts("proj-a")).length, 1);
   assert.equal((await listArchivedDrafts("proj-b")).length, 0);
+});
+
+// ---------------------------------------------------------------------------
+// Durable eviction accounting (spec docs/specs/2026-08-30-local-archive-eviction-accounting.md)
+// — eviction DELETES audit records, and a deleted record cannot testify for
+// itself, so the same transaction that deletes writes a per-project tally.
+// Same field set as the Firestore twin's twinArchiveEvictions doc (10693e1e).
+// ---------------------------------------------------------------------------
+
+test("under the cap, no accounting row exists", async () => {
+  await clearArchive("proj-acct-quiet");
+  await archiveDrafts("proj-acct-quiet", [terminal("sent")]);
+  assert.equal(await readEvictionAccounting("proj-acct-quiet"), null);
+});
+
+test("a cap eviction writes the durable tally naming exactly the victims", async () => {
+  await clearArchive("proj-acct");
+  const first = Array.from({ length: TWIN_ARCHIVE_CAP }, () => terminal("sent"));
+  await archiveDrafts("proj-acct", first);
+  await archiveDrafts("proj-acct", [terminal("sent"), terminal("sent")]);
+
+  const acct = await readEvictionAccounting("proj-acct");
+  assert.ok(acct, "the delete left a durable witness");
+  assert.equal(acct.projectId, "proj-acct");
+  assert.equal(acct.cap, TWIN_ARCHIVE_CAP);
+  assert.equal(acct.totalEvicted, 2);
+  assert.ok(acct.lastEvictedAt > "2026", "stamped");
+  assert.deepEqual(
+    acct.lastBatch.map((b) => b.id),
+    [first[0].id, first[1].id],
+    "the batch names exactly the OLDEST records that died"
+  );
+  assert.ok(acct.lastBatch.every((b) => typeof b.archivedAt === "string" && b.archivedAt.length > 0));
+
+  // A second overflow INCREMENTS the lifetime count and replaces the batch.
+  await archiveDrafts("proj-acct", [terminal("sent")]);
+  const again = await readEvictionAccounting("proj-acct");
+  assert.equal(again.totalEvicted, 3, "lifetime count accumulates");
+  assert.deepEqual(again.lastBatch.map((b) => b.id), [first[2].id], "batch is the LAST run only");
+});
+
+test("clearArchive drops the tally with the archive — a gone project keeps no history", async () => {
+  const before = await readEvictionAccounting("proj-acct");
+  assert.ok(before, "precondition: the previous test left a tally");
+  await clearArchive("proj-acct");
+  assert.equal(await readEvictionAccounting("proj-acct"), null);
 });

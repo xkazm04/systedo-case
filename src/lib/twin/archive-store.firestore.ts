@@ -6,10 +6,12 @@
  *  a composite index, delete the overflow). */
 import { FieldValue } from "firebase-admin/firestore";
 import { firestore } from "@/lib/firebase";
-import { archivedAt, TWIN_ARCHIVE_CAP } from "./archive";
+import { archivedAt, TWIN_ARCHIVE_CAP, type EvictionAccounting } from "./archive";
 import type { TwinDraft } from "./types";
 
 const COLLECTION = "twinArchives";
+/** Per-project eviction tallies — deliberately OUTSIDE the evicted collection. */
+const EVICTIONS_COLLECTION = "twinArchiveEvictions";
 
 interface ArchiveDoc {
   projectId: string;
@@ -54,7 +56,7 @@ export async function archiveDrafts(projectId: string, drafts: TwinDraft[]): Pro
     // per-project tally outside the evicted set (change-logging; the
     // FieldValue.increment + merge shape from analytics/store.firestore.ts).
     del.set(
-      firestore.collection("twinArchiveEvictions").doc(projectId),
+      firestore.collection(EVICTIONS_COLLECTION).doc(projectId),
       {
         projectId,
         cap: TWIN_ARCHIVE_CAP,
@@ -113,8 +115,25 @@ export async function listArchivedRejects(projectId: string, limit = 200): Promi
 
 export async function clearArchive(projectId: string): Promise<void> {
   const snap = await firestore.collection(COLLECTION).where("projectId", "==", projectId).get();
-  if (snap.empty) return;
   const batch = firestore.batch();
   for (const d of snap.docs) batch.delete(d.ref);
+  // A cleared archive keeps no eviction history either (untrain / project delete);
+  // mirrors the sqlite twin's twin_archive_evictions drop.
+  batch.delete(firestore.collection(EVICTIONS_COLLECTION).doc(projectId));
   await batch.commit();
+}
+
+/** The durable per-project eviction tally, or null when the cap has never fired.
+ *  Same field set as the sqlite twin's twin_archive_evictions row. */
+export async function readEvictionAccounting(projectId: string): Promise<EvictionAccounting | null> {
+  const doc = await firestore.collection(EVICTIONS_COLLECTION).doc(projectId).get();
+  if (!doc.exists) return null;
+  const d = doc.data() ?? {};
+  return {
+    projectId,
+    cap: typeof d.cap === "number" ? d.cap : TWIN_ARCHIVE_CAP,
+    totalEvicted: typeof d.totalEvicted === "number" ? d.totalEvicted : 0,
+    lastEvictedAt: typeof d.lastEvictedAt === "string" ? d.lastEvictedAt : "",
+    lastBatch: Array.isArray(d.lastBatch) ? d.lastBatch : [],
+  };
 }
