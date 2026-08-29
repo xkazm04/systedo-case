@@ -19,6 +19,14 @@ const CatalogLedgerSection = dynamic(
   { loading: () => <SectionSkeleton height="h-72" /> }
 );
 
+/** WP W2-D — the outbound feed card is a THIRD sibling for the same reason the ledger
+ *  is a second: it owns none of the manager's state (it talks only to the feed-token
+ *  route) and the manager is already 977 LOC of catalogued debt. Lazily loaded — it
+ *  fetches its own token client-side, so nothing above it waits on that read. */
+const FeedOutPanel = dynamic(() => import("@/components/app/modules/catalog/FeedOutPanel"), {
+  loading: () => <SectionSkeleton height="h-64" />,
+});
+
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const { project } = await requireProjectModule(projectId, "katalog");
@@ -45,6 +53,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
       <div className="mt-10">
         <CatalogLedgerSection projectId={project.id} />
       </div>
+      <FeedOutPanel projectId={project.id} />
     </ModulePage>
   );
 }
