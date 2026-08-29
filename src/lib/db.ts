@@ -35,12 +35,25 @@ function tableExists(db: DatabaseSync, table: string): boolean {
   );
 }
 
-// ⚠️ INVARIANT — adding a table here is NOT enough. SCHEMA builds FRESH databases
-// (via migration v1); every PRE-EXISTING database is already stamped at v1 and will
-// NEVER re-run it, so a table added only to SCHEMA is invisible to production. Any
-// NEW table must ALSO get an append-only entry in MIGRATIONS below (see v7..v17 for
-// the pattern). test-unit/db-migrations.test.mjs pins this: it diffs a fresh-migrated
-// db against a v1-era db carried forward through the migrations and fails if they differ.
+function indexExists(db: DatabaseSync, index: string): boolean {
+  return (
+    db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?")
+      .get(index) != null
+  );
+}
+
+// ⚠️ INVARIANT — adding a table OR AN INDEX here is NOT enough. SCHEMA builds FRESH
+// databases (via migration v1); every PRE-EXISTING database is already stamped at v1
+// and will NEVER re-run it, so anything added only to SCHEMA is invisible to
+// production. Any NEW table or index must ALSO get an append-only entry in MIGRATIONS
+// below (see v7..v17 for the pattern). test-unit/db-migrations.test.mjs pins this: it
+// diffs a fresh-migrated db against a v1-era db carried forward through the migrations
+// and fails if the TABLE set, any table's COLUMN set, or the INDEX set differs.
+//
+// The index half of that sentence is not hypothetical: idx_projects_user lived in
+// SCHEMA alone from the ledger's introduction until v22 backfilled it (2026-08-29),
+// because the guard compared table names only and could not see it.
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS rate_limits (
     bucket       TEXT NOT NULL,
@@ -852,6 +865,22 @@ const MIGRATIONS: Migration[] = [
     },
     applied: (db) =>
       ["lead_contacts", "lead_events", "lead_activities"].every((t) => tableExists(db, t)),
+  },
+  {
+    version: 22,
+    name: "backfill idx_projects_user (SCHEMA-only index, never reached existing dbs)",
+    // idx_projects_user was created in SCHEMA and nowhere else, so only databases
+    // built by a fresh v1 ever had it. Every database stamped at v1 before this
+    // migration is missing it and cannot gain it — projects/store.local.ts's
+    // listProjects (SELECT ... WHERE user_id = ? ORDER BY created_at DESC) is the
+    // hub's hot path, so those installs silently table-scan it. Additive and
+    // idempotent: CREATE INDEX IF NOT EXISTS is a no-op where v1 already made it.
+    up: (db) => {
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_projects_user ON projects (user_id, created_at)"
+      );
+    },
+    applied: (db) => indexExists(db, "idx_projects_user"),
   },
 ];
 

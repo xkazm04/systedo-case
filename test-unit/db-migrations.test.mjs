@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { runMigrations, rebuildTable, MIGRATION_VERSIONS } from "@/lib/db";
 
-const LATEST = 21;
+const LATEST = 22;
 
 test("MIGRATIONS versions are unique + contiguous from 1 (the header's contract)", () => {
   const v = [...MIGRATION_VERSIONS];
@@ -54,7 +54,7 @@ test("fresh db → all migrations applied, ledger stamped to latest, full shape"
   const version = runMigrations(db);
 
   assert.equal(version, LATEST);
-  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]);
+  assert.deepEqual(ledger(db), Array.from({ length: LATEST }, (_, i) => i + 1));
   // v1 base tables present… (incl. v7's lead_imports + v8's cron_sent_guard, also
   // created via v1's CREATE)
   for (const t of ["rate_limits", "users", "projects", "warehouse_connection", "byom_config", "lead_imports", "cron_sent_guard", "cron_runs", "inventory_plan", "finance_inputs", "twin_archive", "project_goal", "sklik_connection", "ai_response_cache", "campaign_docs", "tenant_docs"]) {
@@ -74,7 +74,7 @@ test("fresh db → running twice is a no-op (idempotent, no duplicate ledger row
   runMigrations(db);
   const version = runMigrations(db);
   assert.equal(version, LATEST);
-  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]);
+  assert.deepEqual(ledger(db), Array.from({ length: LATEST }, (_, i) => i + 1));
 });
 
 test("legacy no-version db (already fully migrated) → detected + stamped, no re-ALTER", () => {
@@ -93,7 +93,7 @@ test("legacy no-version db (already fully migrated) → detected + stamped, no r
   // Every version is detected as already-applied and stamped WITHOUT throwing a
   // duplicate-column error.
   assert.equal(version, LATEST);
-  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]);
+  assert.deepEqual(ledger(db), Array.from({ length: LATEST }, (_, i) => i + 1));
 });
 
 test("mid-version legacy db → missing additive columns are added, stamped to latest", () => {
@@ -106,7 +106,7 @@ test("mid-version legacy db → missing additive columns are added, stamped to l
   const version = runMigrations(db);
 
   assert.equal(version, LATEST);
-  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]);
+  assert.deepEqual(ledger(db), Array.from({ length: LATEST }, (_, i) => i + 1));
   assert.ok(cols(db, "warehouse_connection").includes("config_json"));
   assert.ok(cols(db, "warehouse_connection").includes("last_error"));
   assert.ok(cols(db, "warehouse_connection").includes("last_error_at"));
@@ -123,7 +123,7 @@ test("partially-recorded ledger → only the unrecorded tail runs", () => {
 
   const version = runMigrations(db);
   assert.equal(version, LATEST);
-  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]);
+  assert.deepEqual(ledger(db), Array.from({ length: LATEST }, (_, i) => i + 1));
 });
 
 /** The set of user tables on a handle (excluding SQLite internals + the ledger). */
@@ -133,6 +133,37 @@ const tableSet = (db) =>
     .all()
     .map((r) => r.name)
     .filter((n) => n !== "schema_version")
+    .sort();
+
+/** The set of named indexes on a handle. `sql IS NOT NULL` drops the implicit
+ *  indexes SQLite creates for PRIMARY KEY / UNIQUE, which are a consequence of the
+ *  column set (already compared) rather than an independently-declared object. */
+const indexSet = (db) =>
+  db
+    .prepare(
+      "SELECT name FROM sqlite_master WHERE type='index' AND sql IS NOT NULL AND name NOT LIKE 'sqlite_%'"
+    )
+    .all()
+    .map((r) => r.name)
+    .sort();
+
+/** One table's columns as an ORDER-INSENSITIVE set of normalized descriptors.
+ *
+ *  Order-insensitive on purpose, and this is the whole reason the comparison is a
+ *  set rather than a list: `ALTER TABLE ADD COLUMN` can only APPEND, while SCHEMA
+ *  declares columns wherever they read best. `projects.logo_url` (v2) and
+ *  `warehouse_connection.config_json` (v6) therefore sit mid-table on a fresh db and
+ *  last on a migrated one. That fork is legitimate and permanent — comparing
+ *  ordinals would fail the build forever on a difference no query can observe
+ *  (node:sqlite returns name-keyed rows, and the repo has zero positional
+ *  `INSERT INTO t VALUES (...)` statements). What a query CAN observe — a column
+ *  that is missing, differently typed, differently defaulted, or no longer part of
+ *  the primary key — is exactly what this descriptor captures. */
+const columnSet = (db, table) =>
+  db
+    .prepare(`PRAGMA table_info(${table})`)
+    .all()
+    .map((c) => `${c.name}:${c.type}:${c.notnull}:${c.dflt_value ?? ""}:${c.pk}`)
     .sort();
 
 /** A v1-era database, frozen as it looked when the schema_version ledger was
@@ -180,6 +211,28 @@ test("no SCHEMA/MIGRATIONS split-brain: a pre-existing (v1-stamped) db reaches t
     tableSet(fresh),
     "a table added only to SCHEMA never reaches existing databases — add an append-only Migration too"
   );
+
+  // Same split-brain, one level down. Until 2026-08-29 this test compared table
+  // names ONLY, so it stayed green while idx_projects_user existed on fresh
+  // databases and on no migrated one — the hub's hot path silently table-scanning
+  // for every pre-existing install. An index is as invisible to a table-name diff
+  // as a whole table is to no diff at all.
+  assert.deepEqual(
+    indexSet(legacy),
+    indexSet(fresh),
+    "an index added only to SCHEMA never reaches existing databases — add an append-only Migration too"
+  );
+
+  // And one level down again: a column added to SCHEMA without an ALTER migration.
+  // Compared per table as an unordered set — see columnSet for why ordinals are
+  // deliberately NOT compared.
+  for (const table of tableSet(fresh)) {
+    assert.deepEqual(
+      columnSet(legacy, table),
+      columnSet(fresh, table),
+      `${table}: a column added only to SCHEMA never reaches existing databases — add an append-only ALTER migration too`
+    );
+  }
 });
 
 test("rebuildTable: create-new/copy/drop/rename preserves data (the non-additive recipe)", () => {
