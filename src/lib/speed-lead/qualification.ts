@@ -56,26 +56,43 @@ export function answeredCount(q: Qualification): number {
   return n;
 }
 
+/** Which band a 0–100 score falls in. Spelled like a Disposition, but it is a
+ *  DIFFERENT thing: a disposition is the rep's gut call, a band is derived from the
+ *  score. They shared a type only because they share three words. */
+export type ScoreBand = "hot" | "warm" | "cold";
+
+/** The one place the band thresholds live — tone and label both derive from it,
+ *  so a threshold can never be moved in one and forgotten in the other. */
+export function scoreBand(score: number): ScoreBand {
+  if (score >= 60) return "hot";
+  if (score >= 40) return "warm";
+  return "cold";
+}
+
+const BAND_TONES: Record<ScoreBand, PillTone> = {
+  hot: "positive",
+  warm: "coral",
+  cold: "negative",
+};
+
 /** Pill tone for a score, mirroring `scoreTone` in LeadQualityModule so the two
  *  qualification surfaces read the same colours. */
 export function scoreTone(score: number): PillTone {
-  if (score >= 60) return "positive";
-  if (score >= 40) return "coral";
-  return "negative";
+  return BAND_TONES[scoreBand(score)];
 }
 
-/** Short label per score band, shown beside the Pill. The band is decided here
- *  (same thresholds as scoreTone), so its NAME lives here too, in both locales.
- *  Locale-resolved through the repo's existing resolver pattern (`severityLabel`
- *  in lib/campaigns/triage.ts) rather than returned as a Czech literal into a
+/** Short label per score band, shown beside the Pill. The band is decided by
+ *  `scoreBand`, so its NAME lives here too, in both locales. Locale-resolved
+ *  through the repo's existing resolver pattern (`severityLabel` in
+ *  lib/campaigns/triage.ts) rather than returned as a Czech literal into a
  *  localized panel. */
-export const SCORE_LABELS: Record<Disposition, string> = {
+export const SCORE_LABELS: Record<ScoreBand, string> = {
   hot: "Horký lead",
   warm: "Vlažný lead",
   cold: "Studený lead",
 };
 
-export const SCORE_LABELS_EN: Record<Disposition, string> = {
+export const SCORE_LABELS_EN: Record<ScoreBand, string> = {
   hot: "Hot lead",
   warm: "Warm lead",
   cold: "Cold lead",
@@ -83,7 +100,5 @@ export const SCORE_LABELS_EN: Record<Disposition, string> = {
 
 export function scoreLabel(score: number, locale: SupportedLocale): string {
   const labels = locale === "en" ? SCORE_LABELS_EN : SCORE_LABELS;
-  if (score >= 60) return labels.hot;
-  if (score >= 40) return labels.warm;
-  return labels.cold;
+  return labels[scoreBand(score)];
 }
