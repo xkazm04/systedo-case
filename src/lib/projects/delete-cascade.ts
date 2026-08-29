@@ -40,6 +40,7 @@ import { clearInventoryPlanState } from "@/lib/inventory/plan-store";
 import { clearFinanceInputs } from "@/lib/profit/finance-inputs/store";
 import { clearArchive } from "@/lib/twin/archive-store";
 import { buildTenantKey } from "@/lib/campaigns/store-keys";
+import { clearMicrositeForTenant } from "@/lib/microsite/store";
 
 /** One registered per-project store. `delete` takes both keys; project-scoped
  *  (Family A) stores ignore `userId`, per-(user, project) stores (Family B) use it. */
@@ -76,6 +77,10 @@ export const PROJECT_STORE_DELETERS: ProjectStoreDeleter[] = [
   { name: "catalog", delete: (p, u) => deleteCatalog(u, p) },
   { name: "project-state", delete: (p, u) => deleteProjectState(u, p) },
   { name: "warehouse-connection", delete: (p, u) => deleteConnection(u, p) },
+  // TENANT-keyed, not project-keyed: the microsite API publishes under
+  // resolveTenant(…, { accountScoped: false }) === buildTenantKey(userId, projectId),
+  // so the project's public /m/{slug} page is addressable by exactly that key.
+  { name: "microsite", delete: async (p, u) => { await clearMicrositeForTenant(buildTenantKey(u, p)); } },
 ];
 
 /** The result of one store's delete — `ok:false` carries the error message so the

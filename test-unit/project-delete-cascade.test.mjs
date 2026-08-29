@@ -60,6 +60,7 @@ const { archiveDrafts, listArchivedDrafts } = await import("@/lib/twin/archive-s
 const { saveProjectGoal, getProjectGoal } = await import("@/lib/goals/store");
 const { saveInventoryPlanState, getInventoryPlanState } = await import("@/lib/inventory/plan-store");
 const { saveFinanceInputs, getFinanceInputs } = await import("@/lib/profit/finance-inputs/store");
+const { enableMicrosite, getMicrositeForTenant } = await import("@/lib/microsite");
 
 // the two tenant-keyed generic doc twins the tenant scrub owns (no store deleter does)
 const { localTenantStore } = await import("@/lib/campaigns/store/local-docs");
@@ -198,6 +199,11 @@ const STORE_FIXTURES = [
     name: "warehouse-connection",
     seed: (u, p) => saveConnection(u, p, { provider: "shopify", connectedAt: NOW }),
     present: async (u, p) => (await getConnection(u, p)) !== null,
+  },
+  {
+    name: "microsite",
+    seed: (u, p) => enableMicrosite(buildTenantKey(u, p), { slug: `ms-${p}`, clientName: "Cascade" }),
+    present: async (u, p) => (await getMicrositeForTenant(buildTenantKey(u, p))) !== null,
   },
 ];
 

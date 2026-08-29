@@ -11,9 +11,17 @@
  *  whose owning PROJECT has actually synced Ads metrics substitutes the REAL series
  *  (resolveMicrositeView): same snapshot shape, honest "synced" provenance, and the
  *  page may then index. A view is either fully synced-real or fully disclosed-sample
- *  — the two series are never blended. Server-only (Firestore registry). */
-import { firestore } from "@/lib/firebase";
+ *  — the two series are never blended. Server-only.
+ *
+ *  The REGISTRY itself (which slug belongs to whom, and is it live) lives behind the
+ *  dual-store dispatcher in `./microsite/store` — Firestore in the cloud, node:sqlite
+ *  under LOCAL_DB — so a `dev:local` tenant can publish /m/{slug} offline. This file
+ *  keeps the public API and every policy decision: slug validity, the reserved demo
+ *  slug, tenant ownership, which kinds may be published, and the degrade-to-demo
+ *  fallback. The store has no policy at all (ADR-0001, ADR-0002). */
 import { isValidMicrositeSlug } from "@/lib/microsite-identity";
+import { getBySlug, getByTenant, setEnabled, upsert } from "@/lib/microsite/store";
+import { isMicrositeKind, type MicrositeConfig, type MicrositeKind } from "@/lib/microsite/types";
 import { scaledDataset, seedScale } from "@/lib/project-data/dataset";
 import { buildMetricsSnapshot, type MetricsSnapshot } from "@/lib/metrics";
 import { snapshotToArticle } from "@/lib/snapshot-to-article";
@@ -23,33 +31,16 @@ import { isBaseCurrency } from "@/lib/campaigns/currency";
 import type { PerformanceData } from "@/lib/types";
 import type { Article } from "@/lib/article";
 
-export interface MicrositeConfig {
-  /** stable public slug (the /m/{slug} URL) */
-  slug: string;
-  /** owning tenant (the account-agnostic tenant key) — pins slug ownership */
-  tenant: string;
-  /** the owning PROJECT id — the key into the per-project synced-metrics store
-   *  (report-metrics), captured at enable time so resolveMicrositeView can substitute
-   *  the project's REAL series. Optional: microsites published before this field
-   *  existed (and the built-in demo) lack it and stay on the disclosed sample. */
-  projectId?: string;
-  clientName: string;
-  segment: string;
-  brandName: string;
-  /** white-label accent (hex or CSS color) */
-  accentColor: string;
-  /** white-label logo URL, rendered in the microsite header (R08) */
-  logoUrl?: string;
-  /** trailing window in days */
-  periodDays: number;
-  enabled: boolean;
-  /** true when the figures are the scaled case-study series, not a tenant's real
-   *  synced data — the page then discloses it and is NOT search-indexed, so demo
-   *  numbers are never published as indexed "proof". A real, Ads-connected tenant
-   *  leaves this false and keeps the indexed proof page. */
-  illustrative?: boolean;
-  updatedAt: string;
-}
+// The data contract lives beside the store (so the sqlite backend can import it
+// without reaching back through this module) and is re-exported here, because
+// `@/lib/microsite` is the module every caller already imports.
+export type { MicrositeConfig, MicrositeKind };
+
+/** The kinds `enableMicrosite` will actually publish today. `local-landing` and `lp`
+ *  are declared in the type — the registry can already carry them and a document
+ *  written by a later deploy reads back correctly — but their renderers do not exist
+ *  yet, and accepting one here would publish a blank page at a real public URL. */
+const PUBLISHABLE_KINDS: readonly MicrositeKind[] = ["performance"];
 
 /** A built-in microsite so /m/mionelo works with zero setup (matches the
  *  case-study client) — mirrors how the rest of the app ships demo-ready. */
@@ -62,13 +53,12 @@ export const DEMO_MICROSITE: MicrositeConfig = {
   accentColor: "#0f766e",
   periodDays: 30,
   enabled: true,
+  // Declared, not defaulted: the demo is a literal, so it never travels through the
+  // store's `normalizeConfig` (which is where a STORED legacy doc gets its kind).
+  kind: "performance",
   illustrative: true,
   updatedAt: "",
 };
-
-function registry() {
-  return firestore.collection("microsites");
-}
 
 const PERIOD_LABEL: Record<number, string> = {
   30: "30 dní",
@@ -81,14 +71,11 @@ function periodLabel(days: number): string {
 }
 
 /** A microsite by slug. Falls back to the built-in demo so the route always
- *  renders something; best-effort against Firestore (demo still works offline). */
+ *  renders something; best-effort against the registry (demo still works offline). */
 export async function getMicrosite(slug: string): Promise<MicrositeConfig | null> {
   try {
-    const snap = await registry().doc(slug).get();
-    if (snap.exists) {
-      const cfg = snap.data() as MicrositeConfig;
-      return cfg.enabled ? cfg : null;
-    }
+    const cfg = await getBySlug(slug);
+    if (cfg) return cfg.enabled ? cfg : null;
   } catch (err) {
     console.error(`[microsite] lookup failed for ${slug}:`, err);
   }
@@ -98,21 +85,21 @@ export async function getMicrosite(slug: string): Promise<MicrositeConfig | null
 /** The microsite owned by a tenant (for the management card), if any. */
 export async function getMicrositeForTenant(tenant: string): Promise<MicrositeConfig | null> {
   try {
-    const snap = await registry().where("tenant", "==", tenant).limit(1).get();
-    if (!snap.empty) return snap.docs[0].data() as MicrositeConfig;
+    return await getByTenant(tenant);
   } catch (err) {
     console.error(`[microsite] tenant lookup failed for ${tenant}:`, err);
   }
   return null;
 }
 
-/** Thrown by enableMicrosite when the requested slug is malformed or already owned
- *  by another tenant — the route maps `code` to a 422 / 409. */
+/** Thrown by enableMicrosite when the requested slug is malformed, already owned by
+ *  another tenant, or the requested kind has no renderer — the route maps `code` to
+ *  a 422 / 409. */
 export class MicrositeSlugError extends Error {
   /** No TS parameter property here on purpose: node:test loads this module via
    *  strip-only type erasure, which cannot compile `constructor(public code…)`. */
-  readonly code: "invalid-slug" | "slug-taken";
-  constructor(code: "invalid-slug" | "slug-taken", message: string) {
+  readonly code: "invalid-slug" | "slug-taken" | "invalid-kind";
+  constructor(code: "invalid-slug" | "slug-taken" | "invalid-kind", message: string) {
     super(message);
     this.code = code;
     this.name = "MicrositeSlugError";
@@ -127,21 +114,30 @@ export class MicrositeSlugError extends Error {
  *  all), hijacking its stable URL. */
 export async function enableMicrosite(
   tenant: string,
-  input: { slug: string; clientName: string; segment?: string; brandName?: string; accentColor?: string; logoUrl?: string; periodDays?: number; projectId?: string }
+  input: { slug: string; clientName: string; segment?: string; brandName?: string; accentColor?: string; logoUrl?: string; periodDays?: number; projectId?: string; kind?: MicrositeKind }
 ): Promise<MicrositeConfig> {
   if (!isValidMicrositeSlug(input.slug)) {
     throw new MicrositeSlugError("invalid-slug", `Invalid microsite slug: "${input.slug}"`);
   }
+  // A kind whose renderer does not exist yet must never reach a public URL — the
+  // page would render blank at an indexable address. Refused BEFORE the ownership
+  // read, so an unpublishable request costs no registry round-trip.
+  const kind: MicrositeKind = input.kind ?? "performance";
+  if (!isMicrositeKind(kind) || !PUBLISHABLE_KINDS.includes(kind)) {
+    throw new MicrositeSlugError("invalid-kind", `Microsite kind "${kind}" cannot be published yet`);
+  }
   // The built-in demo slug is reserved for its own tenant — it exists even when no
-  // Firestore doc does, so the ownership read below cannot protect it.
+  // registry document does, so the ownership read below cannot protect it.
   if (input.slug === DEMO_MICROSITE.slug && tenant !== DEMO_MICROSITE.tenant) {
     throw new MicrositeSlugError("slug-taken", `Slug "${input.slug}" is reserved`);
   }
-  // Ownership: an existing doc (enabled OR disabled) pins the slug to its tenant.
-  // This read intentionally does NOT swallow Firestore errors — a failed check must
-  // fail the write, never silently allow a takeover.
-  const existing = await registry().doc(input.slug).get();
-  if (existing.exists && (existing.data() as MicrositeConfig).tenant !== tenant) {
+  // Ownership: an existing config (enabled OR disabled) pins the slug to its tenant.
+  // This read intentionally does NOT swallow store errors — a failed check must fail
+  // the write, never silently allow a takeover. `getBySlug` is the raw store read for
+  // exactly that reason; `getMicrosite` above would swallow it and hide a foreign
+  // DISABLED site behind the demo fallback.
+  const existing = await getBySlug(input.slug);
+  if (existing && existing.tenant !== tenant) {
     throw new MicrositeSlugError("slug-taken", `Slug "${input.slug}" belongs to another tenant`);
   }
   const cfg: MicrositeConfig = {
@@ -157,6 +153,9 @@ export async function enableMicrosite(
     ...(input.projectId ? { projectId: input.projectId } : {}),
     periodDays: input.periodDays && [30, 90, 365].includes(input.periodDays) ? input.periodDays : 30,
     enabled: true,
+    // Written on EVERY upsert, so the default-on-read in the store is only ever
+    // needed for documents that predate the field.
+    kind,
     // The STORED flag stays true: whether the page may drop the disclosure + index
     // is decided per REQUEST by resolveMicrositeView (sync state changes over time —
     // a cleared sync must revert the page to disclosed sample without a registry
@@ -165,14 +164,14 @@ export async function enableMicrosite(
     illustrative: true,
     updatedAt: new Date().toISOString(),
   };
-  await registry().doc(input.slug).set(cfg, { merge: true });
+  await upsert(cfg);
   return cfg;
 }
 
 /** Take a tenant's microsite offline (keeps the config for re-enabling). */
 export async function disableMicrosite(tenant: string): Promise<void> {
   const existing = await getMicrositeForTenant(tenant);
-  if (existing) await registry().doc(existing.slug).set({ enabled: false }, { merge: true });
+  if (existing) await setEnabled(existing.slug, false);
 }
 
 /** The rendered microsite view. `live` is the page's honest source signal: robots

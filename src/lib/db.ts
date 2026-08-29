@@ -512,6 +512,24 @@ const SCHEMA = `
     count  INTEGER NOT NULL,
     PRIMARY KEY (metric, day)
   );
+
+  -- The public microsite registry (/m/{slug}). Deliberately keyed by SLUG, not by
+  -- tenant: the slug is the global public address space, and making it the primary
+  -- key is what makes "one tenant cannot take over another tenant's URL" a property
+  -- of the table rather than of a query (ADR-0002 ownership is then a read-then-write
+  -- in enableMicrosite over a single addressable row). The tenant column is the
+  -- duplicated, INDEXED owner so the management card's by-tenant lookup is an indexed
+  -- probe rather than a scan; data is the whole MicrositeConfig JSON. Mirrors the
+  -- Firestore microsites/{slug} doc. See src/lib/microsite/store.*.
+  CREATE TABLE IF NOT EXISTS microsites (
+    slug       TEXT PRIMARY KEY,
+    tenant     TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_microsites_tenant
+    ON microsites (tenant);
 `;
 
 /** One ordered, versioned schema change. `up` performs it; `applied` reports
@@ -881,6 +899,22 @@ const MIGRATIONS: Migration[] = [
       );
     },
     applied: (db) => indexExists(db, "idx_projects_user"),
+  },
+  {
+    version: 23,
+    name: "microsites (public /m/{slug} registry — the Firestore-only tail of the microsite seam)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS microsites (
+          slug       TEXT PRIMARY KEY,
+          tenant     TEXT NOT NULL,
+          data       TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )`
+      );
+      db.exec("CREATE INDEX IF NOT EXISTS idx_microsites_tenant ON microsites (tenant)");
+    },
+    applied: (db) => tableExists(db, "microsites") && indexExists(db, "idx_microsites_tenant"),
   },
 ];
 

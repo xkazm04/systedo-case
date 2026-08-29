@@ -2399,7 +2399,11 @@
         "src/lib/site.ts",
         "src/lib/nav.ts",
         "src/lib/microsite.ts",
-        "src/lib/microsite-identity.ts"
+        "src/lib/microsite-identity.ts",
+        "src/lib/microsite/types.ts",
+        "src/lib/microsite/store.ts",
+        "src/lib/microsite/store.local.ts",
+        "src/lib/microsite/store.firestore.ts"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
