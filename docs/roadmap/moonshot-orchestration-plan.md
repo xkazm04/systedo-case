@@ -181,14 +181,55 @@ red on the SAME 3 pre-wave findings (architect backlog), raw-engine ratchet 15/1
   of scope until a data source exists. W2-C overlays `local-signals/resolve.ts` next.
 - i18n:audit leftover 41 > baseline 40 (pre-existing, reporting rung — fix + lower together).
 
+## 3d. Wave 2 outcome (2026-08-29) — DONE
+
+Five parallel Opus builders in the MAIN checkout, specs `c07fd3be`, landed in review order:
+E `4e9c59f7` · A `675034a7` · C `3859c7c3` · B `4522a2d1` · D `350b640b` · seams `cea42d01`.
+`tsc` clean, `test:unit` 3102/3104 (2 skipped), adr/seed/llm-gate/llm-quality/agents-surface
+green; `sast` red on the SAME 3 pre-wave findings (architect backlog), raw-engine 15/15.
+Migrations landed v27 (`go_links`/`go_clicks`) + v28 (`scan_claims`) + v29 (`feed_tokens`);
+schema is 42 tables. 22 registered LLM tools (`local-page` golden `6f56f58e889151df`).
+
+**What changed against the plan:**
+- Shared-file protocol evolved: db.ts carried all three migrations and landed whole with
+  W2-A (first lander), noted in the message — no curated index blobs needed this wave.
+  `ai-types.ts`/`validation.ts` (co-owned A+C, marked hunks) landed the same way.
+- W2-B and W2-C were ordered NOT to touch modes.ts even locally (shared checkout) — their
+  entries landed as Director-applied seam requests; they tested their pieces as functions.
+- W2-B found a real latent bug: `resolvePrepared` called guards synchronously, so an async
+  guard's Promise would have been returned as a Response. Guards are now awaitable.
+- W2-D dropped the plan's "inventory-plan effects" seam (it does not exist — zero `effect`
+  hits in src/lib/inventory/); labels derive from `stockRows`/`marginOf` directly. It also
+  found+fixed a missing-await bug in its own revoke path, and un-gamed a sast false pass
+  (a doc comment mentioning a guard name satisfied GUARD_RE — reworded so the finding
+  fires honestly and the waiver is in the allowlist where it belongs).
+- W2-A routed measured grounding through `resolved.outcomes` rather than
+  `buildKanalyGrounding` (precedence arbiter, no precedence question here); channel-research
+  fingerprint unmoved (prompt block is conditional, byte-identity pinned).
+- `/go/{id}` lives OUTSIDE src/app/api on purpose (public address like /m/{slug}) — no
+  route-auth waiver needed; the open-redirect posture (owner-minted http(s) URLs only,
+  `safeChannelUrl` floor, noindex) is a conscious accept.
+
+**Carried forward (owed):**
+- `local-page` has no baked quality score (unbaked ratchet 7→8, reason recorded) — bake on
+  the next `npm run llm:quality` run and lower it back (together with ads-diagnosis' 6→7).
+- Firestore twins of the new stores (outcomes, claims, feed-tokens, microsite listByTenant,
+  calibration docs) are tsc-checked + shape-mirrored but unexercised (standing gap).
+- W2-E's realization window: the campaign-series doc holds only the active period, so a
+  set realized >23d after apply degrades to `insufficient` — capture-at-apply is the
+  upgrade if that bites (W3-A's call).
+- W3-A substrate notes are in W2-E's builder report: `ControlPlane.tsx` was reshaped
+  (ledger row extracted to `ChangeSetLedgerRow.tsx`, one hoisted clock — reuse it),
+  `readCalibration` in control-plane.ts is the function to generalise.
+- i18n:audit leftover 41 > baseline 40 (pre-existing, reporting rung — fix + lower together).
+
 ## 4. What the Director does first (next session)
 
 1. ~~ADR-0010~~ ~~foundation specs~~ ~~F1–F4~~ — done (§3b).
-2. ~~Write the six Wave-1 specs~~ — done (§3c). Write the five Wave-2 specs (`docs/specs/wp-W1-*.md`) from §1, plus W1-G (§3b); copy the
-   Wave-0 builder brief shape (spec-only, no commits, LF normalization, whole-tree gates may be
-   red on another builder's path).
-3. ~~Dispatch Wave 1~~ — done (§3c). Dispatch Wave 2 (W2-A..E, modes.ts → W2-A); land each with a pathspec commit after
-   review; seams commit between waves; `npm run build` once per wave.
+2. ~~Write the six Wave-1 specs~~ — done (§3c). ~~Write the five Wave-2 specs~~ — done (§3d).
+3. ~~Dispatch Wave 1~~ — done (§3c). ~~Dispatch Wave 2~~ — done (§3d). Next: write the four
+   Wave-3 specs (W3-A..D from §1; modes.ts → W3-B, insights producer → W3-A); read W2-E's
+   substrate notes in §3d before speccing W3-A. Then Wave 4 (S1 needs live Sklik creds).
 
 ## 5. Risks the plan accepts
 
