@@ -31,6 +31,8 @@ import { SAMPLE_DECAY } from "@/lib/content-engine/sample";
 import { decayingPosts } from "@/lib/content-engine/compute";
 import { channelPlanForProject } from "@/lib/organic-channels/sample";
 import type { ChannelTrack, OrganicChannel } from "@/lib/organic-channels/types";
+import { CHANNEL_KEY_LABELS } from "@/lib/publishing/channel-key";
+import type { CadenceCheck } from "@/lib/publishing/types";
 import { byImpact, type Recommendation, type Severity } from "./types";
 
 function rec(
@@ -460,6 +462,68 @@ function channelRecs(
   ];
 }
 
+/** The publishing calendar's cadence checks for the CURRENT week, threaded by the
+ *  caller (`weekCadence` over the resolved calendar — async I/O stays out of this
+ *  pure aggregator). */
+export interface PublishingRecsInput {
+  checks: CadenceCheck[];
+}
+
+/** Cadence recs — the two things a per-channel cap can be wrong about, once it is
+ *  actually enforced.
+ *
+ *  Both are derived from the tenant's OWN stores (their tracked caps, their four
+ *  schedulers' items), so neither is ever fixture-tagged: there is no sample path
+ *  into this producer at all. A caller that has not threaded the calendar gets no
+ *  recs rather than invented ones — the same fail-closed posture as the local and
+ *  SEO seams, expressed as silence instead of a labelled guess.
+ *
+ *  OVER the cap is a warning, not a critical: it can only happen through a
+ *  deliberate human override (or a cap lowered after the fact), so it is a "you
+ *  chose this, here it is on the record" — never an alarm about a rule the app
+ *  enforced anyway. ZERO on a capped channel is the opposite failure and only an
+ *  info: the operator set a cadence for this channel and has published nothing to
+ *  it this week. */
+function publishingRecs(
+  locale: SupportedLocale,
+  input?: PublishingRecsInput | null
+): Recommendation[] {
+  if (!input) return [];
+  const out: Recommendation[] = [];
+  for (const check of input.checks) {
+    if (check.cap === null) continue;
+    const name = CHANNEL_KEY_LABELS[check.channel];
+    if (check.count > check.cap) {
+      out.push(
+        rec(
+          locale,
+          "kanaly",
+          "warning",
+          locale === "en" ? `${name}: over the cadence cap` : `${name}: nad limitem kadence`,
+          locale === "en"
+            ? `${check.count} items are planned this week against a cap of ${check.cap}. The cap is enforced when scheduling, so this week was let through by an explicit override — thin it out or raise the cap in Kanály.`
+            : `Na tento týden je naplánováno ${check.count} položek proti limitu ${check.cap}. Limit se vynucuje při plánování, takže tento týden prošel výslovným potvrzením — ubere, nebo limit zvyšte v Kanálech.`,
+          `${check.count}/${check.cap}`
+        )
+      );
+    } else if (check.count === 0) {
+      out.push(
+        rec(
+          locale,
+          "kanaly",
+          "info",
+          locale === "en" ? `${name}: nothing planned this week` : `${name}: tento týden nic v plánu`,
+          locale === "en"
+            ? `You set a cadence of ${check.cap}× a week for this channel and nothing is planned on it. Open the plan and fill the week.`
+            : `Pro tento kanál máte nastavenou kadenci ${check.cap}× týdně a není na něm nic naplánováno. Otevřete plán a týden zaplňte.`,
+          `0/${check.cap}`
+        )
+      );
+    }
+  }
+  return out;
+}
+
 /** All recommendations for a project, ranked by impact (severity bucket, then
  *  money at stake) so the highest-leverage items lead — see {@link byImpact}. */
 export function collectRecommendations(
@@ -481,7 +545,12 @@ export function collectRecommendations(
   /** the project's ACTIVE channel plan, resolved by the caller the way /kanaly does
    *  (pinned AI plan else the seed, statuses merged in). Omitted → the seeded plan,
    *  sample-tagged — exactly what this rec did before the seam existed. */
-  channelPlan?: ChannelRecsInput | null
+  channelPlan?: ChannelRecsInput | null,
+  /** the project's publishing calendar cadence checks for the CURRENT week, resolved
+   *  by the caller (`weekCadence` over `resolvePublishingCalendar`). Omitted → no
+   *  cadence recs at all: this producer has no sample path, so a caller that has not
+   *  adopted the seam is byte-identical to before it existed. */
+  publishing?: PublishingRecsInput | null
 ): Recommendation[] {
   const typeRecs =
     project.type === "eshop"
@@ -498,5 +567,9 @@ export function collectRecommendations(
                 local ?? { targets: targetsForProject(project), ladder: [], reviews: [], live: ALL_SAMPLE }
               )
             : contentRecs(locale);
-  return [...typeRecs, ...channelRecs(project, locale, channelPlan)].sort(byImpact);
+  return [
+    ...typeRecs,
+    ...channelRecs(project, locale, channelPlan),
+    ...publishingRecs(locale, publishing),
+  ].sort(byImpact);
 }

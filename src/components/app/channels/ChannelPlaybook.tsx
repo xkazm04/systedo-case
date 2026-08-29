@@ -1,8 +1,8 @@
 "use client";
 
-/** The channel detail modal: playbook (why / payoff / first steps) + the
- *  lifecycle controls — mode summary, stage transitions and the derived
- *  next-step CTA. The row's single source of "what do I do here". */
+/** The channel detail modal: playbook (why / payoff / first steps) + the lifecycle controls —
+ *  mode summary, stage transitions and the derived next-step CTA. The row's single source of
+ *  "what do I do here". The cadence pill links to where its cap is actually enforced. */
 import Link from "next/link";
 import Modal from "@/components/app/Modal";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -27,6 +27,7 @@ const T = {
     setup: "Nastavení",
     changeSetup: "Změnit nastavení",
     cadence: "max {n}× týdně",
+    cadenceEnforced: "Vynucuje se při plánování — otevřít kalendář publikování",
     stageSet: "Stav:",
     createContent: "Vytvořit obsah pro tento kanál",
     fitLabel: "Vhodnost",
@@ -42,6 +43,7 @@ const T = {
     setup: "Setup",
     changeSetup: "Change setup",
     cadence: "max {n}× a week",
+    cadenceEnforced: "Enforced when scheduling — open the publishing calendar",
     stageSet: "Status:",
     createContent: "Create content for this channel",
     fitLabel: "Fit",
@@ -50,8 +52,7 @@ const T = {
   },
 } as const;
 
-/** Stage transitions the modal offers per current stage — lifecycle-legal moves
- *  only (decide/go-live flow through the wizard + next-step CTA, not here). */
+/** Stage transitions the modal offers per current stage — lifecycle-legal moves only (decide/go-live flow through the wizard + next-step CTA, not here). */
 const STAGE_MOVES: Record<ChannelStage, ChannelStage[]> = {
   identified: [],
   planned: ["live", "paused"],
@@ -88,8 +89,7 @@ export default function ChannelPlaybook({
 
   const stage = track?.stage ?? "identified";
 
-  /** Resolve the next-step CTA into an action: a deep-link when it targets
-   *  another module, else the matching local handler. */
+  /** Resolve the next-step CTA into an action: a deep-link when it targets another module, else the matching local handler. */
   const nextAction = () => {
     if (!channel || !next || next.key === "none") return null;
     if (next.to) {
@@ -154,7 +154,7 @@ export default function ChannelPlaybook({
             <span className={`pill ${STAGE_LABELS[stage].tone}`}>{STAGE_LABELS[stage][L]}</span>
             {track?.mode && <span className={`pill ${MODE_LABELS[track.mode].tone}`}>{MODE_LABELS[track.mode][L]}</span>}
             {track?.maxPerWeek && channelKind(channel.category) !== "listing" && (
-              <span className="pill bg-navy-50 text-muted">{t("cadence", { n: track.maxPerWeek })}</span>
+              <Link href={`/app/${projectId}/socialni`} title={t("cadenceEnforced")} className="pill bg-navy-50 text-muted transition-colors hover:text-navy-800">{t("cadence", { n: track.maxPerWeek })}</Link>
             )}
             <button
               type="button"

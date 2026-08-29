@@ -44,6 +44,7 @@ import {
   statusCounts,
   workingList,
 } from "@/lib/content-schedule/compute";
+import { useCadenceGuard } from "@/components/social/CadenceNotice";
 import ContentScheduleCalendar from "./ContentScheduleCalendar";
 import ContentScheduleSlot, { type SlotHandlers } from "./ContentScheduleSlot";
 
@@ -58,12 +59,10 @@ const T = {
     doneCount: "Hotovo",
     channelLabel: "Kanál",
     noChannelTitle: "Není napojený žádný kanál.",
-    noChannelBody:
-      "Plán je zatím jen plán. Aplikace z něj nikam nic neodesílá a na Google Business Profile nepublikuje. Napojte účet a naplánované příspěvky odsud půjdou do něj.",
+    noChannelBody: "Plán je zatím jen plán. Aplikace z něj nikam nic neodesílá a na Google Business Profile nepublikuje. Napojte účet a naplánované příspěvky odsud půjdou do něj.",
     noChannelLink: "Napojit sociální sítě",
     demoNote: "Tohle je ukázka. Změny na této tabuli se nikam neukládají a odkazy do ostatních modulů jsou tu vypnuté — přihlaste se a plán bude váš.",
-    footer:
-      "Napište text, naplánujte na den a, pokud máte napojený kanál, předejte příspěvek kanálu. Zveřejnění potvrzuje kanál, ne tato obrazovka. Stav se ukládá k projektu.",
+    footer: "Napište text, naplánujte na den a, pokud máte napojený kanál, předejte příspěvek kanálu. Zveřejnění potvrzuje kanál, ne tato obrazovka. Stav se ukládá k projektu.",
   },
   en: {
     ideasTitle: "Ideas & plan",
@@ -75,12 +74,10 @@ const T = {
     doneCount: "Done",
     channelLabel: "Channel",
     noChannelTitle: "No channel is connected.",
-    noChannelBody:
-      "The plan is only a plan. Nothing is sent anywhere from here, and nothing is posted to a Google Business Profile. Connect an account and scheduled posts will go to it.",
+    noChannelBody: "The plan is only a plan. Nothing is sent anywhere from here, and nothing is posted to a Google Business Profile. Connect an account and scheduled posts will go to it.",
     noChannelLink: "Connect social accounts",
     demoNote: "This is a sample. Nothing you change on this board is saved, and the links into the other modules are switched off here — sign in and the plan becomes yours.",
-    footer:
-      "Draft copy, schedule it onto a day and, if you have a channel connected, hand the post to that channel. Publishing is confirmed by the channel, not by this screen. State is saved to the project.",
+    footer: "Draft copy, schedule it onto a day and, if you have a channel connected, hand the post to that channel. Publishing is confirmed by the channel, not by this screen. State is saved to the project.",
   },
 } as const;
 
@@ -117,6 +114,7 @@ export default function ContentSchedule({
   const [draftHealth, setDraftHealth] = useState<{ id: string; meta: SocialDraftMeta } | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [sendErrorId, setSendErrorId] = useState<string | null>(null);
+  const cadence = useCadenceGuard();
   // The slot whose board write must land BEFORE we navigate away from it.
   const [leavingId, setLeavingId] = useState<string | null>(null);
   const [platform, setPlatform] = useState<SocialPlatform | "">(channels[0] ?? "");
@@ -221,11 +219,12 @@ export default function ContentSchedule({
     if (persistIt) void persist(next);
   }
 
-  /** Hand a planned slot to a REAL connected channel: create a scheduled post on
-   *  the existing social pipeline and link it to the slot. The slot goes to
-   *  `queued` — a promise the channel now owns; only the channel can move it to
-   *  `published`, which the next page load reads back. */
-  async function sendToChannel(post: ContentPost) {
+  /** Hand a planned slot to a REAL connected channel: create a scheduled post on the existing
+   *  social pipeline and link it to the slot. The slot goes to `queued` — a promise the channel
+   *  now owns; only the channel can move it to `published`, which the next page load reads back.
+   *  The pipeline REFUSES (409) a slot that would break the channel's weekly cadence cap from
+   *  Kanály; `override` is the operator's answer to that refusal, never this board's. */
+  async function sendToChannel(post: ContentPost, override = false) {
     if (sendingId || !platform) return;
     const content = (post.body ?? "").trim();
     if (content.length < 2) return;
@@ -236,11 +235,11 @@ export default function ContentSchedule({
       const res = await fetch("/api/social/posts", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ platform, content, scheduledAt: sendAt, projectId }),
+        body: JSON.stringify({ platform, content, scheduledAt: sendAt, projectId, ...(override ? { overrideCadence: true } : {}) }),
       });
       const json = (await res.json()) as { post?: { id?: string; scheduledAt?: string } };
       if (!res.ok || !json?.post?.id) {
-        setSendErrorId(post.id);
+        if (!cadence.capture(res.status, json, () => void sendToChannel(post, true))) setSendErrorId(post.id);
         return;
       }
       void patch(post.id, {
@@ -344,6 +343,7 @@ export default function ContentSchedule({
         </div>
       )}
 
+      {cadence.notice()}
       {/* No way out of the app — say so, rather than offering a button that lies. */}
       {channels.length === 0 && !demo && (
         <div className="flex flex-wrap items-start gap-2 rounded-card border border-line bg-canvas/60 px-4 py-3 text-sm text-muted">

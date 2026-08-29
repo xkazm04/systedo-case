@@ -11,10 +11,15 @@ import { SOCIAL_RATE } from "@/lib/social/rails";
 import { recordActivity } from "@/lib/campaigns/activity";
 import { socialPostActivityRow, socialPostPublishFields } from "@/lib/activity/publish";
 import { getServerLocale } from "@/lib/i18n/locale";
+import type { SupportedLocale } from "@/lib/format";
 import { createPost, deletePost, listPosts, updatePost } from "@/lib/social/store";
 import { publishPost, type PublishContext } from "@/lib/social/publish";
 import { getAccount, getAccountToken } from "@/lib/social/connection";
 import { PLATFORM_LIMITS, isSocialPlatform, type SocialPlatform } from "@/lib/social/types";
+import { emitProjectActivity } from "@/lib/activity/emit";
+import { channelKeyFromPlatform } from "@/lib/publishing/channel-key";
+import { checkCadence } from "@/lib/publishing/cadence";
+import { resolveCadenceRules, resolvePublishingCalendar } from "@/lib/publishing/resolve";
 
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
@@ -43,8 +48,75 @@ export async function GET(request: Request) {
   return Response.json({ posts: await listPosts(await socialTenant(uid, projectId)) });
 }
 
+/** THE cadence chokepoint. Every scheduler in the app — the week planner, the
+ *  content-plan board's hand-off, the distribution variant card — creates its
+ *  scheduled post here, which is the only reason a cap written once in the kanály
+ *  wizard can bind all three without any of them knowing about it.
+ *
+ *  Returns the 409 body when the post would break the operator's own "max n×
+ *  týdně" promise, or null when it may go ahead. Fails OPEN by construction: no
+ *  tracked cap for the platform's channel ⇒ zero extra reads and an unchanged
+ *  response (the byte-identity pin in test-unit/social-posts-cadence.test.mjs),
+ *  and an unreadable kanály store enforces nothing rather than refusing a post the
+ *  operator is entitled to make.
+ *
+ *  The override is a HUMAN CLICK, never an inference: the client re-posts with
+ *  `overrideCadence: true` after being shown the cap it is about to break, and
+ *  that decision is written to the audit timeline. Nothing auto-reschedules. */
+async function cadenceRefusal(
+  uid: string | null,
+  projectId: string | null,
+  platform: SocialPlatform,
+  scheduledAt: string,
+  override: boolean,
+  locale: SupportedLocale
+): Promise<Response | null> {
+  // Anonymous demo writes have no project, so no tracked channels and no caps.
+  if (!uid || !projectId) return null;
+  const rules = await resolveCadenceRules(projectId);
+  if (rules.length === 0) return null;
+  const channel = channelKeyFromPlatform(platform);
+  // Same tenant/keys the route itself resolves — the resolver reads through the
+  // stores' own dispatchers, deduped per request with React cache().
+  const { items } = await resolvePublishingCalendar(uid, projectId);
+  const check = checkCadence(items, channel, scheduledAt, rules);
+  if (!check.exceeded) return null;
+  if (!override) {
+    return Response.json(
+      {
+        error: "cadence-exceeded",
+        channel: check.channel,
+        cap: check.cap,
+        count: check.count,
+        weekStart: check.weekStart,
+      },
+      { status: 409 }
+    );
+  }
+  // Overridden: the post is created, and the exception is on the record. Written
+  // against the module that OWNS the cap (kanaly), not the one that broke it, so
+  // the audit sits next to the promise it overrode. The prose is persisted, so it
+  // is written in the language of the person who clicked — same rule as the
+  // scheduling row below.
+  await emitProjectActivity(uid, projectId, {
+    kind: "update",
+    module: "kanaly",
+    severity: "warning",
+    title: locale === "en" ? "Cadence cap overridden" : "Limit kadence ručně překročen",
+    detail: `${check.channel} · ${check.count + 1}/${check.cap} (${check.weekStart})`,
+    actor: "Vy",
+  });
+  return null;
+}
+
 export async function POST(request: Request) {
-  let body: { platform?: unknown; content?: unknown; scheduledAt?: unknown; projectId?: unknown };
+  let body: {
+    platform?: unknown;
+    content?: unknown;
+    scheduledAt?: unknown;
+    projectId?: unknown;
+    overrideCadence?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -94,6 +166,8 @@ export async function POST(request: Request) {
 
   // Schedule for later → the cron publishes it when due.
   if (future) {
+    const refused = await cadenceRefusal(uid, projectId, platform, scheduledAt, body.overrideCadence === true, locale);
+    if (refused) return refused;
     const post = await createPost(tenant, { platform, content, status: "scheduled", scheduledAt });
     // Scheduling is a promise about the future — nothing has left the app yet, so
     // this row must NOT read as (or be counted as) a publish. The cron records the

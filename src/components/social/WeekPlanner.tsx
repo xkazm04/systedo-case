@@ -1,14 +1,13 @@
 "use client";
 
-/** Week planner — Sofie's "plan a week of social in one go" surface. A 7-day
- *  calendar of scheduled posts, plus a batch generator: give a few topics (one per
- *  line) + a platform, and it drafts each with the AI social tool (reusing
- *  /api/social/draft) and schedules them across consecutive days as `scheduled`
- *  posts (POST /api/social/posts). No new backend — it orchestrates the existing
- *  draft + posts routes, then the calendar reflects them. The batch engine
- *  (bounded concurrency + abort-on-unmount) lives in usePlanWeek; posts and the
- *  brand voice come from the shared social data stores, so this screen no longer
- *  double-fetches what Composer/PostsList already loaded. */
+/** Week planner — Sofie's "plan a week of social in one go" surface. A 7-day calendar of scheduled
+ *  posts, plus a batch generator: give a few topics (one per line) + a platform, and it drafts each
+ *  with the AI social tool (reusing /api/social/draft) and schedules them across consecutive days as
+ *  `scheduled` posts (POST /api/social/posts). No new backend — it orchestrates the existing draft +
+ *  posts routes, then the calendar reflects them. The batch engine (bounded concurrency, abort-on-
+ *  unmount, and the weekly cadence cap's refusal + override) lives in usePlanWeek; posts and the
+ *  brand voice come from the shared social data stores, so this screen no longer double-fetches
+ *  what Composer/PostsList already loaded. */
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Calendar, Check, Clock, Info, Sparkles } from "@/components/icons";
@@ -89,8 +88,8 @@ function localIso(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Parse the hour field into a valid 0–23 slot, falling back to 10. Shared by the
- *  calendar and the scheduler so both anchor to the SAME first day. */
+/** Parse the hour field into a valid 0–23 slot, falling back to 10. Shared by the calendar and
+ *  the scheduler so both anchor to the SAME first day. */
 function parseHour(hour: string): number {
   const h = Number(hour);
   return Number.isInteger(h) && h >= 0 && h <= 23 ? h : 10;
@@ -168,7 +167,7 @@ export default function WeekPlanner() {
 
   // The batch engine: bounded-concurrency drafting + saves, abort on unmount,
   // fail-fast on the first server error (rate-limit behavior unchanged).
-  const { running, progress, error, batchHealth, planWeek } = usePlanWeek();
+  const { running, progress, error, batchHealth, planWeek, notice } = usePlanWeek();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -340,6 +339,7 @@ export default function WeekPlanner() {
             {running && progress ? t("generating", { done: progress.done, total: progress.total }) : t("planBtn")}
           </button>
           {error && <p className="text-xs text-negative">{error}</p>}
+          {notice()}
           {batchHealth && (
             <div className="space-y-1.5">
               <p className="text-xs text-muted">

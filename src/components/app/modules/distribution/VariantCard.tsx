@@ -1,6 +1,5 @@
-/** One repurposed variant: copy, inline-edit with a live counter + trim, an AI
- *  regenerate through the `repurpose` tool, and a per-platform handoff that
- *  pre-fills the social center.
+/** One repurposed variant: copy, inline-edit with a live counter + trim, an AI regenerate through
+ *  the `repurpose` tool, and a per-platform handoff that pre-fills the social center.
  *
  *  Layout + intent only — the persisted draft state machine is useVariantDraft,
  *  the AI notices are VariantAiStatus, the UTM row is VariantLinkRow. */
@@ -20,6 +19,7 @@ import { useCopyFeedback } from "@/lib/useCopyFeedback";
 import { useAiTool } from "@/components/ai/useAiTool";
 import type { RepurposeResult, Tone } from "@/lib/ai-types";
 import { useT } from "@/lib/i18n/client";
+import { useCadenceGuard } from "@/components/social/CadenceNotice";
 import NewsletterHandoff from "./NewsletterHandoff";
 import VariantAiStatus from "./VariantAiStatus";
 import VariantLinkRow from "./VariantLinkRow";
@@ -107,6 +107,7 @@ export default function VariantCard({
   const { copied, copy: copyText } = useCopyFeedback();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const cadence = useCadenceGuard();
 
   const draft = useVariantDraft({
     channel,
@@ -119,10 +120,9 @@ export default function VariantCard({
   });
   const { text, setText, handedOff } = draft;
 
-  // AI repurposing for this single channel (repurpose tool, via /api/ai). The
-  // deterministic variant is the initial value + fallback; on success we swap in
-  // the model's channel-native text, which still flows through the UTM link,
-  // length counter, copy and push-to-social affordances below.
+  // AI repurposing for this single channel (repurpose tool, via /api/ai). The deterministic
+  // variant is the initial value + fallback; on success we swap in the model's channel-native
+  // text, which still flows through the UTM link, length counter, copy and push-to-social below.
   const ai = useAiTool<RepurposeResult>("repurpose");
   const aiText =
     ai.status === "done"
@@ -158,25 +158,25 @@ export default function VariantCard({
     });
   };
 
-  const schedule = async () => {
+  async function schedule(override = false) {
     if (!platform || sending || text.trim().length < 2) return;
     setSending(true);
     setError(null);
     try {
-      // Pre-fill a post for this platform via the social store's createPost, a few
-      // minutes out so it lands as a draft-like scheduled post the user can still
-      // edit. No publish beacon here on purpose: scheduling is a promise, not a
-      // publish — the event is recorded server-side when the post actually goes out,
-      // so beaconing here would count a publish that has not happened.
+      // Pre-fill a post for this platform via the social store's createPost, a few minutes out so
+      // it lands as a draft-like scheduled post the user can still edit. No publish beacon here on
+      // purpose: scheduling is a promise, not a publish — the event is recorded server-side when the
+      // post actually goes out. The route may REFUSE it (409) when it would break the channel's
+      // weekly cadence cap; `override` is the operator's answer to that refusal, never ours.
       const scheduledAt = new Date(Date.now() + 30 * 60_000).toISOString();
       const res = await fetch("/api/social/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform, content: text, scheduledAt, projectId: project.id }),
+        body: JSON.stringify({ platform, content: text, scheduledAt, projectId: project.id, ...(override ? { overrideCadence: true } : {}) }),
       });
       if (!res.ok) {
         const json = (await res.json().catch(() => null)) as { error?: string } | null;
-        setError(json?.error ?? t("scheduleError"));
+        if (!cadence.capture(res.status, json, () => void schedule(true))) setError(json?.error ?? t("scheduleError"));
         return;
       }
       handedOff();
@@ -186,7 +186,7 @@ export default function VariantCard({
     } finally {
       setSending(false);
     }
-  };
+  }
 
   return (
     <div className="card flex flex-col p-5">
@@ -285,14 +285,14 @@ export default function VariantCard({
         }}
       />
 
-      {/* Newsletter gets a dedicated handoff: the generated subject line is split
-          into a real subject + body, validated separately, and exported as a
-          paste-ready HTML email or copied with the UTM'd CTA. */}
+      {/* Newsletter gets a dedicated handoff: the generated subject line is split into a real
+          subject + body, validated separately, exported as HTML email or copied with the UTM'd CTA. */}
       {channel === NEWSLETTER_CHANNEL ? (
         <NewsletterHandoff text={text} ctaUrl={link} source={source} onHandoff={handedOff} />
       ) : null}
 
       {error && <p className="mt-2 text-xs text-negative">{error}</p>}
+      {cadence.notice()}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
@@ -311,7 +311,7 @@ export default function VariantCard({
         {platform && (
           <button
             type="button"
-            onClick={schedule}
+            onClick={() => void schedule(false)}
             disabled={sending || over || text.trim().length < 2}
             className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
           >

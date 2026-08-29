@@ -115,7 +115,12 @@ Design choices:
   the schranka review UI all apply unchanged. Outreach drafts start with
   `autonomy: "review"` always; `auto` is opt-in per target much later.
 - `cadence.maxPerWeek` is enforced by the dispatcher, not the model. Mass posting
-  is structurally impossible.
+  is structurally impossible. In-app this is no longer aspirational: the kanály
+  `ChannelTrack.maxPerWeek` cap is enforced at the ONE social write chokepoint
+  (`POST /api/social/posts` → `409 cadence-exceeded`, overridable only by an
+  explicit human click) over the four-scheduler publishing calendar in
+  `src/lib/publishing/` — the outreach dispatcher inherits that rail rather than
+  re-implementing one.
 
 ## The pipeline (skill phases)
 

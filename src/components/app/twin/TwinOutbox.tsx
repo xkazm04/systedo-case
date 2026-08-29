@@ -1,20 +1,20 @@
 "use client";
 
-/** The outbox: paste an inbound message, the twin drafts a reply in the trained
- *  voice, a human approves or rejects it, then it's sent through the channel's
- *  connector.
+/** The outbox: paste an inbound message, the twin drafts a reply in the trained voice, a human
+ *  approves or rejects it, then it's sent through the channel's connector.
  *
  *  Two things the personas ReplyOutbox didn't have, both load-bearing:
- *   1. `decideDraft` runs on every generation. Under `auto` a confident, risk-free
- *      draft self-approves; everything else waits for a human. The badge says which.
- *   2. A rejection carries a REASON, and those reasons are tallied into the `avoid`
- *      block of the next prompt. Rejecting is training, not just deleting.
+ *   1. `decideDraft` runs on every generation. Under `auto` a confident, risk-free draft
+ *      self-approves; everything else waits for a human. The badge says which.
+ *   2. A rejection carries a REASON, and those reasons are tallied into the `avoid` block of
+ *      the next prompt. Rejecting is training, not just deleting.
  *
- *  One thing it did have and we keep: the draft is generated against a frozen
- *  context (the channel + contact at generation time), so switching the dropdown
- *  mid-review can't log a reply against the wrong conversation. */
+ *  One thing it did have and we keep: the draft is generated against a frozen context (the
+ *  channel + contact at generation time), so switching the dropdown mid-review can't log a
+ *  reply against the wrong conversation. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "@/lib/projects/context";
+import CadencePill from "@/components/social/CadencePill";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
 import { Pill } from "@/components/ui";
@@ -310,9 +310,9 @@ export default function TwinOutbox({
       new Date().toISOString()
     );
     onCommit({ ...state, drafts: [...state.drafts, draft] }, { drafts: [draft] });
-    // Surface the banked record: mirror the id into render state so the reply locks
-    // read-only + an Edit affordance appears, and set pendingId so the approved→Send
-    // banner shows for auto-approved drafts (it never did before, so Send was hidden).
+    // Surface the banked record: mirror the id into render state so the reply locks read-only +
+    // an Edit affordance appears, and set pendingId so the approved→Send banner shows for
+    // auto-approved drafts (it never did before, so Send was hidden).
     setAutoBankedId(id);
     setReviewingAuto(false);
     setPendingId(id);
@@ -337,18 +337,16 @@ export default function TwinOutbox({
     const draft = bankDraft();
     if (!draft) return;
     const now = new Date().toISOString();
-    // If the gate already banked this message (an auto channel, then revised), approving
-    // must FLIP that record in place — not append a duplicate — mirroring confirmReject's
-    // upsert-by-id. Otherwise a fresh human approval appends a new record.
+    // If the gate already banked this message (an auto channel, then revised), approving must FLIP
+    // that record in place — not append a duplicate — mirroring confirmReject's upsert-by-id.
     const bankedId = autoBankedIdRef.current;
     const existing = bankedId ? state.drafts.find((d) => d.id === bankedId) ?? null : null;
     // A human pressed Approve, so this is never an auto-approval however the gate
     // would have ruled. The edited reply (replyText) is what gets banked.
     const approved = asApproved(existing ? { ...existing, reply: replyText } : draft, now);
-    // If the human rewrote the generated reply enough to teach from, bank that
-    // before/after as an interview-style style fact — the correction the old outbox
-    // discarded (silently, for auto-approved drafts especially). Capped by MAX_FACTS at
-    // the wire (sanitizeTwinState), like every fact.
+    // If the human rewrote the generated reply enough to teach from, bank that before/after as an
+    // interview-style style fact — the correction the old outbox discarded (silently, for
+    // auto-approved drafts especially). Capped by MAX_FACTS at the wire, like every fact.
     const original = result?.reply ?? "";
     const editFact = isMeaningfulEdit(original, replyText)
       ? buildEditFact(original, replyText, channel, L, uid(), now)
@@ -377,10 +375,9 @@ export default function TwinOutbox({
     if (!draft) return;
     const now = new Date().toISOString();
 
-    // The gate may already have banked this exact message as approved. Overturning
-    // that verdict must edit the record, not add a second one — otherwise the
-    // rejection tally (and the audit trail) double-counts. `upsertDraft` flips the
-    // banked record by id, or appends a fresh rejected one.
+    // The gate may already have banked this exact message as approved. Overturning that verdict
+    // must edit the record, not add a second one — otherwise the rejection tally (and the audit
+    // trail) double-counts. `upsertDraft` flips the banked record by id, or appends a fresh one.
     const bankedId = autoBankedIdRef.current;
     const banked = bankedId !== null ? state.drafts.find((d) => d.id === bankedId) ?? null : null;
     const rejected = asRejected(banked ?? draft, now, rejectReason, rejectNote);
@@ -481,7 +478,10 @@ export default function TwinOutbox({
             ))}
           </select>
         </div>
-        <span className="pill bg-navy-50 text-muted">{autonomyLabel}</span>
+        <span className="flex flex-wrap items-center gap-2">
+          <CadencePill projectId={project.id} twinScope={channel} />
+          <span className="pill bg-navy-50 text-muted">{autonomyLabel}</span>
+        </span>
       </div>
 
       {!cfg.enabled && (
