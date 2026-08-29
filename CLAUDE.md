@@ -3,7 +3,7 @@
 <!-- personas:context-map:start -->
 ## Project Context Map
 
-This project is organized into **116 contexts** across **16 groups**. The full machine-readable map lives in `context-map.json` at the project root — read it at task start to scope your edits to the relevant context's files.
+This project is organized into **117 contexts** across **16 groups**. The full machine-readable map lives in `context-map.json` at the project root — read it at task start to scope your edits to the relevant context's files.
 
 Taxonomy: each context has a `category` (ui · api · lib · data · test · config); each group has a `domain` (feature · infrastructure · shared · integration · data).
 
@@ -16,7 +16,7 @@ Taxonomy: each context has a `category` (ui · api · lib · data · test · con
 - **Social Media** _(domain: feature · 2 contexts)_
 - **Analytics & Reporting** _(domain: feature · 6 contexts)_
 - **Project & Catalog** _(domain: feature · 7 contexts)_
-- **Platform Operations** _(domain: infrastructure · 6 contexts)_
+- **Platform Operations** _(domain: infrastructure · 7 contexts)_
 - **AI & Content Generation** _(domain: feature · 9 contexts)_
 - **Campaign & Ads Management** _(domain: feature · 7 contexts)_
 - **Performance & Analytics** _(domain: feature · 9 contexts)_

@@ -528,7 +528,9 @@
         "src/lib/ai/tools/cohort-diagnosis.ts",
         "src/lib/ai/tools/lead-source-diagnosis.ts",
         "src/lib/ai/tools/local-diagnosis.ts",
-        "src/lib/ai/tools/local-review-reply.ts"
+        "src/lib/ai/tools/local-review-reply.ts",
+        "src/lib/ai/tools/ads-diagnosis.ts",
+        "src/lib/diagnoses/ads-request.ts"
       ],
       "group": "AI & Content Engine",
       "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
@@ -1317,7 +1319,13 @@
         "src/components/campaigns/errors.ts",
         "src/components/campaigns/thread.ts",
         "src/components/campaigns/AdsAccountPicker.tsx",
-        "src/components/campaigns/SklikConnectCard.tsx"
+        "src/components/campaigns/SklikConnectCard.tsx",
+        "src/components/campaigns/campaigns-state.ts",
+        "src/components/campaigns/SourceSections.tsx",
+        "src/components/campaigns/HeaderKpis.tsx",
+        "src/components/campaigns/table/SourceBadge.tsx",
+        "src/components/campaigns/table/SourceFilter.tsx",
+        "src/components/campaigns/table/RowFunnel.tsx"
       ],
       "group": "Campaign & Ads Management",
       "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
@@ -1607,7 +1615,11 @@
         "src/lib/catalog/generate.ts",
         "src/lib/catalog/seeds.ts",
         "src/lib/catalog/starter.ts",
-        "src/lib/catalog/sample.ts"
+        "src/lib/catalog/sample.ts",
+        "src/lib/catalog/events.ts",
+        "src/lib/catalog/events-store.ts",
+        "src/lib/catalog/events-store.local.ts",
+        "src/lib/catalog/events-store.firestore.ts"
       ],
       "group": "Project & Catalog",
       "group_id": "e4a4d67e-a44a-4b8d-9b59-6c6bd18ba324",
@@ -1700,7 +1712,8 @@
         "src/app/api/projects/[id]/catalog/import/route.ts",
         "src/app/api/projects/[id]/catalog/sync/route.ts",
         "src/app/api/projects/[id]/inventory-plan/route.ts",
-        "src/app/api/projects/[id]/warehouse/route.ts"
+        "src/app/api/projects/[id]/warehouse/route.ts",
+        "src/app/api/projects/[id]/catalog/events/route.ts"
       ],
       "group": "Project & Catalog",
       "group_id": "e4a4d67e-a44a-4b8d-9b59-6c6bd18ba324",
@@ -1791,7 +1804,8 @@
         "src/components/app/modules/catalog/offering-edit.ts",
         "src/components/app/modules/catalog/useAdCopyBatch.ts",
         "src/components/app/modules/InventoryBudgetActions.tsx",
-        "src/components/app/modules/InventorySeasonModule.tsx"
+        "src/components/app/modules/InventorySeasonModule.tsx",
+        "src/components/app/modules/catalog/CatalogLedgerSection.tsx"
       ],
       "group": "Catalog & Inventory",
       "group_id": "4482834c-c869-45fe-be3e-75a535903bf1",
@@ -2266,7 +2280,9 @@
         "src/components/dashboard/WeekdayProfileCard.tsx",
         "src/components/dashboard/ReportChat.tsx",
         "src/components/dashboard/report-chat-store.ts",
-        "src/components/app/modules/ActivityModule.tsx"
+        "src/components/app/modules/ActivityModule.tsx",
+        "src/components/dashboard/vykon/AdsDiagnosisPanel.tsx",
+        "src/components/dashboard/vykon/AdsDiagnosisReading.tsx"
       ],
       "group": "Performance & Analytics",
       "group_id": "ea5224b6-f0f5-4021-81d3-bf6ef5849d69",
@@ -3431,7 +3447,8 @@
         "src/lib/competitors/store.ts",
         "src/lib/competitors/store.firestore.ts",
         "src/lib/competitors/store.local.ts",
-        "src/lib/competitors/types.ts"
+        "src/lib/competitors/types.ts",
+        "src/components/app/modules/mappack/EngineSwitch.tsx"
       ],
       "group": "Local SEO & Maps",
       "group_id": "0d89d569-2b9f-4778-a78c-c8b6ddd15333",
@@ -3529,7 +3546,8 @@
         "src/lib/metrics/pacing.ts",
         "src/lib/metrics/ratios.ts",
         "src/lib/metrics/seasonality.ts",
-        "src/lib/metrics/trends.ts"
+        "src/lib/metrics/trends.ts",
+        "src/lib/metrics/response-curve.ts"
       ],
       "group": "Performance & Analytics",
       "group_id": "ea5224b6-f0f5-4021-81d3-bf6ef5849d69",
@@ -4079,7 +4097,8 @@
         "src/components/app/modules/profit/SummaryBand.tsx",
         "src/components/app/modules/profit/TrendPanel.tsx",
         "src/components/app/modules/profit/strings.ts",
-        "src/components/app/modules/profit/useProfitState.ts"
+        "src/components/app/modules/profit/useProfitState.ts",
+        "src/components/app/modules/profit/ReallocationTable.tsx"
       ],
       "group": "Performance & Analytics",
       "group_id": "ea5224b6-f0f5-4021-81d3-bf6ef5849d69",
@@ -5019,7 +5038,18 @@
         "src/components/social/Inbox.tsx",
         "src/components/social/PostsList.tsx",
         "src/components/social/SocialClient.tsx",
-        "src/components/social/WeekPlanner.tsx"
+        "src/components/social/WeekPlanner.tsx",
+        "src/components/social/PublishingCalendar.tsx",
+        "src/components/social/CadenceMeter.tsx",
+        "src/components/social/CadenceNotice.tsx",
+        "src/components/social/CadencePill.tsx",
+        "src/lib/publishing/channel-key.ts",
+        "src/lib/publishing/types.ts",
+        "src/lib/publishing/cadence.ts",
+        "src/lib/publishing/resolve.ts",
+        "src/lib/publishing/refusal.ts",
+        "src/lib/publishing/schedule-post.ts",
+        "src/app/api/projects/[id]/publishing/route.ts"
       ],
       "group": "Social & Content Publishing",
       "group_id": "79748803-cfff-4395-b8bd-69e33a473856",
@@ -5512,6 +5542,70 @@
         "React 19.2.7",
         "TypeScript"
       ]
+    },
+    {
+      "api_surface": [
+        "/api/projects/[id]/webhooks",
+        "/api/projects/[id]/webhooks/test",
+        "/api/projects/[id]/webhooks/deliveries"
+      ],
+      "business_feature": "Per-project outbound event bus: signed webhooks with a durable delivery log and cron retry, so alerts/digests/reports reach each client team where they live instead of one operator channel.",
+      "category": "lib",
+      "cross_refs": [
+        "src/lib/cron/ledgers.ts",
+        "src/lib/campaigns/alerts.ts",
+        "src/lib/catalog/feed-fetch.ts"
+      ],
+      "db_tables": [
+        "webhook_configs",
+        "webhook_deliveries"
+      ],
+      "description": "HMAC-signed outbound webhooks per project (W1-E): event model + signing, AES-GCM secret storage, SSRF-guarded sender, dual-store config blob + row-based delivery log, emit hooks, webhook-retry ledger step, settings card and integrations row.",
+      "entry_points": [
+        "src/lib/outbound/emit.ts",
+        "src/app/api/projects/[id]/webhooks/route.ts"
+      ],
+      "file_paths": [
+        "src/lib/outbound/event-types.ts",
+        "src/lib/outbound/types.ts",
+        "src/lib/outbound/secret-crypto.ts",
+        "src/lib/outbound/config-input.ts",
+        "src/lib/outbound/config-store.ts",
+        "src/lib/outbound/config-store.local.ts",
+        "src/lib/outbound/config-store.firestore.ts",
+        "src/lib/outbound/delivery-store.ts",
+        "src/lib/outbound/delivery-store.local.ts",
+        "src/lib/outbound/delivery-store.firestore.ts",
+        "src/lib/outbound/send.ts",
+        "src/lib/outbound/emit.ts",
+        "src/lib/outbound/retry-step.ts",
+        "src/app/api/projects/[id]/webhooks/route.ts",
+        "src/app/api/projects/[id]/webhooks/test/route.ts",
+        "src/app/api/projects/[id]/webhooks/deliveries/route.ts",
+        "src/components/app/modules/WebhookEndpoints.tsx",
+        "src/components/app/modules/WebhookDeliveryLog.tsx",
+        "src/components/hooks/useWebhookEndpoints.ts"
+      ],
+      "group": "Platform Operations",
+      "group_id": "e8e90ce7-36cb-446d-82fd-bceb635cfe12",
+      "id": "outbound-event-bus",
+      "keywords": [
+        "webhook",
+        "outbound",
+        "hmac",
+        "delivery log",
+        "retry",
+        "ssrf",
+        "signing secret"
+      ],
+      "last_written_at": "2026-08-29T19:21:43.019Z",
+      "name": "Outbound event bus",
+      "pinned": false,
+      "tech_stack": [
+        "Next.js 16.3.0-preview.5",
+        "TypeScript",
+        "Firestore"
+      ]
     }
   ],
   "generated_at": "2026-07-30T09:28:05.408638100+00:00",
@@ -5568,7 +5662,7 @@
     },
     {
       "color": "indigo",
-      "context_count": 6,
+      "context_count": 7,
       "domain": "infrastructure",
       "id": "e8e90ce7-36cb-446d-82fd-bceb635cfe12",
       "name": "Platform Operations"

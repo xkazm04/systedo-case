@@ -39,16 +39,10 @@ export interface LocalDiagnosisInputs {
   topGaps?: number;
 }
 
-/** The request shape this builder actually produces (W1-C). Identical to
- *  {@link LocalDiagnosisRequest} plus the Seznam ladder rollup, kept as a local
- *  intersection until the one additive optional field lands on `LocalDiagnosisRequest`
- *  in `src/lib/ai-types.ts` (an OFF-LIMITS file for this work package — see the seam
- *  request). Assignable to `LocalDiagnosisRequest` in both directions of use, so every
- *  existing caller and the gate-tracked tool are unaffected. */
-export type LocalDiagnosisRequestDual = LocalDiagnosisRequest & {
-  /** the SEZNAM (Mapy.cz) half of the ladder, present only when Seznam rows exist */
-  ladderSeznam?: LocalDiagnosisLadder;
-};
+/** W1-C's seam landed: `ladderSeznam` now lives on {@link LocalDiagnosisRequest}
+ *  itself (src/lib/ai-types.ts), so the once-local intersection is a plain alias
+ *  kept only for the callers that imported it during the wave. */
+export type LocalDiagnosisRequestDual = LocalDiagnosisRequest;
 
 /** Roll one engine's ladder rows up into the shape the diagnosis reads. Pure; the
  *  arithmetic is verbatim what the single-engine builder did, so a Google-only ladder

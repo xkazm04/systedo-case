@@ -1243,8 +1243,11 @@ export interface LocalDiagnosisRequest {
   gapVolume: number;
   /** the top coverage gaps by volume — worstGap MUST be one of these labels */
   gaps: LocalDiagnosisGap[];
-  /** the ranking-ladder rollup, when a ladder exists */
+  /** the ranking-ladder rollup, when a ladder exists (Google) */
   ladder?: LocalDiagnosisLadder;
+  /** the SEZNAM (Mapy.cz) ladder rollup, when Seznam rows exist (W1-C). Separate from
+   *  `ladder` (Google) on purpose — the two are never averaged into one position. */
+  ladderSeznam?: LocalDiagnosisLadder;
   /** the review-sentiment rollup, when reviews exist */
   reviews?: LocalDiagnosisReviews;
   /** the location-roster attention rollup, when a roster exists */
