@@ -166,6 +166,24 @@ async function computeSync(userId: string, projectId: string, opts: SyncOpts): P
   if (!opts.apply) return { code: "ok", provider: meta.label, diff, truncated, warning };
 
   await saveOfferings(userId, projectId, next);
+
+  // The catalog CHANGE LEDGER (WP W1-A): SKU-level events for what this warehouse pull
+  // actually moved (stock, price, margin, pauses), so a later performance dip can be
+  // explained by the sync that caused it. Appended AFTER the save and best-effort — a
+  // ledger outage must never fail a sync. Lazily imported for the same reason the
+  // stock-alert seam is (runCatalogSync :209): keep sync.ts's static graph light.
+  try {
+    const { diffCatalogEvents } = await import("@/lib/catalog/events");
+    const { appendCatalogEvents } = await import("@/lib/catalog/events-store");
+    await appendCatalogEvents(
+      userId,
+      projectId,
+      diffCatalogEvents(current, next, nowIso, "warehouse-sync", opts.providerId)
+    );
+  } catch (err) {
+    console.error("[catalog-events] append failed (non-fatal):", err);
+  }
+
   return { code: "ok", provider: meta.label, diff, offerings: next, truncated, warning };
 }
 

@@ -318,6 +318,26 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_lead_activities_contact
     ON lead_activities (project_id, contact_id, at);
 
+  -- The catalog CHANGE LEDGER: one row per SKU-level change (price / stock / active /
+  -- margin / added / removed / renamed) appended by every catalog write path (feed
+  -- import, warehouse sync, manual PUT), so a performance move can be explained by
+  -- what changed in the catalog that day. Row-based and capped per project (oldest
+  -- evicted on append) — the catalog itself is a blob, its history cannot be. Keyed
+  -- (user, project) like project_catalog. See src/lib/catalog/events-store.local.ts.
+  CREATE TABLE IF NOT EXISTS catalog_events (
+    user_id    TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    id         TEXT NOT NULL,
+    at         TEXT NOT NULL,
+    key        TEXT NOT NULL,
+    kind       TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    PRIMARY KEY (user_id, project_id, id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_catalog_events_at
+    ON catalog_events (user_id, project_id, at);
+
   -- The Start module's onboarding state: the applied website-scan business profile
   -- + a couple of flags (scanApplied, dismissed), as one blob. Absent → a fresh
   -- project (nothing scanned yet); the connector checklist's per-step "done" is
@@ -924,6 +944,29 @@ const MIGRATIONS: Migration[] = [
     name: "projects.sklik_linked (ADR-0010 explicit Sklik linkage per project)",
     up: (db) => db.exec("ALTER TABLE projects ADD COLUMN sklik_linked INTEGER"),
     applied: (db) => hasColumn(db, "projects", "sklik_linked"),
+  },
+  {
+    version: 25,
+    name: "catalog_events (per-project catalog change ledger)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS catalog_events (
+          user_id    TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          id         TEXT NOT NULL,
+          at         TEXT NOT NULL,
+          key        TEXT NOT NULL,
+          kind       TEXT NOT NULL,
+          data       TEXT NOT NULL,
+          PRIMARY KEY (user_id, project_id, id)
+        )`
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_catalog_events_at ON catalog_events (user_id, project_id, at)"
+      );
+    },
+    applied: (db) =>
+      tableExists(db, "catalog_events") && indexExists(db, "idx_catalog_events_at"),
   },
 ];
 

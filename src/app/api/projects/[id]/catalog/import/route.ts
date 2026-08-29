@@ -8,6 +8,8 @@ import { sanitizeOfferings } from "@/lib/catalog/validate";
 import { isProduct, MAX_FEED_ITEMS, type ProductOffering } from "@/lib/catalog/offering";
 import { feedItemsToOfferings, parseFeed, sourceForFormat, type FeedFormat } from "@/lib/catalog/feed";
 import { mergeCatalog, type ImportStrategy } from "@/lib/catalog/import";
+import { diffCatalogEvents, summarizeCatalogEvents } from "@/lib/catalog/events";
+import { appendCatalogEvents } from "@/lib/catalog/events-store";
 import { FeedFetchError, fetchFeed } from "@/lib/catalog/feed-fetch";
 import { CATALOG_MAX_BODY_BYTES, CATALOG_RATE, enforceCatalogRate } from "@/lib/catalog/rate-limit";
 import { payloadTooLarge, tooLarge } from "@/lib/ai/rate-limit";
@@ -90,12 +92,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   await saveOfferings(uid, id, next);
+
+  // The change ledger (WP W1-A): SKU-level events for what this feed actually moved.
+  // Appended AFTER the save and best-effort — a ledger outage must never fail an import.
+  const events = diffCatalogEvents(current, next, now, "feed-import");
+  try {
+    await appendCatalogEvents(uid, id, events);
+  } catch (err) {
+    console.error("[catalog-events] append failed (non-fatal):", err);
+  }
+
+  const summary = summarizeCatalogEvents(events);
   await emitProjectActivity(uid, id, {
     kind: "update",
     module: "katalog",
     severity: "info",
     title: "Katalog importován z feedu",
-    detail: `${parsed.format} · ${next.length} položek`,
+    detail: `${parsed.format} · ${next.length} položek${summary ? ` · ${summary}` : ""}`,
     actor: "Vy",
   });
   return Response.json({ ok: true, applied: true, format: parsed.format, warnings, diff, offerings: next, count: next.length });

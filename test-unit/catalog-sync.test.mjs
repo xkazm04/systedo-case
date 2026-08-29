@@ -2,7 +2,7 @@
  *  request builder + response mapper (pure parts; no live API), and the key
  *  semantic that a warehouse source is authoritative for stock/velocity/margin
  *  (unlike a feed) in mergeCatalog. */
-import { test } from "node:test";
+import { test, mock } from "node:test";
 import assert from "node:assert/strict";
 import {
   demoWarehouseProducts,
@@ -153,4 +153,108 @@ test("mergeCatalog: a feed source preserves margin/velocity (but a >0 stock stil
   assert.equal(s1.stock, 200); // feed stock > 0 is trusted
   assert.equal(s1.dailyVelocity, 2); // preserved (feeds don't carry velocity)
   assert.equal(s1.margin, 0.3); // preserved (feeds don't carry COGS)
+});
+
+/* ── WP W1-A — the change ledger's warehouse-sync write path ────────────────────
+   runCatalogSync with `apply: true` must append the SKU-level events its merge
+   actually produced. The stores are mocked (no auth, no Firestore, no sqlite) so
+   the seam is unit-testable; the sync itself is the real one. */
+
+const LEDGER = [];
+mock.module("@/lib/catalog/events-store", {
+  namedExports: {
+    appendCatalogEvents: async (_u, _p, events) => {
+      LEDGER.push(...events);
+    },
+    listCatalogEvents: async () => [],
+    clearCatalogEvents: async () => {},
+  },
+});
+
+const SYNC_NOW = new Date("2026-07-05T00:00:00Z");
+const DEMO = demoWarehouseProducts(SYNC_NOW);
+const HEAD = DEMO[0];
+
+/** The stored catalog the sync merges INTO: one SKU the demo warehouse also carries,
+ *  deliberately stale on every field the ledger watches, plus a SKU the demo set does
+ *  NOT carry (which "merge" must leave alone — and therefore must not report). */
+const STORED = [
+  {
+    kind: "product", id: `p1:${HEAD.sku}`, projectId: "p1", name: "Starý název",
+    category: "Sklad", active: true, nature: "online", price: HEAD.price + 50,
+    currency: "CZK", margin: (HEAD.margin ?? 0.3) + 0.2, channels: [], tags: [],
+    source: "manual", updatedAt: "old", sku: HEAD.sku, stock: (HEAD.stock ?? 0) + 25,
+    dailyVelocity: 1,
+  },
+  {
+    kind: "product", id: "p1:LOCAL-ONLY", projectId: "p1", name: "Jen v katalogu",
+    category: "Sklad", active: true, nature: "online", price: 100, currency: "CZK",
+    margin: 0.3, channels: [], tags: [], source: "manual", updatedAt: "old",
+    sku: "LOCAL-ONLY", stock: 5, dailyVelocity: 1,
+  },
+];
+
+let saved = null;
+mock.module("@/lib/catalog/store", {
+  namedExports: {
+    listOfferings: async () => STORED,
+    saveOfferings: async (_u, _p, offerings) => {
+      saved = offerings;
+    },
+    deleteCatalog: async () => {},
+  },
+});
+
+const { runCatalogSync } = await import("@/lib/inventory/sync");
+
+const syncOnce = (apply) =>
+  runCatalogSync("u1", "p1", {
+    providerId: "demo",
+    token: "",
+    strategy: "merge",
+    apply,
+    now: SYNC_NOW,
+  });
+
+test("runCatalogSync (preview) writes NOTHING to the ledger", async () => {
+  LEDGER.length = 0;
+  const result = await syncOnce(false);
+  assert.equal(result.code, "ok");
+  assert.equal(saved, null, "a preview does not persist");
+  assert.equal(LEDGER.length, 0, "a preview leaves no history behind");
+});
+
+test("runCatalogSync (apply) appends the SKU-level events the merge produced", async () => {
+  LEDGER.length = 0;
+  const result = await syncOnce(true);
+  assert.equal(result.code, "ok");
+  assert.ok(saved, "the catalog was persisted");
+
+  const head = LEDGER.filter((e) => e.key === HEAD.sku);
+  const kinds = head.map((e) => e.kind).sort();
+  assert.deepEqual(kinds, ["margin", "price", "renamed", "stock"]);
+  assert.equal(head.find((e) => e.kind === "price").before, HEAD.price + 50);
+  assert.equal(head.find((e) => e.kind === "price").after, HEAD.price);
+  assert.equal(head.find((e) => e.kind === "stock").after, HEAD.stock);
+  assert.equal(head.find((e) => e.kind === "renamed").before, "Starý název");
+
+  // every demo SKU the catalog did not have yet is an "added"
+  const added = LEDGER.filter((e) => e.kind === "added");
+  assert.equal(added.length, DEMO.length - 1);
+
+  // provenance: the warehouse path stamps the actor AND the provider id
+  assert.ok(LEDGER.every((e) => e.actor === "warehouse-sync" && e.provider === "demo"));
+  assert.ok(LEDGER.every((e) => e.at === SYNC_NOW.toISOString()));
+
+  // "merge" never drops a SKU the provider is silent about, so it never reports one
+  assert.equal(LEDGER.some((e) => e.key === "LOCAL-ONLY"), false);
+});
+
+test("runCatalogSync (apply) is idempotent in the ledger — a retry re-uses the same ids", async () => {
+  LEDGER.length = 0;
+  await syncOnce(true);
+  const first = LEDGER.map((e) => e.id);
+  LEDGER.length = 0;
+  await syncOnce(true);
+  assert.deepEqual(LEDGER.map((e) => e.id), first, "same batch, same ids (append upserts)");
 });

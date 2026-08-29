@@ -40,6 +40,7 @@ const { buildTenantKey } = await import("@/lib/campaigns/store-keys");
 // store getters/setters we seed + verify with — one import per registered store
 const { saveProjectState, getProjectState } = await import("@/lib/project-state/store");
 const { saveOfferings, listOfferings } = await import("@/lib/catalog/store");
+const { appendCatalogEvents, listCatalogEvents } = await import("@/lib/catalog/events-store");
 const { starterCatalog } = await import("@/lib/catalog/starter");
 const { recordAnnotation, listAnnotations } = await import("@/lib/annotations/store");
 const { saveConnection, getConnection } = await import("@/lib/inventory/connection-store");
@@ -189,6 +190,14 @@ const STORE_FIXTURES = [
     name: "catalog",
     seed: (u, p) => saveOfferings(u, p, starterCatalog(p, "eshop", "online", NOW)),
     present: async (u, p) => (await listOfferings(u, p)) !== null,
+  },
+  {
+    name: "catalog-events",
+    seed: (u, p) =>
+      appendCatalogEvents(u, p, [
+        { id: `${NOW}_CASCADE-1_added`, at: NOW, key: "CASCADE-1", name: "Cascade", kind: "added", actor: "manual" },
+      ]),
+    present: async (u, p) => (await listCatalogEvents(u, p)).length > 0,
   },
   {
     name: "project-state",
