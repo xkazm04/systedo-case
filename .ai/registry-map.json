@@ -6913,7 +6913,10 @@
             "delete"
           ],
           "confidence": "probable",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "W3 item 6: dependent-side walk added (orphan-walk.ts, schema-derived enumeration, report-first, apply via the registry-derived sweep) closing the direction gap; registry+ledger+sweep already carried the technique (delete-cascade.ts, orphan-ledger.ts, orphan-sweep.ts).",
+          "evaluatedAt": "2026-08-30",
+          "evaluatedAgainst": "sha256:1117665ec59c1168"
         },
         {
           "subject": "client-state",
