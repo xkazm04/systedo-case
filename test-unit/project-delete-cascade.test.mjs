@@ -41,6 +41,8 @@ const { buildTenantKey } = await import("@/lib/campaigns/store-keys");
 const { saveProjectState, getProjectState } = await import("@/lib/project-state/store");
 const { saveOfferings, listOfferings } = await import("@/lib/catalog/store");
 const { appendCatalogEvents, listCatalogEvents } = await import("@/lib/catalog/events-store");
+const { saveWebhookConfig, getWebhookConfig } = await import("@/lib/outbound/config-store");
+const { appendDelivery, listDeliveries } = await import("@/lib/outbound/delivery-store");
 const { starterCatalog } = await import("@/lib/catalog/starter");
 const { recordAnnotation, listAnnotations } = await import("@/lib/annotations/store");
 const { saveConnection, getConnection } = await import("@/lib/inventory/connection-store");
@@ -208,6 +210,25 @@ const STORE_FIXTURES = [
     name: "warehouse-connection",
     seed: (u, p) => saveConnection(u, p, { provider: "shopify", connectedAt: NOW }),
     present: async (u, p) => (await getConnection(u, p)) !== null,
+  },
+  {
+    name: "webhooks",
+    seed: (u, p) =>
+      saveWebhookConfig(u, p, {
+        endpoints: [
+          { id: "wh1", url: "https://example.com/hook", events: "all", enabled: true, secretEnc: "v1.x.x.x.x", createdAt: NOW },
+        ],
+      }),
+    present: async (u, p) => (await getWebhookConfig(u, p)).endpoints.length > 0,
+  },
+  {
+    name: "webhook-deliveries",
+    seed: (u, p) =>
+      appendDelivery({
+        id: "d1", userId: u, projectId: p, endpointId: "wh1", eventId: "ev1", type: "ping",
+        status: "ok", attempts: 1, nextAt: null, createdAt: NOW, updatedAt: NOW, payload: "{}",
+      }),
+    present: async (u, p) => (await listDeliveries(p)).length > 0,
   },
   {
     name: "microsite",

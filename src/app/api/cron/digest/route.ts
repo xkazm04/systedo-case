@@ -17,6 +17,7 @@ import { aggregate, indexChanges, withMetrics } from "@/lib/campaigns/types";
 import { triage } from "@/lib/campaigns/triage";
 import { getUserEmail, recordAlert, type AlertItem } from "@/lib/campaigns/alerts";
 import { sendEmail, sendWebhook } from "@/lib/email";
+import { emitOutbound } from "@/lib/outbound/emit";
 import { escapeHtml } from "@/lib/html";
 import { fmtCZK, fmtMultiple, fmtPct, fmtSignedCZK } from "@/lib/format";
 import { aggregateTelemetry, listLlmTelemetrySince } from "@/lib/llm/telemetry";
@@ -175,6 +176,9 @@ export async function GET(request: Request) {
       await recordAlert(tenant, { type: "digest", title, body, items });
       deliveredAnything = true;
       await sendWebhook(`Adamant – ${title}: ${body}`);
+      // The tenant's OWN signed webhook endpoints (WP W1-E). Awaited here — inside a
+      // cron, where the count is worth having in the run record — but it never throws.
+      if (project) await emitOutbound(userId, project.id, { type: "digest.weekly", title, body, href: `/app/${project.id}`, data: { items, kpis } });
 
       // "Diagnóza týdne" + "Přehled týdne": once per project per digest (the weekly
       // claim above already bounds the whole email/alert to one ISO week). This

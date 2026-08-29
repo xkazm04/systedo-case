@@ -24,6 +24,7 @@ import { getSklikConnection } from "@/lib/campaigns/sklik-connection";
 import { listAccounts, providerConfigured, socialConfigured } from "@/lib/social/connection";
 import { getLocalSignals } from "@/lib/local-signals/store";
 import { listContacts } from "@/lib/leads/store";
+import { getWebhookConfig } from "@/lib/outbound/config-store";
 
 const has = (v: string | undefined): boolean => typeof v === "string" && v.trim() !== "";
 
@@ -143,9 +144,26 @@ async function probeLeadContacts(projectId: string): Promise<boolean> {
   }
 }
 
+/** This project's ENABLED outbound webhook endpoints, and whether any of them last
+ *  failed. Degrades to "none registered" on any error — a failed probe must never
+ *  upgrade the row, and must never break the board. */
+async function probeWebhooks(
+  userId: string | null,
+  projectId: string
+): Promise<{ count: number; failing: boolean }> {
+  if (!userId) return { count: 0, failing: false };
+  try {
+    const cfg = await getWebhookConfig(userId, projectId);
+    const enabled = cfg.endpoints.filter((e) => e.enabled);
+    return { count: enabled.length, failing: enabled.some((e) => e.lastStatus === "failed") };
+  } catch {
+    return { count: 0, failing: false };
+  }
+}
+
 export async function integrationStatus(project: Project, userId: string | null): Promise<IntegrationRow[]> {
   const e = process.env;
-  const [byomKey, warehouse, adsLinked, gbpImported, social, sklikUserToken, microsite, leadContacts] =
+  const [byomKey, warehouse, adsLinked, gbpImported, social, sklikUserToken, microsite, leadContacts, webhooks] =
     await Promise.all([
       probeByomHealth(userId),
       probeWarehouse(userId, project.id),
@@ -155,6 +173,7 @@ export async function integrationStatus(project: Project, userId: string | null)
       probeSklikUserToken(userId),
       probeMicrosite(userId, project.id),
       probeLeadContacts(project.id),
+      probeWebhooks(userId, project.id),
     ]);
   return computeIntegrationRows({
     googleAdsToken: has(e.GOOGLE_ADS_DEVELOPER_TOKEN),
@@ -182,5 +201,7 @@ export async function integrationStatus(project: Project, userId: string | null)
     micrositeEnabled: microsite.enabled,
     micrositeIllustrative: microsite.illustrative,
     leadContacts,
+    webhooks: webhooks.count,
+    webhooksFailing: webhooks.failing,
   });
 }

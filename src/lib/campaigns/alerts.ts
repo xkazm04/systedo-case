@@ -17,6 +17,7 @@ import { firestore } from "@/lib/firebase";
 import { tenantDocs, type DocData } from "@/lib/tenant-docs/backend";
 import { SITE_NAME } from "@/lib/site";
 import { sendEmail, sendWebhook } from "@/lib/email";
+import { emitOutboundForTenant } from "@/lib/outbound/emit";
 import { escapeHtml } from "@/lib/html";
 import { czPlural } from "@/lib/format";
 import { withMetrics, type Campaign, type CampaignChange } from "./types";
@@ -287,6 +288,11 @@ export async function evaluateAndAlert(
 
   // Outbound webhook (Slack/Teams/…), best-effort.
   await sendWebhook(`${SITE_NAME}: ${title}\n${body}`);
+
+  // The tenant's OWN signed webhook endpoints (WP W1-E). The line above reaches the
+  // operator's single ALERT_WEBHOOK_URL; this one reaches the project owner's. Not
+  // awaited — a delivery must never delay or fail the alert that produced it.
+  void emitOutboundForTenant(userId, tenant, { type: "alert.critical", title, body, data: { alertId, items } });
 
   // Email, best-effort (needs the user's address).
   const email = await getUserEmail(userId);

@@ -553,6 +553,35 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_microsites_tenant
     ON microsites (tenant);
+
+  -- Per-project outbound webhook ENDPOINTS (WP W1-E). Bounded (<= 3 endpoints), so
+  -- one JSON blob per (user, project) — the warehouse_connection shape. The data column holds
+  -- the WebhookConfig, including each endpoint's ENCRYPTED signing secret (AES-GCM,
+  -- src/lib/outbound/secret-crypto.ts); no plaintext secret is ever stored.
+  CREATE TABLE IF NOT EXISTS webhook_configs (
+    user_id    TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, project_id)
+  );
+
+  -- The DELIVERY LOG. Unbounded + append-heavy, so ROW-based (the lead_events shape),
+  -- not a blob: an emit and the retry cron write it concurrently. Keyed by project so
+  -- the cron can sweep every tenant's pending work; the owner's userId rides inside
+  -- the data column. The pending index is what makes that sweep a range read, not a scan.
+  CREATE TABLE IF NOT EXISTS webhook_deliveries (
+    project_id TEXT NOT NULL,
+    id         TEXT NOT NULL,
+    status     TEXT NOT NULL,
+    next_at    TEXT,
+    created_at TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    PRIMARY KEY (project_id, id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_pending
+    ON webhook_deliveries (status, next_at);
 `;
 
 /** One ordered, versioned schema change. `up` performs it; `applied` reports
@@ -967,6 +996,39 @@ const MIGRATIONS: Migration[] = [
     },
     applied: (db) =>
       tableExists(db, "catalog_events") && indexExists(db, "idx_catalog_events_at"),
+  },
+  {
+    version: 26,
+    name: "webhook_configs / webhook_deliveries (per-project outbound event bus, WP W1-E)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS webhook_configs (
+          user_id    TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          data       TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          PRIMARY KEY (user_id, project_id)
+        )`
+      );
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS webhook_deliveries (
+          project_id TEXT NOT NULL,
+          id         TEXT NOT NULL,
+          status     TEXT NOT NULL,
+          next_at    TEXT,
+          created_at TEXT NOT NULL,
+          data       TEXT NOT NULL,
+          PRIMARY KEY (project_id, id)
+        )`
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_pending ON webhook_deliveries (status, next_at)"
+      );
+    },
+    applied: (db) =>
+      tableExists(db, "webhook_configs") &&
+      tableExists(db, "webhook_deliveries") &&
+      indexExists(db, "idx_webhook_deliveries_pending"),
   },
 ];
 

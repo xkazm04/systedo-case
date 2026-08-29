@@ -21,6 +21,7 @@ import ProjectDangerZone from "@/components/app/modules/ProjectDangerZone";
 import ByomKeys from "@/components/app/modules/ByomKeys";
 import ByomQualityOverview from "@/components/app/modules/ByomQualityOverview";
 import ByomMatrix from "@/components/app/modules/ByomMatrix";
+import WebhookEndpoints from "@/components/app/modules/WebhookEndpoints";
 
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
@@ -45,6 +46,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
       <ByomKeys />
       <ByomQualityOverview />
       <ByomMatrix />
+      <WebhookEndpoints />
       <ProjectDangerZone />
     </ModulePage>
   );

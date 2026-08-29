@@ -38,6 +38,7 @@ export type IntItemId =
   | "lighttrack"
   | "persistence"
   | "warehouse"
+  | "webhooks"
   | "auth"
   | "cron"
   // Lead connectors (src/lib/leads/connectors/registry.ts). Only CSV/manual ingest
@@ -69,7 +70,9 @@ export type IntDetail =
   | "microsite-off"
   | "leads-csv-active"
   | "leads-csv-idle"
-  | "leads-planned";
+  | "leads-planned"
+  | "webhooks-none"
+  | "webhooks-failing";
 
 /** Where the row's action lives. A hint that names a step must be able to TAKE the
  *  reader there; module slugs are resolved against the current project by the UI. */
@@ -142,6 +145,14 @@ export interface ProvisionInput {
   /** live probe: this project holds at least one real contact in the lead store,
    *  i.e. the CSV/manual ingest path has actually been used */
   leadContacts: boolean;
+  /** live probe: how many ENABLED outbound webhook endpoints this project has
+   *  registered. Optional so a caller that predates the row (and every existing
+   *  test fixture) still compiles; absent degrades to 0 = "not set up". */
+  webhooks?: number;
+  /** live probe: at least one registered endpoint's LAST delivery failed. An
+   *  endpoint that exists but is not receiving is worse than none — it reads as
+   *  "alerts are wired up" while the alerts go nowhere — so it gets "action". */
+  webhooksFailing?: boolean;
 }
 
 const CATEGORY_ORDER: IntCategory[] = ["ads", "ai", "content", "leads", "reviews", "reports", "infra"];
@@ -228,6 +239,17 @@ function micrositeRow(p: ProvisionInput): IntegrationRow {
   return { ...base, status: "connected" };
 }
 
+/** Per-project outbound webhooks. Opt-in, so none registered is "optional", not
+ *  "missing" — but a registered endpoint whose last delivery FAILED is "action":
+ *  the owner believes their alerts are wired up while nothing is arriving, which is
+ *  the one state this board exists to refuse to paper over. */
+function webhooksRow(p: ProvisionInput): IntegrationRow {
+  const base = { id: "webhooks", category: "reports", link: "nastaveni" } as const;
+  if (!p.webhooks) return { ...base, status: "optional", detail: "webhooks-none" };
+  if (p.webhooksFailing) return { ...base, status: "action", detail: "webhooks-failing" };
+  return { id: "webhooks", category: "reports", status: "connected" };
+}
+
 /** Derive the readiness rows for the current environment + project. Pure. */
 export function computeIntegrationRows(p: ProvisionInput): IntegrationRow[] {
   const adsPlatform = p.googleAdsToken && p.googleAdsCustomer && p.googleOAuth;
@@ -257,6 +279,7 @@ export function computeIntegrationRows(p: ProvisionInput): IntegrationRow[] {
     // Live probe: a saved product-feed / ERP connection for this project. Optional
     // (only commerce projects need it), so absence reads "optional", not "missing".
     { id: "warehouse", category: "infra", status: p.warehouse ? "connected" : "optional" },
+    webhooksRow(p),
     {
       id: "auth",
       category: "infra",

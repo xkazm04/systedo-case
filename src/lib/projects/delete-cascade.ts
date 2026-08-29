@@ -42,6 +42,8 @@ import { clearArchive } from "@/lib/twin/archive-store";
 import { buildTenantKey } from "@/lib/campaigns/store-keys";
 import { clearMicrositeForTenant } from "@/lib/microsite/store";
 import { clearCatalogEvents } from "@/lib/catalog/events-store";
+import { clearWebhookConfig } from "@/lib/outbound/config-store";
+import { clearDeliveries } from "@/lib/outbound/delivery-store";
 
 /** One registered per-project store. `delete` takes both keys; project-scoped
  *  (Family A) stores ignore `userId`, per-(user, project) stores (Family B) use it. */
@@ -79,6 +81,11 @@ export const PROJECT_STORE_DELETERS: ProjectStoreDeleter[] = [
   { name: "catalog-events", delete: (p, u) => clearCatalogEvents(u, p) },
   { name: "project-state", delete: (p, u) => deleteProjectState(u, p) },
   { name: "warehouse-connection", delete: (p, u) => deleteConnection(u, p) },
+  // WP W1-E: the project's own outbound webhook endpoints (which hold ENCRYPTED
+  // signing secrets) and its delivery log. Two entries because the two stores have
+  // different shapes — the config is keyed (user, project), the log by project.
+  { name: "webhooks", delete: (p, u) => clearWebhookConfig(u, p) },
+  { name: "webhook-deliveries", delete: (p) => clearDeliveries(p) },
   // TENANT-keyed, not project-keyed: the microsite API publishes under
   // resolveTenant(…, { accountScoped: false }) === buildTenantKey(userId, projectId),
   // so the project's public /m/{slug} page is addressable by exactly that key.

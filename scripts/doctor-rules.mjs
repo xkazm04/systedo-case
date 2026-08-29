@@ -163,6 +163,15 @@ export function buildDoctorReport(env, probes) {
   if (set(env.RESEND_API_KEY)) cronBits.push("e-maily přes Resend");
   else cronBits.push("e-maily se jen logují");
   if (set(env.ALERT_WEBHOOK_URL)) cronBits.push("webhook (Slack/Teams/Discord)");
+  // Per-project webhooks are a SEPARATE channel from ALERT_WEBHOOK_URL: that one is
+  // the operator's single destination, this is each tenant's own signed endpoints.
+  // Without WEBHOOK_SECRET_KEY (or AUTH_SECRET) the signing secret cannot be stored
+  // encrypted, so the settings card refuses to register a destination at all.
+  if (set(env.WEBHOOK_SECRET_KEY) || set(env.AUTH_SECRET)) {
+    cronBits.push("per-project webhooky (podepsané, WEBHOOK_SECRET_KEY)");
+  } else {
+    cronBits.push("per-project webhooky vypnuté (chybí WEBHOOK_SECRET_KEY)");
+  }
   rows.push({
     surface: "Cron + upozornění",
     status: set(env.CRON_SECRET) ? (set(env.RESEND_API_KEY) ? "on" : "demo") : "off",
@@ -172,7 +181,7 @@ export function buildDoctorReport(env, probes) {
     hint:
       set(env.CRON_SECRET) && set(env.RESEND_API_KEY)
         ? undefined
-        : "CRON_SECRET = libovolné tajemství; RESEND_API_KEY z https://resend.com; volitelně ALERT_WEBHOOK_URL.",
+        : "CRON_SECRET = libovolné tajemství; RESEND_API_KEY z https://resend.com; volitelně ALERT_WEBHOOK_URL a WEBHOOK_SECRET_KEY (per-project webhooky).",
   });
 
   // --- Creative Studio -----------------------------------------------------------

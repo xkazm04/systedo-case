@@ -117,8 +117,15 @@ const rawLookup = dns.lookup as unknown as (
 
 /** dns.lookup wrapper that rejects if ANY resolved address is private/reserved, so
  *  the socket only ever connects to validated public IPs (closes the DNS-rebinding
- *  TOCTOU). Handles both the array (`all: true`, what net uses) and single forms. */
-const guardedLookup = ((
+ *  TOCTOU). Handles both the array (`all: true`, what net uses) and single forms.
+ *
+ *  EXPORTED (not because the feed path needs it) so a second outbound seam can reuse
+ *  the ONE BlockList this file owns instead of copying it: src/lib/outbound/send.ts
+ *  builds a POST with `lookup: guardedLookup` for tenant-registered webhook URLs. A
+ *  duplicated block-list is the failure mode worth spending an export to avoid — two
+ *  copies drift, and the copy that misses a range is a live SSRF. Reused by
+ *  reference only; the GET path below is untouched. */
+export const guardedLookup = ((
   hostname: string,
   options: dns.LookupOneOptions,
   callback: (err: NodeJS.ErrnoException | null, address: string | dns.LookupAddress[], family: number) => void

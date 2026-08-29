@@ -15,6 +15,7 @@ import {
 } from "@/lib/campaigns/report-config";
 import { getUserEmail, recordAlert } from "@/lib/campaigns/alerts";
 import { sendEmail, sendWebhook, summarizeDelivery } from "@/lib/email";
+import { emitOutbound } from "@/lib/outbound/emit";
 import { escapeHtml } from "@/lib/html";
 import { canonical } from "@/lib/site";
 import { cronAuthorized } from "@/lib/cron-auth";
@@ -140,6 +141,9 @@ export async function GET(request: Request) {
       // claim is released below); no recipients → nothing was attempted, so no alert.
       if (delivered > 0) {
         await sendWebhook(`${brand} – ${title}: ${url}`);
+        // The tenant's OWN signed webhook endpoints (WP W1-E) — only on a delivery
+        // that actually happened, matching the alert above. Never throws.
+        if (project) await emitOutbound(userId, project.id, { type: "report.sent", title, body: `${title} · ${delivered}/${recipients.length}`, href: url, data: { url, brand, delivered, recipients: recipients.length } });
         await recordAlert(tenant, {
           type: "digest",
           title: "Klientský report odeslán",

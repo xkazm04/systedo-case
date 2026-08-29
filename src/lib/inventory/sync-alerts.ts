@@ -11,6 +11,7 @@ import { resolveTenant } from "@/lib/campaigns/connector";
 import { planSuppression } from "@/lib/campaigns/alert-suppression";
 import { getProject } from "@/lib/projects/store";
 import { sendEmail, sendWebhook } from "@/lib/email";
+import { emitOutbound } from "@/lib/outbound/emit";
 import { SITE_NAME } from "@/lib/site";
 import { escapeHtml } from "@/lib/html";
 import { HOME_MARKET_LOCALE, type SupportedLocale } from "@/lib/format";
@@ -43,6 +44,8 @@ export async function alertSyncFailed(
     await recordAlert(tenant, { type: "critical", title, body, items: [] });
     await recordActivity(tenant, { kind: "alert", title, detail: body, actor: "Plánovaná synchronizace" });
     await sendWebhook(`${SITE_NAME}: ${title}\n${body}`);
+    // The project owner's own signed webhook endpoints (WP W1-E) — best-effort.
+    void emitOutbound(userId, projectId, { type: "sync.failed", title, body, href: `/app/${projectId}/katalog`, data: { providerId, providerLabel, message } });
     const email = await getUserEmail(userId);
     if (email) {
       const html =

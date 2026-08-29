@@ -23,6 +23,7 @@
  *      re-emitted with `skipped: true` — so a due-gate that spans several runs
  *      does not reset itself every tick. */
 import type { CronRunRecord } from "./run-record";
+import { webhookRetryStep } from "@/lib/outbound/retry-step";
 
 /** The cron name this registry runs under — the `cron` key of its run records,
  *  the `vercel.json` path's last segment, and the `/api/health` staleness key. */
@@ -83,7 +84,7 @@ export const heartbeatStep: LedgerStep = {
 
 /** Every registered step, in run order. Later WPs append here — that is the whole
  *  registration ceremony; no route, schedule or guard changes. */
-export const LEDGER_STEPS: readonly LedgerStep[] = [heartbeatStep];
+export const LEDGER_STEPS: readonly LedgerStep[] = [heartbeatStep, webhookRetryStep];
 
 /** Which steps are due right now. Pure: same inputs → same list, so a step's
  *  cadence is testable without a clock.

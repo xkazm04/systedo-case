@@ -27,7 +27,8 @@ Optional / feature-gating:
 | `GEMINI_MODEL`, `GEMINI_VISION_MODEL`, `GEMINI_EMBED_MODEL` | Model overrides (cost table in `src/lib/llm/cost.ts` is keyed by model name) |
 | `LEONARDO_API_KEY` | Creative Studio image generation (demo placeholders without it) |
 | `FIREBASE_STORAGE_BUCKET` | Generated-asset library persistence |
-| `RESEND_API_KEY`, `ALERT_FROM_EMAIL`, `ALERT_WEBHOOK_URL` | Cron alert e-mails / Slack-style webhook (log-only without them) |
+| `RESEND_API_KEY`, `ALERT_FROM_EMAIL`, `ALERT_WEBHOOK_URL` | Cron alert e-mails / Slack-style webhook (log-only without them) — the OPERATOR's single destination |
+| `WEBHOOK_SECRET_KEY` | Encrypts each project's own outbound-webhook signing secret at rest (falls back to `AUTH_SECRET`). Without either, the per-project webhooks card refuses to register a destination rather than store a plaintext secret. Changing it invalidates every stored secret — a mass re-mint |
 | `GOOGLE_ADS_DEVELOPER_TOKEN`, `GOOGLE_ADS_LOGIN_CUSTOMER_ID` | Live Google Ads sync (sample data without them) |
 | `SKLIK_API_TOKEN` | Live Sklik data-in sync (one token per instance for now) |
 | `AI_RATE_PER_MIN`, `AI_RATE_PER_DAY`, `SYNC_RATE_PER_MIN`, `AI_MAX_CONCURRENT`, `AI_MAX_BODY_BYTES` | Per-IP AI rate limits (defaults in code) |

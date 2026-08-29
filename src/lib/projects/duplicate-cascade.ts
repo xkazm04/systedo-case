@@ -23,6 +23,8 @@
  *   • project-state blobs (per-module working state)
  *   • the catalog CHANGE LEDGER (a history of the SOURCE project's writes — operating
  *     data by this list's rule, and meaningless against a catalog that was just re-homed)
+ *   • outbound webhook endpoints + their delivery log (signing SECRETS — never copy;
+ *     and a duplicate must not start POSTing to the source client's receiver)
  *   • the project's tenant-keyed campaign/series/snapshot/activity data
  *
  *  Same-owner only: a duplicate is created for the SAME user, so source and target

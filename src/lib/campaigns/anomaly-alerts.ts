@@ -7,6 +7,7 @@
 import { firestore } from "@/lib/firebase";
 import { SITE_NAME } from "@/lib/site";
 import { sendEmail, sendWebhook } from "@/lib/email";
+import { emitOutboundForTenant } from "@/lib/outbound/emit";
 import { escapeHtml } from "@/lib/html";
 import { detectAnomalies, anomalyImpact, type Anomaly } from "@/lib/metrics/anomalies";
 import { fmtCZKCompact, fmtDate, fmtSignedCZKCompact, czPlural } from "@/lib/format";
@@ -162,6 +163,8 @@ export async function evaluateAnomalyAlerts(
     actor: "Automatická synchronizace",
   });
   await sendWebhook(`${SITE_NAME}: ${title}\n${body}`);
+  // The tenant's own signed webhook endpoints (WP W1-E) — never awaited on the alert path.
+  void emitOutboundForTenant(userId, tenant, { type: "alert.anomaly", title, body, data: { items } });
 
   const email = await getUserEmail(userId);
   if (email) {

@@ -212,15 +212,21 @@ test("lastRunsFromRecords: the newest ledgers record wins; other crons are ignor
 
 test("lastRunsFromRecords: no records at all → every step reads as never-ran", () => {
   assert.deepEqual(lastRunsFromRecords([]), {});
-  assert.deepEqual(planLedgerSteps(LEDGER_STEPS, NOW, lastRunsFromRecords([])).map((s) => s.id), ["heartbeat"]);
+  // With no history every registered step reads as never-ran, so the plan is the
+  // whole registry. Asserted as a SUPERSET of heartbeat rather than a frozen list:
+  // a later WP registering a step (WP W1-E added `webhook-retry`) must not have to
+  // edit this assertion to keep it true.
+  const planned = planLedgerSteps(LEDGER_STEPS, NOW, lastRunsFromRecords([])).map((s) => s.id);
+  assert.ok(planned.includes("heartbeat"));
+  assert.equal(planned.length, LEDGER_STEPS.length, "nothing gates a step on a first run");
 });
 
 test("the shipped registry: heartbeat is always due and always succeeds", async () => {
   assert.equal(LEDGERS_CRON, "ledgers");
-  assert.deepEqual(
-    LEDGER_STEPS.map((s) => s.id),
-    ["heartbeat"]
-  );
+  // heartbeat is the pipe-proving step and must always be registered FIRST; the
+  // rest of the registry grows as later WPs append (WP W1-E: `webhook-retry`).
+  assert.equal(LEDGER_STEPS[0].id, "heartbeat");
+  assert.ok(LEDGER_STEPS.map((s) => s.id).includes("webhook-retry"));
   // Every registered id must be unique and slash-free — it becomes a Firestore
   // document id via the `ledger-${id}` sent-guard kind.
   const ids = LEDGER_STEPS.map((s) => s.id);
@@ -230,8 +236,11 @@ test("the shipped registry: heartbeat is always due and always succeeds", async 
   assert.equal(heartbeatStep.due(NOW, null), true);
   assert.equal(heartbeatStep.due(NOW, NOW.toISOString()), true);
 
-  const rows = await runLedgerSteps(LEDGER_STEPS, CTX);
-  const agg = aggregateLedgerRun(LEDGER_STEPS, rows, {});
+  // Run heartbeat ALONE: the business steps registered beside it reach real stores,
+  // which belongs in each step's own suite (test-unit/outbound-retry-step.test.mjs),
+  // not in the registry's. What is asserted here is the shape the recorder persists.
+  const rows = await runLedgerSteps([heartbeatStep], CTX);
+  const agg = aggregateLedgerRun([heartbeatStep], rows, {});
   assert.equal(agg.ok, true);
   assert.deepEqual(agg.steps, { heartbeat: { beats: 1 } });
   assert.deepEqual(agg.counts, { steps: 1, ran: 1, failed: 0, skipped: 0, "heartbeat.beats": 1 });
