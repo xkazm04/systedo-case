@@ -125,6 +125,9 @@ kpi-sim/*
 # /consult skill log (counts reach the ai-registry signals lane; the log itself stays local)
 .ai/consults.jsonl
 
+# knowledge leads filed back to the ai-registry (collected by leads-collect.mjs; local)
+.ai/registry-leads.jsonl
+
 # BEGIN ai-registry linked skills (managed by ai-registry/scripts/link-skills.mjs)
 # The links are machine state; the declaration lives in .ai/manifest.yaml `skills:`.
 /.claude/skills/consult
