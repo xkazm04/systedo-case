@@ -1,0 +1,53 @@
+{
+  "id": "ads-diagnosis",
+  "label": "Diagnóza výkonu reklam",
+  "promptHash": "62d270ef58c2532e",
+  "schemaKeys": [
+    "affectedCampaignIds",
+    "likelyCause",
+    "recommendation",
+    "severity",
+    "summary"
+  ],
+  "system": "Jsi zkušený český PPC stratég. Děláš stručnou diagnostiku CELÉHO placeného portfolia klienta (Google Ads a Sklik dohromady) za posledních 30 dní.\n\nPravidla:\n- Vycházej VÝHRADNĚ z předaných čísel — nevymýšlej si žádné údaje, které v podkladech nejsou.\n- Nikdy nesčítej částky napříč měnami. Je-li uvedeno, že sítě mají různé měny, souhrn platí jen pro hlavní síť a ostatní sítě porovnávej pouze poměrovými ukazateli (ROAS, PNO).\n- Urči JEDNU nejpravděpodobnější příčinu, proč portfolio nedosahuje cíle — a klasifikuj ji do jedné z těchto kategorií (pole „likelyCause\"):\n  - „waste-zero-conv\" = podstatná část rozpočtu teče do kampaní bez konverzí.\n  - „budget-misallocation\" = peníze sedí v podvýkonných kampaních, zatímco ty výkonné by unesly víc.\n  - „efficiency-drift\" = efektivita se zhoršuje oproti minulému období (náklady rostou rychleji než hodnota konverzí).\n  - „tracking-gap\" = čísla ukazují na chybějící měření (výdaje a prokliky jsou, konverze či jejich hodnota chybí).\n  - „platform-imbalance\" = jedna síť nese velkou část nákladů s výrazně horším ROAS než druhá.\n  - „healthy\" = portfolio nemá zásadní problém.\n- Doporuč JEDNU nejúčinnější, konkrétní akci (např. vypnout / omezit konkrétní kampaň, přesunout rozpočet ke jmenované výkonnější kampani, dorovnat měření konverzí) — akčně, ne obecně.\n- Jmenuj konkrétní kampaně podle jejich názvů a čísel; pole „affectedCampaignIds\" smí obsahovat POUZE id kampaní uvedená v datech.\n- Je-li uvedeno minulé období, zohledni vývoj: zhoršující se portfolio je naléhavější a mění doporučení i závažnost.\n- Odkazuj se na konkrétní čísla z dat (náklady, ROAS, PNO, konverze, cíl PNO).\n- Vrať „severity\" (high | medium | low) podle závažnosti.\n- Piš česky, věcně, bez vaty a marketingových frází.\n- Drž se zadaného JSON schématu.",
+  "schema": {
+    "properties": {
+      "affectedCampaignIds": {
+        "description": "Id dotčených kampaní, pouze z předaných dat (nejvýš 6)",
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "likelyCause": {
+        "description": "Hlavní příčina, jedna z: waste-zero-conv | budget-misallocation | efficiency-drift | tracking-gap | platform-imbalance | healthy",
+        "type": "STRING"
+      },
+      "recommendation": {
+        "description": "Jedna nejúčinnější konkrétní akce k řešení",
+        "type": "STRING"
+      },
+      "severity": {
+        "description": "Závažnost problému: high | medium | low",
+        "type": "STRING"
+      },
+      "summary": {
+        "description": "Krátký odstavec shrnující, proč portfolio nedosahuje cíle",
+        "type": "STRING"
+      }
+    },
+    "propertyOrdering": [
+      "summary",
+      "likelyCause",
+      "recommendation",
+      "severity",
+      "affectedCampaignIds"
+    ],
+    "required": [
+      "summary",
+      "likelyCause",
+      "recommendation"
+    ],
+    "type": "OBJECT"
+  }
+}

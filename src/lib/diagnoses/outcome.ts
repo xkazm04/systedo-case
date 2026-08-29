@@ -11,13 +11,17 @@
  *    - cohort      → the worst cohort's LTV:CAC  (lowest ltvCac across cohorts —
  *                    the deterministic "worst" the demo/normalizer already pick)
  *    - lead-source → the source's qualification rate (qualRate)
+ *    - ads         → portfolio PNO (cost share of revenue) — the ONE metric where
+ *                    LOWER is better, so the comparison inverts it explicitly.
  *    - local       → overall coverage %  (coveragePct — closing the worst gap raises it)
- *  For all three, HIGHER is better, so the comparison is direction-agnostic.
+ *  HIGHER is better for all but `pno`, which INVERSE_METRIC_KEYS flips.
  *
  *  Pure — no I/O, no framework — so the extraction + comparison are unit-testable in
  *  isolation. Imports only the client-safe request/snapshot contracts from ai-types. */
 import type {
+  AdsDiagnosisRequest,
   CohortDiagnosisRequest,
+  DiagnosisMetricKey,
   DiagnosisSnapshot,
   LeadSourceDiagnosisRequest,
   LocalDiagnosisRequest,
@@ -49,6 +53,16 @@ export function extractLocalSnapshot(req: LocalDiagnosisRequest): DiagnosisSnaps
   return { key: "coverage", metric: req.coveragePct };
 }
 
+/** The paid portfolio's PNO (cost share of revenue) at diagnosis time — LOWER is
+ *  better, which `compareOutcome` handles through INVERSE_METRIC_KEYS. Acting on the
+ *  diagnosed waste moves it down, so the outcome chip reflects real progress. Null
+ *  when the request carries no usable portfolio total (nothing to snapshot), like
+ *  the cohort extractor — a missing baseline means no chip, never a fabricated one. */
+export function extractAdsSnapshot(req: AdsDiagnosisRequest): DiagnosisSnapshot | null {
+  const pno = req.totals?.pno;
+  return typeof pno === "number" && Number.isFinite(pno) ? { key: "pno", metric: pno } : null;
+}
+
 // --------------------------------------------------------------------------
 // Outcome comparison — snapshot (at-diagnosis) vs current (re-derived at render).
 // --------------------------------------------------------------------------
@@ -62,6 +76,16 @@ export interface OutcomeVerdict {
   deltaPct: number;
 }
 
+/** The snapshot metrics where a FALL is the improvement. Every other key reads
+ *  "higher is better"; PNO (cost share of revenue) is the one that does not, so the
+ *  VERDICT inverts for it. The reported `deltaPct` is deliberately NOT inverted — it
+ *  always states what the tracked metric itself did (a PNO that fell 20 % reads
+ *  "improved −20 %"), because a sign-flipped number beside the word "improved"
+ *  would claim the metric rose. */
+export const INVERSE_METRIC_KEYS: ReadonlySet<DiagnosisMetricKey> = new Set<DiagnosisMetricKey>([
+  "pno",
+]);
+
 /** The relative band within which a metric counts as UNCHANGED. A move must clear
  *  ±5 % (relative) to read as improved / worse — a deterministic dead-band so tiny
  *  wiggles don't flip the chip. */
@@ -69,8 +93,9 @@ export const OUTCOME_THRESHOLD = 0.05;
 
 /** Compare a stored snapshot to the current metric value. Returns null (no chip)
  *  when there is no snapshot (a pre-Direction-1 record) or no current value (the
- *  subject no longer exists / isn't derivable). Higher is better for every metric,
- *  so the verdict is a plain relative comparison. Backward-tolerant by design. */
+ *  subject no longer exists / isn't derivable). Higher is better for every metric
+ *  except the INVERSE_METRIC_KEYS (PNO), where the verdict — but not the reported
+ *  delta — is flipped. Backward-tolerant by design. */
 export function compareOutcome(
   snapshot: DiagnosisSnapshot | undefined | null,
   current: number | undefined | null
@@ -88,8 +113,11 @@ export function compareOutcome(
         : current < 0
           ? -1
           : 0;
-  if (delta >= OUTCOME_THRESHOLD) return { status: "improved", deltaPct: delta };
-  if (delta <= -OUTCOME_THRESHOLD) return { status: "worse", deltaPct: delta };
+  // For an inverse metric a FALL is the improvement: the direction of the VERDICT
+  // flips, the reported delta does not (see INVERSE_METRIC_KEYS).
+  const good = INVERSE_METRIC_KEYS.has(snapshot.key) ? -delta : delta;
+  if (good >= OUTCOME_THRESHOLD) return { status: "improved", deltaPct: delta };
+  if (good <= -OUTCOME_THRESHOLD) return { status: "worse", deltaPct: delta };
   return { status: "unchanged", deltaPct: delta };
 }
 

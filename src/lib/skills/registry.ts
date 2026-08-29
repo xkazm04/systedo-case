@@ -40,6 +40,7 @@ export const GATE_COVERED_IDS = [
   "comparison-outline",
   "lp-variant-ideas",
   "lead-source-diagnosis",
+  "ads-diagnosis",
   "local-diagnosis",
   "chat",
   "monthly-recap",

@@ -34,6 +34,10 @@ import {
   generateRepurpose,
   generateSocialPosts,
 } from "@/lib/ai/tools";
+// Wave 1 — the ads-performance diagnosis. Imported from its own module rather than
+// the ./tools barrel: the barrel is outside this work package's write set, and a
+// direct module import is what the barrel would re-export anyway.
+import { generateAdsDiagnosis } from "@/lib/ai/tools/ads-diagnosis";
 import { consume, refund } from "@/lib/usage";
 import { refundGlobalSpend } from "@/lib/ai/durable-limit";
 import { getByomContext } from "@/lib/llm/byom-context";
@@ -60,6 +64,7 @@ import {
   resolveCohortDiagnosis,
   resolveLeadSourceDiagnosis,
   resolveLocalDiagnosis,
+  resolveAdsDiagnosis,
 } from "./grounding";
 
 /** The real store-/provider-/network-touching wiring behind every mode. The
@@ -84,6 +89,7 @@ const realDeps: ModeDeps = {
     lpVariantIdeas: generateLpVariantIdeas,
     leadSourceDiagnosis: generateLeadSourceDiagnosis,
     localDiagnosis: generateLocalDiagnosis,
+    adsDiagnosis: generateAdsDiagnosis,
     channelResearch: generateChannelResearch,
     onboardingScan: generateOnboardingScan,
     // Social takes a single arg object; adapt it to the (value, locale, signal) Gen shape.
@@ -98,6 +104,7 @@ const realDeps: ModeDeps = {
   resolveCohortDiagnosis,
   resolveLeadSourceDiagnosis,
   resolveLocalDiagnosis,
+  resolveAdsDiagnosis,
   fetchSiteText,
   // A fetch failure is a clear 422 (bad/unreachable URL), not a generic generation
   // error — byte-identical to the old inline onboarding-scan catch.

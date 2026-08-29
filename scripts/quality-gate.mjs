@@ -60,7 +60,7 @@ const FLOOR = 6.5;
 const RATCHET = {
   /** registry tools with no baked score: channel-research, local-diagnosis,
    *  monthly-recap, onboarding-scan, twin-reply, twin-style. */
-  unbaked: 6,
+  unbaked: 7,
   /** baked operations no longer in the registry: lead-reply (retired when the
    *  twin absorbed it). It is still on the public scorecard. */
   retired: 1,

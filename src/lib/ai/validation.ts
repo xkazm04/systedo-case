@@ -954,6 +954,12 @@ export interface LocalDiagnosisIntent {
   projectId: string;
   refine?: string;
 }
+/** The ads-performance diagnosis is portfolio-wide, so its intent is the project
+ *  alone — every number is re-derived server-side from the campaign union. */
+export interface AdsDiagnosisIntent {
+  projectId: string;
+  refine?: string;
+}
 
 const MISSING_PROJECT = (locale: SupportedLocale) =>
   t(locale, "Chybí projekt k diagnostice.", "Missing project to diagnose.");
@@ -989,6 +995,22 @@ export function validateLeadSourceDiagnosisIntent(
     return { valid: false, error: t(locale, "Chybí název zdroje k diagnostice.", "Missing source name for diagnosis.") };
   }
   const value: LeadSourceDiagnosisIntent = { projectId, source };
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
+}
+
+export function validateAdsDiagnosisIntent(
+  input: unknown,
+  locale: SupportedLocale = "cs"
+): Valid<AdsDiagnosisIntent> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const projectId = parseIntentProjectId(o);
+  if (!projectId) return { valid: false, error: MISSING_PROJECT(locale) };
+  const value: AdsDiagnosisIntent = { projectId };
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
   return { valid: true, value };

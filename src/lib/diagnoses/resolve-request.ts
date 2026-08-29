@@ -17,6 +17,8 @@
 import "server-only";
 import type { Project } from "@/lib/projects/types";
 import type {
+  AdsDiagnosisPlatform,
+  AdsDiagnosisRequest,
   CohortDiagnosisRequest,
   LeadSourceDiagnosisRequest,
   LocalDiagnosisRequest,
@@ -56,6 +58,14 @@ import type { LocalSignalsSource } from "@/lib/local-signals/types";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { loadServicesFor } from "@/lib/catalog/load";
 import { buildLocalDiagnosisRequest } from "./local-request";
+
+import { getLatestChanges, listCampaignsForProject } from "@/lib/campaigns/store";
+import { resolveTenant } from "@/lib/campaigns/connector";
+import { getClientProfile } from "@/lib/campaigns/report-config";
+import { indexChanges, withMetrics as campaignWithMetrics } from "@/lib/campaigns/types";
+import { triageGoals } from "@/lib/campaigns/triage";
+import { resolveReportDataset } from "@/lib/report-metrics/resolve";
+import { buildAdsDiagnosisRequest, hasLivePlatform, priorWindowTotals } from "./ads-request";
 
 /** A server-rebuilt diagnosis request + its honest provenance flag. */
 export interface ResolvedDiagnosisRequest<T> {
@@ -203,4 +213,65 @@ async function resolveAnsweredTriage(projectId: string): Promise<string[] | unde
   } catch {
     return undefined;
   }
+}
+
+/** The diagnosed ads window. Fixed at 30 days: it is the campaign spine's own
+ *  mid-range read, long enough for the waste ranking to be stable and short enough
+ *  that a recommendation is still actionable. */
+const ADS_WINDOW = "30d" as const;
+const ADS_WINDOW_DAYS = 30;
+
+/** Re-derive the ads-performance diagnosis request from the project's ACTUAL synced
+ *  portfolio — the ADR-0010 UNION of its per-account tenants, so a dual-network
+ *  client is diagnosed on both without choosing one. Returns null when the project
+ *  has no campaigns at all (genuinely nothing to diagnose).
+ *
+ *  Every enrichment is best-effort and degrades to "not supplied" rather than to a
+ *  fabricated zero: a missing change diff drops the per-campaign deltas, a missing
+ *  client profile falls back to the paid-portfolio target, and the prior window is
+ *  attached ONLY when both the portfolio and the report series are genuinely live
+ *  (pairing a live portfolio with the illustrative series would invent a trend).
+ *  `sample` = no genuinely synced network stands behind the rows.
+ *
+ *  Mutations stay per-tenant elsewhere; this is a read, and the union is exactly
+ *  what makes it honest for a tenant with two accounts. */
+export async function resolveAdsDiagnosisRequest(
+  project: Project,
+  userId: string | null
+): Promise<ResolvedDiagnosisRequest<AdsDiagnosisRequest> | null> {
+  const campaigns = await listCampaignsForProject(userId, project.id, ADS_WINDOW);
+  if (campaigns.length === 0) return null;
+  const rows = campaigns.map(campaignWithMetrics);
+  const live = hasLivePlatform(rows);
+
+  // The change diff and the agreed goal are per-tenant reads; the PRIMARY tenant is
+  // the one the console already treats as canonical. A secondary network simply has
+  // no diff entries, which reads as "no movement supplied" — never as zero movement.
+  const tenant = await resolveTenant(userId, project.id);
+  const [changesById, goals, dataset] = await Promise.all([
+    getLatestChanges(tenant)
+      .then(indexChanges)
+      .catch(() => ({})),
+    getClientProfile(tenant)
+      .then((p) => triageGoals(p.pnoGoal))
+      .catch(() => undefined),
+    resolveReportDataset(project),
+  ]);
+
+  const prior =
+    live && dataset.live ? priorWindowTotals(dataset.data.daily, ADS_WINDOW_DAYS) : null;
+  const primaryPlatform: AdsDiagnosisPlatform | undefined =
+    dataset.source === "google-ads" || dataset.source === "sklik" ? dataset.source : undefined;
+
+  const request = buildAdsDiagnosisRequest({
+    rows,
+    changesById,
+    currency: (live && dataset.currencyCode) || "CZK",
+    ...(dataset.mixedCurrency ? { mixedCurrency: true } : {}),
+    ...(primaryPlatform ? { primaryPlatform } : {}),
+    ...(goals ? { goals, targetPno: goals.targetPno } : {}),
+    ...(prior ? { prior } : {}),
+  });
+  if (!request) return null;
+  return { request, sample: !live };
 }

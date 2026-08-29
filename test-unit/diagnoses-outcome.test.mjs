@@ -10,11 +10,13 @@ import { register } from "node:module";
 register("./json-loader.mjs", import.meta.url);
 
 const {
+  extractAdsSnapshot,
   extractCohortSnapshot,
   extractLeadSourceSnapshot,
   extractLocalSnapshot,
   compareOutcome,
   alreadyResolvedUnchanged,
+  INVERSE_METRIC_KEYS,
   OUTCOME_THRESHOLD,
 } = await import("@/lib/diagnoses/outcome");
 const { sanitizeDiagnosisInput, sanitizeDiagnosisSnapshot, buildStoredDiagnosis } = await import(
@@ -44,6 +46,32 @@ test("extractLeadSourceSnapshot captures the source qualRate; extractLocalSnapsh
     metric: 0.2,
   });
   assert.deepEqual(extractLocalSnapshot({ coveragePct: 0.55 }), { key: "coverage", metric: 0.55 });
+});
+
+// --- WP W1-D: pno is the one metric where LOWER is better -------------------
+
+test("extractAdsSnapshot captures the PORTFOLIO pno", () => {
+  assert.deepEqual(
+    extractAdsSnapshot({ totals: { cost: 1, conversions: 1, conversionValue: 1, roas: 1, pno: 0.3 } }),
+    { key: "pno", metric: 0.3 }
+  );
+  assert.equal(extractAdsSnapshot({ totals: undefined }), null, "no portfolio total → no baseline");
+  assert.equal(INVERSE_METRIC_KEYS.has("pno"), true);
+  assert.equal(INVERSE_METRIC_KEYS.has("qualRate"), false, "every other metric stays higher-is-better");
+});
+
+test("compareOutcome INVERTS the verdict for pno — a fall is the improvement", () => {
+  const snap = { key: "pno", metric: 0.30 };
+  const better = compareOutcome(snap, 0.20);
+  assert.equal(better.status, "improved", "PNO down a third = the diagnosed waste was cut");
+  assert.ok(better.deltaPct < 0, "the reported delta still states what the METRIC did (it fell)");
+  assert.equal(compareOutcome(snap, 0.42).status, "worse", "PNO up = worse, despite the higher number");
+  assert.equal(compareOutcome(snap, 0.301).status, "unchanged", "the ±5 % dead-band still applies");
+});
+
+test("the inversion is per-key, not global — qualRate keeps its direction", () => {
+  assert.equal(compareOutcome({ key: "qualRate", metric: 0.2 }, 0.3).status, "improved");
+  assert.equal(compareOutcome({ key: "pno", metric: 0.2 }, 0.3).status, "worse");
 });
 
 // --- outcome comparison ---------------------------------------------------

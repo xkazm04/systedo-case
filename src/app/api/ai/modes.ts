@@ -42,6 +42,7 @@ import type { SupportedLocale } from "@/lib/format";
 import type {
   AiResponse,
   AdRequest,
+  AdsDiagnosisRequest,
   AnalysisRequest,
   AnalysisPeriod,
   ArticleDraftRequest,
@@ -76,6 +77,7 @@ import {
   validateChatRequest,
   validateArticleDraftRequest,
   validateBriefRequest,
+  validateAdsDiagnosisIntent,
   validateCohortDiagnosisIntent,
   validateComparisonOutlineRequest,
   validateKeywordClustersRequest,
@@ -87,6 +89,7 @@ import {
   validateLpVariantIdeasRequest,
   validateRepurposeRequest,
   validateSocialRequest,
+  type AdsDiagnosisIntent,
   type CohortDiagnosisIntent,
   type LeadSourceDiagnosisIntent,
   type LocalDiagnosisIntent,
@@ -96,6 +99,7 @@ import type { SocialSkillInput } from "@/lib/ai/tools/social";
 import type { SocialDraftResult } from "@/lib/social/types";
 import { inputDigest } from "@/lib/diagnoses/types";
 import {
+  extractAdsSnapshot,
   extractCohortSnapshot,
   extractLeadSourceSnapshot,
   extractLocalSnapshot,
@@ -197,6 +201,7 @@ export interface ModeDeps {
     lpVariantIdeas: Gen<LpVariantIdeasRequest, [string | undefined]>;
     leadSourceDiagnosis: Gen<LeadSourceDiagnosisRequest>;
     localDiagnosis: Gen<LocalDiagnosisRequest>;
+    adsDiagnosis: Gen<AdsDiagnosisRequest>;
     channelResearch: Gen<ChannelResearchRequest>;
     onboardingScan: Gen<OnboardingScanRequest>;
     // Direction 1: social rides the mode table. Its grounding (perf/brand/competitor)
@@ -272,6 +277,13 @@ export interface ModeDeps {
     projectId: string | undefined,
     userId: string | null
   ) => Promise<ResolvedDiagnosis<LocalDiagnosisRequest> | null>;
+  /** Wave 1: the ads-performance diagnosis re-derives the whole portfolio request
+   *  from the project's campaign UNION (ADR-0010) server-side. `null` → no project
+   *  resolves for the caller, or the project has no campaigns to diagnose. */
+  resolveAdsDiagnosis: (
+    projectId: string | undefined,
+    userId: string | null
+  ) => Promise<ResolvedDiagnosis<AdsDiagnosisRequest> | null>;
   fetchSiteText: (url: string) => Promise<{ title: string; description: string; text: string }>;
   onFetchError: (err: unknown) => Response;
   recap: {
@@ -414,6 +426,22 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
           intent.refine,
           (req) => deps.gen.leadSourceDiagnosis(req, ctx.locale, ctx.signal),
           extractLeadSourceSnapshot
+        );
+      },
+    }),
+    // Portfolio-wide: the intent is the project alone — there is no per-row pick to
+    // tamper with, and every figure (per-network split, wasted spend, the prior
+    // window) is rebuilt from the tenant's own campaign union.
+    "ads-diagnosis": defineMode<AdsDiagnosisIntent>({
+      validate: validateAdsDiagnosisIntent,
+      prepare: async (intent, ctx) => {
+        const resolved = await deps.resolveAdsDiagnosis(intent.projectId, ctx.userId);
+        if (!resolved) return noDiagnosisData(ctx);
+        return prepareDiagnosis(
+          resolved,
+          intent.refine,
+          (req) => deps.gen.adsDiagnosis(req, ctx.locale, ctx.signal),
+          extractAdsSnapshot
         );
       },
     }),

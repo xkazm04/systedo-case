@@ -312,11 +312,13 @@ export async function resolveSocialContext(
 // meta instead. `keyId` keys the response cache to the effective project so an unowned
 // id can never serve another tenant's cached diagnosis.
 import {
+  resolveAdsDiagnosisRequest,
   resolveCohortDiagnosisRequest,
   resolveLeadSourceDiagnosisRequest,
   resolveLocalDiagnosisRequest,
 } from "@/lib/diagnoses/resolve-request";
 import type {
+  AdsDiagnosisRequest,
   CohortDiagnosisRequest,
   LeadSourceDiagnosisRequest,
   LocalDiagnosisRequest,
@@ -360,6 +362,23 @@ export async function resolveLocalDiagnosis(
   const access = await resolveProjectAccess(projectId, userId);
   if (access.kind === "none") return null;
   const resolved = await resolveLocalDiagnosisRequest(access.project);
+  return { request: resolved.request, sample: resolved.sample, keyId: access.project.id };
+}
+
+/** Wave 1 — the ads-performance diagnosis grounds itself the same way: the SAME
+ *  tenancy triad, then the server rebuilds the portfolio request from the project's
+ *  own campaign union (ADR-0010). The caller identity is threaded through because the
+ *  union read is per-user by construction (the tenant key embeds userId), so an
+ *  unowned id can never reach another tenant's campaigns. `null` when the project
+ *  does not resolve for the caller OR has no campaigns at all. */
+export async function resolveAdsDiagnosis(
+  projectId: string | undefined,
+  userId: string | null
+): Promise<ResolvedDiagnosis<AdsDiagnosisRequest> | null> {
+  const access = await resolveProjectAccess(projectId, userId);
+  if (access.kind === "none") return null;
+  const resolved = await resolveAdsDiagnosisRequest(access.project, userId);
+  if (!resolved) return null;
   return { request: resolved.request, sample: resolved.sample, keyId: access.project.id };
 }
 

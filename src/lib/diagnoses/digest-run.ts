@@ -11,25 +11,42 @@
  *  diagnosis is skipped honestly (no live cohort store): no LLM call, no spend, a
  *  recorded note. Sample-only tenants were already gated out by the cron.
  *
+ *  Wave 1 adds the ADS arm on the same terms, for the (common) tenant whose only
+ *  live data is its synced ad accounts: it runs over the project's campaign UNION
+ *  (ADR-0010) when a genuinely synced portfolio actually spent in the window, and is
+ *  skipped with an honest note otherwise. The arms are independent — a tenant with
+ *  both live funnels gets both diagnoses and is charged one unit for each.
+ *
  *  Spend posture: mirrors /api/ai's cachedRespond — one global-ceiling unit is
  *  charged per intended provider call and refunded when a call degrades to the
  *  deterministic demo (no paid provider ran) or throws. Nothing is charged when no
  *  diagnosis runs. */
 import "server-only";
 import { generateLeadSourceDiagnosis } from "@/lib/ai/tools";
+// Imported from its own module rather than the ./tools barrel (which is outside this
+// work package's write set); the barrel would re-export exactly this.
+import { generateAdsDiagnosis } from "@/lib/ai/tools/ads-diagnosis";
 import { sourcesForProject } from "@/lib/lead-quality/sample";
 import { withMetrics as sourceWithMetrics } from "@/lib/lead-quality/compute";
 import { resolveLeadSources } from "@/lib/lead-quality/resolve";
 import { buildLeadSourceSeeds, seedToRequest } from "./lead-source-request";
+import { adsDiagnosisSubject } from "./ads-request";
+import { resolveAdsDiagnosisRequest } from "./resolve-request";
 import { planDigestDiagnoses } from "./digest-plan";
-import { extractLeadSourceSnapshot } from "./outcome";
-import { buildStoredDiagnosis, inputDigest, sanitizeDiagnosisInput } from "./types";
+import { extractAdsSnapshot, extractLeadSourceSnapshot } from "./outcome";
+import {
+  buildStoredDiagnosis,
+  inputDigest,
+  sanitizeDiagnosisInput,
+  type DiagnosisKind,
+  type DiagnosisResult,
+} from "./types";
 import { recordDiagnosis } from "./store";
 import { durableGuard, refundGlobalSpend } from "@/lib/ai/durable-limit";
 import { enterLlmRequestContext } from "@/lib/llm/request-context";
 import type { Project } from "@/lib/projects/types";
 import type { SupportedLocale } from "@/lib/format";
-import type { AiResponse, LeadSourceDiagnosisRequest, LeadSourceDiagnosisResult } from "@/lib/ai-types";
+import type { AiResponse, DiagnosisSnapshot } from "@/lib/ai-types";
 
 /** One diagnosis's compact output for the alert / email. */
 export interface DigestDiagnosisPart {
@@ -40,6 +57,8 @@ export interface DigestDiagnosisPart {
 
 export interface DigestDiagnosisResult {
   leadSource?: DigestDiagnosisPart;
+  /** the ads-performance diagnosis, when the ads arm ran */
+  ads?: DigestDiagnosisPart;
   /** honest run/skip notes for the run record (e.g. "cohort: no live basis") */
   notes: string[];
 }
@@ -50,13 +69,17 @@ async function refundIfDemo(res: AiResponse<unknown>): Promise<void> {
 }
 
 /**
- * Run + persist the lead-source diagnosis for a project's tenant when its funnel
- * resolves to genuinely imported leads; otherwise return only the honest skip
- * notes. The digest emails are Czech, so the tool runs with the `cs` locale.
+ * Run + persist the passive diagnoses a project's tenant can honestly support this
+ * pass — the lead-source arm on genuinely imported leads, the ads arm on a genuinely
+ * synced portfolio that actually spent — and return the compact parts plus the skip
+ * notes. `userId` scopes the ads read to the caller's OWN tenants (the tenant key
+ * embeds it); omitted, the ads arm resolves nothing and is skipped with its note.
+ * The digest emails are Czech, so the tools run with the `cs` locale.
  */
 export async function runTenantDiagnoses(
   project: Project,
-  now: Date = new Date()
+  now: Date = new Date(),
+  userId: string | null = null
 ): Promise<DigestDiagnosisResult> {
   const locale: SupportedLocale = "cs";
 
@@ -68,54 +91,118 @@ export async function runTenantDiagnoses(
     .sort((a, b) => b.qualityScore - a.qualityScore);
   const leadSeed = buildLeadSourceSeeds(sourceRows)[0];
 
+  // The ads request is rebuilt by the SAME server resolver the click path uses, so
+  // the passive and the on-demand diagnosis read identical numbers. A store hiccup
+  // degrades to "no ads basis" (the note), never to a fabricated portfolio.
+  const adsResolved = await resolveAdsDiagnosisRequest(project, userId).catch((err) => {
+    console.error(`[cron] ads diagnosis resolve failed for ${project.id}:`, err);
+    return null;
+  });
+
   const plan = planDigestDiagnoses({
     leadSourcesLive: resolved.live,
     hasLeadSeed: leadSeed != null,
+    adsLive: adsResolved != null && !adsResolved.sample,
+    // Spend ANYWHERE in the portfolio counts, asked of each network in turn — the
+    // per-network figures are never summed across currencies (ADR-0010).
+    adsHasSignal: adsResolved != null && adsResolved.request.platforms.some((p) => p.cost > 0),
   });
   const out: DigestDiagnosisResult = { notes: plan.notes };
-  if (!plan.runLead || !leadSeed) return out;
+  const runLead = plan.runLead && leadSeed != null;
+  const runAds = plan.runAds && adsResolved != null;
+  if (!runLead && !runAds) return out;
 
   // Attribute the telemetry to the project (mirrors the /api/ai request context).
   enterLlmRequestContext({ projectId: project.id });
 
-  // Charge the global ceiling for the one intended provider call; skip on exhaustion.
-  const guard = await durableGuard("cron:digest-diagnosis", [], { spendUnits: 1 });
-  if (!guard.ok) return out;
+  if (runLead && leadSeed) {
+    // Charge the global ceiling for the one intended provider call; skip on exhaustion.
+    const guard = await durableGuard("cron:digest-diagnosis", [], { spendUnits: 1 });
+    if (guard.ok) {
+      try {
+        const leadReq = seedToRequest(leadSeed);
+        const res = await generateLeadSourceDiagnosis(leadReq, locale);
+        await refundIfDemo(res);
+        await persistDiagnosis(
+          "lead-source",
+          project.id,
+          res.result,
+          leadReq,
+          leadSeed.source,
+          extractLeadSourceSnapshot(leadReq),
+          now
+        );
+        out.leadSource = {
+          subject: leadSeed.source,
+          summary: res.result.summary,
+          recommendation: res.result.recommendation,
+        };
+      } catch (err) {
+        await refundGlobalSpend(1); // no billable work landed
+        console.error(`[cron] lead-source diagnosis failed for ${project.id}:`, err);
+      }
+    }
+  }
 
-  try {
-    const leadReq = seedToRequest(leadSeed);
-    const res = await generateLeadSourceDiagnosis(leadReq, locale);
-    await refundIfDemo(res);
-    await persistLeadSource(project.id, res.result, leadReq, leadSeed.source, now);
-    out.leadSource = {
-      subject: leadSeed.source,
-      summary: res.result.summary,
-      recommendation: res.result.recommendation,
-    };
-  } catch (err) {
-    await refundGlobalSpend(1); // no billable work landed
-    console.error(`[cron] lead-source diagnosis failed for ${project.id}:`, err);
+  if (runAds && adsResolved) {
+    // A SECOND unit: two diagnoses are two provider calls, so each carries its own
+    // guard + refund rather than riding the other arm's charge.
+    const guard = await durableGuard("cron:digest-diagnosis", [], { spendUnits: 1 });
+    if (guard.ok) {
+      const adsReq = adsResolved.request;
+      const subject = adsDiagnosisSubject(adsReq);
+      try {
+        const res = await generateAdsDiagnosis(adsReq, locale);
+        await refundIfDemo(res);
+        // The STORED subject of a portfolio diagnosis is the cause it settled on
+        // (what the panel echoes too, so both paths agree); `subject` above is the
+        // costliest campaign's name, which is what reads well in the alert/email.
+        await persistDiagnosis(
+          "ads",
+          project.id,
+          res.result,
+          adsReq,
+          res.result.likelyCause,
+          extractAdsSnapshot(adsReq),
+          now
+        );
+        out.ads = {
+          subject,
+          summary: res.result.summary,
+          recommendation: res.result.recommendation,
+        };
+      } catch (err) {
+        await refundGlobalSpend(1); // no billable work landed
+        console.error(`[cron] ads diagnosis failed for ${project.id}:`, err);
+      }
+    }
   }
 
   return out;
 }
 
-async function persistLeadSource(
+/** Persist one produced diagnosis under its kind. Generalised from the lead-only
+ *  writer so every arm shares the SAME wire coercion, the SAME digest of the request
+ *  it was computed from, and the SAME server-stamped provenance.
+ *
+ *  Direction 1: `snapshot` is the at-diagnosis key-metric value, so a digest-origin
+ *  diagnosis also carries an outcome to compare against later. */
+async function persistDiagnosis(
+  kind: DiagnosisKind,
   projectId: string,
-  result: LeadSourceDiagnosisResult,
-  req: LeadSourceDiagnosisRequest,
+  result: DiagnosisResult,
+  req: unknown,
   subject: string,
+  snapshot: DiagnosisSnapshot | null,
   now: Date
 ): Promise<void> {
   const input = sanitizeDiagnosisInput(
     {
-      kind: "lead-source",
+      kind,
       result,
       inputDigest: inputDigest(req),
       subject,
-      // Direction 1: capture the at-diagnosis key-metric snapshot (the source's qualRate)
-      // so a digest-origin diagnosis also carries an outcome to compare against later.
-      snapshot: extractLeadSourceSnapshot(req),
+      ...(snapshot ? { snapshot } : {}),
     },
     // The cron is the only legitimate "digest" writer; the sanitizer ignores any
     // wire-supplied origin, so the provenance is stamped here, server-side.

@@ -203,6 +203,7 @@ export const BYOM_OPERATIONS: ByomOperation[] = [
   { id: "lp-variant-ideas", label: "Nápady na LP varianty", labelEn: "Landing page variant ideas" },
   { id: "lead-source-diagnosis", label: "Diagnóza zdroje leadů", labelEn: "Lead source diagnosis" },
   { id: "local-diagnosis", label: "Lokální diagnóza", labelEn: "Local visibility diagnosis" },
+  { id: "ads-diagnosis", label: "Diagnóza výkonu reklam", labelEn: "Ads performance diagnosis" },
   { id: "monthly-recap", label: "Měsíční rekapitulace", labelEn: "Monthly recap" },
   { id: "channel-research", label: "Výzkum bezplatných kanálů", labelEn: "Organic channel research" },
   { id: "onboarding-scan", label: "Úvodní sken webu", labelEn: "Onboarding website scan" },

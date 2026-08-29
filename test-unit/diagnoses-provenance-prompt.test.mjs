@@ -11,6 +11,7 @@ const { buildCohortDiagnosisPrompt, dataProvenanceLine } = await import(
   "@/lib/ai/tools/cohort-diagnosis"
 );
 const { buildLeadSourceDiagnosisPrompt } = await import("@/lib/ai/tools/lead-source-diagnosis");
+const { buildAdsDiagnosisPrompt } = await import("@/lib/ai/tools/ads-diagnosis");
 
 const cohortReq = {
   cohorts: [{ month: "2025-01", cac: 1200, ltv: 5400, ltvCac: 4.5, m3: 0.6, signups: 180, survival: [1, 0.7], observedMonths: 2 }],
@@ -38,4 +39,45 @@ test("lead-source prompt carries the provenance line only when `sample` is set",
   assert.match(buildLeadSourceDiagnosisPrompt({ ...leadReq, sample: true }), /ukázková data/);
   assert.match(buildLeadSourceDiagnosisPrompt({ ...leadReq, sample: false }), /živá data/);
   assert.doesNotMatch(buildLeadSourceDiagnosisPrompt(leadReq), /Zdroj dat:/);
+});
+
+// --- WP W1-D: the ads prompt carries provenance AND the mixed-currency refusal ---
+
+const adsReq = {
+  period: "30d",
+  currency: "CZK",
+  totals: { cost: 100000, conversions: 40, conversionValue: 300000, roas: 3, pno: 0.33 },
+  platforms: [{ platform: "google-ads", cost: 100000, roas: 3, campaigns: 2 }],
+  worst: [
+    {
+      id: "c-71",
+      name: "PMax výprodej",
+      platform: "google-ads",
+      type: "pmax",
+      cost: 40000,
+      conversions: 0,
+      conversionValue: 0,
+      roas: 0,
+      pno: 0,
+      ctr: 0.011,
+      severity: "critical",
+    },
+  ],
+  best: [],
+  targetPno: 0.18,
+};
+
+test("ads prompt carries the provenance line only when `sample` is set", () => {
+  assert.match(buildAdsDiagnosisPrompt({ ...adsReq, sample: true }), /ukázková data/);
+  assert.match(buildAdsDiagnosisPrompt({ ...adsReq, sample: false }), /živá data/);
+  assert.doesNotMatch(buildAdsDiagnosisPrompt(adsReq), /Zdroj dat:/);
+});
+
+test("ads prompt names ONLY the supplied campaign ids and refuses cross-currency sums", () => {
+  const plain = buildAdsDiagnosisPrompt(adsReq);
+  assert.match(plain, /\[c-71\]/, "each campaign is addressable by the id the model may return");
+  assert.doesNotMatch(plain, /různé měny/, "a single-currency project is not told about a mix");
+  const mixed = buildAdsDiagnosisPrompt({ ...adsReq, mixedCurrency: true });
+  assert.match(mixed, /NIKDY nesčítej/, "ADR-0010: the mixed-currency prompt forbids adding the networks");
+  assert.match(mixed, /jen hlavní síť/, "and states that the summary covers the primary network alone");
 });

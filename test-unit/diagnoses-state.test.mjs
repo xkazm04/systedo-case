@@ -31,6 +31,41 @@ function lead(result = {}) {
     result: { summary: "s", likelyCause: "spam", recommendation: "r", ...result },
   });
 }
+function ads(result = {}, rest = {}) {
+  return sanitizeDiagnosisInput({
+    kind: "ads",
+    result: { summary: "s", likelyCause: "waste-zero-conv", recommendation: "r", ...result },
+    ...rest,
+  });
+}
+
+test("WP W1-D — the ads kind sanitizes, defaults its subject to the cause, and bounds the ids", () => {
+  const a = ads();
+  assert.equal(a.kind, "ads");
+  assert.equal(a.subject, "waste-zero-conv", "no wire subject → the cause it settled on");
+  assert.equal(a.result.severity, "medium", "an absent severity coerces, it does not drop the diagnosis");
+  assert.deepEqual(a.result.affectedCampaignIds, []);
+  const named = ads({ severity: "high", affectedCampaignIds: ["c1", "c2", 7, "  c3  "] });
+  assert.equal(named.result.severity, "high");
+  assert.deepEqual(named.result.affectedCampaignIds, ["c1", "c2", "c3"], "non-strings are dropped, ids trimmed");
+  assert.equal(
+    sanitizeDiagnosisInput({ kind: "ads", result: { summary: "s", likelyCause: "nope", recommendation: "r" } }),
+    null,
+    "an unknown ads cause is not a diagnosis"
+  );
+});
+
+test("WP W1-D — an ads diagnosis is capped and ordered under its OWN kind", () => {
+  const older = { items: [buildStoredDiagnosis(lead(), idOf), buildStoredDiagnosis(ads(), idOf)], updatedAt: "x" };
+  const next = appendDiagnosis(older, buildStoredDiagnosis(ads({ likelyCause: "tracking-gap" }), idOf));
+  assert.equal(next.items.length, 3, "a new ads item does not evict another kind");
+  assert.equal(latestOfKind(next, "ads").result.likelyCause, "tracking-gap");
+  assert.equal(latestOfKind(next, "lead-source").kind, "lead-source");
+  const many = capPerKind(
+    Array.from({ length: DIAGNOSIS_HISTORY_CAP + 4 }, () => buildStoredDiagnosis(ads(), idOf))
+  );
+  assert.equal(many.length, DIAGNOSIS_HISTORY_CAP);
+});
 
 test("sanitizeDiagnosisInput rejects bad kind / missing fields / bad cause", () => {
   assert.equal(sanitizeDiagnosisInput({ kind: "nope", result: {} }), null);

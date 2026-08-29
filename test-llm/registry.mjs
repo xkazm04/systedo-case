@@ -733,6 +733,56 @@ Sestav kostru přizpůsobenou záměru (viz pravidla):
       r && isStr(r.summary) && isStr(r.recommendation) && isStr(r.likelyCause),
   },
   {
+    id: "ads-diagnosis",
+    label: "Diagnóza výkonu reklam",
+    // system = production ADS_DIAGNOSIS_SYSTEM (src/lib/ai/tools/ads-diagnosis.ts),
+    // with the shared antiFabrication fragment resolved — keep in sync with the tool.
+    system:
+      "Jsi zkušený český PPC stratég. Děláš stručnou diagnostiku CELÉHO placeného portfolia klienta (Google Ads a Sklik dohromady) za posledních 30 dní.\n\nPravidla:\n- Vycházej VÝHRADNĚ z předaných čísel — nevymýšlej si žádné údaje, které v podkladech nejsou.\n- Nikdy nesčítej částky napříč měnami. Je-li uvedeno, že sítě mají různé měny, souhrn platí jen pro hlavní síť a ostatní sítě porovnávej pouze poměrovými ukazateli (ROAS, PNO).\n- Urči JEDNU nejpravděpodobnější příčinu, proč portfolio nedosahuje cíle — a klasifikuj ji do jedné z těchto kategorií (pole „likelyCause\"):\n  - „waste-zero-conv\" = podstatná část rozpočtu teče do kampaní bez konverzí.\n  - „budget-misallocation\" = peníze sedí v podvýkonných kampaních, zatímco ty výkonné by unesly víc.\n  - „efficiency-drift\" = efektivita se zhoršuje oproti minulému období (náklady rostou rychleji než hodnota konverzí).\n  - „tracking-gap\" = čísla ukazují na chybějící měření (výdaje a prokliky jsou, konverze či jejich hodnota chybí).\n  - „platform-imbalance\" = jedna síť nese velkou část nákladů s výrazně horším ROAS než druhá.\n  - „healthy\" = portfolio nemá zásadní problém.\n- Doporuč JEDNU nejúčinnější, konkrétní akci (např. vypnout / omezit konkrétní kampaň, přesunout rozpočet ke jmenované výkonnější kampani, dorovnat měření konverzí) — akčně, ne obecně.\n- Jmenuj konkrétní kampaně podle jejich názvů a čísel; pole „affectedCampaignIds\" smí obsahovat POUZE id kampaní uvedená v datech.\n- Je-li uvedeno minulé období, zohledni vývoj: zhoršující se portfolio je naléhavější a mění doporučení i závažnost.\n- Odkazuj se na konkrétní čísla z dat (náklady, ROAS, PNO, konverze, cíl PNO).\n- Vrať „severity\" (high | medium | low) podle závažnosti.\n- Piš česky, věcně, bez vaty a marketingových frází.\n- Drž se zadaného JSON schématu.",
+    prompt:
+      "Reálná, již spočítaná data placeného portfolia za posledních 30 dní. Souhrn portfolia (měna CZK): náklady 412 000 Kč; konverze 318 v hodnotě 1 640 000 Kč; ROAS 3,98× · PNO 25,1 %. Cílové PNO: 18,0 %. Minulé období: náklady 356 000 Kč, konverze 341, hodnota 1 712 000 Kč. Sítě (každá ve své vlastní měně): Google Ads — 9 kampaní, náklady 318 000 Kč, ROAS 4,42×; Sklik — 4 kampaně, náklady 94 000 Kč, ROAS 2,49×. Nejvíc pálící kampaně (od nejvyššího nevyužitého rozpočtu): [c-71] „PMax – Výprodej“ (Google Ads, Performance Max): náklady 86 000 Kč, konverze 0, hodnota 0 Kč, ROAS 0,00×, PNO 0 %, CTR 1,1 %, denní rozpočet 3 000 Kč, náklady +42,0 % oproti minulé synchronizaci; [c-33] „Sklik – Obsahová síť“ (Sklik, Obsahová síť): náklady 61 000 Kč, konverze 6, hodnota 74 000 Kč, ROAS 1,21×, PNO 82,4 %, CTR 0,4 %; [c-12] „Search – Značka konkurence“ (Google Ads, Vyhledávání): náklady 48 000 Kč, konverze 11, hodnota 128 000 Kč, ROAS 2,67×, PNO 37,5 %, CTR 2,9 %. Nejvýkonnější kampaně (kam lze případně přesunout rozpočet): [c-04] „Search – Vlastní značka“ (Google Ads, Vyhledávání): náklady 52 000 Kč, konverze 141, hodnota 690 000 Kč, ROAS 13,27×, PNO 7,5 %, CTR 9,8 %; [c-19] „Shopping – Bestsellery“ (Google Ads, Nákupy): náklady 74 000 Kč, konverze 96, hodnota 462 000 Kč, ROAS 6,24×, PNO 16,0 %, CTR 1,4 %. Povolené hodnoty pole „likelyCause“: waste-zero-conv, budget-misallocation, efficiency-drift, tracking-gap, platform-imbalance, healthy. Urči nejpravděpodobnější příčinu, proč portfolio nedosahuje cíle, a jednu konkrétní akci. Vrať summary (krátký odstavec), likelyCause (jedna z povolených hodnot), recommendation (jedno konkrétní doporučení), severity (high | medium | low) a affectedCampaignIds (id kampaní pouze z uvedených dat).",
+    // schema mirrors production ADS_DIAGNOSIS_SCHEMA verbatim (descriptions and
+    // propertyOrdering included), so the golden fingerprints the real contract.
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        summary: {
+          type: Type.STRING,
+          description: "Krátký odstavec shrnující, proč portfolio nedosahuje cíle",
+        },
+        likelyCause: {
+          type: Type.STRING,
+          description: "Hlavní příčina, jedna z: waste-zero-conv | budget-misallocation | efficiency-drift | tracking-gap | platform-imbalance | healthy",
+        },
+        recommendation: {
+          type: Type.STRING,
+          description: "Jedna nejúčinnější konkrétní akce k řešení",
+        },
+        severity: {
+          type: Type.STRING,
+          description: "Závažnost problému: high | medium | low",
+        },
+        affectedCampaignIds: {
+          type: Type.ARRAY,
+          description: "Id dotčených kampaní, pouze z předaných dat (nejvýš 6)",
+          items: { type: Type.STRING },
+        },
+      },
+      required: ["summary", "likelyCause", "recommendation"],
+      propertyOrdering: ["summary", "likelyCause", "recommendation", "severity", "affectedCampaignIds"],
+    },
+    // Lenient: non-empty summary + recommendation + likelyCause (production COERCES
+    // an unknown cause to a default rather than failing, so asserting one specific
+    // label would flake under model variance), and — the anti-fabrication half —
+    // every returned campaign id must be one the prompt actually supplied.
+    validate: (r) => {
+      if (!r || !isStr(r.summary) || !isStr(r.recommendation) || !isStr(r.likelyCause)) return false;
+      const IDS = new Set(["c-71", "c-33", "c-12", "c-04", "c-19"]);
+      const ids = Array.isArray(r.affectedCampaignIds) ? r.affectedCampaignIds : [];
+      return ids.every((id) => IDS.has(id));
+    },
+  },
+  {
     id: "local-diagnosis",
     label: "Lokální diagnóza (mapa-pack + recenze)",
     system:

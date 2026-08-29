@@ -148,9 +148,11 @@ export interface AiMeta {
   snapshot?: DiagnosisSnapshot;
 }
 
-/** Which key metric a diagnosis snapshot captured — per diagnosis kind. HIGHER is
- *  better for every one, so the outcome comparison is direction-agnostic. */
-export type DiagnosisMetricKey = "ltvCac" | "qualRate" | "coverage";
+/** Which key metric a diagnosis snapshot captured — per diagnosis kind. Higher is
+ *  better for all but `pno` (cost share of revenue), where LOWER is better; the
+ *  outcome comparison therefore inverts that ONE key (see `INVERSE_METRIC_KEYS` in
+ *  diagnoses/outcome.ts) instead of assuming a single direction for every metric. */
+export type DiagnosisMetricKey = "ltvCac" | "qualRate" | "coverage" | "pno";
 
 /** Direction 1 — the at-diagnosis KEY-METRIC snapshot persisted alongside a diagnosis
  *  (additive; a pre-Direction-1 record simply has none). One number + which metric it
@@ -1363,3 +1365,151 @@ export interface OnboardingScanResult {
   source?: "fallback";
 }
 
+
+
+// ===========================================================================
+// Tool — ads-performance diagnosis (Výkon: an AI read of the tenant's ACTUAL
+// synced campaign portfolio — the union of its Google Ads and Sklik accounts
+// (ADR-0010) — naming the single likeliest reason the paid portfolio is off
+// target and the one action to take. Grounded strictly in numbers the campaign
+// spine already computed; the model invents no figures, and never sums across
+// currencies.)
+// ===========================================================================
+
+/** Which network a diagnosed campaign came from. Mirrors `AdsSource`
+ *  (lib/campaigns/types) — including `"sample"`, because a tenant exploring on the
+ *  illustrative spine must be labelled as such rather than have a network name
+ *  fabricated for it. Declared here (not imported) so the client-safe AI contract
+ *  keeps its own vocabulary and ai-types stays free of the campaigns graph. */
+export type AdsDiagnosisPlatform = "google-ads" | "sklik" | "sample";
+
+/** Czech labels for the platforms — surfaced in the prompt and the UI. */
+export const ADS_PLATFORM_LABELS: Record<AdsDiagnosisPlatform, string> = {
+  "google-ads": "Google Ads",
+  sklik: "Sklik",
+  sample: "ukázková data",
+};
+
+/** One campaign's real, already-computed numbers, flattened to what the diagnosis
+ *  needs. A serializable projection of CampaignRow so the model never sees the full
+ *  campaign graph — and so the request is client-safe. REAL numbers only. */
+export interface AdsDiagnosisCampaign {
+  id: string;
+  name: string;
+  platform: AdsDiagnosisPlatform;
+  /** the advertising-channel type label (Search, PMax, …) */
+  type: string;
+  /** media spend in the request's `currency` */
+  cost: number;
+  conversions: number;
+  conversionValue: number;
+  /** return on ad spend = conversionValue / cost */
+  roas: number;
+  /** cost share of revenue = cost / conversionValue (lower is better) */
+  pno: number;
+  /** click-through rate = clicks / impressions */
+  ctr: number;
+  /** the portfolio triage verdict for this row (same rules the table badges use) */
+  severity: "critical" | "warning" | "ok";
+  /** daily budget cap, when the synced row carries one */
+  budgetPerDay?: number;
+  /** relative cost change vs the prior sync (+0.5 = +50 %), when a diff exists */
+  deltaCostPct?: number;
+  /** relative CONVERSION-VALUE change vs the prior sync — the movement the
+   *  sync-over-sync diff actually carries (CampaignChange.valueDelta). */
+  deltaValuePct?: number;
+}
+
+/** The portfolio-level rollup a diagnosis reads. Never blended across currencies. */
+export interface AdsDiagnosisTotals {
+  cost: number;
+  conversions: number;
+  conversionValue: number;
+  roas: number;
+  pno: number;
+}
+
+/** One network's share of the portfolio — reported PER PLATFORM so a dual-network
+ *  tenant sees where the money actually sits without any cross-currency sum. */
+export interface AdsDiagnosisPlatformSplit {
+  platform: AdsDiagnosisPlatform;
+  cost: number;
+  roas: number;
+  /** how many campaigns the network contributes */
+  campaigns: number;
+}
+
+export interface AdsDiagnosisRequest {
+  /** the diagnosed window — the campaign spine's 30-day read */
+  period: "30d";
+  /** ISO-4217 code the money figures are denominated in */
+  currency: string;
+  /** ADR-0010: the project's platforms disagree on currency, so `totals` is the
+   *  PRIMARY platform alone and the prompt says so. Never a blended total. */
+  mixedCurrency?: boolean;
+  totals: AdsDiagnosisTotals;
+  /** the previous window's totals from the daily series, when it reaches back far
+   *  enough — absent means "no baseline", never a zero. */
+  prior?: { cost: number; conversions: number; conversionValue: number };
+  platforms: AdsDiagnosisPlatformSplit[];
+  /** the worst offenders by WASTED spend (zero-conversion cost, or the spend above
+   *  what the target PNO allows), biggest first — at most 6 */
+  worst: AdsDiagnosisCampaign[];
+  /** the best performers by ROAS, for a concrete budget destination — at most 3 */
+  best: AdsDiagnosisCampaign[];
+  /** the agreed target cost share of revenue, when the tenant has one */
+  targetPno?: number;
+  /** Direction 2 (sample hedges the prompt): true when the portfolio rests on the
+   *  illustrative sample (no genuinely synced network). SERVER-injected only. */
+  sample?: boolean;
+  /** optional free-text refinement note from a re-run — appended to the user prompt
+   *  only and naturally busts the input-hash cache */
+  refine?: string;
+}
+
+/** The likely root cause the ads diagnosis settles on. A constrained set so the UI
+ *  can tone / label it consistently; the model's free text lands in summary. */
+export const ADS_DIAGNOSIS_CAUSES = [
+  "waste-zero-conv",
+  "budget-misallocation",
+  "efficiency-drift",
+  "tracking-gap",
+  "platform-imbalance",
+  "healthy",
+] as const;
+export type AdsDiagnosisCause = (typeof ADS_DIAGNOSIS_CAUSES)[number];
+
+export const ADS_DIAGNOSIS_CAUSE_LABELS: Record<AdsDiagnosisCause, string> = {
+  "waste-zero-conv": "Spálený rozpočet bez konverzí",
+  "budget-misallocation": "Špatně rozdělený rozpočet",
+  "efficiency-drift": "Zhoršující se efektivita",
+  "tracking-gap": "Mezera v měření",
+  "platform-imbalance": "Nevyvážené sítě",
+  healthy: "Bez zásadního problému",
+};
+
+export const ADS_DIAGNOSIS_CAUSE_LABELS_EN: Record<AdsDiagnosisCause, string> = {
+  "waste-zero-conv": "Budget burned without conversions",
+  "budget-misallocation": "Misallocated budget",
+  "efficiency-drift": "Deteriorating efficiency",
+  "tracking-gap": "Measurement gap",
+  "platform-imbalance": "Unbalanced networks",
+  healthy: "No major issue",
+};
+
+export function adsDiagnosisCauseLabel(c: AdsDiagnosisCause, locale: SupportedLocale): string {
+  return (locale === "en" ? ADS_DIAGNOSIS_CAUSE_LABELS_EN : ADS_DIAGNOSIS_CAUSE_LABELS)[c];
+}
+
+export interface AdsDiagnosisResult {
+  /** one short paragraph reading why the paid portfolio is off target */
+  summary: string;
+  /** the constrained root cause (one of ADS_DIAGNOSIS_CAUSES) */
+  likelyCause: AdsDiagnosisCause;
+  /** the single most concrete recommended action */
+  recommendation: string;
+  severity: "high" | "medium" | "low";
+  /** the campaigns the diagnosis is about — normalised to ids that were actually
+   *  supplied in the request (an invented id is dropped; empty is allowed) */
+  affectedCampaignIds: string[];
+}

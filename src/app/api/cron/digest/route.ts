@@ -35,17 +35,41 @@ import {
 export const maxDuration = 300;
 
 /** Build the "Diagnóza týdne" alert body (plain text) + email section (HTML) from
- *  the produced lead-source diagnosis. Empty when nothing ran (see Direction 1: the
- *  cohort diagnosis is skipped honestly, and the lead one runs only on live data). */
-function renderDiagnosis(d: DigestDiagnosisResult): { alertBody: string; html: string } {
-  if (!d.leadSource) return { alertBody: "", html: "" };
-  const alertBody = `Zdroj ${d.leadSource.subject}: ${d.leadSource.recommendation}`;
+ *  the produced diagnoses. Empty when nothing ran (see Direction 1: the cohort
+ *  diagnosis is skipped honestly, and each arm runs only on its own live data).
+ *
+ *  Wave 1: the ads-performance arm renders beside the lead-source one, and `module`
+ *  is where the alert deep-links — the module that OWNS the diagnosis, so a tenant
+ *  whose only live data is Ads lands on Výkon instead of an empty lead funnel. */
+function renderDiagnosis(d: DigestDiagnosisResult): {
+  alertBody: string;
+  html: string;
+  module: "kvalita-leadu" | "vykon";
+} {
+  const bodies: string[] = [];
+  const rows: string[] = [];
+  if (d.leadSource) {
+    bodies.push(`Zdroj ${d.leadSource.subject}: ${d.leadSource.recommendation}`);
+    rows.push(
+      `<li style="margin:6px 0"><strong>Zdroj ${escapeHtml(d.leadSource.subject)}:</strong> ${escapeHtml(
+        d.leadSource.recommendation
+      )}</li>`
+    );
+  }
+  if (d.ads) {
+    bodies.push(`Reklamy — ${d.ads.subject}: ${d.ads.recommendation}`);
+    rows.push(
+      `<li style="margin:6px 0"><strong>Reklamy — ${escapeHtml(d.ads.subject)}:</strong> ${escapeHtml(
+        d.ads.recommendation
+      )}</li>`
+    );
+  }
+  if (rows.length === 0) return { alertBody: "", html: "", module: "kvalita-leadu" };
   const html =
-    `<p style="margin-top:16px"><strong>Diagnóza týdne</strong></p><ul>` +
-    `<li style="margin:6px 0"><strong>Zdroj ${escapeHtml(d.leadSource.subject)}:</strong> ${escapeHtml(
-      d.leadSource.recommendation
-    )}</li></ul>`;
-  return { alertBody, html };
+    `<p style="margin-top:16px"><strong>Diagnóza týdne</strong></p><ul>` + rows.join("") + `</ul>`;
+  // The lead arm keeps the historical destination when it ran; an ads-only week
+  // points at the module that actually holds the diagnosis.
+  return { alertBody: bodies.join(" · "), html, module: d.leadSource ? "kvalita-leadu" : "vykon" };
 }
 
 export async function GET(request: Request) {
@@ -176,16 +200,16 @@ export async function GET(request: Request) {
           now: now.getTime(),
         });
         if (shouldRun) {
-          const diagnosis = await runTenantDiagnoses(project, now);
+          const diagnosis = await runTenantDiagnoses(project, now, userId);
           diagnosisNotes = diagnosis.notes;
-          const { alertBody, html } = renderDiagnosis(diagnosis);
+          const { alertBody, html, module } = renderDiagnosis(diagnosis);
           if (alertBody) {
             await recordAlert(tenant, {
               type: "digest",
               title: "Diagnóza týdne",
               body: alertBody,
               items: [],
-              href: `/app/${project.id}/kvalita-leadu`,
+              href: `/app/${project.id}/${module}`,
             });
             diagnosisHtml = html;
           }

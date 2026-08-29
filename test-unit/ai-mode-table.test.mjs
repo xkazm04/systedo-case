@@ -57,7 +57,7 @@ function harness(overrides = {}) {
       "ads", "brief", "analysis", "monthlyRecap", "chat", "twinReply", "twinStyle",
       "repurpose", "localReviewReply", "articleDraft", "cohortDiagnosis",
       "keywordClusters", "comparisonOutline", "lpVariantIdeas", "leadSourceDiagnosis",
-      "localDiagnosis", "channelResearch", "onboardingScan", "social",
+      "localDiagnosis", "adsDiagnosis", "channelResearch", "onboardingScan", "social",
     ].map((n) => [n, genRecorder(n)])
   );
   const recapCalls = [];
@@ -107,6 +107,12 @@ function harness(overrides = {}) {
     resolveLocalDiagnosis: async (...a) => {
       calls.push({ name: "resolveLocalDiagnosis", args: a });
       return { request: { __sentinel: "local-req" }, sample: true, keyId: "LOCKID" };
+    },
+    // WP W1-D: the ads diagnosis rebuilds the WHOLE portfolio from the project's
+    // campaign union — the intent carries no per-row pick to honour.
+    resolveAdsDiagnosis: async (...a) => {
+      calls.push({ name: "resolveAdsDiagnosis", args: a });
+      return { request: { __sentinel: "ads-req" }, sample: false, keyId: "ADKID" };
     },
     fetchSiteText: async (url) => {
       calls.push({ name: "fetchSiteText", args: [url] });
@@ -203,17 +209,40 @@ test("local-diagnosis: intent → server-rebuilt request from the project", asyn
   assert.deepEqual(calls[1], { name: "localDiagnosis", args: [{ __sentinel: "local-req", sample: true }, LOCALE, SIGNAL] });
 });
 
+// WP W1-D — the ads-performance diagnosis: portfolio-wide, so the intent is the
+// project alone and every figure is rebuilt server-side from the campaign union.
+test("ads-diagnosis: intent → server-rebuilt portfolio request; client numbers ignored", async () => {
+  const { table, calls } = harness();
+  // A tampered body with fake portfolio economics — none of it may reach the generator.
+  const intent = { projectId: "pid", totals: { cost: 1, pno: 0.01 }, worst: [{ id: "hacked" }] };
+  const prepared = await prepare(table, "ads-diagnosis", intent);
+  assert.deepEqual(calls[0], { name: "resolveAdsDiagnosis", args: ["pid", "u1"] });
+  assert.deepEqual(prepared.cacheValue, {
+    request: { __sentinel: "ads-req", sample: false },
+    keyId: "ADKID",
+  });
+  const res = await prepared.gen();
+  assert.deepEqual(calls[1], {
+    name: "adsDiagnosis",
+    args: [{ __sentinel: "ads-req", sample: false }, LOCALE, SIGNAL],
+  });
+  assert.equal(res.meta.sampleGrounded, false, "a genuinely synced portfolio is NOT sample-grounded");
+  assert.equal(typeof res.meta.inputDigest, "string", "the rebuilt-request digest rides the meta");
+});
+
 test("diagnosis modes 422 when no project resolves for the caller (unowned / unknown id)", async () => {
   const nullDeps = {
     resolveCohortDiagnosis: async () => null,
     resolveLeadSourceDiagnosis: async () => null,
     resolveLocalDiagnosis: async () => null,
+    resolveAdsDiagnosis: async () => null,
   };
   const { table } = harness(nullDeps);
   for (const [mode, value] of [
     ["cohort-diagnosis", { projectId: "pid" }],
     ["lead-source-diagnosis", { projectId: "pid", source: "X" }],
     ["local-diagnosis", { projectId: "pid" }],
+    ["ads-diagnosis", { projectId: "pid" }],
   ]) {
     const out = await prepare(table, mode, value);
     assert.ok(out instanceof Response, `${mode} returns a Response`);

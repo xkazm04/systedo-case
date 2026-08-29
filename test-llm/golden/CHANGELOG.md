@@ -67,3 +67,11 @@ channel-research: fixture replaced the paraphrased system prompt and summarised 
 | tool | from | to |
 |---|---|---|
 | channel-research | 3ebb6e442c386bcb | b78a5a2a23afd349 |
+
+## 2026-08-29 — ads-diagnosis
+
+ads-diagnosis: new ads-performance diagnosis tool (WP W1-D) — first golden for its contract; system prompt names the six portfolio causes and forbids cross-currency sums (ADR-0010), schema adds affectedCampaignIds bounded to supplied campaign ids
+
+| tool | from | to |
+|---|---|---|
+| ads-diagnosis | — | 62d270ef58c2532e |

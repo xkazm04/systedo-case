@@ -8,20 +8,22 @@
  *  pure state transitions (append with a per-kind cap, status change) and the wire
  *  sanitizers live here so they are unit-testable without any I/O. */
 import type {
+  AdsDiagnosisCause,
+  AdsDiagnosisResult,
   CohortDiagnosisResult,
   DiagnosisMetricKey,
   DiagnosisSnapshot,
   LeadSourceDiagnosisResult,
   LocalDiagnosisResult,
 } from "../ai-types";
-import { LEAD_SOURCE_CAUSES, LEAD_SOURCE_SEVERITIES } from "../ai-types";
+import { ADS_DIAGNOSIS_CAUSES, LEAD_SOURCE_CAUSES, LEAD_SOURCE_SEVERITIES } from "../ai-types";
 
 /** The diagnosis tools that persist here (the LTV cohort read, the lead-source root
  *  cause, and the local-visibility diagnosis). Keyed by the /api/ai tool mode so the
  *  kinds stay aligned. Extending the tuple is backward-compatible — capPerKind /
  *  the sanitizers are keyed by kind, so an old {cohort,lead-source} blob reads
  *  cleanly and a new "local" item coexists under its own per-kind cap. */
-export const DIAGNOSIS_KINDS = ["cohort", "lead-source", "local"] as const;
+export const DIAGNOSIS_KINDS = ["cohort", "lead-source", "local", "ads"] as const;
 export type DiagnosisKind = (typeof DIAGNOSIS_KINDS)[number];
 
 /** The status lifecycle. A fresh diagnosis is `new`; the operator moves it to
@@ -70,10 +72,16 @@ export interface LocalStoredDiagnosis extends StoredDiagnosisBase {
   result: LocalDiagnosisResult;
 }
 
+export interface AdsStoredDiagnosis extends StoredDiagnosisBase {
+  kind: "ads";
+  result: AdsDiagnosisResult;
+}
+
 export type StoredDiagnosis =
   | CohortStoredDiagnosis
   | LeadSourceStoredDiagnosis
-  | LocalStoredDiagnosis;
+  | LocalStoredDiagnosis
+  | AdsStoredDiagnosis;
 
 /** The per-project persisted blob (mirrors the {statuses, plan?} shape of the
  *  other single-blob stores). `items` is newest-first, capped per kind. */
@@ -135,6 +143,7 @@ export function latestOfKind(state: DiagnosisState | null, kind: DiagnosisKind):
 // --------------------------------------------------------------------------
 
 const CAUSE_SET = new Set<string>(LEAD_SOURCE_CAUSES);
+const ADS_CAUSE_SET = new Set<string>(ADS_DIAGNOSIS_CAUSES);
 const SEVERITY_SET = new Set<string>(LEAD_SOURCE_SEVERITIES);
 const STATUS_SET = new Set<string>(DIAGNOSIS_STATUSES);
 const KIND_SET = new Set<string>(DIAGNOSIS_KINDS);
@@ -213,6 +222,31 @@ export function sanitizeLeadSourceResult(raw: unknown): LeadSourceDiagnosisResul
   return result;
 }
 
+/** Coerce an ads-performance-diagnosis result from the wire into a clean payload,
+ *  or null when the mandatory fields are missing. `severity` and
+ *  `affectedCampaignIds` are REQUIRED on the type but tolerated from the wire: an
+ *  unknown severity falls back to "medium" and an unusable id list to empty, so a
+ *  slightly-off client echo still persists the diagnosis the user paid for instead
+ *  of silently dropping it. Ids are NOT validated against a campaign set here — the
+ *  tool already normalised them to the request's ids at generation time. */
+export function sanitizeAdsResult(raw: unknown): AdsDiagnosisResult | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const summary = str(o.summary, 1200);
+  const recommendation = str(o.recommendation, 1200);
+  const cause = o.likelyCause;
+  if (!summary || !recommendation || !ADS_CAUSE_SET.has(cause as string)) return null;
+  return {
+    summary,
+    likelyCause: cause as AdsDiagnosisCause,
+    recommendation,
+    severity: SEVERITY_SET.has(o.severity as string)
+      ? (o.severity as AdsDiagnosisResult["severity"])
+      : "medium",
+    affectedCampaignIds: strList(o.affectedCampaignIds, 6, 120),
+  };
+}
+
 /** Which key metric each diagnosis kind snapshots (mirrors the extractors in
  *  `outcome.ts`). A snapshot only means anything when its key is the one its kind is
  *  ABOUT — a "coverage" fraction compared against a cohort's LTV:CAC is a nonsense
@@ -221,6 +255,7 @@ export const DIAGNOSIS_METRIC_KEY_BY_KIND: Record<DiagnosisKind, DiagnosisMetric
   cohort: "ltvCac",
   "lead-source": "qualRate",
   local: "coverage",
+  ads: "pno",
 };
 
 const METRIC_KEY_SET = new Set<string>(Object.values(DIAGNOSIS_METRIC_KEY_BY_KIND));
@@ -242,11 +277,37 @@ export function sanitizeDiagnosisSnapshot(raw: unknown, kind?: DiagnosisKind): D
   return { key: key as DiagnosisMetricKey, metric };
 }
 
+/** Every kind's result payload, as one union — the shape the sanitizer produces and
+ *  the builder stores. */
+export type DiagnosisResult =
+  | CohortDiagnosisResult
+  | LeadSourceDiagnosisResult
+  | LocalDiagnosisResult
+  | AdsDiagnosisResult;
+
+/** Per-kind wire sanitizer. A kind-keyed map rather than a ternary chain, so adding
+ *  a kind is one row and the compiler proves every kind has one. */
+const RESULT_SANITIZER_BY_KIND: Record<DiagnosisKind, (raw: unknown) => DiagnosisResult | null> = {
+  cohort: sanitizeCohortResult,
+  "lead-source": sanitizeLeadSourceResult,
+  local: sanitizeLocalResult,
+  ads: sanitizeAdsResult,
+};
+
+/** Per-kind fallback subject when the wire supplies none — the field that reads as
+ *  the diagnosis's one-line subject in the history strip. Same map discipline. */
+const DEFAULT_SUBJECT_BY_KIND: Record<DiagnosisKind, (r: DiagnosisResult) => string> = {
+  cohort: (r) => (r as CohortDiagnosisResult).worstCohort,
+  "lead-source": (r) => (r as LeadSourceDiagnosisResult).likelyCause,
+  local: (r) => (r as LocalDiagnosisResult).worstGap,
+  ads: (r) => (r as AdsDiagnosisResult).likelyCause,
+};
+
 /** The clean, ready-to-store body a persist request coerces to (id/createdAt are
  *  stamped by the builder, not trusted from the wire). */
 export interface SanitizedDiagnosisInput {
   kind: DiagnosisKind;
-  result: CohortDiagnosisResult | LeadSourceDiagnosisResult | LocalDiagnosisResult;
+  result: DiagnosisResult;
   inputDigest: string;
   subject: string;
   origin: DiagnosisOrigin;
@@ -275,24 +336,13 @@ export function sanitizeDiagnosisInput(
   const o = raw as Record<string, unknown>;
   const kind = sanitizeDiagnosisKind(o.kind);
   if (!kind) return null;
-  const result =
-    kind === "cohort"
-      ? sanitizeCohortResult(o.result)
-      : kind === "lead-source"
-        ? sanitizeLeadSourceResult(o.result)
-        : sanitizeLocalResult(o.result);
+  const result = RESULT_SANITIZER_BY_KIND[kind](o.result);
   if (!result) return null;
   // Server-supplied only: the wire's `origin` is ignored entirely.
   const origin: DiagnosisOrigin = ORIGIN_SET.has(opts?.origin as string)
     ? (opts!.origin as DiagnosisOrigin)
     : "manual";
-  const subject =
-    str(o.subject, 120) ||
-    (kind === "cohort"
-      ? (result as CohortDiagnosisResult).worstCohort
-      : kind === "lead-source"
-        ? (result as LeadSourceDiagnosisResult).likelyCause
-        : (result as LocalDiagnosisResult).worstGap);
+  const subject = str(o.subject, 120) || DEFAULT_SUBJECT_BY_KIND[kind](result);
   const snapshot = sanitizeDiagnosisSnapshot(o.snapshot, kind);
   const input: SanitizedDiagnosisInput = {
     kind,
@@ -322,11 +372,10 @@ export function buildStoredDiagnosis(
     subject: input.subject,
     ...(input.snapshot ? { snapshot: input.snapshot } : {}),
   };
-  return input.kind === "cohort"
-    ? { ...base, kind: "cohort", result: input.result as CohortDiagnosisResult }
-    : input.kind === "lead-source"
-      ? { ...base, kind: "lead-source", result: input.result as LeadSourceDiagnosisResult }
-      : { ...base, kind: "local", result: input.result as LocalDiagnosisResult };
+  // kind and result were paired by the sanitizer (RESULT_SANITIZER_BY_KIND), so the
+  // one cast is sound by that invariant — and the union no longer needs a ternary
+  // chain that grows a rung per kind.
+  return { ...base, kind: input.kind, result: input.result } as StoredDiagnosis;
 }
 
 /** The digest format version. It PREFIXES every digest so the freshness comparison

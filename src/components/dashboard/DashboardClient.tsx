@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import SectionSkeleton from "@/components/app/SectionSkeleton";
 import GoalPacing from "@/components/dashboard/GoalPacing";
 import WeekdayProfileCard from "@/components/dashboard/WeekdayProfileCard";
 import PeriodHeader from "@/components/dashboard/vykon/PeriodHeader";
@@ -19,6 +21,7 @@ import {
   detectTrends,
   evaluatePeriod,
   explainAnomalies,
+  fitResponseCurve,
   monthlyAttainmentHistory,
   monthlyPacing,
   PERIODS,
@@ -31,6 +34,24 @@ import {
   type PeriodBaseline,
 } from "@/lib/metrics";
 import type { PerformanceData, MetricKey } from "@/lib/types";
+import type { StoredDiagnosis } from "@/lib/diagnoses/types";
+
+// Wave 1 — the ads-performance diagnosis. Lazy: it is a modal-weight AI panel that
+// only a click uses, so its chunk streams in behind a height-reserving skeleton.
+const AdsDiagnosisPanel = dynamic(() => import("@/components/dashboard/vykon/AdsDiagnosisPanel"), {
+  loading: () => <SectionSkeleton height="h-56" lines={2} />,
+});
+
+/** What the server page resolved for the ads diagnosis: the project it runs for, the
+ *  persisted latest + capped history, the CURRENT request digest (stale badge) and
+ *  the CURRENT portfolio PNO (outcome chip). Absent → the panel is not mounted. */
+export interface AdsDiagnosisMount {
+  projectId: string;
+  initial: StoredDiagnosis | null;
+  history: StoredDiagnosis[];
+  digest?: string;
+  pno?: number;
+}
 
 /** The Výkon dashboard: period-scoped KPIs, a trend chart, a channel breakdown,
  *  and — moved from the old right rail into the main column — the anomaly alerts
@@ -40,8 +61,12 @@ import type { PerformanceData, MetricKey } from "@/lib/types";
 export default function DashboardClient({
   data,
   reportHref = "/clanek/vykon",
+  adsDiagnosis,
 }: {
   data: PerformanceData;
+  /** server-resolved inputs for the ads-performance diagnosis panel (omitted on the
+   *  public article surface, which has no project) */
+  adsDiagnosis?: AdsDiagnosisMount;
   /** Where the "Datový report" action goes — the live report→chat surface on
    *  each real surface; defaults to the public article. */
   reportHref?: string;
@@ -86,7 +111,15 @@ export default function DashboardClient({
   const goalPno = data.goals.pno;
 
   // Current-month goal pacing + forecast (independent of the period selector).
-  const pacing = monthlyPacing(data.daily, data.goals.monthlyRevenue);
+  const pacing = monthlyPacing(
+    data.daily,
+    data.goals.monthlyRevenue,
+    undefined,
+    // The account's fitted diminishing-returns response curve, so the "extra daily
+    // spend" prescription prices the NEXT koruna at its marginal return instead of the
+    // trailing average ROAS. An unfitted curve leaves the previous formula in place.
+    fitResponseCurve(data.daily.map((p) => ({ spend: p.cost, revenue: p.revenue })))
+  );
 
   // Full-series detection: the chart maps flagged days to its visible buckets
   // itself, and both anomalies and trends need the whole history for their
@@ -241,6 +274,15 @@ export default function DashboardClient({
               onMixShift={focusChannel}
             />
           </div>
+          {adsDiagnosis && (
+            <AdsDiagnosisPanel
+              projectId={adsDiagnosis.projectId}
+              initialDiagnosis={adsDiagnosis.initial}
+              history={adsDiagnosis.history}
+              currentDigest={adsDiagnosis.digest}
+              currentPno={adsDiagnosis.pno}
+            />
+          )}
         </div>
 
         <aside className="space-y-6">
