@@ -47,6 +47,7 @@ export const GATE_COVERED_IDS = [
   "channel-research",
   "onboarding-scan",
   "local-page",
+  "lp-variant-draft", // W3-B
 ] as const;
 
 /** The admission set the registry gates on. Derived from GATE_COVERED_IDS so it can

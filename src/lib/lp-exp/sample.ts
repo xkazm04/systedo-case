@@ -10,6 +10,13 @@ export interface Variant {
   signups: number;
   /** optional live URL of this variant's landing page (display-only seam) */
   url?: string;
+  /** W3-B — the STABLE arm identity a hosted page serves and a conversion beacon
+   *  attributes to. Minted at publish time and absent on every hand-typed arm, which
+   *  is exactly the discriminator the sync step uses: an arm with no `armId` was
+   *  never served by us, so its numbers are the operator's and are never overwritten.
+   *  Positional identity (`compute.ts:132`, "the first variant is the control") is
+   *  unchanged — this is an identity for COUNTING, not for ordering. */
+  armId?: string;
 }
 
 export interface LpExperiment {
@@ -19,6 +26,10 @@ export interface LpExperiment {
   status: "running" | "done";
   /** first variant is the control */
   variants: Variant[];
+  /** W3-B — set once the experiment is published as a hosted `lp` microsite: the
+   *  public slug `/m/{slug}` serves one arm per request. Absent (and cleared on
+   *  unpublish) for every experiment whose traffic the operator splits elsewhere. */
+  hosted?: { slug: string; publishedAt: string };
 }
 
 export const SAMPLE_EXPERIMENTS: LpExperiment[] = [

@@ -74,9 +74,10 @@ recommendations, and a bad score there is information, not a defect.
 **3. Coverage of the scorecard is ratcheted.**
 The same gate reports two counts against a baseline (reporting rung, per
 [ADR-0007](../adr/0007-gate-rung-discipline.md)): registry tools with no baked
-score at all — eight today: `ads-diagnosis` (added by WP W1-D; no baked score yet,
+score at all — nine today: `ads-diagnosis` (added by WP W1-D; no baked score yet,
 the reporting rung), `local-page` (added by WP W2-C, 2026-08-29 — same reason: it
 lands with its contract golden and is measured on the next full bake),
+`lp-variant-draft` (added by WP W3-B, 2026-08-30 — same reason),
 `channel-research`, `local-diagnosis`, `monthly-recap`,
 `onboarding-scan`, `twin-reply`, `twin-style` — and baked operations that no
 longer exist in the registry — one today: `lead-reply`, retired when the twin

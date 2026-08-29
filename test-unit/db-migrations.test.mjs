@@ -7,7 +7,10 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { runMigrations, rebuildTable, MIGRATION_VERSIONS } from "@/lib/db";
 
-const LATEST = 29;
+// Wave 3 appends in parallel (W3-B = v30, W3-C = v31, W3-D = v32/33). This is the
+// highest version present in the tree; the Director settles it at the seams commit
+// once every builder's migration has landed.
+const LATEST = 33;
 
 test("MIGRATIONS versions are unique + contiguous from 1 (the header's contract)", () => {
   const v = [...MIGRATION_VERSIONS];

@@ -24,6 +24,7 @@ import { getBySlug, getByTenant, listByTenant, setEnabled, upsert } from "@/lib/
 import {
   isMicrositeKind,
   type LocalPagePayload,
+  type LpPagePayload,
   type MicrositeConfig,
   type MicrositeKind,
 } from "@/lib/microsite/types";
@@ -39,14 +40,15 @@ import type { Article } from "@/lib/article";
 // The data contract lives beside the store (so the sqlite backend can import it
 // without reaching back through this module) and is re-exported here, because
 // `@/lib/microsite` is the module every caller already imports.
-export type { LocalPagePayload, MicrositeConfig, MicrositeKind };
+export type { LocalPagePayload, LpPagePayload, MicrositeConfig, MicrositeKind };
 
-/** The kinds `enableMicrosite` will actually publish today. `lp` is declared in the
- *  type — the registry can already carry it and a document written by a later deploy
- *  reads back correctly — but its renderer does not exist yet, and accepting one here
- *  would publish a blank page at a real public URL. `local-landing` joined the list in
- *  W2-C, when its renderer (`/m/[slug]`'s local branch) actually landed. */
-const PUBLISHABLE_KINDS: readonly MicrositeKind[] = ["performance", "local-landing"];
+/** The kinds `enableMicrosite` will actually publish today. The rule has never been
+ *  "which kinds exist" but "which kinds have a renderer": accepting a kind with no
+ *  renderer publishes a blank page at a real public URL. `local-landing` joined in
+ *  W2-C and `lp` joins in W3-B, each when its own branch of `/m/[slug]` actually
+ *  landed — so the list is now every declared kind, and the guard below is what keeps
+ *  it honest if a later kind is declared ahead of its renderer again. */
+const PUBLISHABLE_KINDS: readonly MicrositeKind[] = ["performance", "local-landing", "lp"];
 
 /** A built-in microsite so /m/mionelo works with zero setup (matches the
  *  case-study client) — mirrors how the rest of the app ships demo-ready. */
@@ -120,7 +122,7 @@ export class MicrositeSlugError extends Error {
  *  all), hijacking its stable URL. */
 export async function enableMicrosite(
   tenant: string,
-  input: { slug: string; clientName: string; segment?: string; brandName?: string; accentColor?: string; logoUrl?: string; periodDays?: number; projectId?: string; kind?: MicrositeKind; local?: LocalPagePayload }
+  input: { slug: string; clientName: string; segment?: string; brandName?: string; accentColor?: string; logoUrl?: string; periodDays?: number; projectId?: string; kind?: MicrositeKind; local?: LocalPagePayload; lp?: LpPagePayload }
 ): Promise<MicrositeConfig> {
   if (!isValidMicrositeSlug(input.slug)) {
     throw new MicrositeSlugError("invalid-slug", `Invalid microsite slug: "${input.slug}"`);
@@ -138,6 +140,13 @@ export async function enableMicrosite(
   // request cannot be published as this kind.
   if (kind === "local-landing" && !input.local) {
     throw new MicrositeSlugError("invalid-kind", "A local-landing microsite needs its page payload");
+  }
+  // W3-B — the same refusal, one kind over: an `lp` slug with no arms has nothing to
+  // split traffic between, so the page would be blank AND the experiment would be
+  // measuring nothing. Same code, same reason: this request cannot be published as
+  // this kind.
+  if (kind === "lp" && !input.lp) {
+    throw new MicrositeSlugError("invalid-kind", "An lp microsite needs its arm payload");
   }
   // The built-in demo slug is reserved for its own tenant — it exists even when no
   // registry document does, so the ownership read below cannot protect it.
@@ -172,6 +181,9 @@ export async function enableMicrosite(
     // The local-landing page content. Omitted (not written as undefined) for every
     // other kind, so a performance re-publish never adds a null field to its blob.
     ...(input.local ? { local: input.local } : {}),
+    // W3-B — the hosted experiment's arms, on the same omit-when-absent rule, so a
+    // performance or local-landing re-publish never grows a null `lp` field.
+    ...(input.lp ? { lp: input.lp } : {}),
     // The STORED flag stays true: whether the page may drop the disclosure + index
     // is decided per REQUEST by resolveMicrositeView (sync state changes over time —
     // a cleared sync must revert the page to disclosed sample without a registry

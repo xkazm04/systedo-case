@@ -83,3 +83,11 @@ local-page: new gap-to-page local landing tool — first golden for its system p
 | tool | from | to |
 |---|---|---|
 | local-page | — | 6f56f58e889151df |
+
+## 2026-08-29 — lp-variant-draft
+
+lp-variant-draft: new hosted-LP-experiment arm-copy tool (WP W3-B) — first golden for its contract; system prompt forbids inventing any figure and requires each arm to hold its own seeded hypothesis, schema drafts every arm in one call under server-supplied armIds
+
+| tool | from | to |
+|---|---|---|
+| lp-variant-draft | — | 810b3dbbd4147162 |

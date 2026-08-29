@@ -1154,6 +1154,97 @@ Vrať „summary" (jedna věta o největší bezplatné příležitosti) a „ch
       return !/(\+ ?420 ?)?\d{3} ?\d{3} ?\d{3}\b/.test(text); // invented phone number
     },
   },
+  {
+    id: "lp-variant-draft",
+    label: "Návrh LP variant",
+    // system = production LP_VARIANT_DRAFT_SYSTEM (src/lib/ai/tools/lp-variant-draft.ts),
+    // with the shared antiFabrication fragment resolved — keep in sync with the tool.
+    system: `Jsi český CRO specialista (optimalizace konverzního poměru) a copywriter pro landing pages. Píšeš text VŠECH variant jednoho A/B testu najednou — každá varianta je samostatná přistávací stránka, které se zobrazí náhodně vybrané části návštěvníků.
+
+Pravidla:
+- Vycházej VÝHRADNĚ z předaných podkladů — nevymýšlej si žádné údaje, které v podkladech nejsou.
+- NEVYMÝŠLEJ si žádná čísla — žádné konverzní poměry, počty zákazníků, úspory v procentech, hodnocení ani statistiky. Ta čísla teprve vzejdou z testu, ne od tebe.
+- Neslibuj záruky, certifikace, termíny ani ceny, které v podkladech nejsou. Neuváděj adresu, telefon ani e-mail — ty nemáš.
+- KAŽDÁ varianta musí držet SVOU zadanou hypotézu a svůj úhel. Nepřenášej hlavní argument jedné varianty do druhé.
+- Varianty se musí od sebe LIŠIT podstatou, ne jen formulací: jiný hlavní benefit, jiná struktura nabídky, jiný důvod uvěřit. Dva různě napsané odstavce o tomtéž nejsou A/B test.
+- Je-li u varianty předaný nadpis, vyjdi z něj a neměň jeho význam.
+- Pro každou variantu vrať: „armId" (PŘESNĚ ten z podkladů, nezaměňuj je), „headline" (hlavní nadpis, max 120 znaků), „intro" (jeden odstavec, 2–4 věty), „bullets" (3–5 krátkých bodů, každý max 160 znaků) a „cta" (text tlačítka, krátký a akční, max 60 znaků).
+- Piš výhradně česky, gramaticky správně, s diakritikou. Bez marketingové vaty, bez superlativů („nejlepší", „špička na trhu"), bez emoji.
+- Vrať POUZE jeden validní JSON objekt dle schématu — žádný text okolo, žádné markdown bloky, žádné komentáře.`,
+    // prompt = production buildLpVariantDraftPrompt() over a three-arm experiment with
+    // one pre-chosen headline — the shape that exercises every branch of the builder
+    // (brand context, per-arm hypothesis, a seeded headline the model must keep).
+    prompt: `Napiš text všech 3 variant landing page pro A/B test na klastr „projektové řízení nástroj".
+
+PODKLADY (jiné údaje nemáš a nesmíš je doplnit):
+- Firma: Taskio
+- Klastr / téma stránky: projektové řízení nástroj
+
+KONTEXT ZNAČKY (drž se tohoto sortimentu a slovníku):
+Taskio — český nástroj na řízení projektů pro malé týmy: úkoly, kanban, sdílené šablony a výkazy času. Tarify 0–490 Kč/uživatel měsíčně.
+
+VARIANTY K NAPSÁNÍ (každá má svůj armId a svůj úhel):
+1. armId: arm-0 — varianta „A · Kontrola"
+   Hypotéza (drž se jí): Obecný přehled funkcí osloví nejširší publikum.
+2. armId: arm-1 — varianta „B · Důraz na šablony"
+   Hypotéza (drž se jí): Hotové šablony zkrátí čas k první hodnotě a zvýší registrace.
+   Zadaný nadpis (vyjdi z něj): Spusťte projekt za pět minut z hotové šablony
+3. armId: arm-2 — varianta „C · Kratší formulář"
+   Hypotéza (drž se jí): Registrace na jedno pole sníží tření na konci stránky.
+
+Vrať pole „arms" s právě 3 položkami — po jedné pro každý armId výše, ve stejném pořadí. Každá položka je objekt { armId, headline, intro, bullets, cta }. Varianty ať se od sebe liší podstatou a každá drží svou hypotézu. Nevymýšlej žádná čísla.`,
+    // schema mirrors production LP_VARIANT_DRAFT_SCHEMA verbatim (descriptions and
+    // propertyOrdering included), so the golden fingerprints the real contract.
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        arms: {
+          type: Type.ARRAY,
+          description: "Text jedné landing page pro každou zadanou variantu (armId)",
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              armId: { type: Type.STRING, description: "Identifikátor varianty přesně dle podkladů" },
+              headline: { type: Type.STRING, description: "Hlavní nadpis stránky, max 120 znaků" },
+              intro: { type: Type.STRING, description: "Úvodní odstavec, 2–4 věty" },
+              bullets: {
+                type: Type.ARRAY,
+                description: "3–5 krátkých bodů, každý max 160 znaků",
+                items: { type: Type.STRING },
+              },
+              cta: { type: Type.STRING, description: "Text hlavního tlačítka, max 60 znaků" },
+            },
+            required: ["armId", "headline", "intro", "bullets", "cta"],
+            propertyOrdering: ["armId", "headline", "intro", "bullets", "cta"],
+          },
+        },
+      },
+      required: ["arms"],
+      propertyOrdering: ["arms"],
+    },
+    // Lenient on wording (production backfills an empty field from the deterministic
+    // floor, so asserting phrasing would flake), STRICT on the two things this tool
+    // must never get wrong:
+    //   • the arms must come back under the REQUESTED ids — copy delivered under an
+    //     invented id is copy that would be served to traffic nobody is counting;
+    //   • the headlines must be DISTINCT — identical arms are one page served twice,
+    //     and the experiment would spend its whole sample size proving a page
+    //     converts like itself.
+    // Plus the one fabrication that matters on a page whose entire purpose is to be
+    // measured: a quoted percentage. The model has no figures, so any "o 30 % vyšší"
+    // is invented, and it would be published at a public URL.
+    validate: (r) => {
+      if (!r || !Array.isArray(r.arms) || r.arms.length !== 3) return false;
+      const wanted = ["arm-0", "arm-1", "arm-2"];
+      const ids = r.arms.map((a) => (a && isStr(a.armId) ? a.armId.trim() : ""));
+      if (wanted.some((w) => !ids.includes(w))) return false;
+      if (!r.arms.every((a) => isStr(a.headline) && isStr(a.intro) && isStr(a.cta))) return false;
+      if (!r.arms.every((a) => isStrArr(a.bullets, 1))) return false;
+      const heads = r.arms.map((a) => a.headline.trim().toLowerCase().replace(/\s+/g, " "));
+      if (new Set(heads).size !== heads.length) return false;
+      return !/\d+([.,]\d+)?\s?%/.test(JSON.stringify(r)); // invented statistic
+    },
+  },
 ];
 
 /** The exact `ChannelResearchRequest` the `channel-research` fixture's `prompt` was

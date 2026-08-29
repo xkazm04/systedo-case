@@ -39,3 +39,5 @@ export { generateOnboardingScan } from "./onboarding-scan";
 export { generateAdsDiagnosis } from "./ads-diagnosis";
 // W2-C: the service×area local landing page draft.
 export { generateLocalPage } from "./local-page";
+// W3-B: the hosted LP experiment's per-arm page copy (all arms in one call).
+export { generateLpVariantDraft } from "./lp-variant-draft";

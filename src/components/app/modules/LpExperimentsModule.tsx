@@ -9,6 +9,7 @@ import LpVariantIdeasPanel, {
   type LpVariantSeed,
 } from "@/components/app/modules/LpVariantIdeasPanel";
 import LpExperimentsManager from "@/components/app/modules/LpExperimentsManager";
+import HostedLpPanel, { type HostedLpItem } from "@/components/app/modules/lp/HostedLpPanel";
 
 const T = {
   cs: {
@@ -32,7 +33,7 @@ const T = {
     nextExpandClusterHint: "Postavit další high-intent stránky na vítězném klastru",
     nextSendTraffic: "Přivést návštěvnost na novou LP",
     nextSendTrafficHint: "Nasměrovat rozpočet kampaní na vítěznou landing page",
-    footerHint: "Varianty lze generovat z klastrů klíčových slov (modul Srovnání & SEO + Obsahový engine) nebo přímo tlačítkem „Navrhnout varianty“ výše. Seam: reálné rozdělení návštěvnosti a analytika.",
+    footerHint: "Varianty lze generovat z klastrů klíčových slov (modul Srovnání & SEO + Obsahový engine) nebo přímo tlačítkem „Navrhnout varianty“ výše. Experiment lze publikovat jako hostovanou stránku — rozdělení návštěvnosti pak běží u nás a zobrazení i konverze se do tabulky propisují samy; ručně zadaná čísla zůstávají vaše a nepřepisujeme je.",
   },
   en: {
     lpExperiment: "Landing page experiment · {n} variants",
@@ -55,7 +56,7 @@ const T = {
     nextExpandClusterHint: "Build more high-intent pages on the winning cluster",
     nextSendTraffic: "Send traffic to the new LP",
     nextSendTrafficHint: "Direct campaign budget to the winning landing page",
-    footerHint: "Variants can be generated from keyword clusters (Compare & SEO + Content engine module) or directly via “Suggest variants” above. Seam: real traffic split and analytics.",
+    footerHint: "Variants can be generated from keyword clusters (Compare & SEO + Content engine module) or directly via “Suggest variants” above. An experiment can be published as a hosted page — the traffic split then runs on our side and views and conversions flow into the table on their own; hand-typed numbers stay yours and are never overwritten.",
   },
 } as const;
 
@@ -98,6 +99,26 @@ export default async function LpExperimentsModule({
   // earn a ship-the-winner handoff — a leading-but-unproven arm routes nowhere.
   const shipped = results.filter((r) => r.significant && r.winner);
 
+  // W3-B — the hosted-page projection. It reads the experiments THEMSELVES rather than
+  // the counter table: the `lp-sync` cron writes each served arm's totals onto the
+  // experiment, so the panel and the verdict table below it can only ever show the
+  // same numbers. Offered on live experiments only — a seeded sample has nothing to
+  // publish, and publishing one would put demo copy at a real public URL.
+  const hostedItems: HostedLpItem[] =
+    source === "live"
+      ? experiments.map((e) => ({
+          id: e.id,
+          cluster: e.cluster,
+          arms: e.variants.map((v) => ({
+            label: v.label,
+            ...(v.armId ? { armId: v.armId } : {}),
+            visitors: v.visitors,
+            signups: v.signups,
+          })),
+          ...(e.hosted ? { hosted: { slug: e.hosted.slug } } : {}),
+        }))
+      : [];
+
   return (
     <div className="stagger space-y-4">
       {projectId && (
@@ -106,6 +127,9 @@ export default async function LpExperimentsModule({
           experiments={source === "live" ? experiments : []}
           source={source}
         />
+      )}
+      {projectId && hostedItems.length > 0 && (
+        <HostedLpPanel projectId={projectId} items={hostedItems} />
       )}
       {results.map((r) => {
         const maxCvr = Math.max(...r.variants.map((v) => v.cvr), 0.0001);

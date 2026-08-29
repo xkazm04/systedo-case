@@ -30,6 +30,7 @@ import {
   generateLocalDiagnosis,
   generateLocalPage,
   generateLocalReviewReply,
+  generateLpVariantDraft,
   generateLpVariantIdeas,
   generateMonthlyRecap,
   generateOnboardingScan,
@@ -38,6 +39,8 @@ import {
 } from "@/lib/ai/tools";
 // W2-C — the local-page grounding lives in lib (it is shared with the publish route).
 import { resolveLocalPage } from "@/lib/local-signals/page-grounding";
+// W3-B — the lp-variant-draft grounding lives in lib beside the experiments store.
+import { resolveLpDraft } from "@/lib/lp-exp/draft-grounding";
 import { consume, refund } from "@/lib/usage";
 import { refundGlobalSpend } from "@/lib/ai/durable-limit";
 import { getByomContext } from "@/lib/llm/byom-context";
@@ -91,6 +94,7 @@ const realDeps: ModeDeps = {
     localDiagnosis: generateLocalDiagnosis,
     adsDiagnosis: generateAdsDiagnosis,
     localPage: generateLocalPage,
+    lpVariantDraft: generateLpVariantDraft,
     channelResearch: generateChannelResearch,
     onboardingScan: generateOnboardingScan,
     // Social takes a single arg object; adapt it to the (value, locale, signal) Gen shape.
@@ -107,6 +111,7 @@ const realDeps: ModeDeps = {
   resolveLocalDiagnosis,
   resolveAdsDiagnosis,
   resolveLocalPage,
+  resolveLpDraft,
   fetchSiteText,
   // A fetch failure is a clear 422 (bad/unreachable URL), not a generic generation
   // error — byte-identical to the old inline onboarding-scan catch.

@@ -45,6 +45,45 @@ export interface LocalPagePayload {
   generatedAt: string;
 }
 
+/** W3-B — ONE arm of a hosted landing-page experiment: the page copy the visitor who
+ *  is assigned this arm sees, plus the identity every view and conversion is counted
+ *  against. `armId` is the load-bearing field: it is minted server-side at publish
+ *  time, rides the rendered page into the conversion beacon, and is the key the
+ *  counter table and the sync step both use. */
+export interface LpArmCopy {
+  armId: string;
+  /** the operator-facing arm name (mirrors the experiment's variant label) */
+  label: string;
+  headline: string;
+  intro: string;
+  bullets: string[];
+  cta: string;
+}
+
+/** W3-B — the payload an `lp` microsite renders: every arm of one experiment, served
+ *  one per request. It carries NO numbers: an experiment page must never print the
+ *  score of the test it is running (a visitor reading "arm B converts better" is a
+ *  visitor no longer producing an independent trial), and the figures live in the
+ *  counter table where the sync step folds them back into the experiment.
+ *
+ *  `target` is the CTA destination and is operator-typed, never generated — the same
+ *  rule (and the same `tel:`/`mailto:` restriction, widened to `https:` because a
+ *  landing page's action is normally a signup URL) as `LocalPagePayload.contact`. */
+export interface LpPagePayload {
+  /** the owning experiment (the sync step's key back into the lp-exp store) */
+  experimentId: string;
+  /** the owning PROJECT — stamped on every counter row so the delete cascade can find
+   *  them. Public readers never supply it; it is re-derived at publish time. */
+  projectId: string;
+  /** 2..VARIANT_MAX arms, `armId`s unique */
+  arms: LpArmCopy[];
+  /** where the CTA sends the visitor (tel: / mailto: / https:), when the operator
+   *  typed one. Absent → the CTA is a sentence, not a link (LocalLanding's rule). */
+  target?: string;
+  /** ISO timestamp the arm copy was generated at */
+  generatedAt: string;
+}
+
 export interface MicrositeConfig {
   /** stable public slug (the /m/{slug} URL) */
   slug: string;
@@ -74,6 +113,11 @@ export interface MicrositeConfig {
    *  needs no new branch. A `local-landing` config without it renders nothing and is
    *  refused at publish time (see enableMicrosite). */
   local?: LocalPagePayload;
+  /** W3-B — the `lp` renderer's arms. Additive and optional on exactly the `local?`
+   *  precedent above: absent on every other kind, so no stored blob changes shape and
+   *  `normalizeConfig` needs no new branch. An `lp` config without it renders nothing
+   *  and is refused at publish time (see enableMicrosite). */
+  lp?: LpPagePayload;
   /** true when the figures are the scaled case-study series, not a tenant's real
    *  synced data — the page then discloses it and is NOT search-indexed, so demo
    *  numbers are never published as indexed "proof". A real, Ads-connected tenant

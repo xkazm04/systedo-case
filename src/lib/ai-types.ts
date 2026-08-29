@@ -28,7 +28,8 @@ export type AiMode =
   | "channel-research"
   | "onboarding-scan"
   | "onboarding-scan-public"
-  | "local-page";
+  | "local-page"
+  | "lp-variant-draft"; // W3-B
 export const AI_MODES: AiMode[] = [
   "ads",
   "brief",
@@ -47,6 +48,7 @@ export const AI_MODES: AiMode[] = [
   "onboarding-scan",
   "onboarding-scan-public",
   "local-page",
+  "lp-variant-draft", // W3-B
 ];
 
 /** The wrapper's honest verdict on one generation, mirrored from the durable LLM
@@ -1119,6 +1121,14 @@ export interface LeadSourceDiagnosisRequest {
    *  model to hedge. SERVER-injected only (the intent validator never reads it);
    *  absent → the prompt omits the provenance line. */
   sample?: boolean;
+  // ── W3-C ──
+  /** CONVERSION-LEDGER counts for this source over the last 30 days, joined by the
+   *  display source label. AGGREGATE COUNTS ONLY — never a contact, a name, an
+   *  e-mail or a click id: the ledger's PII prohibition extends to anything that
+   *  crosses into a prompt (the chokepoint mirrors traffic to LightTrack). Absent
+   *  when the project's rollup has never run, and the prompt then omits the line. */
+  conversions?: { qualified30d: number; won30d: number; gclidPct: number };
+  // ── /W3-C ──
   /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
    *  appended to the user prompt only and naturally busts the input-hash cache */
   refine?: string;
@@ -1593,4 +1603,54 @@ export interface LocalPageResult {
   /** present only on the deterministic (non-model) text, so a stored page payload
    *  records honestly that no model wrote it */
   source?: "fallback";
+}
+
+// ─── W3-B · hosted LP experiments (llm-tool `lp-variant-draft`) ───────────────────
+// Appended as one bounded region so this wave's co-owners (W3-C, W3-D) and this WP
+// never touch the same lines. Nothing above this marker was moved or reformatted.
+
+/** The page copy for ONE arm — the SAME shape the published payload stores, imported
+ *  rather than re-declared so the tool's output and the renderer's input cannot drift
+ *  apart. A type-only import: `microsite/types` is framework- and firebase-free by
+ *  design, so nothing is pulled into any runtime graph by this line. */
+import type { LpArmCopy } from "./microsite/types";
+export type { LpArmCopy };
+
+/** One arm's SEED: what the operator (or the `lp-variant-ideas` tool before it)
+ *  already decided this arm is meant to test. The draft tool writes the page around
+ *  the hypothesis rather than inventing its own angle — otherwise the experiment
+ *  stops testing what its author meant to test. */
+export interface LpVariantDraftSeed {
+  /** the SERVER-supplied arm identity the drafted copy must come back under */
+  armId: string;
+  /** the arm's operator-facing name */
+  label: string;
+  /** what this arm is testing, when the operator recorded one */
+  hypothesis?: string;
+  /** an already-chosen headline the draft should keep rather than replace */
+  headline?: string;
+}
+
+/** The grounding for a full arm-set draft. All arms are drafted in ONE call on
+ *  purpose: an A/B test needs arms that are genuinely DIFFERENT from each other, and a
+ *  model drafting one arm at a time has no way to know what the others already say. */
+export interface LpVariantDraftRequest {
+  /** the keyword cluster / topic the landing page targets */
+  cluster: string;
+  /** the business name the page speaks as */
+  brand: string;
+  /** the shared brand fact-block (deriveBrandContext), when the catalogue has one */
+  brandContext?: string;
+  /** the arms to write, 2..VARIANT_MAX — identities are the server's */
+  arms: LpVariantDraftSeed[];
+  /** optional free-text refinement note from a re-run — user prompt only */
+  refine?: string;
+  /** true when the grounding rests on the illustrative sample. SERVER-injected. */
+  sample?: boolean;
+}
+
+/** One drafted arm per requested `armId` — coerced to the request set, so a model that
+ *  invents an arm or drops one cannot publish an unmeasurable page. */
+export interface LpVariantDraftResult {
+  arms: LpArmCopy[];
 }

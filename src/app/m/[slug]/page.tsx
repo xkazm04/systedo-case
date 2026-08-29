@@ -9,13 +9,17 @@
  *                    `PerformanceMicrosite`, so nothing about it moved)
  *    local-landing → one generated service×area landing page with LocalBusiness
  *                    JSON-LD (`LocalLanding`)
- *  A `local-landing` config with no payload is a 404 rather than a blank public page —
- *  the publish path refuses to create one, so this only fires for a config written by
- *  a newer deploy and then rolled back. */
+ *    lp            → one arm of a landing-page experiment, drawn per request, with
+ *                    its view counted and its id carried into the convert beacon
+ *                    (`LpMicrosite`; W3-B)
+ *  A `local-landing` or `lp` config with no payload is a 404 rather than a blank
+ *  public page — the publish path refuses to create one, so this only fires for a
+ *  config written by a newer deploy and then rolled back. */
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PerformanceMicrosite from "@/components/microsite/PerformanceMicrosite";
 import LocalLanding from "@/components/microsite/LocalLanding";
+import LpMicrosite from "@/components/microsite/LpMicrosite";
 import { canonical } from "@/lib/site";
 import { getMicrosite, resolveMicrositeView } from "@/lib/microsite";
 import { getT } from "@/lib/i18n/server";
@@ -58,6 +62,22 @@ export async function generateMetadata({
     };
   }
 
+  // W3-B — an experiment arm is NOINDEX, deliberately the opposite call from the
+  // local landing page above. A local page exists to rank and outlives the campaign
+  // that made it; an experiment page exists to be measured and DIES when the test
+  // ends. Letting it accumulate search identity would mean indexing one arm's copy
+  // (whichever the crawler happened to draw), ranking a URL that will 404 in six
+  // weeks, and — worst — letting organic arrivals land on a page whose split they
+  // were never randomised into. `follow` stays true so an operator's own link check
+  // still works.
+  if (config.kind === "lp" && config.lp) {
+    const arm = config.lp.arms[0];
+    return {
+      title: `${arm?.headline ?? config.brandName} | ${config.brandName}`,
+      robots: { index: false, follow: true },
+    };
+  }
+
   const view = await resolveMicrositeView(config);
   const { article } = view;
   return {
@@ -81,6 +101,11 @@ export default async function MicrositePage({ params }: { params: Promise<{ slug
   if (config.kind === "local-landing") {
     if (!config.local) notFound();
     return <LocalLanding config={config} local={config.local} />;
+  }
+
+  if (config.kind === "lp") {
+    if (!config.lp) notFound();
+    return <LpMicrosite config={config} lp={config.lp} />;
   }
 
   const view = await resolveMicrositeView(config);

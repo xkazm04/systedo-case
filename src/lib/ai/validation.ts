@@ -1347,3 +1347,105 @@ export function validateLocalPageRequest(
   if (refine) value.refine = refine;
   return { valid: true, value };
 }
+
+// ─── W3-B · hosted LP experiments (llm-tool `lp-variant-draft`) ───────────────────
+// One bounded, appended region so this wave's co-owners (W3-C, W3-D) and this WP never
+// touch the same lines. The type import is deliberately its own statement rather than
+// a line spliced into the shared import block above, for the same reason.
+import type { LpVariantDraftRequest, LpVariantDraftSeed } from "../ai-types";
+
+/** The WIRE shape of an arm-copy draft request: WHICH experiment, and nothing else.
+ *  The cluster, the arm list, the labels and the brand facts are all re-derived
+ *  server-side (`resolveLpDraft`), so a tampered body cannot draft copy for an arm the
+ *  experiment does not have — and the identities the published page counts against are
+ *  minted by the publish route, never taken from here. */
+export interface LpVariantDraftIntent {
+  projectId: string;
+  experimentId: string;
+  refine?: string;
+}
+
+export function validateLpVariantDraftIntent(
+  input: unknown,
+  locale: SupportedLocale = "cs"
+): Valid<LpVariantDraftIntent> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const projectId = parseIntentProjectId(o);
+  if (!projectId) {
+    return {
+      valid: false,
+      error: t(locale, "Chybí projekt pro experiment.", "Missing project for the experiment."),
+    };
+  }
+  const experimentId = str(o.experimentId).slice(0, 128);
+  if (!experimentId) {
+    return { valid: false, error: t(locale, "Vyberte experiment.", "Select an experiment.") };
+  }
+  const value: LpVariantDraftIntent = { projectId, experimentId };
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
+}
+
+/** Bound a SERVER-rebuilt arm-draft request before it reaches the prompt. Not a wire
+ *  validator (the wire carries the intent above) — it is the last clamp on the
+ *  grounding: strings capped, arms bounded to VARIANT_MAX with unique ids, and an arm
+ *  with no id dropped rather than drafted into an identity nothing can count. Exported
+ *  so the grounding resolver and any batch caller share ONE bound. */
+export function validateLpVariantDraftRequest(
+  input: unknown,
+  locale: SupportedLocale = "cs"
+): Valid<LpVariantDraftRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const cluster = str(o.cluster).slice(0, 120);
+  if (!cluster) {
+    return { valid: false, error: t(locale, "Chybí téma stránky.", "Missing page topic.") };
+  }
+  const brand = str(o.brand).slice(0, 120);
+  if (!brand) {
+    return { valid: false, error: t(locale, "Chybí název firmy.", "Missing business name.") };
+  }
+  const seen = new Set<string>();
+  const arms: LpVariantDraftSeed[] = [];
+  for (const raw of Array.isArray(o.arms) ? (o.arms as unknown[]) : []) {
+    if (arms.length >= 6) break; // VARIANT_MAX — not imported, to keep this module store-free
+    if (!raw || typeof raw !== "object") continue;
+    const a = raw as Record<string, unknown>;
+    const armId = str(a.armId).slice(0, 40);
+    // An arm with no id cannot be counted, and two arms under ONE id would collapse
+    // onto a single counter row downstream — every view of either counting for both.
+    // Both are dropped here rather than written into a prompt that could never be
+    // published.
+    if (!armId || seen.has(armId)) continue;
+    seen.add(armId);
+    const seed: LpVariantDraftSeed = {
+      armId,
+      label: str(a.label).slice(0, 60) || `Varianta ${arms.length + 1}`,
+    };
+    const hypothesis = str(a.hypothesis);
+    if (hypothesis) seed.hypothesis = hypothesis.slice(0, 280);
+    const headline = str(a.headline);
+    if (headline) seed.headline = headline.slice(0, 120);
+    arms.push(seed);
+  }
+  // An A/B test needs a control and at least one challenger; one arm is not a test.
+  if (arms.length < 2) {
+    return {
+      valid: false,
+      error: t(locale, "Experiment potřebuje alespoň dvě varianty.", "An experiment needs at least two variants."),
+    };
+  }
+  const value: LpVariantDraftRequest = { cluster, brand, arms };
+  const brandContext = str(o.brandContext);
+  if (brandContext) value.brandContext = brandContext.slice(0, 1200);
+  if (o.sample === true) value.sample = true;
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
+}

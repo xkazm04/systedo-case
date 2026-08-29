@@ -57,6 +57,7 @@ import type {
   LocalDiagnosisRequest,
   LocalPageRequest,
   LocalReviewReplyRequest,
+  LpVariantDraftRequest,
   LpVariantIdeasRequest,
   MonthlyRecapRequest,
   MonthlyRecapResult,
@@ -88,6 +89,7 @@ import {
   validateLocalDiagnosisIntent,
   validateLocalPageIntent,
   validateLocalReviewReplyRequest,
+  validateLpVariantDraftIntent,
   validateLpVariantIdeasRequest,
   validateRepurposeRequest,
   validateSocialRequest,
@@ -96,6 +98,7 @@ import {
   type LeadSourceDiagnosisIntent,
   type LocalDiagnosisIntent,
   type LocalPageIntent,
+  type LpVariantDraftIntent,
   type SocialDraftRequest,
 } from "@/lib/ai/validation";
 // W2-B — the public /sken lane: the per-IP daily cap that replaces onboarding-scan's
@@ -214,6 +217,7 @@ export interface ModeDeps {
     localDiagnosis: Gen<LocalDiagnosisRequest>;
     adsDiagnosis: Gen<AdsDiagnosisRequest>;
     localPage: Gen<LocalPageRequest>;
+    lpVariantDraft: Gen<LpVariantDraftRequest>;
     channelResearch: Gen<ChannelResearchRequest>;
     onboardingScan: Gen<OnboardingScanRequest>;
     // Direction 1: social rides the mode table. Its grounding (perf/brand/competitor)
@@ -307,6 +311,16 @@ export interface ModeDeps {
     service: string,
     area: string
   ) => Promise<{ request: LocalPageRequest; sample: boolean; keyId: string } | null>;
+  /** W3-B: the hosted LP experiment's arm copy re-derives its whole request (cluster,
+   *  arm list + labels, brand facts) server-side from the owned project — the wire
+   *  carries only WHICH experiment. Injected rather than imported so the table stays
+   *  free of the session/catalog/store import graph that
+   *  test-unit/ai-mode-table.test.mjs cannot load. */
+  resolveLpDraft: (
+    projectId: string | undefined,
+    userId: string | null,
+    experimentId: string
+  ) => Promise<{ request: LpVariantDraftRequest; sample: boolean; keyId: string } | null>;
   fetchSiteText: (url: string) => Promise<{ title: string; description: string; text: string }>;
   onFetchError: (err: unknown) => Response;
   recap: {
@@ -505,6 +519,33 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
           // can never serve another tenant's cached page draft.
           cacheValue: { request: value, keyId: resolved.keyId },
           gen: () => deps.gen.localPage(value, ctx.locale, ctx.signal),
+        };
+      },
+    }),
+    // W3-B — experiment to hosted page. The intent names ONE experiment; the cluster,
+    // the arm list and every brand fact the copy is written from are re-derived
+    // server-side, so a tampered body can neither draft for another tenant's test nor
+    // add an arm the experiment does not have. The arm identities the published page
+    // counts against are minted by the PUBLISH route, never by this draft.
+    "lp-variant-draft": defineMode<LpVariantDraftIntent>({
+      validate: validateLpVariantDraftIntent,
+      prepare: async (intent, ctx) => {
+        const resolved = await deps.resolveLpDraft(
+          intent.projectId,
+          ctx.userId,
+          intent.experimentId
+        );
+        if (!resolved) return noDiagnosisData(ctx);
+        const value: LpVariantDraftRequest = {
+          ...resolved.request,
+          sample: resolved.sample,
+          ...(intent.refine ? { refine: intent.refine } : {}),
+        };
+        return {
+          // Keyed by the effective project + the rebuilt request, so an unowned id can
+          // never serve another tenant's cached arm copy.
+          cacheValue: { request: value, keyId: resolved.keyId },
+          gen: () => deps.gen.lpVariantDraft(value, ctx.locale, ctx.signal),
         };
       },
     }),

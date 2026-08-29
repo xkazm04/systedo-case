@@ -32,6 +32,9 @@ export const VARIANT_MAX = 6;
 export const CLUSTER_MAX = 120;
 export const LABEL_MAX = 60;
 export const URL_MAX = 300;
+/** W3-B — a minted arm identity is an opaque short token; anything longer than this
+ *  arrived from somewhere other than `mintArmId` and is dropped rather than stored. */
+export const ARM_ID_MAX = 40;
 /** Clamp visitor / signup counts to a sane ceiling so a fat-fingered paste can't
  *  store an absurd number (still far above any real LP traffic). */
 export const COUNT_MAX = 100_000_000;
@@ -60,6 +63,12 @@ export function sanitizeVariant(raw: unknown, index = 0): Variant | null {
   const variant: Variant = { label, visitors, signups };
   const url = str(o.url, URL_MAX);
   if (url) variant.url = url;
+  // W3-B — a minted arm identity rides through the sanitizer so a hosted experiment
+  // survives a manual edit with its counting identity intact. Bounded like every
+  // other wire string; absent on a hand-typed arm, which is what tells the sync step
+  // to leave that arm's numbers alone.
+  const armId = str(o.armId, ARM_ID_MAX);
+  if (armId) variant.armId = armId;
   return variant;
 }
 
@@ -120,7 +129,15 @@ export function addExperiment(
 
 /** Replace one experiment's editable fields by id (cluster, status, variants), keeping
  *  its position + id. Returns the next state and whether the id was found (so the route
- *  can 404 an unknown id instead of a silent no-op). */
+ *  can 404 an unknown id instead of a silent no-op).
+ *
+ *  W3-B — two things are CARRIED FORWARD rather than replaced, because the wire body
+ *  (the manager's edit form) does not carry them and a silent drop would break a live
+ *  measurement: the `hosted` binding, and each arm's minted `armId` at its POSITION.
+ *  Renaming an arm's label in the UI must not orphan the counter rows already
+ *  attributed to it — the counters key on `armId`, and an arm that lost its id would
+ *  stop being recomputed while its rows piled up unread. An input that DOES carry an
+ *  armId (a re-publish) wins, so a re-mint is still possible. */
 export function replaceExperiment(
   prev: LpExperimentState | null,
   id: string,
@@ -132,9 +149,118 @@ export function replaceExperiment(
   const next = items.map((e) => {
     if (e.id !== id) return e;
     found = true;
-    return { id: e.id, cluster: input.cluster, status: input.status, variants: input.variants };
+    const variants = input.variants.map((v, i) => {
+      const carried = v.armId ?? e.variants[i]?.armId;
+      return carried ? { ...v, armId: carried } : v;
+    });
+    return {
+      id: e.id,
+      cluster: input.cluster,
+      status: input.status,
+      variants,
+      ...(e.hosted ? { hosted: e.hosted } : {}),
+    };
   });
   return { state: { items: next, updatedAt: now.toISOString() }, found };
+}
+
+// --- W3-B · hosted-experiment transitions -------------------------------------
+// Pure, so publishing, unpublishing and the counter sync are all unit-testable
+// without a store. Each returns `found` so its caller can 404 / no-op honestly.
+
+/** Bind an experiment to a published `/m/{slug}` page: stamp one `armId` per arm
+ *  (positionally — `armIds[i]` belongs to `variants[i]`) and record the slug.
+ *  Re-publishing an already-hosted experiment REUSES each arm's existing id when the
+ *  caller passes an empty slot, so the counters collected under the old identity keep
+ *  attributing. Arms whose slot is blank and that never had an id stay hand-typed. */
+export function hostExperiment(
+  prev: LpExperimentState | null,
+  id: string,
+  armIds: readonly string[],
+  slug: string,
+  now: Date = new Date()
+): { state: LpExperimentState; found: boolean } {
+  const items = prev?.items ?? [];
+  let found = false;
+  const next = items.map((e) => {
+    if (e.id !== id) return e;
+    found = true;
+    const variants = e.variants.map((v, i) => {
+      const armId = (armIds[i] ?? "").slice(0, ARM_ID_MAX) || v.armId;
+      return armId ? { ...v, armId } : v;
+    });
+    return { ...e, variants, hosted: { slug, publishedAt: now.toISOString() } };
+  });
+  return { state: { items: next, updatedAt: now.toISOString() }, found };
+}
+
+/** Take an experiment's hosted page offline. The `armId`s are DELIBERATELY kept: the
+ *  counter rows collected under them are real measured traffic, and dropping the ids
+ *  would orphan them. The experiment simply stops being recomputed (the sync step only
+ *  visits hosted ones), so its last synced numbers freeze exactly where the page went
+ *  dark — and a re-publish resumes on the same identities. */
+export function unhostExperiment(
+  prev: LpExperimentState | null,
+  id: string,
+  now: Date = new Date()
+): { state: LpExperimentState; found: boolean } {
+  const items = prev?.items ?? [];
+  let found = false;
+  const next = items.map((e) => {
+    if (e.id !== id || !e.hosted) return e;
+    found = true;
+    // BUILT, not spread-minus-a-key: the field is dropped by construction, so a
+    // future field cannot silently ride along past this transition.
+    return { id: e.id, cluster: e.cluster, status: e.status, variants: e.variants };
+  });
+  return { state: { items: next, updatedAt: now.toISOString() }, found };
+}
+
+/** One arm's counted traffic, as the sync step reads it out of the counter table. */
+export interface ArmTotals {
+  views: number;
+  conversions: number;
+}
+
+/** OVERWRITE each identified arm's `visitors`/`signups` with the counter totals —
+ *  the recompute-not-accumulate rule (`organic-channels/rollup-step.ts:12-17`). Adding
+ *  would drift upward forever and could never go DOWN when retention ages a day out,
+ *  which is the only version of this number that stays honest.
+ *
+ *  Two boundaries hold here and are pinned:
+ *   • an arm with no `armId` (hand-typed) is NEVER touched — the operator's own
+ *     numbers are not ours to rewrite;
+ *   • `signups ≤ visitors` still holds afterwards (the `sanitizeVariant` clamp), so a
+ *     conversion counted against a view that was never counted (a bot filtered on the
+ *     way in but not on the way out, a page cached upstream) cannot publish an
+ *     above-100 % conversion rate into `evaluate()` — and from there into a live
+ *     tenant's AI prompts via `patterns/extract.ts`.
+ *
+ *  Returns `changed` so a project whose numbers did not move costs no store write. */
+export function syncArmCounts(
+  prev: LpExperimentState | null,
+  id: string,
+  totals: ReadonlyMap<string, ArmTotals>,
+  now: Date = new Date()
+): { state: LpExperimentState; found: boolean; changed: boolean } {
+  const items = prev?.items ?? [];
+  let found = false;
+  let changed = false;
+  const next = items.map((e) => {
+    if (e.id !== id) return e;
+    found = true;
+    const variants = e.variants.map((v) => {
+      if (!v.armId) return v;
+      const t = totals.get(v.armId) ?? { views: 0, conversions: 0 };
+      const visitors = count(t.views);
+      const signups = Math.min(count(t.conversions), visitors);
+      if (v.visitors === visitors && v.signups === signups) return v;
+      changed = true;
+      return { ...v, visitors, signups };
+    });
+    return changed ? { ...e, variants } : e;
+  });
+  return { state: { items: next, updatedAt: now.toISOString() }, found, changed };
 }
 
 /** Remove one experiment by id. Returns the next state + whether an item was found. */

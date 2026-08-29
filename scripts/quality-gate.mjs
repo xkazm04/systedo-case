@@ -60,11 +60,12 @@ const FLOOR = 6.5;
 const RATCHET = {
   /** registry tools with no baked score: ads-diagnosis, channel-research,
    *  local-diagnosis, monthly-recap, onboarding-scan, twin-reply, twin-style —
-   *  plus `local-page` (W2-C, 2026-08-29), the same +1 ads-diagnosis took in
-   *  Wave 1: a tool lands with its contract golden, and its quality cells are
-   *  measured on the next full `npm run llm:quality` bake. Lower this back to 6
-   *  when both are baked; never raise it for anything else. */
-  unbaked: 8,
+   *  plus `local-page` (W2-C, 2026-08-29) and `lp-variant-draft` (W3-B,
+   *  2026-08-30), each the same +1 ads-diagnosis took in Wave 1: a tool lands with
+   *  its contract golden, and its quality cells are measured on the next full
+   *  `npm run llm:quality` bake. Lower this back to 6 when all three are baked;
+   *  never raise it for anything else. */
+  unbaked: 9,
   /** baked operations no longer in the registry: lead-reply (retired when the
    *  twin absorbed it). It is still on the public scorecard. */
   retired: 1,

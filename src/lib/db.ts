@@ -638,6 +638,87 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_feed_tokens_project
     ON feed_tokens (user_id, project_id);
+
+  -- HOSTED LP-EXPERIMENT ARM COUNTERS (WP W3-B). The go_clicks privacy posture, one
+  -- dimension wider: a key triple (experiment, arm, UTC day), two counts, and nothing
+  -- whatsoever about the visitor — no IP, no user agent, no referrer, no cookie, no
+  -- per-visitor row. The public /m/{slug} page increments the views count for the arm
+  -- it served and /m/{slug}/convert increments conversions for the arm the served page
+  -- carried, so a conversion is always attributed to the page that was on screen.
+  -- project_id rides along solely so the delete cascade can find these rows: the
+  -- public paths address them by experiment and arm, never by tenant.
+  CREATE TABLE IF NOT EXISTS lp_arm_counts (
+    experiment_id TEXT NOT NULL,
+    arm_id        TEXT NOT NULL,
+    day           TEXT NOT NULL,
+    project_id    TEXT NOT NULL,
+    views         INTEGER NOT NULL DEFAULT 0,
+    conversions   INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (experiment_id, arm_id, day)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_lp_arm_counts_project ON lp_arm_counts (project_id);
+
+  -- The CRM CONVERSION LEDGER (WP W3-C). One row per (project, conversion) — the
+  -- instant a contact crossed into qualified / won, with the attribution and the
+  -- Google click id an offline-conversion upload is matched on. Keyed by project_id
+  -- ALONE, the leads family's keying: every append site is a lead-layer write
+  -- (changeStage / applyLeadEvent) and none of them has a userId in scope.
+  -- Deliberately PII-FREE: contact id, source, campaign, gclid, value — never a
+  -- name, e-mail or phone, because these rows leave the product as files.
+  CREATE TABLE IF NOT EXISTS conversion_events (
+    project_id TEXT NOT NULL,
+    id         TEXT NOT NULL,
+    at         TEXT NOT NULL,
+    kind       TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    PRIMARY KEY (project_id, id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_conversion_events_at
+    ON conversion_events (project_id, at);
+
+  -- The PUBLIC TWIN INTAKE endpoints (WP W3-D). GLOBAL, not per-tenant, for the
+  -- feed_tokens reason: the token is a public address space every tenant shares, so
+  -- making it the primary key is what makes "one project cannot mint drafts into
+  -- another's inbox" a property of the TABLE rather than of a query — the public
+  -- /api/twin/inbound/{token} route reads the owner triple out of the row it addressed
+  -- (ADR-0002) instead of taking one from the wire. TWO credentials with different
+  -- lives: the token is a plaintext ADDRESS the operator must be able to re-read and
+  -- paste into a platform dashboard; secret_enc is an AES-256-GCM signing secret
+  -- (outbound/secret-crypto.ts) shown once at mint and never again. One row per
+  -- (project, channel); the (user_id, project_id) index backs the panel and the
+  -- delete cascade.
+  CREATE TABLE IF NOT EXISTS twin_inbound_tokens (
+    token      TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    channel    TEXT NOT NULL,
+    secret_enc TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_twin_inbound_project
+    ON twin_inbound_tokens (user_id, project_id);
+
+  -- SOCIAL READ-BACK SNAPSHOTS (WP W3-D). The go_clicks privacy posture applied to the
+  -- platforms' own reporting: a post id, a UTC day, three integers, and nothing
+  -- whatsoever about a viewer. The row is a SNAPSHOT of a post's lifetime counters, not
+  -- an increment — the cron upserts by OVERWRITE, which is what makes reading twice in
+  -- one day idempotent instead of doubling. The tenant key rides on the row so the delete
+  -- cascade can scrub a project without joining back to the posts store.
+  CREATE TABLE IF NOT EXISTS social_post_metrics (
+    post_id  TEXT NOT NULL,
+    day      TEXT NOT NULL,
+    tenant   TEXT NOT NULL,
+    reach    INTEGER NOT NULL DEFAULT 0,
+    likes    INTEGER NOT NULL DEFAULT 0,
+    comments INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (post_id, day)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_social_post_metrics_tenant
+    ON social_post_metrics (tenant);
 `;
 
 /** One ordered, versioned schema change. `up` performs it; `applied` reports
@@ -1148,6 +1229,92 @@ const MIGRATIONS: Migration[] = [
     },
     applied: (db) =>
       tableExists(db, "feed_tokens") && indexExists(db, "idx_feed_tokens_project"),
+  },
+  {
+    version: 30,
+    name: "lp_arm_counts (hosted LP-experiment arm view/conversion counters, WP W3-B)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS lp_arm_counts (
+          experiment_id TEXT NOT NULL,
+          arm_id        TEXT NOT NULL,
+          day           TEXT NOT NULL,
+          project_id    TEXT NOT NULL,
+          views         INTEGER NOT NULL DEFAULT 0,
+          conversions   INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (experiment_id, arm_id, day)
+        )`
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_lp_arm_counts_project ON lp_arm_counts (project_id)"
+      );
+    },
+    applied: (db) =>
+      tableExists(db, "lp_arm_counts") && indexExists(db, "idx_lp_arm_counts_project"),
+  },
+  {
+    version: 31,
+    name: "conversion_events (CRM conversion ledger, WP W3-C)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS conversion_events (
+          project_id TEXT NOT NULL,
+          id         TEXT NOT NULL,
+          at         TEXT NOT NULL,
+          kind       TEXT NOT NULL,
+          data       TEXT NOT NULL,
+          PRIMARY KEY (project_id, id)
+        )`
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_conversion_events_at ON conversion_events (project_id, at)"
+      );
+    },
+    applied: (db) =>
+      tableExists(db, "conversion_events") && indexExists(db, "idx_conversion_events_at"),
+  },
+  {
+    version: 32,
+    name: "twin_inbound_tokens (public twin intake endpoints, WP W3-D)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS twin_inbound_tokens (
+          token      TEXT PRIMARY KEY,
+          user_id    TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          channel    TEXT NOT NULL,
+          secret_enc TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )`
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_twin_inbound_project ON twin_inbound_tokens (user_id, project_id)"
+      );
+    },
+    applied: (db) =>
+      tableExists(db, "twin_inbound_tokens") && indexExists(db, "idx_twin_inbound_project"),
+  },
+  {
+    version: 33,
+    name: "social_post_metrics (per-(post, day) read-back snapshots, WP W3-D)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS social_post_metrics (
+          post_id  TEXT NOT NULL,
+          day      TEXT NOT NULL,
+          tenant   TEXT NOT NULL,
+          reach    INTEGER NOT NULL DEFAULT 0,
+          likes    INTEGER NOT NULL DEFAULT 0,
+          comments INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (post_id, day)
+        )`
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_social_post_metrics_tenant ON social_post_metrics (tenant)"
+      );
+    },
+    applied: (db) =>
+      tableExists(db, "social_post_metrics") && indexExists(db, "idx_social_post_metrics_tenant"),
   },
 ];
 

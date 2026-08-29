@@ -8,8 +8,12 @@ import { LOCAL_DB } from "@/lib/local-mode";
 import type { LpExperiment } from "./sample";
 import {
   addExperiment,
+  hostExperiment,
   removeExperiment,
   replaceExperiment,
+  syncArmCounts,
+  unhostExperiment,
+  type ArmTotals,
   type LpExperimentState,
   type SanitizedExperimentInput,
 } from "./types";
@@ -73,6 +77,52 @@ export async function updateExperiment(
   if (!found) return null;
   await saveExperiments(projectId, state);
   return state.items;
+}
+
+// --- W3-B · the hosted-page bindings ------------------------------------------
+// Read-modify-write around the pure transitions in ./types, so the publish route,
+// the unpublish path and the sync step share ONE way of moving these fields.
+
+/** Bind an experiment to a published `/m/{slug}` page and stamp its arm identities.
+ *  Returns false (no write) when the id is unknown, so the route can refuse instead
+ *  of publishing a page whose counters point at nothing. */
+export async function setExperimentHosted(
+  projectId: string,
+  id: string,
+  armIds: readonly string[],
+  slug: string
+): Promise<boolean> {
+  const cur = await getExperiments(projectId);
+  const { state, found } = hostExperiment(cur, id, armIds, slug);
+  if (!found) return false;
+  await saveExperiments(projectId, state);
+  return true;
+}
+
+/** Take an experiment's hosted binding off (the arm ids stay — see unhostExperiment).
+ *  Best-effort by contract: the caller is unpublishing a page, and a bookkeeping write
+ *  that fails must not leave the PAGE live, so callers ignore the result. */
+export async function clearExperimentHosted(projectId: string, id: string): Promise<boolean> {
+  const cur = await getExperiments(projectId);
+  const { state, found } = unhostExperiment(cur, id);
+  if (!found) return false;
+  await saveExperiments(projectId, state);
+  return true;
+}
+
+/** Overwrite one experiment's identified arms with the counter totals. Returns whether
+ *  anything actually MOVED — a project whose numbers are unchanged costs no write,
+ *  which is what makes running the sync step every tick cheap. */
+export async function applyArmCounts(
+  projectId: string,
+  id: string,
+  totals: ReadonlyMap<string, ArmTotals>
+): Promise<boolean> {
+  const cur = await getExperiments(projectId);
+  const { state, found, changed } = syncArmCounts(cur, id, totals);
+  if (!found || !changed) return false;
+  await saveExperiments(projectId, state);
+  return true;
 }
 
 /** Read-modify-write: remove one experiment by id. Returns false (no write) when the
