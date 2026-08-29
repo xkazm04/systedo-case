@@ -102,7 +102,11 @@ export default function LeadQualificationPanel({
     { value: "medium", label: t("scopeMedium") },
     { value: "small", label: t("scopeSmall") },
   ];
+  /** "—" is the unrated state, shown the same way the three selects show theirs.
+   *  Without it the row rendered pre-selected on Warm, asserting a judgement the
+   *  rep had not made — and gave them no way back to "not rated". */
   const DISPOSITION_OPTIONS: { value: Disposition; label: string }[] = [
+    { value: "unknown", label: "—" },
     { value: "hot", label: t("dispositionHot") },
     { value: "warm", label: t("dispositionWarm") },
     { value: "cold", label: t("dispositionCold") },

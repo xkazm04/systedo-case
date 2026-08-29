@@ -11,10 +11,13 @@ export type Timeline = "asap" | "weeks" | "exploring" | "unknown";
 export type Budget = "confirmed" | "flexible" | "tight" | "unknown";
 /** Scope / size of the job — stands in for "Need" + "Authority" here. */
 export type Scope = "large" | "medium" | "small" | "unknown";
-/** Rep's gut disposition for the lead. */
-export type Disposition = "hot" | "warm" | "cold";
+/** Rep's gut disposition for the lead. "unknown" is the ABSENT state, not a
+ *  fourth opinion: it means nobody has judged this lead yet, which is a different
+ *  claim from "warm" and must stay tellable apart from it — the AI reply is
+ *  grounded on what the rep actually captured. */
+export type Disposition = "hot" | "warm" | "cold" | "unknown";
 
-/** Captured qualification for one lead. All fields start "unknown" / "warm". */
+/** Captured qualification for one lead. Every field starts "unknown". */
 export interface Qualification {
   timeline: Timeline;
   budget: Budget;
@@ -27,7 +30,7 @@ export const EMPTY_QUALIFICATION: Qualification = {
   timeline: "unknown",
   budget: "unknown",
   scope: "unknown",
-  disposition: "warm",
+  disposition: "unknown",
 };
 
 /** Each captured field contributes up to ~30 pts; disposition nudges ±10. The
@@ -35,7 +38,7 @@ export const EMPTY_QUALIFICATION: Qualification = {
 const TIMELINE_POINTS: Record<Timeline, number> = { asap: 30, weeks: 20, exploring: 8, unknown: 0 };
 const BUDGET_POINTS: Record<Budget, number> = { confirmed: 30, flexible: 18, tight: 6, unknown: 0 };
 const SCOPE_POINTS: Record<Scope, number> = { large: 30, medium: 18, small: 8, unknown: 0 };
-const DISPOSITION_POINTS: Record<Disposition, number> = { hot: 10, warm: 0, cold: -10 };
+const DISPOSITION_POINTS: Record<Disposition, number> = { hot: 10, warm: 0, cold: -10, unknown: 0 };
 
 /** Lightweight 0–100 qualification score. Pure + deterministic. */
 export function qualificationScore(q: Qualification): number {
