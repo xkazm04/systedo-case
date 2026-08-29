@@ -58,10 +58,20 @@ export default function AiPreflight() {
   if (!notice.kind) return null;
 
   if (notice.kind === "low") {
+    // The upgrade path belongs HERE, not only on the exhausted banner: a user
+    // with a couple of generations left is still working and can act on it,
+    // while one who is already blocked has lost the thread. Only for a metered
+    // (signed-in, plan-bound) budget — an anonymous per-IP cap is not something
+    // a price plan lifts, and the exhausted banner draws the same line.
     return (
       <p role="status" className="mt-4 flex items-center gap-1.5 text-xs text-muted">
         <Info width={13} height={13} className="shrink-0" />
         {t("lowRemaining", { n: notice.remaining })}
+        {notice.metered && (
+          <Link href="/cena" className="font-medium text-brand-accent hover:text-brand-800">
+            {t("upgradeCta")}
+          </Link>
+        )}
       </p>
     );
   }
