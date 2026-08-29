@@ -108,6 +108,14 @@ export const RATE_RULES = {
    *  aiPerDay bounds the paid routes. Per-IP: upload-ref is anonymous-capable (like
    *  its sibling paid routes), so the IP is the actor key. */
   uploadRefPerDay: (): RateRule => ({ bucket: "upload-ref:day", limit: envInt("UPLOAD_REF_PER_DAY", 40), windowMs: DAY }),
+  /** The public, no-account website scan (`/sken`, WP W2-B). This is the one paid
+   *  generation an anonymous visitor can reach with NO sign-in gate in front of it,
+   *  so its budget is deliberately an order of magnitude below `aiPerDay`: five
+   *  scans is more than one prospect needs (their own site, a competitor, a retry)
+   *  and far too few to be worth farming. It ADDS to `guardPaidGeneration`'s rails
+   *  (per-minute + per-day + the global spend ceiling), it does not replace them —
+   *  which is why the bucket is its own, not a share of `ai:day`. */
+  skenPerDay: (): RateRule => ({ bucket: "sken:day", limit: envInt("SKEN_RATE_PER_DAY", 5), windowMs: DAY }),
 };
 
 /** Number of trusted reverse-proxy hops in front of the app (1 on Vercel). The

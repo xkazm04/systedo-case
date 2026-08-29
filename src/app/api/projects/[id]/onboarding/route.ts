@@ -7,16 +7,10 @@ import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { getOnboarding, saveOnboarding, clearOnboarding } from "@/lib/onboarding/store";
 import { sanitizeScanProfile } from "@/lib/onboarding/types";
 import type { OnboardingState } from "@/lib/onboarding/types";
-import { getCompetitors, saveCompetitors } from "@/lib/competitors/store";
-import { mergeScanSuggestions } from "@/lib/competitors/merge";
-import { resolveTenant } from "@/lib/campaigns/connector";
-import { listKeywordLists, saveKeywordList } from "@/lib/keywords/store";
-import {
-  SCAN_LIST_SEED,
-  SCAN_LIST_NAME,
-  scanKeywordsToSaved,
-  shouldSeedScanList,
-} from "@/lib/onboarding/seed";
+// The seeding half of an apply (profile → competitor merge → keyword seed → one
+// onboarding write) lives in lib/onboarding/apply so the public /sken redeem path
+// seeds a claimed project through the SAME code, not a second copy of it.
+import { applyScanToProject } from "@/lib/onboarding/apply";
 import { readJson } from "@/lib/api/route-utils";
 
 /** Stable machine codes echoed alongside the (Czech) server `error` text. The client
@@ -30,87 +24,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { project, uid } = g;
 
   const body = await readJson<{ scan?: unknown; dismissed?: unknown }>(req);
-
-  const existing = await getOnboarding(project.id).catch(() => null);
   const now = new Date().toISOString();
-  const next: OnboardingState = { ...(existing ?? {}), updatedAt: now };
-
-  /** Non-fatal outcome of the competitor merge, echoed on the `{ok:true}` envelope so a
-   *  failed/partial re-seed is visible instead of swallowed by a bare `.catch(() => {})`.
-   *  Coded (kebab-case, per route-utils' catalog) — the client maps the code to its own
-   *  localized copy, mirroring how the catalog sync surfaces its truncation. */
-  let competitorsResult:
-    | {
-        suggested?: number;
-        skipped?: number;
-        warning?: { code: "competitors-truncated"; dropped: number } | { code: "competitors-merge-failed" };
-      }
-    | undefined;
+  const dismissed = typeof body?.dismissed === "boolean" ? { dismissed: body.dismissed } : undefined;
 
   if (body?.scan !== undefined) {
     const profile = sanitizeScanProfile(body.scan);
     if (!profile) {
       return Response.json({ ok: false, code: "invalid-scan", error: "Neplatný profil ze skenu." }, { status: 422 });
     }
-    next.scan = { ...profile, appliedAt: now };
-    next.scanApplied = true;
-    // MERGE the scan's competitor suggestions into the stored set — never replace it.
-    // This used to be an unconditional saveCompetitors(), so re-applying a scan wiped
-    // whatever the user had curated and fed the unreviewed guesses straight into the
-    // recap/social LLM grounding. Now: existing entries are untouchable, new names land
-    // as UNCONFIRMED `scan` entries (excluded from grounding until the user keeps them
-    // in the competitor editor), and the cap can only ever cost a suggestion.
-    // Best-effort still — a competitors-store hiccup must not fail the onboarding apply —
-    // but no longer INVISIBLE: the outcome is reported back in the response.
-    if (profile.competitors.length > 0) {
-      try {
-        const stored = await getCompetitors(project.id);
-        const merged = mergeScanSuggestions(stored?.competitors ?? [], profile.competitors);
-        if (!merged.unchanged) {
-          await saveCompetitors(project.id, { competitors: merged.competitors, updatedAt: now });
-        }
-        competitorsResult = {
-          suggested: merged.added,
-          skipped: merged.skipped,
-          ...(merged.dropped > 0
-            ? { warning: { code: "competitors-truncated" as const, dropped: merged.dropped } }
-            : {}),
-        };
-      } catch {
-        competitorsResult = { warning: { code: "competitors-merge-failed" as const } };
-      }
-    }
-
-    // Seed a scan-tagged keyword list from the scan's keywords — tenant-scoped, the
-    // same tenant the keyword-lists route resolves (lists are per-tenant, onboarding
-    // is per-project). Idempotent: skip when a scan-originated list already exists, so
-    // re-applying never duplicates it. Best-effort — a keyword-store hiccup never
-    // fails the apply.
-    if (profile.keywords.length > 0) {
-      try {
-        const tenant = await resolveTenant(uid, project.id);
-        const existing = await listKeywordLists(tenant);
-        if (shouldSeedScanList(existing.map((l) => l.seed), profile.keywords.length)) {
-          const keywords = scanKeywordsToSaved(profile.keywords, profile.businessName);
-          if (keywords.length > 0) {
-            await saveKeywordList(tenant, {
-              name: SCAN_LIST_NAME,
-              seed: SCAN_LIST_SEED,
-              source: "sample",
-              keywords,
-            });
-          }
-        }
-      } catch {
-        /* best-effort seeding */
-      }
-    }
+    // One write, competitor merge + keyword seed included — see lib/onboarding/apply
+    // for why the seeding rules (merge-never-replace, idempotent keyword list) live
+    // there rather than inline here.
+    const applied = await applyScanToProject(uid, project, profile, {
+      now,
+      ...(dismissed ? { extra: dismissed } : {}),
+    });
+    return Response.json({ ok: true, ...(applied.competitors ? { competitors: applied.competitors } : {}) });
   }
 
-  if (typeof body?.dismissed === "boolean") next.dismissed = body.dismissed;
-
+  // Flags-only patch (the dismiss toggle): no scan to apply, so the state is read,
+  // patched and saved right here — the same single write the apply path performs.
+  const existing = await getOnboarding(project.id).catch(() => null);
+  const next: OnboardingState = { ...(existing ?? {}), ...(dismissed ?? {}), updatedAt: now };
   await saveOnboarding(project.id, next);
-  return Response.json({ ok: true, ...(competitorsResult ? { competitors: competitorsResult } : {}) });
+  return Response.json({ ok: true });
 }
 
 /** Reset onboarding (drops the applied scan + flags). */

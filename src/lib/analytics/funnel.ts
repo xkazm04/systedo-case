@@ -20,8 +20,19 @@ export const METRIC_ACTIVATION = "activation";
 /** The anonymous render of the /app sign-in wall (AppSignInGate). */
 export const GATE_ROUTE = "/app-gate";
 
+/** The public no-account website scan (WP W2-B). Its funnel is the ONLY one in the
+ *  product that starts before an account exists, which is exactly why it is worth
+ *  counting separately from the sign-in gate: a visitor who scans and leaves is a
+ *  different failure from one who never scanned at all. */
+export const SKEN_ROUTE = "/sken";
+/** A scan actually ran on the public mode (counted server-side, per generation). */
+export const METRIC_SKEN_SCAN = "sken-scan";
+/** A claimed scan became a real, seeded project (counted in the redeem route). */
+export const METRIC_SKEN_CLAIM = "sken-claim";
+
 export const pageViewMetric = (route: string): string => `view:${route}`;
 export const METRIC_GATE_VIEW = pageViewMetric(GATE_ROUTE);
+export const METRIC_SKEN_VIEW = pageViewMetric(SKEN_ROUTE);
 
 export type FunnelStatus = "no-data" | "insufficient" | "ok";
 
@@ -100,6 +111,25 @@ export function signupConversionRollup(
   opts: { windowDays?: number; now?: Date; minDenominator?: number } = {}
 ): FunnelRollup {
   return funnelRollup(rows, { numerator: METRIC_SIGNUP, denominator: METRIC_GATE_VIEW }, opts);
+}
+
+/** The public-scan funnel, as its two honest steps — never collapsed into one
+ *  headline number, because they fail for opposite reasons:
+ *   - `scan`  = scans ÷ /sken views. A low rate is a PAGE problem (the promise, the
+ *     form, the trust copy) — the visitor never asked for anything.
+ *   - `claim` = claimed projects ÷ scans. A low rate is a RESULT problem (the scan
+ *     read wrong, or signing in to keep it felt like too much) — the visitor asked,
+ *     got an answer, and walked.
+ *  Both inherit `funnelRollup`'s refusal to invent a rate on a thin window, so a
+ *  freshly-shipped page reports counts and an explicit "insufficient", not 0 %. */
+export function skenFunnelRollup(
+  rows: readonly DailyMetricRow[],
+  opts: { windowDays?: number; now?: Date; minDenominator?: number } = {}
+): { scan: FunnelRollup; claim: FunnelRollup } {
+  return {
+    scan: funnelRollup(rows, { numerator: METRIC_SKEN_SCAN, denominator: METRIC_SKEN_VIEW }, opts),
+    claim: funnelRollup(rows, { numerator: METRIC_SKEN_CLAIM, denominator: METRIC_SKEN_SCAN }, opts),
+  };
 }
 
 /** Onboarding activation: checklist-complete transitions per new account. */
