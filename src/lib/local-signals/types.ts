@@ -8,6 +8,18 @@ import type { KeywordRank } from "@/lib/mappack/sample";
 
 export type LocalSignalsSource = "import" | "url" | "gbp";
 
+/** The SEARCH ENGINE a local observation was made on (W1-C). Orthogonal to
+ *  {@link LocalSignalsSource}, which says how the rows got here (pasted / URL / GBP)
+ *  — this says WHOSE map they describe: Google (Maps / the local 3-pack) or Seznam
+ *  (Mapy.cz / Firmy.cz), the second engine that actually matters on the Czech market.
+ *
+ *  LEGACY-READ RULE: the field is optional everywhere and ABSENT means `"google"`.
+ *  Nothing on the read path (normalizeSignals / normalizeLadder / packsFromImported)
+ *  may WRITE `engine: "google"` onto a row that did not carry it — every blob stored
+ *  before this feature, and every Google-only import after it, stays byte-identical. */
+export const LOCAL_ENGINES = ["google", "seznam"] as const;
+export type LocalEngine = (typeof LOCAL_ENGINES)[number];
+
 export interface LocalSignalsMeta {
   source: LocalSignalsSource;
   /** ISO timestamp of the sync/import that produced these rows */
@@ -100,6 +112,9 @@ export interface ImportedPackRow {
   lat?: number;
   /** observed longitude — present ONLY when the export carried coordinates */
   lng?: number;
+  /** which engine's map this listing was observed on. ABSENT ⇒ "google" (see
+   *  {@link LocalEngine}); only a Seznam row ever carries the field. */
+  engine?: LocalEngine;
 }
 
 /** The live map-pack section: its own provenance + the imported pack listings. */

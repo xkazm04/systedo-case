@@ -4,11 +4,11 @@
  *  request the gate-tracked `local-diagnosis` tool reads, so the SAME mapping is
  *  reused by the module/panel and any batch caller instead of being duplicated.
  *  Framework-free + pure; imports only the pure compute helpers (client-safe). */
-import type { LocalDiagnosisGap, LocalDiagnosisRequest } from "../ai-types";
+import type { LocalDiagnosisGap, LocalDiagnosisLadder, LocalDiagnosisRequest } from "../ai-types";
 import type { LocalTarget } from "../local/sample";
 import { gaps, localSummary } from "../local/compute";
 import type { KeywordRank } from "../mappack/sample";
-import { changeSinceLast, ladderSpanDays } from "../mappack/compute";
+import { changeSinceLast, ladderForEngine, ladderSpanDays } from "../mappack/compute";
 import type { ReviewItem } from "../reviews/sample";
 import { sentiment, type InboxReview } from "../reviews/compute";
 import { responseHealth } from "../reviews/health";
@@ -39,8 +39,51 @@ export interface LocalDiagnosisInputs {
   topGaps?: number;
 }
 
+/** The request shape this builder actually produces (W1-C). Identical to
+ *  {@link LocalDiagnosisRequest} plus the Seznam ladder rollup, kept as a local
+ *  intersection until the one additive optional field lands on `LocalDiagnosisRequest`
+ *  in `src/lib/ai-types.ts` (an OFF-LIMITS file for this work package — see the seam
+ *  request). Assignable to `LocalDiagnosisRequest` in both directions of use, so every
+ *  existing caller and the gate-tracked tool are unaffected. */
+export type LocalDiagnosisRequestDual = LocalDiagnosisRequest & {
+  /** the SEZNAM (Mapy.cz) half of the ladder, present only when Seznam rows exist */
+  ladderSeznam?: LocalDiagnosisLadder;
+};
+
+/** Roll one engine's ladder rows up into the shape the diagnosis reads. Pure; the
+ *  arithmetic is verbatim what the single-engine builder did, so a Google-only ladder
+ *  produces a byte-identical `ladder` block. */
+function rollupLadder(rows: KeywordRank[], live: boolean): LocalDiagnosisLadder {
+  const tracked = rows.length;
+  const inPack = rows.filter((r) => r.current <= 3).length;
+  const top1 = rows.filter((r) => r.current === 1).length;
+  const avgRank = rows.reduce((a, r) => a + r.current, 0) / tracked;
+  let improved = 0;
+  let declined = 0;
+  let netSinceLast = 0;
+  for (const k of rows) {
+    const sl = changeSinceLast(k);
+    if (sl === null) continue;
+    netSinceLast += sl;
+    if (sl > 0) improved++;
+    else if (sl < 0) declined++;
+  }
+  return {
+    tracked,
+    inPack,
+    top1,
+    avgRank,
+    packRate: tracked > 0 ? inPack / tracked : 0,
+    spanDays: ladderSpanDays(rows),
+    improved,
+    declined,
+    netSinceLast,
+    live,
+  };
+}
+
 /** Build the local-diagnosis request from the resolved signals. Pure. */
-export function buildLocalDiagnosisRequest(input: LocalDiagnosisInputs): LocalDiagnosisRequest {
+export function buildLocalDiagnosisRequest(input: LocalDiagnosisInputs): LocalDiagnosisRequestDual {
   const s = localSummary(input.targets, []);
   const topGaps = input.topGaps ?? 8;
   const gapRows: LocalDiagnosisGap[] = gaps(input.targets)
@@ -52,7 +95,7 @@ export function buildLocalDiagnosisRequest(input: LocalDiagnosisInputs): LocalDi
       monthlyVolume: g.monthlyVolume,
     }));
 
-  const req: LocalDiagnosisRequest = {
+  const req: LocalDiagnosisRequestDual = {
     coveragePct: s.coverage,
     trackedCombos: s.total,
     withPage: s.withPage,
@@ -63,34 +106,16 @@ export function buildLocalDiagnosisRequest(input: LocalDiagnosisInputs): LocalDi
 
   // Ladder rollup + movement since the last import (live ladders only carry a
   // meaningful span; the sample's synthetic dates still compute honestly).
-  if (input.ladder.length > 0) {
-    const tracked = input.ladder.length;
-    const inPack = input.ladder.filter((r) => r.current <= 3).length;
-    const top1 = input.ladder.filter((r) => r.current === 1).length;
-    const avgRank = input.ladder.reduce((a, r) => a + r.current, 0) / tracked;
-    let improved = 0;
-    let declined = 0;
-    let netSinceLast = 0;
-    for (const k of input.ladder) {
-      const sl = changeSinceLast(k);
-      if (sl === null) continue;
-      netSinceLast += sl;
-      if (sl > 0) improved++;
-      else if (sl < 0) declined++;
-    }
-    req.ladder = {
-      tracked,
-      inPack,
-      top1,
-      avgRank,
-      packRate: tracked > 0 ? inPack / tracked : 0,
-      spanDays: ladderSpanDays(input.ladder),
-      improved,
-      declined,
-      netSinceLast,
-      live: input.ladderLive,
-    };
-  }
+  //
+  // W1-C: the two engines are rolled up SEPARATELY and never averaged together — a
+  // Google #2 and a Mapy.cz #9 for the same keyword are two different facts, and one
+  // blended "average position" would be a number that describes neither map. `ladder`
+  // stays the Google rollup (so a project with no Seznam rows is unchanged down to the
+  // field order) and Seznam gets its own optional block.
+  const googleLadder = ladderForEngine(input.ladder, "google");
+  const seznamLadder = ladderForEngine(input.ladder, "seznam");
+  if (googleLadder.length > 0) req.ladder = rollupLadder(googleLadder, input.ladderLive);
+  if (seznamLadder.length > 0) req.ladderSeznam = rollupLadder(seznamLadder, input.ladderLive);
 
   // Review sentiment, plus reply-health from the inbox triage when it is loaded (D2).
   // The answered flag is the inbox's per-review triage overlaid on the resolved set.

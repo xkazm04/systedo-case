@@ -4,7 +4,15 @@
  *  reduced-motion-safe (static). Real seam: a rank tracker. */
 import { Pill } from "@/components/ui";
 import { getT } from "@/lib/i18n/server";
-import { changeSinceLast, ladderSpanDays, rankDecline, sortLadder } from "@/lib/mappack/compute";
+import {
+  changeSinceLast,
+  ENGINE_LABEL,
+  engineOf,
+  enginesPresent,
+  ladderSpanDays,
+  rankDecline,
+  sortLadder,
+} from "@/lib/mappack/compute";
 import { rankTone } from "@/lib/local/tones";
 import type { KeywordRank, RankPoint } from "@/lib/mappack/sample";
 
@@ -25,6 +33,7 @@ const T = {
     decliningTitle: "Klesá v {run} importech za sebou (−{drop} pozic)",
     untracked: "mimo import",
     untrackedTitle: "V posledním importu chybí. Historie zachována",
+    engineTitle: "Pozice měřená ve vyhledávači {engine}",
   },
   en: {
     title: "Keyword ranking ladder",
@@ -42,6 +51,7 @@ const T = {
     decliningTitle: "Declining for {run} imports in a row (−{drop} positions)",
     untracked: "absent",
     untrackedTitle: "Absent from the last import. History preserved",
+    engineTitle: "Position measured on {engine}",
   },
 } as const;
 
@@ -78,6 +88,10 @@ function Sparkline({ history, maxRank }: { history: RankPoint[]; maxRank: number
 export default async function RankLadder({ rows }: { rows: KeywordRank[] }) {
   const t = await getT(T);
   const sorted = sortLadder(rows);
+  // W1-C: a per-row engine chip ONLY when the ladder actually mixes engines — a
+  // Google-only project (every project before the dual-engine import) renders exactly
+  // the same table it did, with no chip repeating "Google Maps" on every line.
+  const engines = enginesPresent(sorted);
   const maxRank = Math.max(2, ...sorted.flatMap((r) => r.history.map((p) => p.rank)));
   // The actual observed tracking window — drives the header instead of a hardcoded 90d.
   const spanDays = ladderSpanDays(sorted);
@@ -112,6 +126,13 @@ export default async function RankLadder({ rows }: { rows: KeywordRank[] }) {
                   <td className="px-5 py-3 font-medium text-navy-800">
                     <span className="flex flex-wrap items-center gap-1.5">
                       {r.keyword}
+                      {engines.length > 1 && (
+                        <Pill tone="navy" className="text-[10px]">
+                          <span title={t("engineTitle", { engine: ENGINE_LABEL[engineOf(r)] })}>
+                            {ENGINE_LABEL[engineOf(r)]}
+                          </span>
+                        </Pill>
+                      )}
                       {decline && (
                         <Pill
                           tone="coral"

@@ -12,6 +12,7 @@ import {
   parseGbpRows,
   parseCoverageRows,
   parsePackRows,
+  mergePackRows,
   mergeLadder,
   mergeCoverage,
 } from "@/lib/local-signals/import";
@@ -53,6 +54,7 @@ const PACK_ERROR_CS: Record<PackRowErrorCode, string> = {
   "bad-coords": "souřadnice musí být obě a v platném rozsahu",
   "duplicate-rank": "tato pozice je v oblasti už obsazená",
   "duplicate-name": "tento podnik je v oblasti uveden dvakrát",
+  "invalid-engine": "neznámý vyhledávač — použijte „google\" nebo „seznam\" (přijímáme i mapy.cz / firmy.cz)",
 };
 
 /** The top-level meta represents the LADDER section (kept for backward compat). When a
@@ -181,8 +183,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // competitor renames every position below it and rewrites share-of-voice. Any
     // malformed row fails the WHOLE import with a coded, line-numbered error and
     // nothing is persisted — never a partial silent set. The section REPLACES the
-    // previous pack (a pack is a snapshot of one observation, not an accumulating
-    // history like the rank ladder).
+    // previous pack PER ENGINE (W1-C): a pack is a snapshot of one observation, not
+    // an accumulating history — but a Seznam upload must not wipe the Google pack,
+    // so rows merge by engine (replace within engine, keep the other).
     const { rows, errors } = parsePackRows(text);
     if (errors.length > 0) {
       const shown = errors.slice(0, 5).map((e) => `${e.line}: ${PACK_ERROR_CS[e.code]}`).join("; ");
@@ -203,7 +206,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       ...(prev?.reviews ? { reviews: prev.reviews } : {}),
       ...(prev?.gbp ? { gbp: prev.gbp } : {}),
       ...(prev?.coverage ? { coverage: prev.coverage } : {}),
-      pack: { meta: meta(rows.length), rows },
+      pack: (() => {
+        const merged = mergePackRows(prev?.pack?.rows ?? [], rows);
+        return { meta: meta(merged.length), rows: merged };
+      })(),
     }));
     return Response.json({ ok: true, rowCount: rows.length });
   }

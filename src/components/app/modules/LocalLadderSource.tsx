@@ -20,7 +20,7 @@ const T = {
     revertConfirm: "Přepnout zpět na ukázková data? Naimportované pozice (včetně historie) se odstraní a nahradí ukázkovými.",
     sampleNote: "Ukázkové pozice (ilustrativní). Naimportujte reálné pozice z libovolného rank trackeru.",
     importCta: "Importovat pozice",
-    importHelp: "Vložte řádky ve formátu: klíčové slovo, oblast, pozice (oddělené čárkou, středníkem nebo tabem). První řádek může být hlavička.",
+    importHelp: "Vložte řádky ve formátu: klíčové slovo, oblast, pozice (oddělené čárkou, středníkem nebo tabem). Volitelný čtvrtý sloupec „vyhledávač\" (google / seznam, přijmeme i mapy.cz nebo firmy.cz) rozliší pozice v Mapách Google a na Mapy.cz — bez něj se řádek počítá jako Google. První řádek může být hlavička.",
     importBtn: "Nahrát pozice",
     importing: "Nahrávám…",
     failed: "Import se nezdařil.",
@@ -28,7 +28,7 @@ const T = {
     urlPlaceholder: "https://…/pozice.csv",
     urlBtn: "Načíst z URL",
     or: "nebo",
-    textareaPlaceholder: "klíčové slovo, oblast, pozice\nzubař, Žižkov, 3",
+    textareaPlaceholder: "klíčové slovo, oblast, pozice, vyhledávač\nzubař, Žižkov, 3, google\nzubař, Žižkov, 5, seznam",
   },
   en: {
     live: "Live data · imported rankings",
@@ -39,7 +39,7 @@ const T = {
     revertConfirm: "Switch back to sample data? Your imported rankings (including their history) will be removed and replaced with the sample.",
     sampleNote: "Sample rankings (illustrative). Import your real positions from any rank tracker.",
     importCta: "Import rankings",
-    importHelp: "Paste rows as: keyword, area, position (comma-, semicolon- or tab-separated). A header row is optional.",
+    importHelp: "Paste rows as: keyword, area, position (comma-, semicolon- or tab-separated). An optional fourth column, „engine\" (google / seznam — mapy.cz and firmy.cz are accepted too), separates Google Maps positions from Mapy.cz ones; without it a row counts as Google. A header row is optional.",
     importBtn: "Upload rankings",
     importing: "Uploading…",
     failed: "Import failed.",
@@ -47,7 +47,7 @@ const T = {
     urlPlaceholder: "https://…/rankings.csv",
     urlBtn: "Fetch from URL",
     or: "or",
-    textareaPlaceholder: "keyword, area, position\ndentist, Žižkov, 3",
+    textareaPlaceholder: "keyword, area, position, engine\ndentist, Žižkov, 3, google\ndentist, Žižkov, 5, seznam",
   },
 } as const;
 

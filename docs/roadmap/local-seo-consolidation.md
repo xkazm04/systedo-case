@@ -106,6 +106,21 @@ Framework-free core first (typecheck + `seed:check` gates it), then wiring.
 ### Phase 6 — Account features backlog  *(point 6)*
 Each is a *production-quality* target (local-seo has the feature but not the polish). Specs below.
 
+### Dual engine — Google Maps **and** Seznam Mapy.cz  *(WP W1-C, shipped 2026-08-29)*
+A Czech local business is not only on Google, so the rank ladder, the competitor pack, the map and
+the diagnosis grounding are now engine-aware. Both importers (`ranks` and `pack`) accept ONE optional
+extra column — `engine` / `vyhledávač` / `zdroj` / `mapa`, values `google | seznam` with `mapy.cz`
+and `firmy.cz` folded onto Seznam — and the engine lives *inside* the rows of the existing
+`local_signals` blob: no new table, no migration, no key change (`ladderKey` keeps the historical
+`keyword|area` form for Google and only Seznam gets a scoped `keyword|area|seznam`). The contract is
+additive and legacy-read: an absent `engine` **is** Google, and nothing on the read path ever writes
+`engine: "google"` onto a row, so every stored blob and the seeded sample stay byte-identical. Pack
+uniqueness is scoped per `(area, engine)`, an import of one engine keeps the other engine's pack
+(`mergePackRows`), the ladder rollup for the diagnosis is computed per engine and never averaged
+across them, and a Seznam tab with nothing imported shows an honest empty state rather than the
+Google sample relabelled. Live rank *fetching* is still out of scope on both engines — the
+instrument remains the import.
+
 ---
 
 ## Account features backlog (point 6)

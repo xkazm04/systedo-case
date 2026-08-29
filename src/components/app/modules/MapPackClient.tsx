@@ -14,8 +14,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import { Pill } from "@/components/ui";
+import EngineSwitch, { EngineEmpty, useEngineScope } from "@/components/app/modules/mappack/EngineSwitch";
 import { useFormatters, useT } from "@/lib/i18n/client";
-import { shareOfVoice, sortByRank } from "@/lib/mappack/compute";
+import { ENGINE_LABEL, shareOfVoice, sortByRank } from "@/lib/mappack/compute";
 import { rankTone } from "@/lib/local/tones";
 import type { AreaPack, MapListing } from "@/lib/mappack/sample";
 
@@ -176,20 +177,18 @@ export default function MapPackClient({
 }) {
   const t = useT(T);
   const fmt = useFormatters();
-  const [selectedId, setSelectedId] = useState(areas[0]?.areaId ?? "");
-  const selected = areas.find((a) => a.areaId === selectedId) ?? areas[0];
+  const scope = useEngineScope(areas); // W1-C: which engine's map, and which area in it
+  const { selected } = scope;
 
   // Only listings with real coordinates get pinned; an imported listing without geo
-  // still ranks and still counts toward share-of-voice. Memoized on the listings
-  // reference — LeafletMap rebuilds the map whenever `points` changes identity, so a
-  // fresh array every render would tear the map down on each parent re-render.
-  const listings = selected?.listings;
+  // still ranks and counts toward share-of-voice. Memoized on the selected pack: a fresh
+  // array every render would tear the map down (LeafletMap rebuilds when `points` moves).
   const points = useMemo(
-    () => (listings ?? []).filter((l): l is GeoListing => l.lat !== undefined && l.lng !== undefined),
-    [listings]
+    () => (selected?.listings ?? []).filter((l): l is GeoListing => l.lat !== undefined && l.lng !== undefined),
+    [selected]
   );
 
-  if (!selected) return null;
+  if (!selected) return scope.engines.length > 0 ? <EngineEmpty scope={scope} /> : null;
 
   const ranked = sortByRank(selected.listings);
   // share-of-voice per listing, aligned to the ranked order
@@ -199,14 +198,15 @@ export default function MapPackClient({
 
   return (
     <div className="space-y-4">
+      {scope.engines.length > 1 && <EngineSwitch scope={scope} />}
       {/* area tabs */}
       <div className="flex flex-wrap gap-2">
-        {areas.map((a) => {
+        {scope.shown.map((a) => {
           const active = a.areaId === selected.areaId;
           return (
             <button
               key={a.areaId}
-              onClick={() => setSelectedId(a.areaId)}
+              onClick={() => scope.setSelectedId(a.areaId)}
               className={
                 "rounded-pill border px-3.5 py-1.5 text-sm font-semibold transition-colors " +
                 (active
@@ -237,7 +237,7 @@ export default function MapPackClient({
             <span className="flex items-center gap-2">
               <span className="inline-block h-2.5 w-2.5 rounded-[3px] border border-navy-800 bg-surface" aria-hidden /> {t("competitor")}
             </span>
-            <span className="tnum">{t("inPack", { n: selected.listings.length })}</span>
+            <span className="tnum">{ENGINE_LABEL[scope.engine]} · {t("inPack", { n: selected.listings.length })}</span>
           </div>
         </figure>
 

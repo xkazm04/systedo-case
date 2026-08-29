@@ -2,8 +2,41 @@
  *  the imported-pack builder (E1). Pure (only the row types), so it has a matching
  *  test-unit. */
 import type { AreaPack, KeywordRank, MapListing } from "./sample";
-import type { ImportedPackRow } from "@/lib/local-signals/types";
+import type { ImportedPackRow, LocalEngine } from "@/lib/local-signals/types";
+import { LOCAL_ENGINES } from "@/lib/local-signals/types";
 import { detectWeeklyRun } from "@/lib/metrics/trends";
+
+/** How each engine is named in the UI. Brand names, identical in cs and en, so they
+ *  are deliberately NOT part of any `T` table — translating „Mapy.cz" would be wrong. */
+export const ENGINE_LABEL: Record<LocalEngine, string> = {
+  google: "Google Maps",
+  seznam: "Mapy.cz",
+};
+
+/** The engine a row/pack was observed on, applying the legacy-read rule (absent ⇒
+ *  google). The ONE place that default lives, so no consumer re-invents it. */
+export function engineOf(item: { engine?: LocalEngine }): LocalEngine {
+  return item.engine ?? "google";
+}
+
+/** Which engines a set of ladder rows or packs actually covers, in a stable order
+ *  (`LOCAL_ENGINES`). An EMPTY input yields an empty list — never a phantom "google"
+ *  — so a surface can tell "no rows at all" from "google rows only" and show an honest
+ *  empty state instead of relabelling the sample. Pure. */
+export function enginesPresent(items: readonly { engine?: LocalEngine }[]): LocalEngine[] {
+  const seen = new Set<LocalEngine>(items.map(engineOf));
+  return LOCAL_ENGINES.filter((e) => seen.has(e));
+}
+
+/** The ladder rows observed on one engine (legacy rows count as google). Pure. */
+export function ladderForEngine(rows: readonly KeywordRank[], engine: LocalEngine): KeywordRank[] {
+  return rows.filter((r) => engineOf(r) === engine);
+}
+
+/** The packs observed on one engine (legacy/sample packs count as google). Pure. */
+export function packsForEngine(packs: readonly AreaPack[], engine: LocalEngine): AreaPack[] {
+  return packs.filter((p) => engineOf(p) === engine);
+}
 
 /** Illustrative map-pack click weights by position (1-indexed) — the top of the
  *  pack takes the lion's share, decaying fast. Used to turn ranks into a
@@ -119,7 +152,10 @@ function foldArea(s: string): string {
 /** Turn imported pack rows into the AreaPack[] the map renders (E1). Pure — the store
  *  seam and the live/sample decision live in `local-signals/resolve`.
  *
- *  - one pack per distinct (folded) area, in first-seen order; listings sorted by rank
+ *  - one pack per distinct (folded) area PER ENGINE, in first-seen order; listings
+ *    sorted by rank. A Seznam observation of „Praha" is its own pack beside the Google
+ *    one, with a `-seznam`-suffixed `areaId` so the two never share a React key or a
+ *    listing id. A google-only import produces exactly the packs it produced before.
  *  - `you` is the row's explicit flag, or a name match against `businessName` when the
  *    export carried no flag (a pack export names the business, it doesn't mark it)
  *  - `center` is the MEAN of the coordinates the export actually supplied; an area whose
@@ -127,15 +163,17 @@ function foldArea(s: string): string {
  *    share-of-voice still computes, but nothing fake is placed on the map. */
 export function packsFromImported(rows: ImportedPackRow[], businessName?: string): AreaPack[] {
   const wanted = businessName ? foldArea(businessName) : "";
-  const byArea = new Map<string, { city: string; rows: ImportedPackRow[] }>();
+  const byArea = new Map<string, { city: string; engine: LocalEngine; rows: ImportedPackRow[] }>();
   for (const r of rows) {
-    const key = foldArea(r.area);
+    const engine = engineOf(r);
+    // Google keeps the bare folded area as its id — the sample/import path is unchanged.
+    const key = engine === "google" ? foldArea(r.area) : `${foldArea(r.area)}-${engine}`;
     const bucket = byArea.get(key);
     if (bucket) bucket.rows.push(r);
-    else byArea.set(key, { city: r.area.trim(), rows: [r] });
+    else byArea.set(key, { city: r.area.trim(), engine, rows: [r] });
   }
 
-  return [...byArea.entries()].map(([areaId, { city, rows: areaRows }]) => {
+  return [...byArea.entries()].map(([areaId, { city, engine, rows: areaRows }]) => {
     const sorted = [...areaRows].sort((a, b) => a.rank - b.rank);
     // An explicit `you` flag anywhere in the area wins; otherwise fall back to the
     // name match, so a flagged export is never overridden by a coincidental name.
@@ -157,7 +195,15 @@ export function packsFromImported(rows: ImportedPackRow[], businessName?: string
             lng: geo.reduce((a, l) => a + l.lng!, 0) / geo.length,
           }
         : undefined;
-    return { areaId, city, ...(center ? { center } : {}), listings };
+    // `engine` is stamped only for a non-google pack, so a Google-only import
+    // serializes exactly as it did before the dual-engine contract.
+    return {
+      areaId,
+      city,
+      ...(center ? { center } : {}),
+      listings,
+      ...(engine !== "google" ? { engine } : {}),
+    };
   });
 }
 

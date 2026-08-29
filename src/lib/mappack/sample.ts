@@ -7,6 +7,7 @@
  *  project. Framework-free. */
 import type { Project } from "@/lib/projects/types";
 import type { Locality, ServiceOffering } from "@/lib/catalog/offering";
+import type { LocalEngine } from "@/lib/local-signals/types";
 import { seed01 } from "@/lib/project-data/seed";
 
 /** Real city-center coordinates for the seeded demo localities — the map centers
@@ -51,6 +52,9 @@ export interface AreaPack {
    *  coordinates at all (the map then shows its "no coordinates yet" note). */
   center?: { lat: number; lng: number };
   listings: MapListing[];
+  /** which engine's map this pack was observed on (W1-C). ABSENT ⇒ "google", so the
+   *  seeded sample and every Google-only import serialize exactly as before. */
+  engine?: LocalEngine;
 }
 
 /** One time-anchored observation in a keyword's rank history. Replaces the old
@@ -76,6 +80,9 @@ export interface KeywordRank {
    *  the most recent import (its history is preserved, not deleted). Undefined/false =
    *  present in the last import. Only imported ladders set it; the sample never does. */
   untracked?: boolean;
+  /** which engine this rank was observed on (W1-C). ABSENT ⇒ "google" — the sample
+   *  never sets it and a Google import never writes it, so legacy blobs are untouched. */
+  engine?: LocalEngine;
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;

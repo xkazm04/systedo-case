@@ -8,6 +8,7 @@ import type {
   ImportedGbpRow,
   ImportedPackRow,
   ImportedReview,
+  LocalEngine,
   LocalSignals,
 } from "./types";
 
@@ -17,14 +18,45 @@ export interface ParsedRankRow {
   keyword: string;
   area: string;
   rank: number;
+  /** the engine the rank was observed on. Set ONLY for `"seznam"` — a google row (the
+   *  column absent, empty, or naming Google) carries no field at all, so the parsed
+   *  row, the ladder built from it and the persisted blob stay byte-identical to
+   *  before the dual-engine contract existed (W1-C legacy-read rule). */
+  engine?: LocalEngine;
 }
 
 /** Header aliases (cs/en) → canonical column. Order-independent parsing. */
-const COL: Record<string, "keyword" | "area" | "rank"> = {
+const COL: Record<string, "keyword" | "area" | "rank" | "engine"> = {
   keyword: "keyword", "klíčové slovo": "keyword", "klicove slovo": "keyword", dotaz: "keyword", query: "keyword",
   area: "area", oblast: "area", lokalita: "area", město: "area", mesto: "area", district: "area", čtvrť: "area", ctvrt: "area",
   rank: "rank", pozice: "rank", position: "rank", pořadí: "rank", poradi: "rank",
+  engine: "engine", "vyhledávač": "engine", vyhledavac: "engine", zdroj: "engine", mapa: "engine",
 };
+
+// ── Engine column (W1-C) ─────────────────────────────────────────────────────
+// Both local importers (ranks and pack) accept ONE optional extra column naming the
+// search engine the observation came from, so a Czech business can bring its Mapy.cz /
+// Firmy.cz positions into the same ladder as its Google ones. The column is optional
+// everywhere: absent or empty means Google, which is what every pre-existing export is.
+
+/** Accepted cell values → the canonical engine. Matched after a diacritic/case fold. */
+const ENGINE_VALUES: Record<string, LocalEngine> = {
+  google: "google", "google maps": "google", googlemaps: "google", "google mapy": "google", maps: "google", mapy_google: "google",
+  seznam: "seznam", "seznam.cz": "seznam", seznamcz: "seznam", mapy: "seznam", "mapy.cz": "seznam", mapycz: "seznam",
+  firmy: "seznam", "firmy.cz": "seznam", firmycz: "seznam",
+};
+
+/** Classify an engine cell.
+ *  - `undefined` → the column is absent/empty ⇒ Google, and NOTHING is written.
+ *  - a {@link LocalEngine} → a recognised value (case- and diacritic-insensitive).
+ *  - `null` → a value that is present but unrecognised. Never guessed: mis-attributing
+ *    a Seznam position to Google would silently corrupt both ladders, so the caller
+ *    rejects the row with `invalid-engine` instead. */
+export function parseEngineCell(raw: string | undefined): LocalEngine | null | undefined {
+  const s = (raw ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+  if (!s) return undefined;
+  return ENGINE_VALUES[s] ?? null;
+}
 
 /** The canonical identity of a keyword×area row — case/whitespace-normalized and
  *  joined with a pipe (a delimiter that cannot appear in the collapsed slug the old
@@ -32,9 +64,15 @@ const COL: Record<string, "keyword" | "area" | "rank"> = {
  *  areas like „Praha 4" and „Praha-4" no longer collapse to the same slug id and get
  *  merged into one keyword's history (D2 slug-collision fix). Legacy slug ids (`area-
  *  keyword`) still READ fine — the merge matches on this pair derived from the row's
- *  keyword/area fields, never on the stored id string, so old blobs re-key cleanly. */
-export function ladderKey(keyword: string, area: string): string {
-  return `${keyword.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
+ *  keyword/area fields, never on the stored id string, so old blobs re-key cleanly.
+ *
+ *  W1-C: the key is ENGINE-SCOPED, but only on the Seznam side — google keeps exactly
+ *  `keyword|area` and seznam gets `keyword|area|seznam`. So every key (and every `id`
+ *  derived from one) that existed before the dual-engine contract is unchanged, while
+ *  the same keyword×area tracked on both engines is two independent histories. */
+export function ladderKey(keyword: string, area: string, engine?: LocalEngine): string {
+  const base = `${keyword.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
+  return engine && engine !== "google" ? `${base}|${engine}` : base;
 }
 
 function splitCells(line: string): string[] {
@@ -42,22 +80,43 @@ function splitCells(line: string): string[] {
   return line.split(/[,;\t]/).map((c) => c.trim());
 }
 
+/** A rank row rejected for a reason worth naming (today: only an unrecognised engine
+ *  cell). The ranks importer stays TOLERANT — a bad row is skipped, the good ones are
+ *  kept — but an engine we refuse to guess is reported rather than silently folded
+ *  into Google, so the caller can tell the user which line to fix. */
+export interface RankRowError {
+  /** 1-based line number in the pasted text */
+  line: number;
+  code: Extract<PackRowErrorCode, "invalid-engine">;
+}
+
+export interface ParsedRanks {
+  rows: ParsedRankRow[];
+  errors: RankRowError[];
+}
+
 /** Parse a rank export. Tolerant: a header row maps columns by name; without a
- *  recognisable header it assumes `keyword, area, rank`. Bad/short/duplicate rows
- *  are skipped (last write wins per keyword×area). Ranks clamp to 1..100. */
-export function parseRankRows(text: string): ParsedRankRow[] {
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-  if (lines.length === 0) return [];
+ *  recognisable header it assumes `keyword, area, rank[, engine]`. Bad/short/duplicate
+ *  rows are skipped (last write wins per keyword×area×engine). Ranks clamp to 1..100.
+ *  A row whose optional `engine` cell holds an unrecognised value is skipped AND
+ *  reported in `errors` — never guessed onto one of the two engines. */
+export function parseRanks(text: string): ParsedRanks {
+  const raw = text.split(/\r?\n/);
+  const lines: { line: number; text: string }[] = [];
+  raw.forEach((l, i) => {
+    const trimmed = l.trim();
+    if (trimmed) lines.push({ line: i + 1, text: trimmed });
+  });
+  if (lines.length === 0) return { rows: [], errors: [] };
 
   // Detect a header: a first row whose cells are all known column names.
-  const firstCells = splitCells(lines[0]!).map((c) => c.toLowerCase());
+  const firstCells = splitCells(lines[0]!.text).map((c) => c.toLowerCase());
   const headerCols = firstCells.map((c) => COL[c]);
   const hasHeader = headerCols.every(Boolean) && new Set(headerCols).size === headerCols.length;
 
-  const idx = { keyword: 0, area: 1, rank: 2 };
+  // Headerless order appends `engine` AFTER the three columns that always existed, so
+  // every 3-column export parses exactly as before (cells[3] is simply absent).
+  const idx = { keyword: 0, area: 1, rank: 2, engine: 3 };
   if (hasHeader) {
     headerCols.forEach((col, i) => {
       if (col) idx[col] = i;
@@ -65,16 +124,33 @@ export function parseRankRows(text: string): ParsedRankRow[] {
   }
 
   const byKey = new Map<string, ParsedRankRow>();
-  for (const line of lines.slice(hasHeader ? 1 : 0)) {
-    const cells = splitCells(line);
+  const errors: RankRowError[] = [];
+  for (const { line, text: row } of lines.slice(hasHeader ? 1 : 0)) {
+    const cells = splitCells(row);
     const keyword = cells[idx.keyword]?.trim();
     const area = cells[idx.area]?.trim();
     const rankRaw = Number(cells[idx.rank]?.replace(/[^\d.]/g, ""));
     if (!keyword || !area || !Number.isFinite(rankRaw) || rankRaw < 1) continue;
+    const engine = parseEngineCell(cells[idx.engine]);
+    if (engine === null) {
+      errors.push({ line, code: "invalid-engine" });
+      continue;
+    }
     const rank = Math.min(100, Math.round(rankRaw));
-    byKey.set(ladderKey(keyword, area), { keyword, area, rank });
+    byKey.set(ladderKey(keyword, area, engine), {
+      keyword,
+      area,
+      rank,
+      ...(engine === "seznam" ? { engine } : {}),
+    });
   }
-  return [...byKey.values()];
+  return { rows: [...byKey.values()], errors };
+}
+
+/** Back-compat thin wrapper — just the kept rank rows (drops the coded errors), the
+ *  shape every existing caller reads. Mirrors parseReviewRows over parseReviews. */
+export function parseRankRows(text: string): ParsedRankRow[] {
+  return parseRanks(text).rows;
 }
 
 /** Turn parsed rows into the KeywordRank ladder the module renders. A single import
@@ -83,13 +159,15 @@ export function parseRankRows(text: string): ParsedRankRow[] {
 export function ladderFromRows(rows: ParsedRankRow[], at: string = todayISO()): KeywordRank[] {
   const day = at.slice(0, 10);
   return rows.map((r) => ({
-    id: ladderKey(r.keyword, r.area),
+    id: ladderKey(r.keyword, r.area, r.engine),
     keyword: r.keyword,
     area: r.area,
     history: [{ rank: r.rank, at: day }],
     current: r.rank,
     best: r.rank,
     untracked: false,
+    // Never written for google — see the legacy-read rule on LocalEngine.
+    ...(r.engine === "seznam" ? { engine: r.engine } : {}),
   }));
 }
 
@@ -122,16 +200,28 @@ export function mergeLadder(
   at: string = todayISO()
 ): KeywordRank[] {
   const fresh = ladderFromRows(rows, at);
-  const freshByKey = new Map(fresh.map((k) => [ladderKey(k.keyword, k.area), k]));
+  const freshByKey = new Map(fresh.map((k) => [ladderKey(k.keyword, k.area, k.engine), k]));
   const out: KeywordRank[] = [];
   const seen = new Set<string>();
 
   // Prev order first: update in place when re-imported, else retain + flag untracked.
+  // The key is engine-scoped (google keeps the historical `keyword|area` form), so the
+  // same keyword×area tracked on Google and on Seznam are two independent histories
+  // and neither import ever flags the other engine's rows untracked.
+  // Which engines this import actually speaks for. A row belonging to an engine the
+  // import never mentions is passed through VERBATIM — not flagged `untracked`, because
+  // "absent from the last import" would be a lie about a Google keyword when the user
+  // only uploaded their Seznam ladder. Empty `rows` keeps the pre-W1-C behaviour.
+  const freshEngines = new Set(fresh.map((k) => k.engine ?? "google"));
   for (const p of prev) {
-    const key = ladderKey(p.keyword, p.area);
+    const key = ladderKey(p.keyword, p.area, p.engine);
     seen.add(key);
     const f = freshByKey.get(key);
     if (!f) {
+      if (freshEngines.size > 0 && !freshEngines.has(p.engine ?? "google")) {
+        out.push(p); // another engine's row — this import says nothing about it
+        continue;
+      }
       out.push({ ...p, untracked: true }); // omitted from this import → retained, flagged
       continue;
     }
@@ -160,7 +250,7 @@ export function mergeLadder(
   }
   // New keywords the import introduced.
   for (const f of fresh) {
-    if (!seen.has(ladderKey(f.keyword, f.area))) out.push(f);
+    if (!seen.has(ladderKey(f.keyword, f.area, f.engine))) out.push(f);
   }
   return out;
 }
@@ -197,8 +287,12 @@ function coerceHistory(raw: unknown, anchorISO: string): RankPoint[] {
 export function normalizeLadder(ladder: unknown, anchorISO: string): KeywordRank[] {
   if (!Array.isArray(ladder)) return [];
   return ladder.map((k) => {
-    const row = k as Partial<KeywordRank> & { history?: unknown; untracked?: unknown };
+    const row = k as Partial<KeywordRank> & { history?: unknown; untracked?: unknown; engine?: unknown };
     const history = coerceHistory(row.history, anchorISO);
+    // W1-C: carry a STORED engine through, and never synthesize one. A legacy row (no
+    // engine) must come out of normalization without the field, or every read would
+    // rewrite the blob's shape and break the byte-identity the sample path depends on.
+    const engine = row.engine === "seznam" || row.engine === "google" ? row.engine : undefined;
     return {
       id: String(row.id ?? ""),
       keyword: String(row.keyword ?? ""),
@@ -209,6 +303,7 @@ export function normalizeLadder(ladder: unknown, anchorISO: string): KeywordRank
       // Preserve the D2 retention flag across reads (a subset re-import flags omitted
       // keywords 'untracked'; that flag must survive normalization, not reset to false).
       ...(row.untracked === true ? { untracked: true } : {}),
+      ...(engine ? { engine } : {}),
     };
   });
 }
@@ -570,7 +665,7 @@ export function mergeCoverage(
 // malformed data row therefore FAILS THE WHOLE IMPORT with a coded, line-numbered
 // error and nothing is persisted.
 
-const PACK_COL: Record<string, "area" | "name" | "rank" | "rating" | "reviews" | "you" | "lat" | "lng"> = {
+const PACK_COL: Record<string, "area" | "name" | "rank" | "rating" | "reviews" | "you" | "lat" | "lng" | "engine"> = {
   area: "area", oblast: "area", lokalita: "area", město: "area", mesto: "area", district: "area", čtvrť: "area", ctvrt: "area",
   name: "name", název: "name", nazev: "name", business: "name", podnik: "name", firma: "name", company: "name", listing: "name",
   rank: "rank", pozice: "rank", position: "rank", pořadí: "rank", poradi: "rank",
@@ -579,6 +674,7 @@ const PACK_COL: Record<string, "area" | "name" | "rank" | "rating" | "reviews" |
   you: "you", vy: "you", vaše: "you", vase: "you", self: "you", mine: "you", "můj podnik": "you", "muj podnik": "you",
   lat: "lat", latitude: "lat", "šířka": "lat", sirka: "lat",
   lng: "lng", lon: "lng", long: "lng", longitude: "lng", délka: "lng", delka: "lng",
+  engine: "engine", "vyhledávač": "engine", vyhledavac: "engine", zdroj: "engine", mapa: "engine",
 };
 
 /** Why one pack row was rejected. Machine-readable so the route can return a coded
@@ -591,7 +687,11 @@ export type PackRowErrorCode =
   | "bad-reviews"
   | "bad-coords"
   | "duplicate-rank"
-  | "duplicate-name";
+  | "duplicate-name"
+  /** the optional `engine` column held a value that is neither Google nor Seznam —
+   *  refused rather than guessed onto one of them (W1-C). Shared with the ranks
+   *  importer's {@link RankRowError}. */
+  | "invalid-engine";
 
 export interface PackRowError {
   /** 1-based line number in the pasted text, so the user can find the row */
@@ -643,8 +743,10 @@ export function parsePackRows(text: string): ParsedPack {
   const headerCols = firstCells.map((c) => PACK_COL[c]);
   const hasHeader = headerCols.some(Boolean);
 
-  const idx: Record<"area" | "name" | "rank" | "rating" | "reviews" | "you" | "lat" | "lng", number> = {
-    area: 0, name: 1, rank: 2, rating: 3, reviews: 4, you: 5, lat: 6, lng: 7,
+  // `engine` is appended AFTER every column that existed before it, so a headerless
+  // export written against the old contract (at most 8 cells) parses identically.
+  const idx: Record<"area" | "name" | "rank" | "rating" | "reviews" | "you" | "lat" | "lng" | "engine", number> = {
+    area: 0, name: 1, rank: 2, rating: 3, reviews: 4, you: 5, lat: 6, lng: 7, engine: 8,
   };
   if (hasHeader) {
     headerCols.forEach((col, i) => {
@@ -710,7 +812,19 @@ export function parsePackRows(text: string): ParsedPack {
       lng = lngN;
     }
 
-    const areaKey = fold(area);
+    // W1-C: an unrecognised engine is a hard rejection like any other bad cell — a pack
+    // is a RANKING, and filing a Mapy.cz position under Google would corrupt both.
+    const engine = parseEngineCell(cells[idx.engine]);
+    if (engine === null) {
+      push("invalid-engine");
+      continue;
+    }
+
+    // Uniqueness is scoped per (area, ENGINE): a Seznam pack for „Praha 4" is a second
+    // observation of the same area, not a duplicate of the Google one. The google scope
+    // string keeps its historical `area|…` form so nothing about the single-engine path
+    // changes.
+    const areaKey = engine === "seznam" ? `${fold(area)}|seznam` : fold(area);
     if (seenRank.has(`${areaKey}|${rank}`)) {
       push("duplicate-rank");
       continue;
@@ -730,10 +844,30 @@ export function parsePackRows(text: string): ParsedPack {
       reviews: Math.round(reviews),
       you: truthyFlag(cells[idx.you]),
       ...(lat !== undefined && lng !== undefined ? { lat, lng } : {}),
+      ...(engine === "seznam" ? { engine } : {}),
     });
   }
 
   return { rows, errors };
+}
+
+/** Fold a NEW pack import onto the stored pack rows, ENGINE BY ENGINE (W1-C).
+ *
+ *  A pack is a snapshot, not an accumulating history, so within one engine the import
+ *  still REPLACES outright — the semantics the strict importer was built around. What
+ *  changes is that the replacement is scoped: an upload carrying only Google rows
+ *  leaves an earlier Seznam pack exactly where it was, and vice versa, so the two
+ *  engines can be maintained on their own cadences instead of overwriting each other.
+ *
+ *  A Google-only import onto a Google-only pack returns `rows` unchanged — byte-for-byte
+ *  the old replace — so nothing about the single-engine path moves. Pure. */
+export function mergePackRows(
+  prev: ImportedPackRow[],
+  rows: ImportedPackRow[]
+): ImportedPackRow[] {
+  const replacing = new Set(rows.map((r) => r.engine ?? "google"));
+  const kept = prev.filter((r) => !replacing.has(r.engine ?? "google"));
+  return kept.length > 0 ? [...kept, ...rows] : rows;
 }
 
 /** Normalize a persisted LocalSignals blob on read: dual-shape ladder history is

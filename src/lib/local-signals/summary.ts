@@ -12,7 +12,7 @@ import { localitiesFor } from "@/lib/catalog/resolve";
 import { loadServicesFor } from "@/lib/catalog/load";
 import { keywordLadder } from "@/lib/mappack/sample";
 import { resolveLocalLadder, resolveReviews } from "@/lib/local-signals/resolve";
-import { changeSinceLast, ladderSpanDays, rankDecline } from "@/lib/mappack/compute";
+import { changeSinceLast, ENGINE_LABEL, ladderForEngine, ladderSpanDays, rankDecline } from "@/lib/mappack/compute";
 import { reviewsForProject } from "@/lib/reviews/sample";
 import { bandOf } from "@/lib/reviews/compute";
 import { fmtInt, fmtPct } from "@/lib/format";
@@ -38,13 +38,25 @@ export async function localSignalsPromptText(
   // months-old `current`; folding those stale positions into "sledováno N, v top 3 M"
   // would overstate present coverage. Compute the current figures over active keywords
   // only, and disclose the retained-but-stale count on its own honest line.
+  //
+  // W1-C: the headline figures describe the GOOGLE map only, and Seznam (Mapy.cz) gets
+  // its own line below. Blending two engines into one "average position" would describe
+  // neither map; with no Seznam rows imported (every project before this contract) the
+  // google slice IS the whole ladder, so the appendix is unchanged.
   const active = ladder.filter((r) => !r.untracked);
   const untrackedCount = ladder.length - active.length;
-  const tracked = active.length;
-  const inPack = active.filter((r) => r.current <= 3).length;
-  const top1 = active.filter((r) => r.current === 1).length;
-  const avgRank = tracked > 0 ? active.reduce((a, r) => a + r.current, 0) / tracked : 0;
+  const googleActive = ladderForEngine(active, "google");
+  const seznamActive = ladderForEngine(active, "seznam");
+  const tracked = googleActive.length;
+  const inPack = googleActive.filter((r) => r.current <= 3).length;
+  const top1 = googleActive.filter((r) => r.current === 1).length;
+  const avgRank = tracked > 0 ? googleActive.reduce((a, r) => a + r.current, 0) / tracked : 0;
   const packRate = tracked > 0 ? inPack / tracked : 0;
+  // The Seznam half, computed the same way, reported on its own line.
+  const szTracked = seznamActive.length;
+  const szInPack = seznamActive.filter((r) => r.current <= 3).length;
+  const szAvgRank = szTracked > 0 ? seznamActive.reduce((a, r) => a + r.current, 0) / szTracked : 0;
+  const szPackRate = szTracked > 0 ? szInPack / szTracked : 0;
 
   // Time-anchored trend: over the observed span, how many combos improved vs slipped
   // since the last import, and the net move. Only meaningful when the span is real
@@ -112,6 +124,15 @@ export async function localSignalsPromptText(
         )}), z toho na 1. místě ${fmtInt(top1)}; průměrná pozice ${avgRank.toFixed(1)}.${ladderTag}`
       );
     }
+    if (szTracked > 0) {
+      lines.push(
+        `- Seznam (${ENGINE_LABEL.seznam}): sledováno ${fmtInt(szTracked)} kombinací; v top 3 ${fmtInt(
+          szInPack
+        )} (${fmtPct(szPackRate, 0)}); průměrná pozice ${szAvgRank.toFixed(
+          1
+        )}. Druhý vyhledávač se počítá zvlášť, ne v průměru s Googlem.${ladderTag}`
+      );
+    }
     if (untrackedCount > 0) {
       lines.push(
         `- Poznámka: ${fmtInt(untrackedCount)} klíčových slov nebylo v posledním importu (historie zachována, nezapočítáno do aktuálních čísel).`
@@ -147,6 +168,15 @@ export async function localSignalsPromptText(
           packRate,
           0
         )}), of which #1 for ${fmtInt(top1)}; average position ${avgRank.toFixed(1)}.${ladderTag}`
+      );
+    }
+    if (szTracked > 0) {
+      lines.push(
+        `- Seznam (${ENGINE_LABEL.seznam}): ${fmtInt(szTracked)} combos tracked; top-3 for ${fmtInt(
+          szInPack
+        )} (${fmtPct(szPackRate, 0)}); average position ${szAvgRank.toFixed(
+          1
+        )}. The second engine is counted separately, never averaged with Google.${ladderTag}`
       );
     }
     if (untrackedCount > 0) {
