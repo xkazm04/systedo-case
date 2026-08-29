@@ -48,3 +48,13 @@ carry any of this.
   so a capability added to `AiToolPanel`'s `AiPanelTool<T>` interface reaches all
   four with no call-site edit. That is the one seam in this area where an
   in-context change is not blocked by veto 1 — check it first.
+- **2026-08-29** — **A cross-group moonshot round is one snapshot, not sixteen.** `--develop`
+  with `--lenses moonshot-architect,feature-scout` over all 16 groups was run as a
+  16-way read-only scout fan-out (one general-purpose subagent per group, ~150-250k
+  tokens each) returning L+ cards in the §4.10 form, consolidated here, then triaged
+  one card at a time with AskUserQuestion. `moonshot-architect` is NOT a registered
+  key in `references/lenses.md` — it ran as an owner-defined ad-hoc lens and the
+  snapshot records it as such; do not add it to a context's `lens_keys` as if it were
+  a stabilize-tier pass. Convergence is the signal: 4 groups independently proposed
+  the Sklik+Google spine and 5 the peer benchmark — corroboration count is on the
+  deck (`docs/roadmap/moonshot-deck-2026-08-29.md`).
