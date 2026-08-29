@@ -43,7 +43,7 @@ export async function archiveDrafts(projectId: string, drafts: TwinDraft[]): Pro
   const snap = await col.where("projectId", "==", projectId).get();
   const docs = snap.docs
     .map((x) => ({ id: x.id, archivedAt: (x.data() as ArchiveDoc).archivedAt ?? "" }))
-    .sort((a, b) => (a.archivedAt < b.archivedAt ? 1 : a.archivedAt > b.archivedAt ? -1 : 0));
+    .sort(byArchivedAtDesc);
   const overflow = docs.slice(TWIN_ARCHIVE_CAP);
   if (overflow.length) {
     const del = firestore.batch();
@@ -56,6 +56,21 @@ export async function archiveDrafts(projectId: string, drafts: TwinDraft[]): Pro
   return overflow.length;
 }
 
+/** Newest-first, ties broken by document id DESCENDING.
+ *
+ *  The tiebreak is not decoration. `archivedAt` is a whole-second ISO string and
+ *  drafts are archived in batches, so ties are the normal case rather than the
+ *  edge case. Without a tiebreak this comparator returns 0 and Array#sort's
+ *  stability preserves the snapshot's order — which is Firestore's implicit
+ *  __name__ ASCENDING — while the sqlite twin orders `archived_at DESC, id DESC`
+ *  (archive-store.local.ts:66,77). Opposite directions, and because both drivers
+ *  then SLICE to a cap, the two do not merely order the archive differently: they
+ *  return DIFFERENT audit records. Descending here matches the twin on both the
+ *  listing and the eviction (local deletes oldest-first via `archived_at ASC,
+ *  id ASC`, which is this order reversed). */
+const byArchivedAtDesc = <T extends { id: string; archivedAt: string }>(a: T, b: T): number =>
+  a.archivedAt < b.archivedAt ? 1 : a.archivedAt > b.archivedAt ? -1 : a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
+
 /** Read this project's archive, sort in memory (avoids a where+orderBy composite
  *  index), and slice — bounded by the per-project cap regardless of `limit`. */
 async function readSorted(projectId: string): Promise<{ draft: TwinDraft; at: string }[]> {
@@ -63,10 +78,10 @@ async function readSorted(projectId: string): Promise<{ draft: TwinDraft; at: st
   return snap.docs
     .map((x) => {
       const doc = x.data() as ArchiveDoc;
-      return { draft: parse(doc.data), at: doc.archivedAt ?? "" };
+      return { id: x.id, draft: parse(doc.data), at: doc.archivedAt ?? "" };
     })
-    .filter((r): r is { draft: TwinDraft; at: string } => r.draft !== null)
-    .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
+    .filter((r): r is { id: string; draft: TwinDraft; at: string } => r.draft !== null)
+    .sort((a, b) => byArchivedAtDesc({ id: a.id, archivedAt: a.at }, { id: b.id, archivedAt: b.at }));
 }
 
 export async function listArchivedDrafts(projectId: string, limit = 200): Promise<TwinDraft[]> {

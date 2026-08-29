@@ -37,7 +37,11 @@ export async function saveCronRun(record: CronRunRecord): Promise<void> {
 
 export async function listRecentCronRuns(limit = 200): Promise<CronRunRecord[]> {
   const rows = getDb()
-    .prepare("SELECT data FROM cron_runs ORDER BY finished_at DESC LIMIT ?")
+    // `, id DESC` matches the retention DELETE above, which already tiebreaks that
+    // way. Without it the listing and the retention disagree about which rows are
+    // "newest" when two runs share a finished_at, so the health probe could show a
+    // row retention had chosen to drop (and hide one it kept).
+    .prepare("SELECT data FROM cron_runs ORDER BY finished_at DESC, id DESC LIMIT ?")
     .all(limit) as unknown as DataRow[];
   const out: CronRunRecord[] = [];
   for (const r of rows) {
