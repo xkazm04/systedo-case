@@ -38,6 +38,14 @@ Two files decide whether your work lands, so read them before you write:
 mechanical half blocks) and `.github/required-checks.json` (what must be green
 before a change lands, and why each one earns a red build).
 
+**And one file answers "which document is this task's document?"** —
+[`docs/task-index.md`](docs/task-index.md), a routing table from a task to the
+ADR, runbook, contract or design record that governs it, plus every ADR listed by
+the seam it decides. Open it instead of guessing between eleven decision records
+and a bilingual README pair; it is nominated in `.ai/manifest.yaml` under
+`guidance.taskIndex` and held true by `test-unit/docs-task-index.test.mjs`
+(a document that moves, or an ADR that lands with no route, is a red build).
+
 ## Commands
 
 ```bash

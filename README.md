@@ -160,6 +160,11 @@ before a human opens the diff. It is not a convention, it is a job:
 
 ## Where to go next
 
+- **Not sure which document you want?**
+  [`docs/task-index.md`](./docs/task-index.md) is the index keyed by the task
+  rather than by the audience — "I am about to change the store", "I need to
+  deploy", "I am adding an AI operation" — and lists every ADR by the seam it
+  decides.
 - **Contributing:** [`CONTRIBUTING.md`](./CONTRIBUTING.md) — setup, the
   verification gate (`npm run check:ci` and its pieces), and the conventions that
   bite. Contributions are accepted under a CLA: [`CLA.md`](./CLA.md) explains

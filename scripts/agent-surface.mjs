@@ -28,8 +28,10 @@
  *  file that exists, and CLAUDE.md / CONTRIBUTING.md must name that file in prose —
  *  because precedence carried only by an `@AGENTS.md` import is precedence that
  *  only some readers honour, and the one that does not gets a generated context map
- *  and no conventions. The other pointers in that block (the review rubric, the
- *  required checks, this lock file) must resolve too.
+ *  and no conventions. The other pointers in that block (the task index, the review
+ *  rubric, the required checks, this lock file) must resolve too — `guidance.taskIndex`
+ *  is the task → document lookup a run performs before it has read anything, so a
+ *  pointer into nothing there is a guess at the worst possible moment.
  *
  *  Runs blocking in CI as part of `npm run check:ci`.
  *
@@ -328,7 +330,7 @@ say("");
       }
 
       // The other pointers in the block are only useful if they resolve.
-      for (const key of ["review", "requiredChecks", "surfaceLock"]) {
+      for (const key of ["taskIndex", "review", "requiredChecks", "surfaceLock"]) {
         const value = scalar(key);
         if (!value) continue;
         if (existsSync(join(ROOT, value))) say(`  ✓ guidance.${key} → ${value}`);

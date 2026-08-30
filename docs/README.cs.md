@@ -131,6 +131,14 @@ z tohoto repozitáře nezadržuje, aby se prodávalo jinde.
 Tabulka lokální vs. hostovaná verze je v
 [`README.md`](../README.md#local-vs-hosted-honestly).
 
+## Kde hledat dál
+
+Nevíte, který dokument potřebujete?
+[`docs/task-index.md`](./task-index.md) je rejstřík řazený podle úkolu, ne podle
+čtenáře — „chystám se změnit úložiště“, „potřebuju nasadit“, „přidávám AI
+operaci“ — a vypisuje každé ADR podle švu, o kterém rozhoduje. Je psaný
+anglicky, stejně jako zbytek vývojářské dokumentace.
+
 ## Historie projektu
 
 Adamant vznikl z případové studie („Systedo case study“). Původní zadání,

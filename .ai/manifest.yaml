@@ -32,6 +32,11 @@ guidance:
     - path: CONTRIBUTING.md
       role: contributor
       note: "The same conventions for a human opening a PR, plus licensing and the CLA."
+  # The lookup that happens BEFORE any of the above: task -> document. The files
+  # listed here settle which guidance wins; this one settles which of the ADRs,
+  # runbooks, contracts and design records answers the task actually at hand,
+  # instead of leaving that to a guess at the start of every run.
+  taskIndex: docs/task-index.md
   # The standard an automated review applies to a diff before a human sees it.
   review: .github/agent-review-rubric.md
   # What must be green before a change lands, and what keeps that list honest.

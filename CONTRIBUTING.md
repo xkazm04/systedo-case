@@ -18,6 +18,11 @@ doesn't gets a round-trip of questions.
   the store seams, or billing/metering** — open an issue first and let's agree on
   the shape. A rejected 800-line PR is a bad day for both of us.
 - **Security issues** — do not open a public issue. See [`SECURITY.md`](./SECURITY.md).
+- **Not sure which document covers your task?**
+  [`docs/task-index.md`](./docs/task-index.md) routes from a task — changing the
+  store, deploying, adding an AI operation, writing user-facing strings — to the
+  ADR, runbook or contract that governs it, and lists every ADR by the seam it
+  decides. It saves you reading eleven decision records to find the one you need.
 
 ## Licensing and the CLA
 
