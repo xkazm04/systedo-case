@@ -1,7 +1,8 @@
 name: Agent review history
 
 # What the rubric review has actually been catching, aggregated for the weekly
-# triage pass.
+# triage pass — and published where someone who is not already inside the Actions
+# tab can read it.
 #
 # agent-review.yml answers "is THIS change clean?" and then the answer scrolls
 # away. This answers the question the maintainer asks on Monday: which Part A
@@ -15,11 +16,36 @@ name: Agent review history
 # `--annotate`, which is why the annotations matter beyond rendering inline on a
 # diff: they are the only part of a run that is still queryable afterwards.
 #
+# TWO JOBS, and the split is the same one agent-review.yml makes: the half that
+# reads holds no write scope, and the half that writes reads nothing.
+#
+#   history (read)    — aggregates, writes the job summary, and uploads the report
+#                       as an artifact. `contents: read` + `actions: read` +
+#                       `checks: read`, and nothing else.
+#   publish (write)   — rewrites ONE GitHub issue in place with that report.
+#                       `issues: write` and nothing else; it never runs a script
+#                       out of the checkout and never sees a secret.
+#
+# WHY PUBLISH AT ALL. A job summary belongs to its run: it expires with the
+# retention window, it is not addressable, and nobody outside the Actions tab
+# sees it. So from outside this repository the automated review was invisible —
+# the practice existed and could not be observed, which is the state in which an
+# automated reviewer quietly stops being trusted and stops being improved. One
+# durable, linkable issue, rewritten weekly, is the smallest thing that fixes
+# that: no new machinery, no commits to master (master ships on push — a docs
+# commit from a cron would be a release), and the history stays in the issue's
+# own edit log.
+#
 # REPORTING RUNG (docs/adr/0007-gate-rung-discipline.md) and permanently so: it
 # needs the network and a token, so it can never sit in `check:ci` or the pre-push
-# hook, and it is deliberately absent from .github/required-checks.json. It runs
-# on a schedule, not on a change, because it is about the trend rather than the
-# diff — putting it on every push would spend API calls to tell you nothing new.
+# hook, and both jobs are deliberately absent from .github/required-checks.json.
+# It runs on a schedule, not on a change, because it is about the trend rather
+# than the diff — putting it on every push would spend API calls to tell you
+# nothing new.
+#
+# Untrusted input never reaches a shell here either: every `${{ … }}` lands in an
+# `env:` binding, which scripts/actions-pin.mjs (rules P5 and P7, blocking)
+# enforces across every workflow in this repository.
 on:
   schedule:
     # Monday morning, ahead of the weekly triage — and after the other weekly
@@ -27,18 +53,22 @@ on:
     - cron: "0 8 * * 1"
   workflow_dispatch:
 
-# Read-only, including the two scopes this actually needs: `actions: read` to list
-# the review workflow's runs, `checks: read` to read the annotations those runs
-# left. It writes a job summary and nothing else.
+# Read-only at the workflow level; the one job that writes asks for its own scope.
 permissions:
   contents: read
-  actions: read
-  checks: read
 
 jobs:
   history:
     name: What the review has been catching (reporting)
     runs-on: ubuntu-latest
+    # The two scopes this actually needs: `actions: read` to list the review
+    # workflow's runs, `checks: read` to read the annotations those runs left.
+    # It writes a job summary and an artifact, and holds nothing that can write
+    # to the repository.
+    permissions:
+      contents: read
+      actions: read
+      checks: read
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -52,6 +82,9 @@ jobs:
       # than a softened gate: this job is not in .github/required-checks.json, and
       # the script exits 0 on an unreachable API by design — the flag only covers
       # the case where `gh` itself is missing from the runner image.
+      #
+      # `--out` is what makes the report publishable: the same text as a file, so
+      # the next job can put it somewhere that outlives this run.
       - name: Aggregate the review's findings
         continue-on-error: true
         env:
@@ -59,4 +92,69 @@ jobs:
         run: |
           node scripts/agent-review-history.mjs \
             --runs 60 \
+            --out review-history.md \
             --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the report as an artifact too
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: agent-review-history
+          path: review-history.md
+          if-no-files-found: ignore
+          retention-days: 90
+
+  publish:
+    name: Publish the review's trail (reporting)
+    runs-on: ubuntu-latest
+    needs: history
+    if: always()
+    # The only write scope in this workflow, on the only job that needs it, and
+    # narrower than the workflow default: it edits one issue. It does not check
+    # the repository out, so no repository code runs in the job that holds the
+    # write token.
+    permissions:
+      issues: write
+    steps:
+      - name: Fetch the report
+        continue-on-error: true
+        uses: actions/download-artifact@v7
+        with:
+          name: agent-review-history
+
+      # One issue, rewritten in place: a stable URL that always shows the current
+      # picture, with every previous week kept in the issue's own edit history.
+      # `continue-on-error` because a repository with issues disabled should get a
+      # note in the log, not a red cron — this job is reporting rung and nothing
+      # downstream depends on it.
+      - name: Rewrite the trail issue
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TITLE: "Agent review — what it has been catching"
+        run: |
+          if [ ! -s review-history.md ]; then
+            echo "No report was produced (see the \`history\` job); leaving the issue as it is." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo
+            echo "---"
+            echo
+            echo "_Rewritten weekly by \`.github/workflows/agent-review-history.yml\`._"
+            echo "_Rubric: \`.github/agent-review-rubric.md\` · rules: \`scripts/agent-review.mjs\`._"
+            echo "_Edit this issue and the next run overwrites you — reply in a comment instead._"
+          } >> review-history.md
+          number="$(gh issue list --state all --limit 100 --json number,title \
+            --jq '.[] | select(.title == env.TITLE) | .number' | head -n 1)"
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --body-file review-history.md
+            gh issue reopen "$number" >/dev/null 2>&1 || true
+            echo "Updated issue #$number." >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh issue create --title "$TITLE" --body-file review-history.md \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi

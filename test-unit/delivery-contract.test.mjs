@@ -124,6 +124,15 @@ const reviewWorkflow = read(".github/workflows/agent-review.yml")
   .join("\n");
 const reviewJudgment = reviewWorkflow.slice(reviewWorkflow.indexOf("\n  judgment:"));
 
+// Comments stripped for the same reason: this workflow explains its own
+// permission split in prose that quotes the very scopes being asserted.
+const history = read(".github/workflows/agent-review-history.yml")
+  .split(/\r?\n/)
+  .filter((l) => !/^\s*#/.test(l))
+  .join("\n");
+const historyRead = history.slice(history.indexOf("\n  history:"), history.indexOf("\n  publish:"));
+const historyPublish = history.slice(history.indexOf("\n  publish:"));
+
 test("Part A annotates the change it judged, not just the run", () => {
   // An annotation is attached to the commit and rendered inline on the diff and
   // on a PR's Files view — it is the only form of the finding that lands where it
@@ -168,11 +177,27 @@ test("what the review has caught over time is answerable without re-running it",
   );
   assert.match(scripts["review:agent:history"] ?? "", /scripts\/agent-review-history\.mjs/);
 
-  const history = read(".github/workflows/agent-review-history.yml");
   assert.match(history, /schedule:/, "the aggregate is about the trend, so it runs on a schedule, not on a diff.");
   assert.match(history, /checks:\s*read/, "reading past annotations needs `checks: read`.");
   assert.match(history, /actions:\s*read/, "listing the review workflow's runs needs `actions: read`.");
-  assert.doesNotMatch(history, /:\s*write\b/, "a reporting job has no reason to hold a write scope.");
+
+  // Same split as agent-review.yml: the job that READS the trail holds no write
+  // scope, and the job that WRITES it holds nothing else — and does not check the
+  // repository out, so no repository code runs beside the token.
+  assert.ok(historyRead.length > 0 && historyPublish.length > 0, "agent-review-history.yml lost one of its two jobs.");
+  assert.doesNotMatch(historyRead, /:\s*write\b/, "the aggregating job has no reason to hold a write scope.");
+  assert.match(historyPublish, /issues:\s*write/, "publishing the trail needs `issues: write`.");
+  assert.doesNotMatch(
+    historyPublish,
+    /contents:\s*write/,
+    "the publishing job must not be able to write to the repository — master ships on push, so a commit " +
+      "from a cron job would be a release."
+  );
+  assert.doesNotMatch(
+    historyPublish,
+    /actions\/checkout/,
+    "the job holding the write token must not check the repository out; nothing it does needs the tree."
+  );
 
   // It must not hardcode the blocking job's display name: .github/required-checks.json
   // is the one place that name is declared, and merge-gate.mjs already fails on a
@@ -188,4 +213,68 @@ test("what the review has caught over time is answerable without re-running it",
     "the history report is reporting-rung (ADR-0007): it needs the network and a token, so it can never be " +
       "proven in check:ci and must not be enumerated as a check that stops a change."
   );
+});
+
+test("the trail is published where a reader outside the Actions tab can find it", () => {
+  // A job summary belongs to its run: it expires, it is not addressable, and
+  // nobody who is not already in the Actions tab ever sees it. From outside the
+  // repository that made the review invisible — an automated practice that cannot
+  // be observed is one that quietly stops being trusted and stops being improved.
+  assert.match(
+    read("scripts/agent-review-history.mjs"),
+    /--out/,
+    "the history report can no longer be written to a file, so there is nothing to publish anywhere."
+  );
+  assert.match(
+    history,
+    /--out\s+review-history\.md/,
+    "the scheduled run no longer produces a publishable report."
+  );
+  assert.match(
+    historyPublish,
+    /gh issue (edit|create)/,
+    "nothing publishes the aggregate any more. Without it the only record of what the automated reviewer " +
+      "has caught lives in job summaries that expire with their runs."
+  );
+});
+
+/** A5 — the log itself. With ~97% of commits agent-written and most landing by
+ *  direct push, the subject line is the index a future bisect reads. */
+test("commit subjects are checked by the blocking half of the review", () => {
+  assert.ok(
+    existsSync(join(ROOT, "scripts/commit-subject.mjs")),
+    "no scripts/commit-subject.mjs — the commit-subject rules have nowhere to live."
+  );
+  assert.match(
+    read("scripts/agent-review.mjs"),
+    /checkSubject/,
+    "Part A no longer reads commit subjects, so a subject that narrates the session instead of naming the " +
+      "change lands unchallenged. Rubric A5 says otherwise."
+  );
+  assert.match(read(".github/agent-review-rubric.md"), /### A5 · /, "A5 is missing from the rubric it is enforced from.");
+  assert.match(scripts["commit:check"] ?? "", /scripts\/commit-check\.mjs/);
+});
+
+test("the two documented editions cannot drift apart in silence", () => {
+  // The app's locale columns are held in step by the type system; the docs had
+  // nothing, and README.md / docs/README.cs.md contradicted each other on whether
+  // a self-hosted install works. A stale translation is not a gap, it is a
+  // confident wrong answer.
+  assert.match(
+    scripts["check:ci"] ?? "",
+    /docs:parity/,
+    "`check:ci` no longer verifies that the bilingual README pair agrees, so the Czech edition can go stale " +
+      "without anything noticing."
+  );
+  assert.match(scripts["docs:parity"] ?? "", /scripts\/docs-parity\.mjs/);
+  const spec = JSON.parse(read("docs/parity.json"));
+  assert.ok(Array.isArray(spec.pairs) && spec.pairs.length, "docs/parity.json declares no pairs — the gate checks nothing.");
+  for (const pair of spec.pairs) {
+    assert.ok(existsSync(join(ROOT, pair.source)), `docs/parity.json points at a missing source: ${pair.source}`);
+    assert.ok(existsSync(join(ROOT, pair.derived)), `docs/parity.json points at a missing derivation: ${pair.derived}`);
+    assert.ok(
+      (pair.rules ?? []).length > 0,
+      `${pair.source} → ${pair.derived} declares no shared claims, so the pair is declared but unchecked.`
+    );
+  }
 });

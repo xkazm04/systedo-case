@@ -48,14 +48,17 @@ npm run check         # typecheck + lint + build
 npm run test:unit     # node:test suites in test-unit/
 npm run test:e2e      # Playwright — also runs in CI (the key-free `e2e-smoke` job)
 npm run check:ci      # what CI runs: check + seed:check + test:unit + llm:gate:check
-                      #   + llm:quality:check + adr:check + agents:surface
-                      #   + actions:check + merge-gate + review:agent:gate
+                      #   + llm:quality:check + adr:check + docs:parity
+                      #   + agents:surface + actions:check + merge-gate
+                      #   + review:agent:gate
 npm run llm:gate      # LLM proof gate (llm:list shows call sites)
 npm run sast          # repo security rules over src/ (blocking in CI)
 npm run actions:check # workflow token scope, action pinning, no ${{ }} in a run: script
 npm run merge-gate    # the required checks named in .github/required-checks.json
                       #   still exist, still run on PRs, and can still fail
 npm run review:agent  # rubric review of a diff (--base <ref>); what CI runs on a PR
+npm run docs:parity   # bilingual doc pairs still state their shared facts (blocking)
+npm run commit:check  # commit-subject rules (rubric A5): --range <range> | <msgfile>
 npm run doctor        # env preflight (not a gate — reports missing/odd env)
 npm run i18n:gate     # localization-wave gate: diffs the tree vs a ref (--base)
 npm run i18n:audit    # coverage / leftover-source / register audit (ratcheted)
@@ -120,6 +123,20 @@ you change it.
 - **Pathspec commits only** (shared checkout, concurrent agents):
   `git add <paths>` then `git commit <same paths>`. Never `-A`, never a bare
   `git commit`, never stash or reset work that is not yours.
+- **A commit subject names the change, not the session.** Rubric A5 blocks a
+  subject that is not a conventional-commit header, runs to a second sentence, or
+  narrates the run — `fix: Done. Here's what I found and changed` and
+  `fix: Agent session exceeded 20 min and was stopped` are both real examples from
+  this log and both are now refused. Rules: `scripts/commit-subject.mjs`; audit
+  history with `npm run commit:check -- --range <range>`. There is no `Ack:`
+  escape hatch, because nothing about a change makes a bad subject the right call.
+  If a run produced no change, it does not owe the log a commit.
+- **The bilingual docs are held in step by a gate, not by care.** `README.md` is
+  the source and `docs/README.cs.md` is transcreated from it (same direction as
+  the app since 2026-08-05). `npm run docs:parity` (blocking, inside `check:ci`)
+  fails when a claim declared in `docs/parity.json` stops being stated on either
+  side, or is stated with different values. Never delete a rule to go green: the
+  rule firing IS the drift being caught.
 - **Components under 200 LOC preferred** — extract sub-components and data
   hooks instead of growing module files. Existing debt is catalogued in
   `docs/roadmap/component-debt.md`.

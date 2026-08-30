@@ -24,8 +24,8 @@
     "Rung discipline (docs/adr/0007-gate-rung-discipline.md) decides what belongs here: a",
     "check is required only if it passes today. The reporting-rung jobs — sast.yml's",
     "`repo-rules` and `semgrep`, supply-chain.yml's `audit`, agent-review.yml's `judgment`,",
-    "and agent-review-history.yml's `history` — are deliberately absent, and each one's",
-    "workflow says why. Promoting one means fixing its findings, dropping its",
+    "and agent-review-history.yml's `history` and `publish` — are deliberately absent, and",
+    "each one's workflow says why. Promoting one means fixing its findings, dropping its",
     "`continue-on-error`, and adding it here in the same commit.",
     "",
     "The `check` string below is also read back by scripts/agent-review-history.mjs, which",
@@ -52,7 +52,7 @@
       "check": "Rubric review of the diff",
       "workflow": "agent-review.yml",
       "job": "mechanical",
-      "why": "Part A of .github/agent-review-rubric.md. ~97% of commits here are written by an agent and triaged weekly; these four rules are the ways a green build can be bought rather than earned, so the review has to be able to stop a merge and not merely comment on one.",
+      "why": "Part A of .github/agent-review-rubric.md. ~97% of commits here are written by an agent and triaged weekly; these five rules are the ways a green build can be bought rather than earned — or, for A5, the way the log stops being bisectable — so the review has to be able to stop a merge and not merely comment on one.",
       "softenedSteps": []
     },
     {

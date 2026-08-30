@@ -1,0 +1,102 @@
+{
+  "$comment": [
+    "Bilingual documentation pairs, and the claims that must stay true on both sides.",
+    "",
+    "The app's localisation has two gates (`npm run i18n:gate`, `npm run i18n:audit`) and",
+    "the type system on top of them, because a key added to one locale column and not the",
+    "other is a `typecheck` failure. The DOCS had neither. docs/README.cs.md and README.md",
+    "drifted for months on the one claim a reader most needs to be right: the English side",
+    "said a self-hosted install now boots without Firestore or Google OAuth, the Czech side",
+    "still said self-hosting `zatím nefunguje`. An agent reading the stale side gets",
+    "confidently wrong context and plans around a constraint that no longer exists.",
+    "",
+    "WHAT THIS IS NOT: a translation checker. These two files are not sentence-for-sentence",
+    "editions — README.md is the open-source entry point, docs/README.cs.md is the Czech",
+    "product overview, and they are allowed to differ in what they cover. What they may not",
+    "do is contradict each other on a SHARED FACT. So each rule below names one such fact",
+    "twice, once per language, and the check fails when either side stops stating it or when",
+    "the two state different values.",
+    "",
+    "DIRECTION: `source` is authored first and `derived` is transcreated from it, matching",
+    "the app's own direction since 2026-08-05 (en authors, cs follows — docs/i18n/contract.md).",
+    "The derived file carries `marker` in its own header so a reader knows which side wins.",
+    "",
+    "WHEN IT GOES RED. Two shapes, and they want different fixes:",
+    "  • the DERIVED side stopped matching → the Czech edition fell behind. Update it.",
+    "  • the SOURCE side stopped matching → the English was reworded or the fact changed.",
+    "    Re-read the Czech, make it say the same thing, then update this entry's pattern.",
+    "Never delete a rule to make the build green: the rule going red IS the drift being",
+    "caught, and this is exactly the class of gate ADR-0007 says must be able to fail.",
+    "",
+    "`source`/`derived` are JavaScript regular expressions matched against the file after",
+    "normalisation (CRLF dropped, blockquote markers stripped, all whitespace collapsed to",
+    "single spaces), so a pattern may span what is a line wrap in the file. When both sides",
+    "capture group 1, the captured values must be equal — that is how a version number can",
+    "drift on one side only and still be caught.",
+    "",
+    "Run by `npm run docs:parity`, blocking inside `npm run check:ci`."
+  ],
+  "pairs": [
+    {
+      "source": "README.md",
+      "derived": "docs/README.cs.md",
+      "marker": "<!-- derived-from: README.md -->",
+      "rules": [
+        {
+          "id": "node-version",
+          "why": "The minimum Node is the first thing a new reader acts on, and `node:sqlite` moved it once already.",
+          "source": "Requires \\*\\*Node ≥ ([0-9.]+)\\*\\*",
+          "derived": "Vyžaduje \\*\\*Node ≥ ([0-9.]+)\\*\\*"
+        },
+        {
+          "id": "license",
+          "why": "The licence is the one claim a reader may rely on legally. It may not differ by language.",
+          "source": "licensed under \\*\\*(AGPL-[0-9.]+-only)\\*\\*",
+          "derived": "Licence: \\*\\*(AGPL-[0-9.]+-only)\\*\\*"
+        },
+        {
+          "id": "self-hosting-status",
+          "why": "The claim that actually drifted. The Czech edition said self-hosting did not work for months after the English said it boots without Firestore or Google OAuth.",
+          "source": "\\*\\*Status: partially there\\.\\*\\* A self-hosted production install now boots and runs without Firestore or Google OAuth",
+          "derived": "\\*\\*Stav: zatím částečně\\.\\*\\* Self-hosted produkční instalace dnes nabíhá a běží bez Firestore i bez Google OAuth"
+        },
+        {
+          "id": "channel-support",
+          "why": "AGENTS.md and the product both promise channel support is 'stated exactly'. Understating Sklik in one language is the same lie as overstating it in the other.",
+          "source": "\\*\\*Sklik\\*\\* has ad-limit checks and keyword suggestions \\(plus read-only stats sync with a token\\)",
+          "derived": "\\*\\*Sklik\\*\\* má kontroly limitů inzerátů, návrhy klíčových slov a read-only synchronizaci statistik"
+        },
+        {
+          "id": "demo-client",
+          "why": "Every public demo number is labelled as belonging to a fictional client. Both editions must name the same one.",
+          "source": "fictional client \\*\\*(Mionelo)\\*\\*",
+          "derived": "fiktivním klientem \\*\\*(Mionelo)\\*\\*"
+        },
+        {
+          "id": "byom-vendors",
+          "why": "The BYOM vendor list is what a self-hoster checks before deciding they can run this for free.",
+          "source": "six vendors: OpenAI, Anthropic, Gemini, OpenRouter, Qwen and Ollama",
+          "derived": "OpenAI / Anthropic / Gemini / OpenRouter / Qwen / Ollama"
+        },
+        {
+          "id": "byom-encryption",
+          "why": "A security property stated to users. Stating it differently in one language is worse than not stating it.",
+          "source": "encrypted at rest, (AES-[0-9]+-GCM)",
+          "derived": "šifrovaný (AES-[0-9]+-GCM)"
+        },
+        {
+          "id": "quickstart-seed",
+          "why": "The two-minute start is the only instruction most readers follow. Both editions must give the same commands.",
+          "source": "npm run seed:local",
+          "derived": "npm run seed:local"
+        },
+        {
+          "id": "quickstart-dev",
+          "why": "As above — the command that actually boots the offline product.",
+          "source": "npm run dev:local",
+          "derived": "npm run dev:local"
+        }
+      ]
+    }
+  ]
+}

@@ -79,6 +79,31 @@ small dependency list a decision rather than an accident, and this repo holds
 live ad-platform credentials, so a new package is a supply-chain event. Eleven
 runtime dependencies is a number worth defending one sentence at a time.
 
+### A5 · A commit subject describes the change, not the session
+
+*Scope: every non-merge commit in the reviewed range.* Fails on a subject that is
+not a conventional-commit header, that runs to a second sentence, or that
+narrates the run rather than the change. Rules and their wording:
+[`scripts/commit-subject.mjs`](../scripts/commit-subject.mjs); audit existing
+history with `npm run commit:check -- --range <range>`. `Merge`, `Revert "…"` and
+`fixup!`/`squash!` subjects are exempt — git writes those.
+
+Why blocking: the log is the artifact a future agent bisects, and ~97% of these
+subjects were written by an agent finishing a run. The conventional *shape* is
+already at 100%, so a shape-only rule would never fire; what has actually landed
+is `fix: Done. Here's what I found and changed` and `fix: Agent session exceeded
+20 min and was stopped`. Both are well-formed. Neither lets anyone decide, six
+months later, whether that commit is the one that broke something — and the
+second is not a change at all, it is a loop event that got committed because the
+loop commits on exit.
+
+Why here and not in a `commit-msg` hook: a hook binds one checkout, and commits
+reach this repository from several (agents, worktrees, CI). Part A is the one
+place that sees every subject on the way in, and on this repo's landing path
+(`.husky/pre-push` → `check:ci` → `review:agent:gate`) it refuses the push while
+`git commit --amend` is still free. There is no `Ack:` escape hatch: unlike A3
+and A4, nothing about a change makes a bad subject the right call.
+
 ---
 
 ## Part B — judgment, commented

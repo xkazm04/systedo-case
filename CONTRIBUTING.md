@@ -75,8 +75,8 @@ review comment, it's a blocked merge.
 
 ```bash
 npm run check:ci   # typecheck + lint + build + seed:check + test:unit
-                   #   + llm:gate:check + llm:quality:check + adr:check + agents:surface
-                   #   + actions:check + merge-gate
+                   #   + llm:gate:check + llm:quality:check + adr:check + docs:parity
+                   #   + agents:surface + actions:check + merge-gate + review:agent:gate
 ```
 
 The pieces, if you need to run them individually:
@@ -89,8 +89,24 @@ npm run test:unit    # node:test suites in test-unit/
 npm run llm:gate     # the LLM proof gate (llm:list shows every call site)
 npm run sast         # repo security rules over src/ (its own CI workflow)
 npm run review:agent # the rubric review your PR will get (--base origin/master)
+npm run docs:parity  # README.md and docs/README.cs.md still agree on shared facts
+npm run commit:check # commit-subject rules (rubric A5) over a range or a message
 npm run test:e2e     # Playwright — NOT in CI, run it when you touch a flow
 ```
+
+**Your commit subject is checked too.** Rubric A5 refuses a subject that narrates
+the session instead of naming the change — `fix: Done. Here's what I found and
+changed` is a real entry in this log and would now be refused. Write
+`fix(campaigns): stop triage double-counting Sklik spend` instead; the rest goes
+in the body. Rules and their wording live in
+[`scripts/commit-subject.mjs`](scripts/commit-subject.mjs).
+
+**Editing the Czech README?** `README.md` is the source and
+[`docs/README.cs.md`](docs/README.cs.md) is transcreated from it. They are not
+sentence-for-sentence editions and are not meant to be — but the facts they share
+may not contradict each other, and `npm run docs:parity` fails when they do. The
+claims it holds in step are declared in [`docs/parity.json`](docs/parity.json),
+each with the reason it is there.
 
 Two more things run on your PR that are not in `check:ci`:
 
@@ -99,9 +115,16 @@ Two more things run on your PR that are not in `check:ci`:
   Semgrep's registry packs (reporting).
 - **`.github/workflows/agent-review.yml`** — an automated review of your diff
   against [`.github/agent-review-rubric.md`](.github/agent-review-rubric.md). Its
-  mechanical half blocks; two of its four rules are unblocked by writing a
+  mechanical half blocks; two of its five rules are unblocked by writing a
   sentence rather than changing code — put `Ack: <why>` in a commit message or
-  the PR body when you delete a test or add a runtime dependency.
+  the PR body when you delete a test or add a runtime dependency. You do not have
+  to go digging for the verdict: it arrives as a named check, as annotations on
+  the lines it is about, and as a comment on the PR.
+
+What that review has caught over time is published as a single issue, *Agent
+review — what it has been catching*, rewritten weekly by
+[`agent-review-history.yml`](.github/workflows/agent-review-history.yml). If a
+rule reads as badly drawn, that issue is the evidence to argue with.
 
 ### What actually stops a merge
 

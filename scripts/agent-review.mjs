@@ -25,9 +25,9 @@
  *
  *  Why it exists: almost every commit here is written by an agent and triaged by
  *  one person weekly, so for most of a change's life the only thing that has read
- *  it is CI. These four rules are the invariants where "a reviewer will probably
+ *  it is CI. These five rules are the invariants where "a reviewer will probably
  *  notice" is not good enough — each one is a way a green build can be bought
- *  rather than earned. The judgment half of the rubric is a model's job and only
+ *  rather than earned, or (A5) a way the log stops being bisectable. The judgment half of the rubric is a model's job and only
  *  comments; see scripts/agent-review-llm.mjs.
  *
  *  WHERE THE VERDICT GOES. A pass/fail buried in one CI chain is a review nobody
@@ -54,6 +54,7 @@ import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkSubject } from "./commit-subject.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -263,6 +264,37 @@ if (deletedTests.length && !hasAck) {
           "One sentence on why a built-in will not do.",
       });
     }
+  }
+}
+
+// --- A5 · a commit subject describes the change, not the session -------------
+//
+// The log is the artifact a future agent bisects, and ~97% of the subjects in it
+// were written by an agent finishing a run. The conventional SHAPE is already at
+// 100%, so shape is not the rule worth having; what has actually landed is
+// "fix: Done. Here's what I found and changed" and "fix: Agent session exceeded
+// 20 min and was stopped" — well-formed, and useless to anyone deciding six
+// months later whether that commit is the one that broke something.
+//
+// This runs here rather than in a commit-msg hook because a hook only binds the
+// checkout that installed it, and this repository's commits arrive from several
+// (agents, worktrees, CI). Rules: scripts/commit-subject.mjs. Merge, revert and
+// fixup subjects are exempt — git writes those.
+{
+  const log = git(["log", "--no-merges", "--format=%H %s", `${BASE}..HEAD`], { allowFail: true }) ?? "";
+  for (const raw of log.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const at = line.indexOf(" ");
+    const sha = at === -1 ? line : line.slice(0, at);
+    const subject = at === -1 ? "" : line.slice(at + 1);
+    const problems = checkSubject(subject);
+    if (!problems.length) continue;
+    blocking.push({
+      rule: "A5 commit-subject",
+      path: `(commit ${sha.slice(0, 8)})`,
+      detail: `"${subject}" — ${problems.join(" ")} Reword it before pushing (\`git commit --amend\`).`,
+    });
   }
 }
 

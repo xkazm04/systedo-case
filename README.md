@@ -4,8 +4,12 @@
 ![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss&logoColor=white)
-![Quality gate](https://img.shields.io/badge/check-typecheck%20%C2%B7%20lint%20%C2%B7%20build-2ea44f)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
+
+[![CI](https://github.com/xkazm04/systedo-case/actions/workflows/ci.yml/badge.svg)](https://github.com/xkazm04/systedo-case/actions/workflows/ci.yml)
+[![Agent review](https://github.com/xkazm04/systedo-case/actions/workflows/agent-review.yml/badge.svg)](https://github.com/xkazm04/systedo-case/actions/workflows/agent-review.yml)
+[![SAST](https://github.com/xkazm04/systedo-case/actions/workflows/sast.yml/badge.svg)](https://github.com/xkazm04/systedo-case/actions/workflows/sast.yml)
+[![Supply chain](https://github.com/xkazm04/systedo-case/actions/workflows/supply-chain.yml/badge.svg)](https://github.com/xkazm04/systedo-case/actions/workflows/supply-chain.yml)
 
 **[Česky →](./docs/README.cs.md)** · product profile: [`PRODUCT.md`](./PRODUCT.md) ·
 the case against the alternatives: [`docs/value-case.md`](./docs/value-case.md)
@@ -119,6 +123,32 @@ Everything below is optional. Groups follow [`.env.example`](./.env.example);
 AES-256-GCM) — six vendors: OpenAI, Anthropic, Gemini, OpenRouter, Qwen and
 Ollama, so a local server via `OLLAMA_BASE_URL` / `OPENAI_BASE_URL` runs the
 whole thing for free with no key at all.
+
+## How a change gets reviewed here
+
+Roughly 97% of the commits in this repository are written by an agent and triaged
+by one person weekly, so the review that matters most is the one that happens
+before a human opens the diff. It is not a convention, it is a job:
+
+- **[`.github/agent-review-rubric.md`](./.github/agent-review-rubric.md)** is the
+  rubric. Part A is mechanical and **blocks** — a component growing past 200
+  lines, a route segment-config opt-out, a deleted test or a new runtime
+  dependency with no `Ack:` sentence, a commit subject that narrates the session
+  instead of naming the change. Part B is a model applying the judgment half; it
+  only comments.
+- **Where the verdict lands**, so it can be read afterwards: a named check run
+  (`Rubric review of the diff`) on every push and pull request; a check
+  annotation on the file and line, which survives the run; a PR comment, with or
+  without a model key; and a 90-day artifact.
+- **What it has actually been catching** is aggregated weekly and published as a
+  single issue titled *Agent review — what it has been catching*, rewritten in
+  place by [`agent-review-history.yml`](./.github/workflows/agent-review-history.yml).
+  A rule that never fires and a rule that fires constantly are both questions for
+  the rubric, and neither is visible from inside one build.
+- **[`.github/required-checks.json`](./.github/required-checks.json)** enumerates
+  what may stop a change and why each one earns a red build. `npm run merge-gate`
+  fails if one of them is renamed, stops running on pull requests, or is softened
+  — so a gate cannot quietly become a comment.
 
 ## Where to go next
 

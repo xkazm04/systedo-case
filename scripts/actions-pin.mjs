@@ -53,16 +53,20 @@
  *  first-party, so STRICT = false and RATCHET.pinned = 0 together mean the count
  *  this script prints is "0 of N pinned" and the gate is green anyway. That is a
  *  deliberate exemption, not an oversight — and it is the only rule here that is
- *  green by exemption rather than by compliance. Closing it is three steps and one
- *  networked run, in ONE commit:
+ *  green by exemption rather than by compliance. Closing it is ONE networked run:
  *
- *      npm run actions:pin        # resolves each tag to its digest, rewrites in place
- *      # set STRICT = true and RATCHET.pinned = <the count it printed>
+ *      npm run actions:pin        # resolves each tag to its digest, rewrites the
+ *                                 # workflows, AND writes STRICT = true and
+ *                                 # RATCHET.pinned = <count> back into this file
  *      npm run actions:check      # must print "N of N" and stay green
+ *      # commit the workflows and this file together
  *
- *  Do not do the first step and stop: pins that nothing enforces come undone on
- *  the next Dependabot bump or copy-pasted step, and then the exemption is back
- *  without anyone choosing it.
+ *  The three-step version of that close sat undone for months, and step one alone
+ *  is worse than nothing: pins that nothing enforces come undone on the next
+ *  Dependabot bump or copy-pasted step, and then the exemption is back without
+ *  anyone choosing it. So `--update` no longer leaves the door for someone else to
+ *  shut — it pins and enforces in the same pass, and the diff a reviewer reads
+ *  contains both halves or neither.
  *
  *  P6 is the ratchet that makes that a one-way door: the number of SHA-pinned refs
  *  may never fall below RATCHET.pinned. Run `npm run actions:pin` once (it needs
@@ -315,10 +319,35 @@ if (UPDATE) {
     }
     writeFileSync(path, lines.join("\n"));
   }
-  console.log(
-    `\n✓ pinned ${rewritten} action reference(s). Re-run without --update to verify, then RAISE ` +
-      "RATCHET.pinned to the count it prints (so the pins cannot silently come undone) and set STRICT = true."
-  );
+  console.log(`\n✓ pinned ${rewritten} action reference(s).`);
+
+  // Shut the door in the same pass. Pinning without enforcing is the state this
+  // repository has been in since the rule landed: the pins would come undone on
+  // the next bump and nothing would notice, because the exemption (STRICT = false,
+  // RATCHET.pinned = 0) is what makes "0 of N pinned" a green run. Writing both
+  // back here means the exemption ends in the same diff that earns the right to
+  // end it — and a reviewer sees the two halves together or not at all.
+  if (rewritten) {
+    const selfPath = fileURLToPath(import.meta.url);
+    const self = readFileSync(selfPath, "utf8");
+    const total = inventory.length;
+    const updated = self
+      .replace(/^const STRICT = false;$/m, "const STRICT = true;")
+      .replace(/^const RATCHET = \{ pinned: \d+ \};$/m, `const RATCHET = { pinned: ${total} };`);
+    if (updated !== self) {
+      writeFileSync(selfPath, updated);
+      console.log(
+        `✓ scripts/actions-pin.mjs: STRICT = true, RATCHET.pinned = ${total} — first-party actions are now ` +
+          "required to carry a SHA, and the count may never fall below this floor."
+      );
+    } else {
+      console.log(
+        "⚠ could not write STRICT/RATCHET back into scripts/actions-pin.mjs (were they already set?). " +
+          "Check them by hand before committing — pins that nothing enforces come undone."
+      );
+    }
+  }
+  console.log("\nNow run `npm run actions:check`: it must print \"N of N\" and stay green. Commit both files.");
   process.exit(0);
 }
 

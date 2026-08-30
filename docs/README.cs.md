@@ -1,7 +1,13 @@
+<!-- derived-from: README.md -->
+
 # Adamant — AI inteligence pro reklamu
 
-*Česká verze produktového přehledu. Hlavní [`README.md`](../README.md) je anglicky
-(open-source vstupní bod: lokální start, licence, klíče).*
+> **Odvozená edice.** Česká verze produktového přehledu. Zdrojem je anglický
+> [`README.md`](../README.md) (open-source vstupní bod: lokální start, licence,
+> klíče) — edituje se první a tenhle text se z něj transkreuje. Když se obě verze
+> rozejdou, platí anglická a tenhle soubor je chyba. Sdílená tvrzení hlídá
+> `npm run docs:parity` (běží v `npm run check:ci`); páry a hlídaná tvrzení jsou
+> v [`docs/parity.json`](./parity.json).
 
 **Adamant** je AI pracovní prostor pro reklamu — vzácný druh v adtech. Změří
 výkon účtu, vysvětlí, co čísla znamenají, a vygeneruje podklady, které z nich
@@ -9,7 +15,8 @@ plynou: inzeráty, články, posty, kreativu i lokální SEO — v jednom worksp
 místo dashboardu, tabulky a chat okna vedle sebe.
 
 Úroveň podpory kanálů uvádíme vždy výslovně: **Google Ads** je živý datový
-konektor, **Sklik** má kontroly limitů inzerátů a návrhy klíčových slov,
+konektor (synchronizace i úpravy kampaní), **Sklik** má kontroly limitů inzerátů,
+návrhy klíčových slov a read-only synchronizaci statistik (s tokenem),
 **Meta** a **TikTok** jsou publikační plochy.
 
 - Produktový profil a positioning: [`PRODUCT.md`](../PRODUCT.md)
@@ -106,10 +113,23 @@ Kanonická URL se řeší env-first (`NEXT_PUBLIC_SITE_URL` →
 
 ## Licence a self-hosting
 
-AGPL-3.0-only. Self-hosting je záměr, ale **zatím nefunguje** — produkční build
-dnes vyžaduje Firestore a Google OAuth. Podrobnosti, tabulka lokální vs. hostovaná
-verze a backlog: [`README.md`](../README.md#local-vs-hosted-honestly) a
-[`docs/open-source/`](./open-source/).
+Licence: **AGPL-3.0-only** ([`LICENSE`](../LICENSE)). Adamant je myšlený tak, aby
+běžel na vašem stroji, na vašich modelech a nad vašimi daty. Nic z produktu se
+z tohoto repozitáře nezadržuje, aby se prodávalo jinde.
+
+> **Stav: zatím částečně.** Self-hosted produkční instalace dnes nabíhá a běží bez
+> Firestore i bez Google OAuth: režim `SELF_HOSTED=true` s přihlášením heslem
+> operátora, SQLite úložiště, neměřené použití, BYOM/Ollama, Dockerfile
+> + docker-compose a cron sidecar
+> (`cp .env.example .env && docker compose up -d --build`).
+> **Co pořád vyžaduje cloud:** moduly kampaní vázané na Firestore — živá
+> synchronizace Google Ads, alerty a mutace kampaní, výpis sessions — plus
+> perzistence assetů Creative Studia a zálohovací skript. Stav položku po položce:
+> [`docs/open-source/self-hosting.md`](./open-source/self-hosting.md), mapa důkazů:
+> [`docs/open-source/impact.md`](./open-source/impact.md).
+
+Tabulka lokální vs. hostovaná verze je v
+[`README.md`](../README.md#local-vs-hosted-honestly).
 
 ## Historie projektu
 

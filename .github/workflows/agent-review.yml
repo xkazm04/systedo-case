@@ -11,12 +11,14 @@ name: Agent review
 # Two halves, matching the rubric, and now two JOBS, because the halves do not
 # deserve the same token:
 #
-#   mechanical (blocking)  — scripts/agent-review.mjs. Four mechanical invariants
+#   mechanical (blocking)  — scripts/agent-review.mjs. Five mechanical invariants
 #                        where "a reviewer will probably notice" is not good
 #                        enough: a component growing past 200 lines, a route
 #                        segment-config opt-out under cacheComponents, a deleted
 #                        test with no `Ack:` line, a new runtime dependency with
-#                        no `Ack:` line. It also puts law-file touches, gate
+#                        no `Ack:` line, and a commit subject that narrates the
+#                        session instead of naming the change. It also puts
+#                        law-file touches, gate
 #                        softening and new unmapped files at the top of the job
 #                        summary, where the weekly triage starts.
 #                        This is the job that can fail, so it is the job that
@@ -68,6 +70,14 @@ name: Agent review
 # Untrusted input never reaches a shell: every `${{ … }}` in this file lands in
 # an `env:` variable, and `scripts/actions-pin.mjs` (rule P5, blocking) fails any
 # workflow that interpolates an expression directly into a `run:` body.
+#
+# And untrusted CODE does not reach the job that holds the trust: `judgment` is
+# the only job here with both a secret and a write scope, so before it runs
+# anything it restores `scripts/` and the rubric from the BASE revision. The diff
+# under review still comes from the head; the program that reads it does not.
+# `mechanical` needs no such treatment — it holds no secret and a read-only
+# token, and it is re-run against master by `.husky/pre-push` on the path this
+# repository actually lands changes on.
 on:
   push:
   pull_request:
@@ -213,6 +223,26 @@ jobs:
             ref="origin/$DEFAULT_BRANCH"
           fi
           printf 'ref=%s\n' "$ref" >> "$GITHUB_OUTPUT"
+
+      # The reviewer runs from the BASE revision, not from the change.
+      #
+      # This is the only job in the repository that holds a secret
+      # (ANTHROPIC_API_KEY) and a write scope (pull-requests: write) at the same
+      # time, and the checkout above is the change's own tree. Running
+      # scripts/agent-review-llm.mjs straight out of it would let the thing under
+      # review choose the program that reads it, with the key already in the
+      # environment — and on this repository that is not a hypothetical fork: every
+      # branch an agent pushes is same-repo, so the secrets ARE handed out.
+      # Restoring the reviewer and its rubric from the base means the diff still
+      # comes from the head while the code that reads the diff does not.
+      #
+      # No `continue-on-error`: if the base has no such paths, this job stops
+      # rather than silently falling back to the change's own copy. It comments,
+      # it never blocks, so a red here costs a comment and not a release.
+      - name: Restore the reviewer from the base revision
+        env:
+          BASE_REF: ${{ steps.base.outputs.ref }}
+        run: git checkout "$BASE_REF" -- scripts .github/agent-review-rubric.md
 
       # Comment-only, and only with a key. On a fork's pull request GitHub hands
       # out no secrets at all, so this step self-skips there and Part A still ran.

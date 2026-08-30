@@ -25,11 +25,22 @@
  *  to branch protection — so renaming the job breaks `npm run merge-gate` first
  *  rather than making this quietly report on nothing.
  *
+ *  WHERE THE REPORT GOES. A job summary belongs to its run: it expires with the
+ *  retention window, it is not addressable, and nobody outside the Actions tab
+ *  ever sees it — which is the same failure the review itself was given
+ *  annotations and a PR comment to avoid. So `--out` writes the report as a file,
+ *  and .github/workflows/agent-review-history.yml publishes it into a single
+ *  GitHub issue that is rewritten in place each week. One durable, linkable page
+ *  saying what the automated reviewer has actually been catching — which is the
+ *  difference between an automated practice a reader can trust and one they have
+ *  to take on faith.
+ *
  *  Usage:
  *    npm run review:agent:history
- *    node scripts/agent-review-history.mjs [--runs 60] [--repo owner/name] [--summary FILE]
+ *    node scripts/agent-review-history.mjs [--runs 60] [--repo owner/name]
+ *                                          [--summary FILE] [--out FILE]
  */
-import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -43,6 +54,7 @@ const arg = (name) => {
   return i !== -1 ? argv[i + 1] : null;
 };
 const SUMMARY_FILE = arg("--summary");
+const OUT_FILE = arg("--out");
 const RUNS = Math.min(Number(arg("--runs")) || 60, 100);
 const REPO = arg("--repo") || process.env.GITHUB_REPOSITORY || "";
 
@@ -59,6 +71,16 @@ function finish() {
       appendFileSync(SUMMARY_FILE, out.join("\n") + "\n");
     } catch (err) {
       console.error(`(could not write summary: ${err.message})`);
+    }
+  }
+  // The publishable copy. Written even in the "nothing to report" cases above,
+  // so the published page says why it is empty rather than silently going stale
+  // at whatever the last successful week said.
+  if (OUT_FILE) {
+    try {
+      writeFileSync(OUT_FILE, out.join("\n") + "\n");
+    } catch (err) {
+      console.error(`(could not write ${OUT_FILE}: ${err.message})`);
     }
   }
   process.exit(0);
