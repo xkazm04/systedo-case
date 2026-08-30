@@ -3,6 +3,12 @@
  *  the model interprets real data instead of inventing it. Pure (no DB, no React).
  */
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedCZK, fmtSignedPct } from "../format";
+// Campaign names are free text an advertiser types into someone else's console
+// and a connector hands us verbatim — the one field in this whole block that is
+// not a number. `inlineUntrusted` is a no-op on a real name and removes the
+// shapes that would let a hostile one act as a prompt line; the firewall block
+// is appended only when something actually trips (src/lib/ai/untrusted.ts).
+import { inlineUntrusted, untrustedFirewallLines } from "../ai/untrusted";
 import {
   CAMPAIGN_TYPE_LABELS,
   CAMPAIGN_TYPE_ROLE_LABELS,
@@ -39,13 +45,20 @@ function triageLines(c: CampaignRow, change?: CampaignChange, goals?: TriageGoal
 
 /** One mover from the sync-over-sync diff as a compact prompt line. */
 function changeLine(ch: CampaignChange): string {
+  const name = inlineUntrusted(ch.name);
   if (ch.kind === "added") {
-    return `- „${ch.name}“: nová kampaň od minulé synchronizace (náklady ${fmtCZK(ch.costAfter)}).`;
+    return `- „${name}“: nová kampaň od minulé synchronizace (náklady ${fmtCZK(ch.costAfter)}).`;
   }
   if (ch.kind === "removed") {
-    return `- „${ch.name}“: od minulé synchronizace zmizela (předtím náklady ${fmtCZK(ch.costBefore)}).`;
+    return `- „${name}“: od minulé synchronizace zmizela (předtím náklady ${fmtCZK(ch.costBefore)}).`;
   }
-  return `- „${ch.name}“: náklady ${fmtCZK(ch.costBefore)} → ${fmtCZK(ch.costAfter)} (${fmtSignedPct(ch.costDelta)}), hodnota konverzí ${fmtSignedPct(ch.valueDelta)}, ROAS ${fmtMultiple(ch.roasBefore)} → ${fmtMultiple(ch.roasAfter)}.`;
+  return `- „${name}“: náklady ${fmtCZK(ch.costBefore)} → ${fmtCZK(ch.costAfter)} (${fmtSignedPct(ch.costDelta)}), hodnota konverzí ${fmtSignedPct(ch.valueDelta)}, ROAS ${fmtMultiple(ch.roasBefore)} → ${fmtMultiple(ch.roasAfter)}.`;
+}
+
+/** Every third-party string this prompt embeds, in one place, so the firewall
+ *  block below is derived from the same list the renderers quarantine. */
+function untrustedNames(all: Campaign[], changes?: ChangesSummary): string[] {
+  return [...all.map((c) => c.name), ...(changes?.items ?? []).map((i) => i.name)];
 }
 
 /** Render the sync-over-sync diff as a prompt block, so the AI sees the same
@@ -150,7 +163,7 @@ export function buildCampaignPrompt(
     "",
     ...header(period, client),
     "",
-    `HODNOCENÁ KAMPAŇ: „${target.name}“`,
+    `HODNOCENÁ KAMPAŇ: „${inlineUntrusted(target.name)}“`,
     `- ${metricsLine(t)}`,
     `- podíl na celkových nákladech portfolia: ${fmtPct(costShare)}`,
     `- podíl na celkové hodnotě konverzí portfolia: ${fmtPct(revShare)}`,
@@ -172,6 +185,7 @@ export function buildCampaignPrompt(
       : []),
     "",
     "Na základě těchto čísel vrať: skóre 0–100 (zdraví kampaně vůči cíli a portfoliu), jednovětý verdikt, krátké shrnutí, silné stránky, slabiny a 2–4 konkrétní doporučené kroky s prioritou. Skóre i verdikt musí odpovídat triáži výše — kampaň s kritickým nálezem nemůže dostat skóre zdraví nad 50. Vycházej VÝHRADNĚ z uvedených čísel.",
+    ...untrustedFirewallLines(untrustedNames(all, changes)),
   ].join("\n");
 }
 
@@ -219,14 +233,14 @@ export function buildOverallPrompt(
     ),
     "",
     "JEDNOTLIVÉ KAMPANĚ (seřazené podle nákladů):",
-    ...rows.map((c) => `- „${c.name}“: ${metricsLine(c)}`),
+    ...rows.map((c) => `- „${inlineUntrusted(c.name)}“: ${metricsLine(c)}`),
     ...changesBlock(changes),
     "",
     "DETERMINISTICKÁ TRIÁŽ (pravidlové nálezy, které UI u kampaní zobrazuje — respektuj je):",
     ...(flagged.length > 0
       ? flagged.map(
           ({ c, t }) =>
-            `- „${c.name}“: ${t.reasons
+            `- „${inlineUntrusted(c.name)}“: ${t.reasons
               .map((r) => `[${r.severity === "critical" ? "KRITICKÉ" : "sledovat"}] ${r.label}`)
               .join("; ")}`
         )
@@ -237,8 +251,8 @@ export function buildOverallPrompt(
       ? [
           ...rec.moves.map((m) =>
             m.kind === "pause"
-              ? `- Pozastavit „${m.fromName}“ (utrácí ${fmtCZK(m.amount)} bez jediné konverze); úspora ${fmtCZK(m.amount)} nákladů bez ztráty hodnoty konverzí.`
-              : `- Přesunout ${fmtCZK(m.amount)} z „${m.fromName}“ (ROAS ${fmtMultiple(m.fromRoas)}) do „${m.toName}“ (ROAS ${fmtMultiple(m.toRoas)}); odhad ${fmtSignedCZK(m.estValueGain)} hodnoty konverzí.`
+              ? `- Pozastavit „${inlineUntrusted(m.fromName)}“ (utrácí ${fmtCZK(m.amount)} bez jediné konverze); úspora ${fmtCZK(m.amount)} nákladů bez ztráty hodnoty konverzí.`
+              : `- Přesunout ${fmtCZK(m.amount)} z „${inlineUntrusted(m.fromName)}“ (ROAS ${fmtMultiple(m.fromRoas)}) do „${inlineUntrusted(m.toName)}“ (ROAS ${fmtMultiple(m.toRoas)}); odhad ${fmtSignedCZK(m.estValueGain)} hodnoty konverzí.`
           ),
           `- Souhrnný odhad po přesunech: ROAS ${fmtMultiple(rec.simulation.before.roas)} → ${fmtMultiple(rec.simulation.after.roas)}, PNO ${fmtPct(rec.simulation.before.pno)} → ${fmtPct(rec.simulation.after.pno)}.`,
         ]
@@ -253,5 +267,6 @@ export function buildOverallPrompt(
       : []),
     "",
     "Na základě těchto čísel vrať: skóre 0–100 (celkové zdraví portfolia vůči cíli), jednovětý verdikt, krátké shrnutí, silné stránky, slabiny a 3–5 konkrétních doporučených kroků s prioritou (kde přidat rozpočet, co optimalizovat, co utlumit). Doporučení musí vycházet z triáže a navržených přesunů výše a nesmí jim odporovat. Odkazuj se na konkrétní kampaně a typy. Vycházej VÝHRADNĚ z uvedených čísel.",
+    ...untrustedFirewallLines(untrustedNames(all, changes)),
   ].join("\n");
 }

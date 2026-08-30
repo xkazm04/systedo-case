@@ -571,7 +571,8 @@
         "src/lib/ai/tools/_coerce.ts",
         "src/lib/ai/tools/_fragments.ts",
         "src/lib/ai/tools/_shared.ts",
-        "src/lib/ai/tools/_validate.ts"
+        "src/lib/ai/tools/_validate.ts",
+        "src/lib/ai/untrusted.ts"
       ],
       "group": "AI & Content Engine",
       "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",

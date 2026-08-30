@@ -28,6 +28,9 @@ import {
 import { CAMPAIGN_TYPE_LABELS, type CampaignType } from "../../campaigns/types";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
+// The campaign NAME is the only free-text field in this prompt, and it comes
+// from the advertiser's console through a connector — see src/lib/ai/untrusted.ts.
+import { inlineUntrusted, untrustedFirewallLines } from "../untrusted";
 import { txt } from "./_shared";
 import { antiFabrication, demoTail } from "./_fragments";
 import { missingStrFields, withObjectGuard } from "./_validate";
@@ -83,7 +86,7 @@ function campaignLine(c: AdsDiagnosisCampaign, currency: string): string {
   if (c.budgetPerDay != null) parts.push(`denní rozpočet ${money(c.budgetPerDay, currency)}`);
   if (c.deltaCostPct != null) parts.push(`náklady ${fmtSignedPct(c.deltaCostPct)} oproti minulé synchronizaci`);
   if (c.deltaValuePct != null) parts.push(`hodnota konverzí ${fmtSignedPct(c.deltaValuePct)}`);
-  return `- [${c.id}] „${c.name}" (${ADS_PLATFORM_LABELS[c.platform]}, ${campaignTypeLabel(c.type)}): ${parts.join(", ")}`;
+  return `- [${c.id}] „${inlineUntrusted(c.name)}" (${ADS_PLATFORM_LABELS[c.platform]}, ${campaignTypeLabel(c.type)}): ${parts.join(", ")}`;
 }
 
 export function buildAdsDiagnosisPrompt(req: AdsDiagnosisRequest): string {
@@ -137,6 +140,7 @@ export function buildAdsDiagnosisPrompt(req: AdsDiagnosisRequest): string {
     'Vrať: „summary" (krátký odstavec, proč portfolio nedosahuje cíle), „likelyCause" (jedna z povolených hodnot), „recommendation" (jedna nejúčinnější konkrétní akce), „severity" (high | medium | low) a „affectedCampaignIds" (id dotčených kampaní POUZE z výše uvedených dat, nejvýš 6). Vycházej pouze z uvedených čísel.'
   );
   lines.push(...refineLines(req.refine));
+  lines.push(...untrustedFirewallLines([...req.worst, ...req.best].map((c) => c.name)));
   return lines.join("\n");
 }
 
@@ -237,7 +241,13 @@ function severityFor(cause: AdsDiagnosisCause): AdsSeverity {
   return "medium";
 }
 
-function normalizeAdsDiagnosis(parsed: unknown, req: AdsDiagnosisRequest): AdsDiagnosisResult {
+/** Exported for `test-unit/llm-adversarial.test.mjs`: this is the OUTPUT rung of
+ *  the injection defence — the place where a model that did obey an instruction
+ *  hidden in a campaign name still cannot name a campaign the request never
+ *  supplied, or invent a cause or a severity outside the known vocabulary. The
+ *  adversarial suite asserts that from the hostile side, so the containment
+ *  cannot be relaxed without a red test. */
+export function normalizeAdsDiagnosis(parsed: unknown, req: AdsDiagnosisRequest): AdsDiagnosisResult {
   const o = parsed as Record<string, unknown> | null;
   // Per-field floor is the TAIL-FREE base — backfilling an empty summary must not
   // carry the keyless "připojte LLM" disclaimer into a real (billed) diagnosis.
