@@ -175,6 +175,17 @@ export async function integrationStatus(project: Project, userId: string | null)
       probeLeadContacts(project.id),
       probeWebhooks(userId, project.id),
     ]);
+  // WP S3 — live probe: is this project's conversion upload APPROVED, i.e. is the
+  // daily drain actually sending rows to Google Ads? Degrades to false on any
+  // failure, exactly like every probe above: a probe that cannot see an approval must
+  // never claim one, because this row is where an operator checks whether their
+  // conversions are flowing back.
+  const conversionUploadApproved = userId
+    ? await import("@/lib/conversions/mapping")
+        .then((m) => m.getConversionUploadMapping(userId, project.id))
+        .then((m) => m?.status === "approved")
+        .catch(() => false)
+    : false;
   // WP W3-D — live probe: how many intake endpoints exist. Degrades to 0 (an honest
   // "optional") on any failure, exactly like every probe above.
   const inboundEndpoints = userId
@@ -212,5 +223,6 @@ export async function integrationStatus(project: Project, userId: string | null)
     webhooks: webhooks.count,
     webhooksFailing: webhooks.failing,
     inboundEndpoints,
+    conversionUploadApproved,
   });
 }

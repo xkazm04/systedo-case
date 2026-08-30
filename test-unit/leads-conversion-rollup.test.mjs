@@ -35,6 +35,17 @@ mock.module("@/lib/leads/conversion-store", {
       calls.push(`prune:${projectId}`);
       return projectId === "p1" ? 2 : 0;
     },
+    // A module mock REPLACES the whole namespace, so every export a transitively
+    // imported module binds must appear here. WP S3's `conversion-drain` step is
+    // registered in LEDGER_STEPS (imported below) and binds the writer, so it is
+    // stubbed loudly: this suite is about the ROLLUP, and a rollup that reached the
+    // ledger's write path would be a bug worth failing on rather than recording.
+    appendConversionEvents: async () => {
+      throw new Error("the rollup must never WRITE ledger rows");
+    },
+    clearConversionEvents: async () => {
+      throw new Error("the rollup must never CLEAR ledger rows");
+    },
   },
 });
 mock.module("@/lib/leads/conversion-state", {

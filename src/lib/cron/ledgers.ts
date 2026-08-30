@@ -31,6 +31,13 @@ import { socialReadbackStep } from "@/lib/social/readback-step";
 import { lpSyncStep } from "@/lib/lp-exp/sync-step";
 // WP W3-C
 import { conversionRollupStep } from "@/lib/leads/conversion-rollup-step";
+// WP S2 — twin autonomy on the wire (drafts an arrived message, then delivers what
+// every gate agrees may go). The one step in this registry that SENDS.
+import { twinDispatchStep } from "@/lib/twin/dispatch-step";
+// ── S3 ── the live conversion upload. The FIRST step here that claims a sent-guard
+// period of its own: unlike every sibling, its work is not idempotent against the
+// third party it talks to (see conversions/drain-step.ts).
+import { conversionDrainStep } from "@/lib/conversions/drain-step";
 
 /** The cron name this registry runs under — the `cron` key of its run records,
  *  the `vercel.json` path's last segment, and the `/api/health` staleness key. */
@@ -98,6 +105,8 @@ export const LEDGER_STEPS: readonly LedgerStep[] = [
   lpSyncStep,
   conversionRollupStep, // W3-C
   socialReadbackStep, // W3-D
+  conversionDrainStep, // ── S3 ──
+  twinDispatchStep, // ── S2 ──
 ];
 
 /** Which steps are due right now. Pure: same inputs → same list, so a step's

@@ -69,7 +69,18 @@ export async function listConversionEvents(
   const limit = query.limit ?? DEFAULT_LIMIT;
   const since = query.sinceDay ?? "";
   const db = getDb();
-  // Four bound statements rather than one built by concatenation — scripts/sast.mjs
+  // WP S3 — the `uploaded` marker rides the event's `data` JSON (no column, no
+  // migration), so it is read with json_extract. The predicate stays FULLY BOUND
+  // rather than growing a third and fourth prepared statement: `?` toggles the filter
+  // on, and the second `?` says which side of it is wanted. `IS NULL` evaluates to
+  // 1/0 in SQLite, so comparing it to a bound 0/1 is an exact match, and with the
+  // toggle at 0 the whole clause short-circuits true.
+  //   uploaded === false → want (marker IS NULL) = 1   (the drain's work list)
+  //   uploaded === true  → want (marker IS NULL) = 0
+  //   uploaded undefined → filter off
+  const filterOn = query.uploaded === undefined ? 0 : 1;
+  const wantNull = query.uploaded === false ? 1 : 0;
+  // Two bound statements rather than one built by concatenation — scripts/sast.mjs
   // blocks SQL assembled from interpolation, and the rule is worth more than the
   // brevity (the same reasoning as outcomes-store.local's per-link loop).
   const rows = query.kind
@@ -77,16 +88,18 @@ export async function listConversionEvents(
         .prepare(
           `SELECT data FROM conversion_events
            WHERE project_id = ? AND kind = ? AND at >= ?
+             AND (? = 0 OR (json_extract(data, '$.uploaded') IS NULL) = ?)
            ORDER BY at DESC, id DESC LIMIT ?`
         )
-        .all(projectId, query.kind, since, limit) as unknown as DataRow[])
+        .all(projectId, query.kind, since, filterOn, wantNull, limit) as unknown as DataRow[])
     : (db
         .prepare(
           `SELECT data FROM conversion_events
            WHERE project_id = ? AND at >= ?
+             AND (? = 0 OR (json_extract(data, '$.uploaded') IS NULL) = ?)
            ORDER BY at DESC, id DESC LIMIT ?`
         )
-        .all(projectId, since, limit) as unknown as DataRow[]);
+        .all(projectId, since, filterOn, wantNull, limit) as unknown as DataRow[]);
   return parseAll(rows);
 }
 

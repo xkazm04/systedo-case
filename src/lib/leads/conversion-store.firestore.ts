@@ -57,7 +57,18 @@ export async function appendConversionEvents(
     for (const e of events.slice(i, i + BATCH_SIZE)) {
       // `at`/`kind` are mirrored as real fields so they are queryable/orderable; the
       // event itself stays one JSON string (one shape to parse, no partial-write skew).
-      batch.set(col.doc(docId(e.id)), { at: e.at, kind: e.kind, data: JSON.stringify(e) });
+      // WP S3 mirrors the double-upload marker the same way — as a BOOLEAN, not the
+      // record, since the only question ever asked of it is "sent or not". It is
+      // written for inspectability (a console query for a project's pending rows) and
+      // for a future single-field read; the drain does NOT branch on it today, because
+      // docs written before S3 carry no such field and an equality filter cannot see a
+      // missing one — see listConversionEvents.
+      batch.set(col.doc(docId(e.id)), {
+        at: e.at,
+        kind: e.kind,
+        uploaded: Boolean(e.uploaded),
+        data: JSON.stringify(e),
+      });
     }
     await batch.commit();
   }
@@ -75,6 +86,28 @@ export async function listConversionEvents(
   const limit = query.limit ?? DEFAULT_LIMIT;
   const since = query.sinceDay ?? "";
   const col = conversionsCol(projectId);
+  if (query.uploaded !== undefined) {
+    // WP S3 — the marker filter. Deliberately NOT `where("uploaded","==",false)`,
+    // even though the field is mirrored for exactly that: a doc written BEFORE S3
+    // carries no `uploaded` field at all, and Firestore's equality filter cannot see
+    // a missing field, so the whole pre-S3 backlog would be invisible to the drain
+    // while the sqlite backend (`json_extract(...) IS NULL`) happily includes it. Two
+    // backends that disagree about which rows are pending is precisely the class of
+    // bug the dual-store pattern exists to avoid, so this branch reads the project's
+    // capped set (ordered, so the scan cap takes the NEWEST) and applies the same
+    // predicate the local store applies. Once per drain tick per tenant.
+    const snap = await col.orderBy("at", "desc").limit(CONVERSION_EVENT_CAP).get();
+    return snap.docs
+      .map((d) => parse(d.data()?.data))
+      .filter(
+        (e): e is ConversionEvent =>
+          e !== null &&
+          e.at >= since &&
+          (!query.kind || e.kind === query.kind) &&
+          Boolean(e.uploaded) === query.uploaded
+      )
+      .slice(0, limit);
+  }
   if (query.kind) {
     // where + orderBy would need a composite index; the read stays single-field (the
     // lead_activities / cron_runs posture) and sorts the bounded set in memory.

@@ -59,6 +59,18 @@ export interface ConversionEvent {
   value: number | null;
   /** which connector produced the contact, when known */
   connectorId?: string;
+  /** WP S3 — THE DOUBLE-UPLOAD MARKER. Present iff this row has been accepted by a
+   *  third-party processor, written in the SAME pass the acceptance was read. It is
+   *  the whole of the "a row uploads at most once" guarantee: the drain's query
+   *  excludes marked rows, and the upsert-by-id (`appendConversionEvents`) means a
+   *  re-mark cannot mint a second row. Rides the event's `data` JSON — no migration,
+   *  and an older reader simply ignores a field it does not know. */
+  uploaded?: { platform: "google-ads"; at: string; batchId: string; action: string };
+  /** WP S3 — a REJECTION, which is a different fact from an upload and must never be
+   *  confused with one. `attempts` is the count of failed tries; past
+   *  DRAIN_MAX_ATTEMPTS the drain stops re-offering the row and the card says how
+   *  many are stuck. A failure NEVER writes `uploaded`. */
+  uploadError?: { at: string; message: string; attempts: number };
 }
 
 /** Max rows kept per project before the oldest are evicted on append. */

@@ -9,6 +9,10 @@
  *  NO gclid — the one the Google file must drop and the Sklik sheet must keep. */
 import { test, mock } from "node:test";
 import assert from "node:assert/strict";
+// WP S3 lifted the fixture into a shared module so the CSV exporter and the LIVE
+// upload builder are pinned against LITERALLY the same rows — see the fixture's own
+// header. The rows themselves are unchanged, so every byte-pin below is unchanged.
+import { FIXTURE } from "./fixtures/conversion-events.mjs";
 
 const { buildGoogleConversionCsv, GOOGLE_CSV_HEADER, pragueStamp } = await import(
   "@/lib/conversions/google-csv"
@@ -19,37 +23,6 @@ const { buildSklikConversionSheet, SKLIK_SHEET_HEADER } = await import(
 const { CONVERSION_EXPORTERS, conversionExporter } = await import("@/lib/conversions/registry");
 
 const NOW = new Date("2026-08-30T09:15:00.000Z");
-
-const FIXTURE = [
-  {
-    id: "c1_won",
-    contactId: "c1",
-    kind: "won",
-    at: "2026-01-15T09:30:00.000Z", // CET  → +01:00
-    sourceLabel: "Google Ads – Brand",
-    attribution: { source: "google-ads", campaign: "Brand", gclid: "GCL-WINTER" },
-    value: 48000,
-    connectorId: "csv",
-  },
-  {
-    id: "c2_won",
-    contactId: "c2",
-    kind: "won",
-    at: "2026-07-15T09:30:00.000Z", // CEST → +02:00
-    sourceLabel: "-50 % na vše", // a formula-injection payload
-    attribution: { source: "sklik", gclid: "GCL+SUMMER" },
-    value: null, // unknown, NOT zero
-  },
-  {
-    id: "c3_won",
-    contactId: "c3",
-    kind: "won",
-    at: "2026-07-16T09:30:00.000Z",
-    sourceLabel: "Doporučení",
-    attribution: { source: "referral" }, // no gclid → not uploadable to Google
-    value: 1200,
-  },
-];
 
 /* ── Google Ads offline click conversions ────────────────────────────────────── */
 
@@ -134,7 +107,9 @@ test("neither file carries PII", () => {
 /* ── the registry seam ───────────────────────────────────────────────────────── */
 
 test("registry: both formats registered, unknown ids narrow to null", () => {
-  assert.deepEqual(CONVERSION_EXPORTERS.map((e) => e.id), ["google", "sklik"]);
+  // WP S3 APPENDED the live pusher; the two file formats keep their positions,
+  // which is what the strip's `format=google|sklik` links depend on.
+  assert.deepEqual(CONVERSION_EXPORTERS.map((e) => e.id), ["google", "sklik", "google-live"]);
   for (const e of CONVERSION_EXPORTERS) {
     assert.ok(e.label && e.labelEn, "every exporter carries cs + en copy");
     assert.equal(typeof e.build, "function");

@@ -137,8 +137,10 @@ export interface SearchRow {
   };
 }
 
-/** Run a GAQL query against one customer via searchStream; returns flat rows. */
-async function searchStream(accessToken: string, customerId: string, query: string): Promise<SearchRow[]> {
+/** Run a GAQL query against one customer via searchStream; returns flat rows.
+ *  ── S3 ── `export` added by WP S3 (listConversionActions below needs it); the body
+ *  is untouched. S1b lands after S3 and reconciles if it exports it too. */
+export async function searchStream(accessToken: string, customerId: string, query: string): Promise<SearchRow[]> {
   const res = await fetch(`${BASE}/customers/${customerId}/googleAds:searchStream`, {
     method: "POST",
     headers: adsApiHeaders(accessToken),
@@ -642,4 +644,216 @@ export async function fetchCampaigns(
     });
 
   return { campaigns, currency, timeZone: accountTimeZone };
+}
+
+/* ── S3 ─────────────────────────────────────────────────────────────────────────
+ *  LIVE OFFLINE CLICK-CONVERSION UPLOAD (WP S3). Everything below this marker was
+ *  APPENDED by S3; nothing above it was reformatted. S1b is the file's other owner
+ *  this wave and lands after — a conflict here is a merge, not a rewrite.
+ *
+ *  This is the first WRITE in this module that is not a campaign mutation, and the
+ *  first that is NOT idempotent against Google: the same gclid posted twice against
+ *  the same conversion action is counted twice, and there is no retraction endpoint.
+ *  Two consequences are baked into the signatures below.
+ *
+ *  1. `fetchImpl` — the injectable transport. Every other call in this file reaches
+ *     the network through the global `fetch`, which is exactly why none of them can
+ *     be exercised by a unit test without either credentials or a global monkey-patch.
+ *     An upload must be pinnable byte-for-byte WITHOUT any possibility of a test
+ *     reaching Google, so the transport is a parameter here. It defaults to `fetch`,
+ *     so production callers are unchanged; this is the precedent the rest of the
+ *     module can adopt later.
+ *  2. `partialFailure: true` is ALWAYS sent. Without it Google rejects the whole
+ *     batch when one row is bad, and the caller cannot tell which — so a retry would
+ *     re-send the rows that had already been accepted. With it, each row succeeds or
+ *     fails on its own and {@link parseClickConversionResponse} says which, which is
+ *     what makes "mark exactly the accepted rows" possible. */
+
+/** One ENABLED conversion action in the account — what an operator picks their
+ *  ledger rows to be uploaded into. */
+export interface ConversionActionRow {
+  /** `customers/{cid}/conversionActions/{id}` — the wire identifier a click
+   *  conversion carries; the ONLY field the upload actually sends. */
+  resourceName: string;
+  name: string;
+  /** Google's `ConversionActionType` enum (e.g. `UPLOAD_CLICKS`), verbatim */
+  type: string;
+  status: string;
+}
+
+/** The subset of a searchStream row a conversion-action query returns. Declared
+ *  here rather than widening the shared {@link SearchRow} so the S3 region stays
+ *  additive. */
+interface ConversionActionSearchRow {
+  conversionAction?: { resourceName?: string; name?: string; type?: string; status?: string };
+}
+
+/** The account's ENABLED conversion actions, newest API version, via the shared
+ *  {@link searchStream}. Throws {@link AdsApiError} on a non-OK response (the module
+ *  invariant), so the caller's live-retry can classify it.
+ *
+ *  The list is deliberately NOT filtered to `UPLOAD_CLICKS`: an account can be
+ *  configured to accept offline uploads into an action created for another purpose,
+ *  and silently hiding the action the operator is looking for reads as "Adamant
+ *  cannot see my account". The `type` rides along so the card can say what each one
+ *  is and let the operator decide. */
+export async function listConversionActions(
+  accessToken: string,
+  customerId: string
+): Promise<ConversionActionRow[]> {
+  const rows = (await searchStream(
+    accessToken,
+    customerId.replace(/\D/g, ""),
+    `SELECT
+      conversion_action.resource_name,
+      conversion_action.name,
+      conversion_action.type,
+      conversion_action.status
+    FROM conversion_action
+    WHERE conversion_action.status = 'ENABLED'`
+  )) as unknown as ConversionActionSearchRow[];
+  const out: ConversionActionRow[] = [];
+  for (const r of rows) {
+    const resourceName = r.conversionAction?.resourceName;
+    if (!resourceName) continue;
+    out.push({
+      resourceName,
+      name: r.conversionAction?.name || resourceName,
+      type: r.conversionAction?.type ?? "",
+      status: r.conversionAction?.status ?? "ENABLED",
+    });
+  }
+  return out;
+}
+
+/** One row of the upload payload — EXACTLY Google's `ClickConversion` fields we are
+ *  willing to send, and nothing else. gclid + action + time + (value + currency).
+ *  No identity, no e-mail hash, no user-agent: the ledger holds none of it and this
+ *  is the wire shape that proves it. */
+export interface ClickConversionRow {
+  gclid: string;
+  /** a `ConversionActionRow.resourceName` */
+  conversionAction: string;
+  /** `YYYY-MM-DD HH:MM:SS±HH:MM` — the exporter's `pragueStamp`, the one stamp format */
+  conversionDateTime: string;
+  /** omitted entirely when the ledger does not know a value; never sent as 0 */
+  conversionValue?: number;
+  currencyCode: string;
+}
+
+/** Per-row verdict for one upload batch. `accepted` carries the gclids Google took;
+ *  `failed` carries the rest WITH the reason, so the caller can mark only the
+ *  accepted ones and leave the failures retryable. */
+export interface ClickConversionOutcome {
+  accepted: string[];
+  failed: Array<{ gclid: string; message: string }>;
+}
+
+/** The shape Google's `:uploadClickConversions` answers with. */
+interface UploadClickConversionsResponse {
+  results?: Array<Record<string, unknown> | null>;
+  partialFailureError?: {
+    message?: string;
+    details?: Array<{
+      errors?: Array<{
+        message?: string;
+        location?: { fieldPathElements?: Array<{ fieldName?: string; index?: number }> };
+      }>;
+    }>;
+  };
+}
+
+const UPLOAD_FAILED_UNSPECIFIED = "Google conversion upload: row rejected without a stated reason";
+
+/** Which request indexes the partial-failure block names, and why.
+ *
+ *  A `GoogleAdsFailure` detail carries one error per rejected operation, and the
+ *  operation it refers to is identified by the FIRST `fieldPathElements` entry that
+ *  carries a numeric `index` (`conversions[i]` on this endpoint, `operations[i]` on
+ *  the mutate endpoints — both are accepted here so the parser does not depend on a
+ *  field name Google has renamed before). An error with no index cannot be attributed
+ *  to a row and is deliberately dropped rather than blamed on row 0. */
+function partialFailureIndexes(res: UploadClickConversionsResponse): Map<number, string> {
+  const out = new Map<number, string>();
+  for (const detail of res.partialFailureError?.details ?? []) {
+    for (const err of detail?.errors ?? []) {
+      const el = (err?.location?.fieldPathElements ?? []).find(
+        (e) => typeof e?.index === "number" && Number.isFinite(e.index)
+      );
+      if (!el || typeof el.index !== "number") continue;
+      if (!out.has(el.index)) out.set(el.index, err?.message?.trim() || UPLOAD_FAILED_UNSPECIFIED);
+    }
+  }
+  return out;
+}
+
+/** THE acceptance rule, in one place: **a row is accepted iff its index has a
+ *  non-empty entry in `results` AND no partial-failure detail names that index.**
+ *
+ *  Both halves are load-bearing. Google returns a positionally-aligned `results`
+ *  array in which a rejected row is an EMPTY object, so "has a result" alone would
+ *  count a rejection as a success; and a `results` array that is short (or absent)
+ *  because the whole request was refused would otherwise mark nothing as failed at
+ *  all. A row that is neither named by an error nor backed by a result is reported
+ *  as FAILED — the conservative direction, because a row wrongly marked `uploaded`
+ *  is a conversion silently lost, while a row wrongly left unmarked is one retry.
+ *  Pure, so the mapping is unit-testable against a captured response body. */
+export function parseClickConversionResponse(
+  rows: readonly ClickConversionRow[],
+  res: UploadClickConversionsResponse
+): ClickConversionOutcome {
+  const named = partialFailureIndexes(res);
+  const results = res.results ?? [];
+  const accepted: string[] = [];
+  const failed: Array<{ gclid: string; message: string }> = [];
+  for (let i = 0; i < rows.length; i++) {
+    const gclid = rows[i]!.gclid;
+    const message = named.get(i);
+    if (message !== undefined) {
+      failed.push({ gclid, message });
+      continue;
+    }
+    const r = results[i];
+    if (r && typeof r === "object" && Object.keys(r).length > 0) accepted.push(gclid);
+    else failed.push({ gclid, message: UPLOAD_FAILED_UNSPECIFIED });
+  }
+  return { accepted, failed };
+}
+
+/** POST offline click conversions to one customer.
+ *
+ *  `opts.validateOnly` asks Google to check the batch WITHOUT applying it — the
+ *  dry-run's live proof, and the only pre-flight that exists for an operation with no
+ *  undo. The drain NEVER sets it; a `validateOnly` response must never be treated as
+ *  an upload, so its accepted rows must never be marked.
+ *
+ *  `opts.fetchImpl` is the injectable transport (defaults to the global `fetch`) —
+ *  see the region header. An empty `rows` short-circuits: an empty batch is a
+ *  round-trip that can only cost money and time. */
+export async function uploadClickConversions(
+  accessToken: string,
+  customerId: string,
+  rows: readonly ClickConversionRow[],
+  opts: { validateOnly?: boolean; fetchImpl?: typeof fetch } = {}
+): Promise<ClickConversionOutcome> {
+  if (rows.length === 0) return { accepted: [], failed: [] };
+  const cid = customerId.replace(/\D/g, "");
+  const doFetch = opts.fetchImpl ?? fetch;
+  const res = await doFetch(`${BASE}/customers/${cid}:uploadClickConversions`, {
+    method: "POST",
+    headers: adsApiHeaders(accessToken),
+    body: JSON.stringify({
+      conversions: rows,
+      // Always on — see the region header; without it one bad row loses the batch.
+      partialFailure: true,
+      ...(opts.validateOnly ? { validateOnly: true } : {}),
+    }),
+  });
+  if (!res.ok) {
+    throw new AdsApiError(
+      res.status,
+      `Google Ads uploadClickConversions ${res.status}: ${await res.text().catch(() => "")}`
+    );
+  }
+  return parseClickConversionResponse(rows, (await res.json()) as UploadClickConversionsResponse);
 }

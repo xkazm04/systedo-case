@@ -79,6 +79,14 @@ export const PROJECT_STATE_KEYS = {
   // decides how many conversions the operator believes they can upload. A client
   // that could POST it wholesale could write itself any coverage number it liked.
   conversionSummary: { owner: "kvalita-leadu", version: 1, http: false },
+  // S3 — the LIVE conversion-upload mapping: which Google Ads conversion action the
+  // ledger's rows are uploaded into, which kinds go, and where the mapping sits in
+  // its dry-run → approve → pause lifecycle. SERVER-OWNED (`http: false`) and NOT for
+  // the reason the measurement blobs above are: this one is an AUTHORISATION. Rows
+  // uploaded through it reach a third-party processor and cannot be taken back, so
+  // the approval must be minted by the guarded upload route (which enforces
+  // "a dry run inside the last 24 h") and can never be a wholesale client PUT.
+  conversionUpload: { owner: "kvalita-leadu", version: 1, http: false },
 } as const satisfies Record<string, ProjectStateKeySpec>;
 
 /** Every registered key, as a union — the type every store/route API takes. */

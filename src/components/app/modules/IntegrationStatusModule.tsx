@@ -66,6 +66,10 @@ const COPY: Record<SupportedLocale, Copy> = {
       "webhooks-failing": "Cíl je nastavený, ale poslední doručení selhalo — upozornění nikam nedorazila. Zkontrolujte historii v Nastavení.",
       "inbound-none": "Zprávy z kanálů zatím zadáváte ručně. Ve Schránce si můžete vygenerovat podepsanou adresu, na kterou je platforma pošle sama.",
       "inbound-live": "Adresa pro příjem je aktivní: podepsané zprávy padají rovnou do Schránky jako návrhy čekající na vaši odpověď.",
+      "conversion-upload-active":
+        "Účet je připojený a konverze se vracejí zpět: kvalifikované a uzavřené obchody z CRM se každý den nahrávají do vaší konverzní akce (ID kliknutí, čas, hodnota).",
+      "conversion-upload-off":
+        "Účet je připojený, ale konverze se zatím nevracejí — čteme kampaně, nic neodesíláme. Zapnout jde v Nastavení; nahrání je nevratné, takže to chce zkušební běh a schválení.",
     },
     items: {
       "google-ads": "Google Ads", sklik: "Sklik", "ai-llm": "AI generování (Gemini / vlastní klíč)",
@@ -109,6 +113,10 @@ const COPY: Record<SupportedLocale, Copy> = {
       "webhooks-failing": "A destination is configured, but the last delivery failed — the alerts reached nobody. Check the history in Settings.",
       "inbound-none": "Messages from your channels are still entered by hand. The Inbox can mint a signed address a platform posts them to itself.",
       "inbound-live": "Intake is live: signed messages land straight in the Inbox as drafts awaiting your reply.",
+      "conversion-upload-active":
+        "The account is linked and conversions flow back: qualified and won CRM deals are uploaded to your conversion action daily (click ID, time, value).",
+      "conversion-upload-off":
+        "The account is linked, but conversions don't flow back yet — we read campaigns and send nothing. Turn it on in Settings; an upload cannot be undone, so it takes a dry run and an approval.",
     },
     items: {
       "google-ads": "Google Ads", sklik: "Sklik", "ai-llm": "AI generation (Gemini / own key)",

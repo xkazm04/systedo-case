@@ -7,11 +7,16 @@
  *  downloaded, so nothing above this line learns which it is. Framework-free. */
 import { googleConversionExporter } from "./google-csv";
 import { sklikConversionExporter } from "./sklik-sheet";
+// WP S3 — the live pusher, registered here exactly as the header promised. It is
+// APPENDED (never inserted) so the two file formats keep their positions: `google`
+// and `sklik` are what the Kvalita leadů strip links to by id.
+import { googleLiveConversionExporter } from "./google-upload";
 import type { ConversionExporter } from "./types";
 
 export const CONVERSION_EXPORTERS: readonly ConversionExporter[] = [
   googleConversionExporter,
   sklikConversionExporter,
+  googleLiveConversionExporter,
 ];
 
 /** The exporter for a wire-supplied format id, or null when it is not one. Narrowing

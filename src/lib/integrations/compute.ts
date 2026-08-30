@@ -78,7 +78,13 @@ export type IntDetail =
   | "webhooks-none"
   | "webhooks-failing"
   | "inbound-none"
-  | "inbound-live";
+  | "inbound-live"
+  // WP S3 — whether this project's conversion ledger is actually reaching Google Ads.
+  // A linked account and an APPROVED upload mapping are different facts: "Připojeno"
+  // has always meant "we can read your campaigns", and a reader could reasonably take
+  // it to mean their conversions are flowing back. These two say which is true.
+  | "conversion-upload-active"
+  | "conversion-upload-off";
 
 /** Where the row's action lives. A hint that names a step must be able to TAKE the
  *  reader there; module slugs are resolved against the current project by the UI. */
@@ -168,6 +174,11 @@ export interface ProvisionInput {
    *  endpoint that exists but is not receiving is worse than none — it reads as
    *  "alerts are wired up" while the alerts go nowhere — so it gets "action". */
   webhooksFailing?: boolean;
+  /** live probe (WP S3): this project's conversion-upload mapping is `approved`, i.e.
+   *  the daily drain is actually sending rows to Google Ads. Optional so every caller
+   *  that predates the row (and every existing test fixture) still compiles; absent
+   *  degrades to "off", which is the honest reading of "we cannot see one". */
+  conversionUploadApproved?: boolean;
   /** live probe (WP W3-D): how many TWIN INTAKE endpoints this project has minted —
    *  the addresses a platform POSTs real inbound messages to. Optional so a caller
    *  that predates the row (and every existing test fixture) still compiles; absent
@@ -289,7 +300,17 @@ export function computeIntegrationRows(p: ProvisionInput): IntegrationRow[] {
   const rows: IntegrationRow[] = [
     adsPlatform
       ? p.adsLinked
-        ? { id: "google-ads", category: "ads", status: "connected" }
+        ? {
+            id: "google-ads",
+            category: "ads",
+            status: "connected",
+            // WP S3 — a connected account is now TWO facts, and the row says which.
+            // The status stays "connected" either way (reading campaigns works), but
+            // the detail distinguishes a one-way link from a closed loop, and points
+            // at the control that changes it.
+            detail: p.conversionUploadApproved ? "conversion-upload-active" : "conversion-upload-off",
+            ...(p.conversionUploadApproved ? {} : { link: "nastaveni" as const }),
+          }
         : { id: "google-ads", category: "ads", status: "action", detail: "ads-unlinked", link: "home" }
       : { id: "google-ads", category: "ads", status: "missing" },
     sklikRow(p),

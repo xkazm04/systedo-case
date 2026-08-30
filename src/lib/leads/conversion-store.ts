@@ -28,6 +28,12 @@ export interface ConversionEventQuery {
   kind?: ConversionKind;
   /** lower bound as a day string (YYYY-MM-DD); compares against the ISO `at` by prefix */
   sinceDay?: string;
+  /** WP S3 — filter on the double-upload marker: `false` = rows NOT yet accepted by a
+   *  processor (the drain's work list), `true` = rows already sent, omitted = both.
+   *  Pushed into the BACKEND rather than filtered after the read on purpose: with
+   *  `limit` applied first, a JS filter would silently hand the drain a short page of
+   *  already-uploaded rows and stall the queue behind them. */
+  uploaded?: boolean;
 }
 
 /** One tenant that owns ledger rows. */

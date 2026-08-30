@@ -227,6 +227,10 @@ test("the shipped registry: heartbeat is always due and always succeeds", async 
   // rest of the registry grows as later WPs append (WP W1-E: `webhook-retry`).
   assert.equal(LEDGER_STEPS[0].id, "heartbeat");
   assert.ok(LEDGER_STEPS.map((s) => s.id).includes("webhook-retry"));
+  // WP S3: the drain is registered here and nowhere else — its own suite cannot
+  // import this registry (it replaces `@/lib/google/ads`, which the campaigns
+  // connector this module transitively pulls needs whole).
+  assert.ok(LEDGER_STEPS.map((s) => s.id).includes("conversion-drain"));
   // Every registered id must be unique and slash-free — it becomes a Firestore
   // document id via the `ledger-${id}` sent-guard kind.
   const ids = LEDGER_STEPS.map((s) => s.id);

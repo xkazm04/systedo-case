@@ -16,6 +16,8 @@
 import { Pill } from "@/components/ui";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 import type { ConversionSummary } from "@/lib/leads/conversion-events";
+import { currentUserId } from "@/lib/session";
+import { getConversionUploadMapping } from "@/lib/conversions/mapping";
 
 const T = {
   cs: {
@@ -29,6 +31,9 @@ const T = {
     coverageLow: "Doplňte do importu sloupec „gclid“ — bez click ID nelze konverzi nahrát do Google Ads.",
     coverageNone: "Žádná konverze zatím nenese Google Click ID. Do Google Ads nelze nahrát nic; Sklik tabulka obsahuje všechny řádky.",
     sklikNote: "Sklik: ruční mapovací tabulka — sloupce zrcadlí rozhraní Sklik, strojový import Seznam nezveřejňuje.",
+    uploadOn: "Nahrávání do Google Ads: aktivní — {action}.",
+    uploadOff: "Nahrávání do Google Ads: neaktivní. Zapnout v Nastavení.",
+    uploadPaused: "Nahrávání do Google Ads: pozastaveno. Obnovit v Nastavení.",
     empty: "Zatím žádné konverze. Jakmile kontakt posunete na „kvalifikovaný“ nebo „uzavřeno“, zapíše se sem řádek — bez jména, e-mailu i telefonu.",
     updated: "aktualizováno {date}",
     never: "čeká na první přepočet",
@@ -44,6 +49,9 @@ const T = {
     coverageLow: "Add a “gclid” column to your import — without a click ID a conversion cannot be uploaded to Google Ads.",
     coverageNone: "No conversion carries a Google Click ID yet. Nothing can be uploaded to Google Ads; the Sklik sheet holds every row.",
     sklikNote: "Sklik: a hand-mapped sheet — the columns mirror the Sklik UI; Seznam publishes no machine import spec.",
+    uploadOn: "Upload to Google Ads: active — {action}.",
+    uploadOff: "Upload to Google Ads: off. Turn it on in Settings.",
+    uploadPaused: "Upload to Google Ads: paused. Resume it in Settings.",
     empty: "No conversions yet. The moment you move a contact to “qualified” or “won”, a row lands here — with no name, e-mail or phone.",
     updated: "updated {date}",
     never: "awaiting the first rollup",
@@ -64,6 +72,17 @@ export default async function ConversionLedgerStrip({
 }) {
   const t = await getT(T);
   const fmt = await getServerFormatters();
+
+  // WP S3 — the live-upload status line's one fact, read HERE rather than threaded
+  // through LeadQualityModule: the mapping is keyed (userId, projectId) and this
+  // component only has the project id, and the alternative (a prop through a 439-line
+  // parent) would grow a module already over the component ceiling for one sentence.
+  // `currentUserId` is the React-cached session read, so it costs no extra round trip
+  // on a page that has already resolved the session. Best-effort: a failed read
+  // renders "neaktivní", which is the safe direction — this line must never claim an
+  // upload is running when it cannot prove one is.
+  const uid = await currentUserId().catch(() => null);
+  const upload = uid ? await getConversionUploadMapping(uid, projectId).catch(() => null) : null;
 
   const qualified = summary?.qualified30d ?? 0;
   const won = summary?.won30d ?? 0;
@@ -133,6 +152,19 @@ export default async function ConversionLedgerStrip({
           </div>
         </>
       )}
+
+      {/* WP S3 — the live-upload status line. Server-rendered from the mapping the
+          caller already read: it is one sentence of state, so a client island would
+          buy nothing and cost a fetch. It NAMES the conversion action when active,
+          because "aktivní" without saying into what is the state an operator most
+          needs to be able to double-check. */}
+      <div className="border-t border-line px-5 py-3 text-xs text-muted">
+        {upload?.status === "approved"
+          ? t("uploadOn", { action: upload.conversionAction?.name ?? "—" })
+          : upload?.status === "paused"
+            ? t("uploadPaused")
+            : t("uploadOff")}
+      </div>
 
       <div className="border-t border-line px-5 py-3 text-xs text-muted">{t("sklikNote")}</div>
     </div>
