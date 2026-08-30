@@ -2,22 +2,21 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "05b51ddc-42d5-4e53-a11f-6d1b09baa97f",
+      "recommendationId": "f87afd14-995c-4b52-8c3d-16366817dfbe",
       "verdict": "skipped",
-      "reason": "Neither named instance exists in the tree — sast.yml triggers only on push/pull_request/schedule and never checks out a PR head under a privileged trigger, and every ${{ }} in agent-review.yml is bound in an env: block and read back as a quoted shell variable, with the only literal occurrences of both patterns sitting in prose that explains why they are forbidden; both were already blocking via scripts/actions-pin.mjs P2/P5/P7, so the specific gap could not be closed by this change. What was genuinely open is the CLASS rather than the instance, and that is what I closed: P2 now forbids the whole privileged-trigger family (workflow_run, issue_comment, pull_request_review, pull_request_review_comment as well as pull_request_target), with a new unit test that fails both when a workflow declares one and when the policy's list of them is shortened. The remaining scan finding, SHA-pinning the 25 first-party action refs, needs network and stays open.",
-      "files": [
-        "scripts/actions-pin.mjs",
-        "test-unit/workflow-triggers.test.mjs",
-        "SECURITY.md",
-        ".github/required-checks.json",
-        ".github/workflows/sast.yml"
-      ]
+      "reason": "The gap is not present: all 19 live `${{ }}` expressions in agent-review.yml are `env:` bindings (verified line by line), no `run:` body interpolates one, and scripts/actions-pin.mjs rules P5/P7 already block this repo-wide as a required check — the scan's hit is one of three comment lines that quote the hazard in prose (agent-review.yml:70, :123 and agent-review-history.yml:46), and rewording those would be editing a file to satisfy a detector; I added the missing verification test instead.",
+      "files": ["test-unit/workflow-injection.test.mjs"]
+    },
+    {
+      "recommendationId": "ca52bf68-81ca-446a-a979-adb472ec23eb",
+      "verdict": "skipped",
+      "reason": "Needs network: pinning the 25 action refs and the Dockerfile's 3 `FROM node:24-alpine` stages means asking GitHub/the registry what each tag points at right now, and inventing a SHA breaks the workflow rather than pinning it — everything else the close needs is already in the tree (`npm run actions:pin --update` rewrites the refs and flips STRICT/RATCHET in one pass, and Dependabot's github-actions ecosystem is already enabled), so this is one networked command by a human, not a missing practice.",
+      "files": []
     }
   ],
   "lessons": [
-    "systedo-case encodes its workflow-security invariants as a blocking repo-local policy script (scripts/actions-pin.mjs, rules P1-P8, run in sast.yml's `workflow-policy` job and inside `npm run check:ci`) and documents each rule in SECURITY.md. Read that script and the workflows' own comments before treating a dangerous-workflow finding here as real: those files deliberately quote the exact patterns they forbid in prose, and a text-matching scanner hits the explanation rather than an occurrence. The repository already knows this about itself — test-unit/delivery-contract.test.mjs strips comment lines before asserting over the same YAML, for the same reason.",
-    "When a dangerous-workflow finding turns out to be a false positive in a repo this hardened, the useful move is not to re-argue the instance but to check whether the rule behind it names only the famous member of a class. Here P2 forbade `pull_request_target` alone; `workflow_run`, `issue_comment` and the two review triggers reach the same privileged context and were unenforced. Extending the enumeration is rung-correct (all five pass today, so the rule can be blocking) and cheap.",
-    "This repository's action-pinning gap is a decision plus one networked command, not a build: `npm run actions:pin` resolves every tag to a SHA AND writes STRICT = true / RATCHET.pinned back into scripts/actions-pin.mjs in the same pass. An offline agent can neither close it nor usefully prepare it, and must not flip STRICT by hand — that turns a blocking gate red on a tree nobody changed.",
-    "Ascent lanes in this worktree get no command execution at all (even `node script.mjs` is refused), so any edit to a script inside `check:ci` ships unverified and master ships on push. Keep such edits additive and obviously-correct — a new enumerated constant and a regex that mirrors an existing one — and pair them with a unit test that a human can run, rather than restructuring gate logic."
+    "This repository pairs every blocking policy rule with an independent unit test that restates the rule's own list (test-unit/workflow-triggers.test.mjs does it for actions-pin.mjs P2), on the reasoning that the cheap way to reintroduce a class is to delete the rule rather than to write a violation. When a security item here looks already-fixed, check whether the FENCE is pinned by a test before concluding there is nothing to do — that was the only real gap behind the agent-review.yml finding.",
+    "Scanners that flag .github/workflows here will produce false positives, because these workflows document the hazard they defend against in prose that quotes it (`${{ … }}`, `run:`, `pull_request_target` all appear in comments). The repo's own scripts strip comment lines before matching and say so explicitly; an external scan that does not will keep re-raising a closed gap, and the right answer is a skip with the line numbers, not a reworded comment.",
+    "scripts/actions-pin.mjs P8 claims 'there are no container images in this repository today', but the Dockerfile's three `FROM node:24-alpine` stages are outside the script's scope (it only reads .github/workflows). Worth closing when someone can run the networked pin — the base image floats across every 24.x patch, which is looser than any action ref here."
   ]
 }
