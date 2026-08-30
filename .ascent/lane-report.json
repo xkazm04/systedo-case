@@ -2,21 +2,32 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "f87afd14-995c-4b52-8c3d-16366817dfbe",
+      "recommendationId": "14f7551b-3576-488b-97ec-26977b51cec9",
       "verdict": "skipped",
-      "reason": "The gap is not present: all 19 live `${{ }}` expressions in agent-review.yml are `env:` bindings (verified line by line), no `run:` body interpolates one, and scripts/actions-pin.mjs rules P5/P7 already block this repo-wide as a required check — the scan's hit is one of three comment lines that quote the hazard in prose (agent-review.yml:70, :123 and agent-review-history.yml:46), and rewording those would be editing a file to satisfy a detector; I added the missing verification test instead.",
-      "files": ["test-unit/workflow-injection.test.mjs"]
+      "reason": "Already covered: every `${{ }}` in agent-review.yml is an `env:` binding, blocking rules P5/P7 in scripts/actions-pin.mjs fail any expression spliced into a `run:` body or any github.event.* outside `env:`, and test-unit/workflow-injection.test.mjs asserts both the tree and the rules — so the only change left would be editing the workflow to satisfy a regex detector.",
+      "files": [
+        ".github/workflows/agent-review.yml",
+        "scripts/actions-pin.mjs",
+        "test-unit/workflow-injection.test.mjs"
+      ]
     },
     {
-      "recommendationId": "ca52bf68-81ca-446a-a979-adb472ec23eb",
+      "recommendationId": "d11ab382-7978-43e1-96f1-d4d8e022cd7c",
       "verdict": "skipped",
-      "reason": "Needs network: pinning the 25 action refs and the Dockerfile's 3 `FROM node:24-alpine` stages means asking GitHub/the registry what each tag points at right now, and inventing a SHA breaks the workflow rather than pinning it — everything else the close needs is already in the tree (`npm run actions:pin --update` rewrites the refs and flips STRICT/RATCHET in one pass, and Dependabot's github-actions ecosystem is already enabled), so this is one networked command by a human, not a missing practice.",
-      "files": []
+      "reason": "Needs network: pinning 25 refs means resolving each tag to the commit it points at right now, and a fabricated SHA breaks CI rather than pinning it; the close is one networked run of `npm run actions:pin`, which already rewrites the workflows AND flips STRICT/RATCHET.pinned in the same pass.",
+      "files": [
+        "scripts/actions-pin.mjs",
+        ".github/workflows/agent-review.yml",
+        ".github/workflows/ci.yml",
+        ".github/workflows/sast.yml",
+        ".github/workflows/supply-chain.yml",
+        ".github/workflows/agent-review-history.yml"
+      ]
     }
   ],
   "lessons": [
-    "This repository pairs every blocking policy rule with an independent unit test that restates the rule's own list (test-unit/workflow-triggers.test.mjs does it for actions-pin.mjs P2), on the reasoning that the cheap way to reintroduce a class is to delete the rule rather than to write a violation. When a security item here looks already-fixed, check whether the FENCE is pinned by a test before concluding there is nothing to do — that was the only real gap behind the agent-review.yml finding.",
-    "Scanners that flag .github/workflows here will produce false positives, because these workflows document the hazard they defend against in prose that quotes it (`${{ … }}`, `run:`, `pull_request_target` all appear in comments). The repo's own scripts strip comment lines before matching and say so explicitly; an external scan that does not will keep re-raising a closed gap, and the right answer is a skip with the line numbers, not a reworded comment.",
-    "scripts/actions-pin.mjs P8 claims 'there are no container images in this repository today', but the Dockerfile's three `FROM node:24-alpine` stages are outside the script's scope (it only reads .github/workflows). Worth closing when someone can run the networked pin — the base image floats across every 24.x patch, which is looser than any action ref here."
+    "This repository answers a D9 finding with a blocking script plus a unit test that asserts the script still evaluates the rule — check scripts/*.mjs and test-unit/ for an existing gate before treating a scanner hit as an open gap; workflow-injection.test.mjs and workflow-triggers.test.mjs already cover the script-injection and privileged-trigger classes.",
+    "Action pinning here is deliberately one atomic networked command: `npm run actions:pin` resolves the digests, rewrites the workflows, and writes STRICT = true / RATCHET.pinned back into scripts/actions-pin.mjs, because pins that nothing enforces come undone on the next Dependabot bump. Half of it offline is worse than none.",
+    "`.github/workflows/` is a CODEOWNERS law file, so the usual offline consolation prize for a supply-chain item (add a scheduled burn-down workflow) is itself out of bounds and would need write scopes plus an unpinned third-party action."
   ]
 }
