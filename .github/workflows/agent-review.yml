@@ -38,6 +38,14 @@ name: Agent review
 # `continue-on-error`. Renaming the job means updating that file in the same
 # commit; that is the point.
 #
+# But a required status check only bites on a pull request, and this repo lands
+# changes by direct push to master (docs/deploy.md § Delivery contract) — on that
+# path this workflow's verdict arrives after Vercel has begun the deploy. So the
+# same Part A also runs as the last stage of `npm run check:ci`
+# (`npm run review:agent:gate`), which `.husky/pre-push` runs before any push that
+# updates master: a blocking finding refuses the push. Both wirings are asserted
+# by test-unit/delivery-contract.test.mjs, so neither can be removed in silence.
+#
 # Untrusted input never reaches a shell: every `${{ … }}` in this file lands in
 # an `env:` variable, and `scripts/actions-pin.mjs` (rule P5, blocking) fails any
 # workflow that interpolates an expression directly into a `run:` body.
@@ -115,14 +123,20 @@ jobs:
       # Part B wants Part A's report as context, and it runs in a different job.
       # `if: always()` because the case where a human most wants the judgment
       # half is the one where the mechanical half went red.
-      - name: Hand Part A's report to the judgment job
+      #
+      # It is also the trail. Changes here land by direct push to master and are
+      # triaged weekly, so "what did the review say about the commit that shipped
+      # on the 3rd?" is a real question asked well after the fact — and a 7-day
+      # artifact had usually expired by the time anyone asked. 90 days outlives
+      # the triage cycle, which is the point of keeping it at all.
+      - name: Hand Part A's report to the judgment job (and keep the trail)
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: mechanical-review
           path: mechanical.md
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 90
 
   judgment:
     name: Judgment review (comment only)

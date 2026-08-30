@@ -6,6 +6,23 @@
  *  locally as `npm run review:agent -- --base origin/master`. Exit non-zero fails
  *  the job; the report is written to the job summary either way.
  *
+ *  It also runs as the LAST stage of `npm run check:ci`, via
+ *  `npm run review:agent:gate` (this script with `--base origin/master`). That is
+ *  not belt-and-braces, it is the only place the rubric can stop THIS repo's
+ *  actual landing path. Master ships by direct push (docs/deploy.md § Delivery
+ *  contract), so "required status check on a pull request" never fires for most
+ *  changes, and agent-review.yml's verdict on a push arrives after Vercel has
+ *  already started building. `.husky/pre-push` runs check:ci before any push that
+ *  updates refs/heads/master — so with this stage inside it, a blocking finding
+ *  refuses the push instead of commenting on the release.
+ *
+ *  In CI's `check` job the same stage is a deliberate no-op: that job checks out
+ *  shallow, `origin/master` there is the pushed commit itself, the diff is empty
+ *  and this exits 0 — while agent-review.yml's `mechanical` job does the real
+ *  review with fetch-depth: 0. One command, correct on both machines.
+ *  test-unit/delivery-contract.test.mjs asserts the wiring, so deleting the stage
+ *  from check:ci turns the unit suite red rather than quietly disarming Part A.
+ *
  *  Why it exists: almost every commit here is written by an agent and triaged by
  *  one person weekly, so for most of a change's life the only thing that has read
  *  it is CI. These four rules are the invariants where "a reviewer will probably

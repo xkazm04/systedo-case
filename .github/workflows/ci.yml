@@ -54,8 +54,17 @@ jobs:
       #   actions:check (workflow token scope, action pinning, no expression
       #   spliced into a `run:` script) → merge-gate (every check that
       #   .github/required-checks.json says may stop a change still exists, still
-      #   runs on PRs, and can still fail). All deterministic and key-free — zero
-      #   model calls; the real-model run stays on demand (npm run test:llm).
+      #   runs on PRs, and can still fail) → review:agent:gate (Part A of the
+      #   rubric). All deterministic and key-free — zero model calls; the
+      #   real-model run stays on demand (npm run test:llm).
+      #
+      #   review:agent:gate is a no-op HERE and load-bearing on a developer's
+      #   machine: this checkout is shallow, so `origin/master` is the pushed
+      #   commit and the diff is empty, while agent-review.yml's `mechanical` job
+      #   reviews the same diff properly with fetch-depth: 0. The reason it is in
+      #   check:ci at all is .husky/pre-push — master ships on push, and that hook
+      #   is the only place the rubric can refuse a release rather than comment on
+      #   one. See docs/deploy.md § Delivery contract.
       - name: Full CI gate (npm run check:ci)
         run: npm run check:ci
 

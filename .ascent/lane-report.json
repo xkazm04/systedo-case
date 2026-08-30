@@ -1,0 +1,33 @@
+{
+  "v": 1,
+  "items": [
+    {
+      "recommendationId": "ce2c7882-0c94-4f82-afef-cd3449e01dcb",
+      "verdict": "resolved",
+      "reason": "The rubric review already was a named required check in .github/required-checks.json (merge-gate.mjs enforces its name, PR trigger and non-softening); what was prose is that it blocks on THIS repo's real landing path, since master ships by direct push and the workflow's verdict lands after Vercel starts building — so Part A now runs as the last stage of npm run check:ci (review:agent:gate), which .husky/pre-push runs before any push updating refs/heads/master, test-unit/delivery-contract.test.mjs fails if either wiring is removed, and the review report is kept 90 days as the mechanical-review artifact.",
+      "files": [
+        "package.json",
+        "test-unit/delivery-contract.test.mjs",
+        "scripts/agent-review.mjs",
+        ".github/workflows/agent-review.yml",
+        ".github/workflows/ci.yml",
+        ".github/required-checks.json",
+        "docs/deploy.md",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "recommendationId": "283c4b4c-6c49-42d2-a574-da09cab343b5",
+      "verdict": "needs_human",
+      "reason": "Two of the three findings are false at HEAD and already blocked by scripts/actions-pin.mjs rules P2/P5 (a required check): sast.yml contains no pull_request_target, and every ${{ }} in agent-review.yml is bound in an env: block, never spliced into a run: body. The third is real and I fixed its enforceable half by deleting .github/workflows/ai-review.yml — an Ascent starter scaffold whose only step was `echo TODO`, which had no top-level permissions: block and was therefore failing P1, i.e. `npm run actions:check` and all of check:ci were red on master. SHA-pinning the remaining 21 first-party action refs needs `npm run actions:pin`, which requires network and a shell; this session has neither, and inventing 40-hex SHAs would break every workflow, so STRICT/RATCHET.pinned in scripts/actions-pin.mjs are left as-is for the operator to flip in the same commit that runs the pin.",
+      "files": [
+        ".github/workflows/ai-review.yml"
+      ]
+    }
+  ],
+  "lessons": [
+    "In this org's repos, check whether the gap is already enforced before writing anything: systedo-case encodes its own policy as blocking zero-dependency node scripts (scripts/actions-pin.mjs, merge-gate.mjs, sast.mjs) inside `npm run check:ci`, so a generic workflow scanner's 'dangerous pattern' hits here are often false positives that those scripts already block.",
+    "Scaffold/starter files dropped into a mature repo can break its gates: the previous autopilot cycle's `.github/workflows/ai-review.yml` (an echo-TODO stub with no permissions: block) violated the repo's own blocking Actions policy and turned a required check red. Before adding a starter, run the repo's gate; prefer extending the real mechanism over placing a stub next to it.",
+    "Where a repo ships by direct push to master (Vercel deploys on push), 'required status check on a PR' covers almost nothing — the pre-push hook and the single `check:ci` command are where teeth actually live. Look at how changes land before treating branch protection as the enforcement point."
+  ]
+}

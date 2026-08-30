@@ -115,8 +115,8 @@ Notes:
 
 - [ ] `npm run check:ci` green locally (typecheck + lint + build + seed check +
       unit + llm gates + adr:check + agents:surface + actions:check +
-      merge-gate). `.husky/pre-push` runs this for you on any push to `master` —
-      see the Delivery contract below.
+      merge-gate + review:agent:gate). `.husky/pre-push` runs this for you on any
+      push to `master` — see the Delivery contract below.
 - [ ] **`DEV_AUTH` and `LOCAL_DB` are UNSET in the Vercel environment.** They
       are ignored in production by code, but an unset variable is the only
       configuration that cannot rot.
@@ -134,10 +134,23 @@ release act, and the contract below is what keeps it honest.
 
 - **The full blocking gate is `npm run check:ci`** (typecheck + lint + build +
   seed drift guard + unit suite + LLM gates + `adr:check` + `agents:surface` +
-  `actions:check` + `merge-gate`).
+  `actions:check` + `merge-gate` + `review:agent:gate`).
   It is CI's exact contract — `.github/workflows/ci.yml` runs the same script —
   and **`.husky/pre-push` now enforces it on every push that updates
   `refs/heads/master`**. Other branches push freely; CI covers them.
+- **The rubric review blocks here, not only on a pull request.**
+  `review:agent:gate` is Part A of
+  [`.github/agent-review-rubric.md`](../.github/agent-review-rubric.md)
+  (`scripts/agent-review.mjs --base origin/master`), the same code
+  `agent-review.yml`'s `mechanical` job runs. It is in `check:ci` because a
+  required status check only bites on a PR: on a direct push the workflow's
+  verdict arrives *after* Vercel has begun building, so a finding would have been
+  a comment on a release rather than a gate before one. In CI's `check` job the
+  stage is a deliberate no-op — that checkout is shallow, `origin/master` is the
+  pushed commit, the diff is empty — while the dedicated job does the real review
+  with full history. `test-unit/delivery-contract.test.mjs` fails if either
+  wiring is removed, and the review's report is kept as the `mechanical-review`
+  artifact for 90 days, so a merged change has a trail a reader can open.
 - **What may stop a change is enumerated, not remembered.**
   [`.github/required-checks.json`](../.github/required-checks.json) lists the
   jobs that must be green — including the rubric review of the diff — with the

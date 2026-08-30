@@ -49,7 +49,7 @@ npm run test:unit     # node:test suites in test-unit/
 npm run test:e2e      # Playwright — also runs in CI (the key-free `e2e-smoke` job)
 npm run check:ci      # what CI runs: check + seed:check + test:unit + llm:gate:check
                       #   + llm:quality:check + adr:check + agents:surface
-                      #   + actions:check + merge-gate
+                      #   + actions:check + merge-gate + review:agent:gate
 npm run llm:gate      # LLM proof gate (llm:list shows call sites)
 npm run sast          # repo security rules over src/ (blocking in CI)
 npm run actions:check # workflow token scope, action pinning, no ${{ }} in a run: script
@@ -104,7 +104,11 @@ you change it.
   PR body; there is no flag that turns the rule off. Part B is a model applying
   the judgment half and posting a comment; it never blocks — and it runs in a
   separate job, because the half that holds `pull-requests: write` should not be
-  the half that decides the build.
+  the half that decides the build. Part A also runs as the last stage of
+  `check:ci` (`npm run review:agent:gate`), so on this repo's real landing path —
+  direct push to master, where a required status check never gets a chance — a
+  blocking finding refuses the push instead of commenting on the release.
+  `test-unit/delivery-contract.test.mjs` asserts both wirings.
 - **What may stop a change is written down.** `.github/required-checks.json`
   enumerates the checks that must be green — including the rubric review — each
   with the reason it earns a red build. `npm run merge-gate` (blocking, inside
