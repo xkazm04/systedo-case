@@ -2,41 +2,36 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "793465d9-6c19-4834-9691-a2003fb7acba",
-      "verdict": "resolved",
-      "reason": "Added the checkpoint a stopped run leaves behind: scripts/agent-checkpoint.mjs + a pure core, `.agent/checkpoints/<session>.json` (tracked, so it travels out of a worktree), a standing instruction in AGENTS.md (canonical guidance, loaded every session), `npm run checkpoint:check` inside check:ci, and test-unit/agent-checkpoint.test.mjs asserting both the rules and the wiring — the two involuntary layers (.husky/pre-commit and the .claude/settings.json hooks) are written verbatim in .agent/README.md but could not be applied here because this lane refuses to write either file.",
+      "recommendationId": "c4676e99-ffcf-42e5-911a-bf124bafa211",
+      "verdict": "skipped",
+      "reason": "Needs network: all 25 refs are first-party actions/* on 4 distinct tags (checkout@v7, setup-node@v6, upload-artifact@v7, download-artifact@v7) and pinning means asking GitHub what each tag points at today; scripts/actions-pin.mjs --update already resolves them AND flips STRICT/RATCHET in the same pass, so the close is one networked command, not new code.",
+      "files": []
+    },
+    {
+      "recommendationId": "f6cccc94-b7bb-4b02-b7b6-1a2e0c12f21d",
+      "verdict": "skipped",
+      "reason": "Needs a build: a page-weight budget is only a gate once it carries a measured ceiling, and there is no node_modules and no .next in this worktree, so today's number for / and /app cannot be produced — a budget file written without one would be a ceiling nobody measured.",
+      "files": []
+    },
+    {
+      "recommendationId": "818570b1-22e7-4ea9-82ee-52665c234512",
+      "verdict": "skipped",
+      "reason": "Needs a test runner: a mutation score over src/lib/llm/ and the store seams is a measurement, and without the ability to run node --test there is no survival rate to record and no honest threshold to gate on.",
+      "files": []
+    },
+    {
+      "recommendationId": "ae10e8a3-0697-4a95-bc1e-66e1f52dc38a",
+      "verdict": "skipped",
+      "reason": "Needs shell: the drill has to be RUN to leave a timing, and the Results table is still empty; the runbook, the ranked detection layers and the seeds are now written so the first run is a bounded 30-minute execution rather than a design task.",
       "files": [
-        "scripts/agent-checkpoint.mjs",
-        "scripts/lib/agent-checkpoint-core.mjs",
-        "test-unit/agent-checkpoint.test.mjs",
-        ".agent/README.md",
-        "AGENTS.md",
-        "package.json"
+        "docs/runbooks/revert-drill.md",
+        "docs/deploy.md"
       ]
-    },
-    {
-      "recommendationId": "e92f8140-82d5-41e5-b493-9804908f99e7",
-      "verdict": "skipped",
-      "reason": "needs network: pinning is one command (`npm run actions:pin`) that resolves each tag through api.github.com and writes STRICT = true plus the ratchet back into scripts/actions-pin.mjs in the same pass — with no network I can neither resolve a tag to a SHA nor invent one without breaking the workflow, and the same holds for the node:24-alpine digest in the Dockerfile.",
-      "files": []
-    },
-    {
-      "recommendationId": "0033b7e1-817f-47a2-9ba6-4ee6793d66af",
-      "verdict": "skipped",
-      "reason": "needs a test runner: a mutation score is a measured number, and both halves of the artefact this asks for (the kill rate on plans.ts / usage.ts / durable-limit.ts / the chokepoint, and the threshold it would hold in check:ci) require running node --test against generated mutants, which this session cannot do; committing an unexecuted mutation engine plus an invented baseline would be the ratchet-at-zero failure ADR-0007 already records.",
-      "files": []
-    },
-    {
-      "recommendationId": "2d75825e-f885-41ca-ac11-461c0bd6cb74",
-      "verdict": "skipped",
-      "reason": "needs a type checker: the count under noUncheckedIndexedAccess / exactOptionalPropertyTypes is unknown and unfixable without running tsc, and flipping them blind would take `npm run typecheck` red for everyone; left tsconfig.strict.json + `npm run typecheck:strict` so the measurement is one command, and recorded that allowJs is load-bearing on src/lib/demo/prng.mjs (imported by seven TS modules and executed directly by the node:test suites) rather than a hole to close by deleting a flag.",
-      "files": ["tsconfig.strict.json", "package.json"]
     }
   ],
   "lessons": [
-    "This repository already converts prose into gates as a matter of course, and the idiom to copy is test-unit/delivery-contract.test.mjs: a node:test suite that READS package.json, the workflows and the hooks and fails when the teeth are removed. A new practice here is credible only if it lands with one of those, because `npm run test:unit` is inside check:ci and .husky/pre-push, which is the path master actually ships on.",
-    "An autopilot lane in this harness cannot write .claude/settings.json or .husky/*, so any recommendation whose fix is 'wire a hook' can only be delivered as a working script plus a verbatim paste block. Worth knowing before designing the fix, not after.",
-    "Before adding anything to check:ci here, check the ratchets it would move: scripts/agent-surface.mjs counts unmapped files under src/ only, so new scripts/ and test-unit/ files are free, but anything landing under src/ spends the 159-file baseline.",
-    "ADR-0007's rung discipline has a third failure mode this repo already names in its own hindsight section — green by exemption (scripts/actions-pin.mjs: STRICT = false, floor 0, prints '0 of N pinned' and passes). When a gap says 'the machinery exists and the policy does not', check for that shape before assuming nothing was built."
+    "This repository already answers most maturity questions with a zero-dependency node script plus a committed baseline, and ADR-0007 forbids adding a check that cannot pass today — so any new gate here is blocked on producing its first measurement, which is precisely what a no-shell session cannot do. Recognising that early is worth more than shipping an unrunnable script.",
+    "Before adding an ADR here, check docs/adr/: adr-check.mjs treats a record with 3+ higher-numbered successors as settled and then REQUIRES a '## Consequences observed' section, so a new ADR can retroactively fail the gate on an older one.",
+    "The repo's own gates already answer questions a recovery plan would otherwise re-derive: 'Revert \"...\"' is exempt from the commit-subject rule (scripts/commit-subject.mjs EXEMPT), and .agent/checkpoints/*.json without an 'endedAt' field is an existing, committed marker for stopped-session commits — no new trailer is needed to find them."
   ]
 }

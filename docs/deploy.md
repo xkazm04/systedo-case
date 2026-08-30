@@ -226,6 +226,17 @@ pressure — see [Deploy + rollback (Vercel)](#deploy--rollback-vercel) below
 for the exact steps (`vercel promote <deployment-url>` / dashboard promote).
 Fix forward in git afterwards.
 
+How long that actually takes is **not yet measured**, which is the untested half
+of this contract: everything above verifies a change on the way in, nothing
+rehearses getting one back out. [`runbooks/revert-drill.md`](runbooks/revert-drill.md)
+is the rehearsal — a seeded fault on one of the seams that matter, timed from
+"applied" to "tree clean again", with the detection layers ranked by when they
+fire and what each one cannot see. Its Results table is empty; the first row is
+owed. Note what the ranking already shows without a stopwatch: layers 4 and 5
+(Sentry, cron alerts) are inert in this deployment because their env vars are
+absent (see the production env gap above), so a change that clears `check:ci`
+and then misbehaves at runtime is currently detected by somebody looking.
+
 ### Vercel CLI identity
 
 `.vercel/` is absent/gitignored, so the CLI is not linked to the project on a
