@@ -2,32 +2,45 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "8c2a86b9-b07c-4204-8543-9deb2a76e9b6",
+      "recommendationId": "a500af2a-63db-4eb7-96a7-bac798279db1",
+      "verdict": "skipped",
+      "reason": "Pinning needs the GitHub API to resolve each tag to a commit SHA and this session has no network; the repo's own `npm run actions:pin` already does the whole close (it rewrites the workflows AND flips STRICT/RATCHET in scripts/actions-pin.mjs in the same pass), so the missing piece is one networked run, not tooling.",
+      "files": []
+    },
+    {
+      "recommendationId": "7af1b6d2-a48c-4b35-b73b-a7716e19c925",
       "verdict": "resolved",
-      "reason": "Untrusted event text no longer enters agent-review.yml in any form: the PR body, the base revision and the PR number are read out of $GITHUB_EVENT_PATH (new scripts/workflow-event.mjs, and the runner's jq in the `judgment` job, which may not execute repository code before its wipe-to-base) and reach the reviewer as a file, so there is no `github.event.*` left in any workflow — enforced by new blocking rule P9 in scripts/actions-pin.mjs and asserted independently by test-unit/workflow-injection.test.mjs.",
+      "reason": "Added `npm run llm:budget:check` — a per-operation input-cost budget (system + prompt + JSON schema, all committed data) recorded in test-llm/budget.json, blocking inside check:ci, with a run-wide ceiling for uniform drift and a reason-required `--accept` to move a number.",
       "files": [
-        ".github/workflows/agent-review.yml",
-        ".github/workflows/agent-review-history.yml",
-        ".github/workflows/sast.yml",
-        "scripts/workflow-event.mjs",
-        "scripts/actions-pin.mjs",
-        "test-unit/workflow-injection.test.mjs",
-        "SECURITY.md"
+        "scripts/llm-budget.mjs",
+        "test-llm/budget.json",
+        "package.json",
+        "test-unit/cost-and-boundary-gates.test.mjs",
+        "scripts/llm-new-tool.mjs",
+        "AGENTS.md"
       ]
     },
     {
-      "recommendationId": "57fab90e-9cf2-4970-9219-ce534380f84c",
-      "verdict": "skipped",
-      "reason": "Needs network: pinning the 25 action references means asking GitHub what each tag points at right now, and a fabricated SHA breaks CI rather than pinning it; the close is one networked run of `npm run actions:pin`, which already rewrites every workflow AND writes STRICT = true / RATCHET.pinned back into scripts/actions-pin.mjs in the same pass, and Dependabot's github-actions ecosystem is already configured to keep the pins fresh — so there is no offline half worth landing.",
+      "recommendationId": "b8d643fa-4f2c-40d7-9363-5f0aae4ade29",
+      "verdict": "resolved",
+      "reason": "Added `npm run context:decay` — it walks the real import graph against context-map.json's group boundaries; `--check` (blocking, in check:ci) fails a change that makes a mapped file import a feature group it did not import before unless the importing context declares it in cross_refs, and the census half prints what already crosses.",
       "files": [
-        "scripts/actions-pin.mjs",
-        ".github/dependabot.yml"
+        "scripts/context-decay.mjs",
+        "package.json",
+        "test-unit/cost-and-boundary-gates.test.mjs",
+        "AGENTS.md"
       ]
+    },
+    {
+      "recommendationId": "b87a08e6-b152-4963-8d91-32204c64b7ce",
+      "verdict": "skipped",
+      "reason": "A mutation score cannot be asserted without executing the suite once per mutant, and this session has no test runner or shell execution; committing a threshold I could not measure would either be red on arrival or a number chosen to pass, which is the failure ADR-0007 names.",
+      "files": []
     }
   ],
   "lessons": [
-    "This repository answers a D9 finding with a blocking zero-dependency script in scripts/ PLUS a unit test that asserts the script still evaluates the rule — read scripts/*.mjs and test-unit/workflow-*.test.mjs before treating a scanner hit as an open gap, and when the existing gate already covers the class, the useful move is to tighten it a rung (shape -> presence) rather than to restate it.",
-    "The `judgment` job in .github/workflows/agent-review.yml is the one place here holding a secret and a write scope, and test-unit/workflow-injection.test.mjs fails if it runs node/npm/npx before `git clean -ffdx` moves its tree to the base. Any helper script you add for workflow hardening cannot be used in that job before the wipe — use tooling from the runner image there and say why in the step's comment.",
-    "Action pinning here is deliberately one atomic networked command: `npm run actions:pin` resolves the digests, rewrites the workflows, and flips STRICT/RATCHET.pinned in scripts/actions-pin.mjs, because pins that nothing enforces come undone on the next Dependabot bump. Half of it offline is worse than none."
+    "This repository states rung discipline as law (docs/adr/0007-gate-rung-discipline.md): a check may only BLOCK if it passes on the tree today, otherwise it reports against a committed ratchet. A gate landed with an unmeasured threshold is worse than no gate here, so an offline agent should prefer a diff-scoped rule (green by construction on an empty diff) over a tree-wide count it cannot baseline.",
+    "Cost/limit baselines for the LLM layer can be derived statically: test-llm/registry.mjs holds the system prompt, user prompt and schema of every operation as literal committed data, so what a golden run costs on the input side is computable with no model call, no network and no money — which is what lets a cost gate live inside check:ci rather than on the paid on-demand rung.",
+    "context-map.json's `cross_refs` field is an unused declaration surface: every context already lists the contexts it references, so a boundary rule can be enforced against a declaration the generator already emits instead of inventing a new config file."
   ]
 }

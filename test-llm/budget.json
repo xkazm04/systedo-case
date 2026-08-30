@@ -1,0 +1,53 @@
+{
+  "$comment": "What one golden run of the LLM tool registry COSTS on the input side, per operation, in characters. Read on every CI run by scripts/llm-budget.mjs (`npm run llm:budget:check`, inside check:ci) and re-recorded by `npm run llm:budget -- --accept --reason \"...\"`. The gate the quality bake cannot be: quality says the output is still good, this says the request did not quietly get more expensive. Characters rather than tokens because a character count is exact on every machine; the token and USD figures the report prints are estimates.",
+
+  "schema": 1,
+  "acceptedOn": "2026-08-30",
+  "acceptedReason": "seeded from a static upper bound on each registry entry (the byte span of its system:/prompt: block plus its golden's serialized schema), measured without executing the registry — so every ceiling here is ABOVE what the script measures, by roughly 20-50%. The first `--accept` run replaces them with measured values + MARGIN and the gate tightens.",
+  "charsPerTokenEstimate": 4,
+
+  "$pricing": "Mirrors the GEMINI_MODEL input rate in src/lib/llm/cost.ts (flash tier, the model production serves with). Used only to print a dollar figure next to the character count — nothing is enforced on it, and it is not billing.",
+  "pricing": {
+    "inputUsdPerMTok": 0.075
+  },
+
+  "$run": "The uniform-drift ceiling: every operation can stay under its own line while the whole run grows. Sum of the seeded upper bounds, rounded up.",
+  "run": {
+    "maxInputChars": 68000
+  },
+
+  "tools": {
+    "ads": { "maxInputChars": 3500 },
+    "ads-diagnosis": { "maxInputChars": 5500 },
+    "analysis": { "maxInputChars": 3750 },
+    "article-draft": { "maxInputChars": 5000 },
+    "brief": { "maxInputChars": 1250 },
+    "campaign-eval": { "maxInputChars": 1250 },
+    "channel-research": { "maxInputChars": 5500 },
+    "chat": { "maxInputChars": 3500 },
+    "cohort-diagnosis": { "maxInputChars": 1750 },
+    "comparison-outline": { "maxInputChars": 4250 },
+    "keyword-clusters": { "maxInputChars": 1750 },
+    "lead-source-diagnosis": { "maxInputChars": 2000 },
+    "local-diagnosis": { "maxInputChars": 2000 },
+    "local-page": { "maxInputChars": 4500 },
+    "local-review-reply": { "maxInputChars": 1000 },
+    "lp-variant-draft": { "maxInputChars": 5000 },
+    "lp-variant-ideas": { "maxInputChars": 2250 },
+    "monthly-recap": { "maxInputChars": 3500 },
+    "onboarding-scan": { "maxInputChars": 2000 },
+    "repurpose": { "maxInputChars": 3250 },
+    "social": { "maxInputChars": 1000 },
+    "twin-reply": { "maxInputChars": 4250 },
+    "twin-style": { "maxInputChars": 2000 }
+  },
+
+  "history": [
+    {
+      "on": "2026-08-30",
+      "totalInputChars": null,
+      "tools": 23,
+      "reason": "seeded from static upper bounds, not from a run — totalInputChars is null because nothing measured it. The next --accept fills it in."
+    }
+  ]
+}

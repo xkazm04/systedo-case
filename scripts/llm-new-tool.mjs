@@ -80,7 +80,9 @@ console.log(
     `  1. create ${file} with the snippet above (prompt builder, schema, demo fallback)\n` +
     "  2. edit the registry TODOs so the fixture mirrors the tool's real contract\n" +
     "  3. re-run `npm run llm:eval:update` if you touched system/schema after step 2\n" +
-    "  4. prove it on demand: `npm run test:llm` (the pre-commit gate is static-only)\n"
+    "  4. record what it costs: `npm run llm:budget -- --accept --reason \"<new operation …>\"`\n" +
+    "     (check:ci fails while a registered operation has no ceiling in test-llm/budget.json)\n" +
+    "  5. prove it on demand: `npm run test:llm` (the pre-commit gate is static-only)\n"
 );
 
 // Show the coverage report: the new call site reads UNTAGGED until the snippet

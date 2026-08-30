@@ -48,10 +48,14 @@ npm run check         # typecheck + lint + build
 npm run test:unit     # node:test suites in test-unit/
 npm run test:e2e      # Playwright — also runs in CI (the key-free `e2e-smoke` job)
 npm run check:ci      # what CI runs: check + seed:check + test:unit + llm:gate:check
-                      #   + llm:quality:check + adr:check + docs:parity
-                      #   + agents:surface + actions:check + merge-gate
-                      #   + review:agent:gate
+                      #   + llm:quality:check + llm:budget:check + adr:check
+                      #   + docs:parity + agents:surface + context:decay:check
+                      #   + actions:check + merge-gate + review:agent:gate
 npm run llm:gate      # LLM proof gate (llm:list shows call sites)
+npm run llm:budget    # what each LLM operation COSTS on the input side, vs its
+                      #   recorded ceiling (test-llm/budget.json); :check blocks
+npm run context:decay # cross-group imports the context map does not declare;
+                      #   :check blocks a NEW crossing in the diff (--base <ref>)
 npm run sast          # repo security rules over src/ (blocking in CI)
 npm run actions:check # workflow token scope, action pinning, no ${{ }} in a run: script
 npm run merge-gate    # the required checks named in .github/required-checks.json
@@ -99,6 +103,18 @@ you change it.
   is not the newest row there — a hand-edited golden passes the drift check by
   construction and is caught here. The baked scorecard has a floor too
   (`npm run llm:quality:check`); see `docs/testing/llm-quality-matrix.md`.
+- **A prompt has a price, and it is recorded.** The golden proves a prompt still
+  produces the right shape and the bake proves it is still good; neither can see
+  that it now costs twice as much. `npm run llm:budget:check` (blocking, inside
+  `check:ci`) measures the input side of every registered operation — system
+  prompt + user prompt + JSON schema, all committed data, so it costs nothing and
+  needs no model — and fails when one exceeds its ceiling in `test-llm/budget.json`,
+  or when the whole golden run does. A **new AI operation must record what it
+  costs**, the same way it records its shape: `npm run llm:budget -- --accept
+  --reason "..."` (filler refused, the reason is kept in the file's history). It
+  fails the build rather than filing an issue, because master ships on push — an
+  issue would arrive after the expensive prompt was already serving.
+  `test-unit/cost-and-boundary-gates.test.mjs` asserts the wiring.
 - **Your diff gets reviewed before a human sees it.**
   `.github/workflows/agent-review.yml` runs the rubric in
   `.github/agent-review-rubric.md` on every push and PR. Part A is mechanical and
@@ -172,6 +188,18 @@ you change it.
   `npm run agents:surface` reports how many tracked source files no context maps
   (159 at the 2026-07-30 scan, ratcheted) and hard-fails on a mapped path that no
   longer exists, so trust it as an index, not as an inventory.
+- **The map's group boundaries are a constraint on the diff, not just a
+  description.** `npm run context:decay:check` (blocking, inside `check:ci`)
+  compares the import graph against the groups the map declares and fails when
+  YOUR change makes a mapped file import a feature group it did not import
+  before, unless the importing context names the target in its `cross_refs`.
+  Imports into a `shared`/`infrastructure` group (App Shell & Site, Platform
+  Operations) are always fine — that is what those groups are for. Three ways
+  out, in order of preference: import through a shared context, move the file to
+  the context it belongs to, or declare the crossing in `cross_refs` and let a
+  reviewer see the line. `npm run context:decay` (no `--check`) is the census of
+  what already crosses — inherited, printed, not blocked; it is where the "are
+  these 16 groups real?" question gets answered.
 - **Security rules are a gate, not a review note.** `npm run sast` blocks a new
   route under `src/app/api/` that establishes no caller identity, a `"use client"`
   module reading a server env var, a route importing the decrypted BYOM key, SQL
