@@ -2,45 +2,41 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "a500af2a-63db-4eb7-96a7-bac798279db1",
-      "verdict": "skipped",
-      "reason": "Pinning needs the GitHub API to resolve each tag to a commit SHA and this session has no network; the repo's own `npm run actions:pin` already does the whole close (it rewrites the workflows AND flips STRICT/RATCHET in scripts/actions-pin.mjs in the same pass), so the missing piece is one networked run, not tooling.",
-      "files": []
-    },
-    {
-      "recommendationId": "7af1b6d2-a48c-4b35-b73b-a7716e19c925",
+      "recommendationId": "793465d9-6c19-4834-9691-a2003fb7acba",
       "verdict": "resolved",
-      "reason": "Added `npm run llm:budget:check` — a per-operation input-cost budget (system + prompt + JSON schema, all committed data) recorded in test-llm/budget.json, blocking inside check:ci, with a run-wide ceiling for uniform drift and a reason-required `--accept` to move a number.",
+      "reason": "Added the checkpoint a stopped run leaves behind: scripts/agent-checkpoint.mjs + a pure core, `.agent/checkpoints/<session>.json` (tracked, so it travels out of a worktree), a standing instruction in AGENTS.md (canonical guidance, loaded every session), `npm run checkpoint:check` inside check:ci, and test-unit/agent-checkpoint.test.mjs asserting both the rules and the wiring — the two involuntary layers (.husky/pre-commit and the .claude/settings.json hooks) are written verbatim in .agent/README.md but could not be applied here because this lane refuses to write either file.",
       "files": [
-        "scripts/llm-budget.mjs",
-        "test-llm/budget.json",
-        "package.json",
-        "test-unit/cost-and-boundary-gates.test.mjs",
-        "scripts/llm-new-tool.mjs",
-        "AGENTS.md"
+        "scripts/agent-checkpoint.mjs",
+        "scripts/lib/agent-checkpoint-core.mjs",
+        "test-unit/agent-checkpoint.test.mjs",
+        ".agent/README.md",
+        "AGENTS.md",
+        "package.json"
       ]
     },
     {
-      "recommendationId": "b8d643fa-4f2c-40d7-9363-5f0aae4ade29",
-      "verdict": "resolved",
-      "reason": "Added `npm run context:decay` — it walks the real import graph against context-map.json's group boundaries; `--check` (blocking, in check:ci) fails a change that makes a mapped file import a feature group it did not import before unless the importing context declares it in cross_refs, and the census half prints what already crosses.",
-      "files": [
-        "scripts/context-decay.mjs",
-        "package.json",
-        "test-unit/cost-and-boundary-gates.test.mjs",
-        "AGENTS.md"
-      ]
+      "recommendationId": "e92f8140-82d5-41e5-b493-9804908f99e7",
+      "verdict": "skipped",
+      "reason": "needs network: pinning is one command (`npm run actions:pin`) that resolves each tag through api.github.com and writes STRICT = true plus the ratchet back into scripts/actions-pin.mjs in the same pass — with no network I can neither resolve a tag to a SHA nor invent one without breaking the workflow, and the same holds for the node:24-alpine digest in the Dockerfile.",
+      "files": []
     },
     {
-      "recommendationId": "b87a08e6-b152-4963-8d91-32204c64b7ce",
+      "recommendationId": "0033b7e1-817f-47a2-9ba6-4ee6793d66af",
       "verdict": "skipped",
-      "reason": "A mutation score cannot be asserted without executing the suite once per mutant, and this session has no test runner or shell execution; committing a threshold I could not measure would either be red on arrival or a number chosen to pass, which is the failure ADR-0007 names.",
+      "reason": "needs a test runner: a mutation score is a measured number, and both halves of the artefact this asks for (the kill rate on plans.ts / usage.ts / durable-limit.ts / the chokepoint, and the threshold it would hold in check:ci) require running node --test against generated mutants, which this session cannot do; committing an unexecuted mutation engine plus an invented baseline would be the ratchet-at-zero failure ADR-0007 already records.",
       "files": []
+    },
+    {
+      "recommendationId": "2d75825e-f885-41ca-ac11-461c0bd6cb74",
+      "verdict": "skipped",
+      "reason": "needs a type checker: the count under noUncheckedIndexedAccess / exactOptionalPropertyTypes is unknown and unfixable without running tsc, and flipping them blind would take `npm run typecheck` red for everyone; left tsconfig.strict.json + `npm run typecheck:strict` so the measurement is one command, and recorded that allowJs is load-bearing on src/lib/demo/prng.mjs (imported by seven TS modules and executed directly by the node:test suites) rather than a hole to close by deleting a flag.",
+      "files": ["tsconfig.strict.json", "package.json"]
     }
   ],
   "lessons": [
-    "This repository states rung discipline as law (docs/adr/0007-gate-rung-discipline.md): a check may only BLOCK if it passes on the tree today, otherwise it reports against a committed ratchet. A gate landed with an unmeasured threshold is worse than no gate here, so an offline agent should prefer a diff-scoped rule (green by construction on an empty diff) over a tree-wide count it cannot baseline.",
-    "Cost/limit baselines for the LLM layer can be derived statically: test-llm/registry.mjs holds the system prompt, user prompt and schema of every operation as literal committed data, so what a golden run costs on the input side is computable with no model call, no network and no money — which is what lets a cost gate live inside check:ci rather than on the paid on-demand rung.",
-    "context-map.json's `cross_refs` field is an unused declaration surface: every context already lists the contexts it references, so a boundary rule can be enforced against a declaration the generator already emits instead of inventing a new config file."
+    "This repository already converts prose into gates as a matter of course, and the idiom to copy is test-unit/delivery-contract.test.mjs: a node:test suite that READS package.json, the workflows and the hooks and fails when the teeth are removed. A new practice here is credible only if it lands with one of those, because `npm run test:unit` is inside check:ci and .husky/pre-push, which is the path master actually ships on.",
+    "An autopilot lane in this harness cannot write .claude/settings.json or .husky/*, so any recommendation whose fix is 'wire a hook' can only be delivered as a working script plus a verbatim paste block. Worth knowing before designing the fix, not after.",
+    "Before adding anything to check:ci here, check the ratchets it would move: scripts/agent-surface.mjs counts unmapped files under src/ only, so new scripts/ and test-unit/ files are free, but anything landing under src/ spends the 159-file baseline.",
+    "ADR-0007's rung discipline has a third failure mode this repo already names in its own hindsight section — green by exemption (scripts/actions-pin.mjs: STRICT = false, floor 0, prints '0 of N pinned' and passes). When a gap says 'the machinery exists and the policy does not', check for that shape before assuming nothing was built."
   ]
 }

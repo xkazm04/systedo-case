@@ -1,0 +1,49 @@
+// The two strictness flags `strict: true` does NOT turn on, measured rather than
+// argued about. `npm run typecheck:strict`.
+//
+// NOT A GATE. Nothing runs this in check:ci, and that is deliberate under
+// ADR-0007: a check is blocking only if it passes today, and nobody has yet
+// measured whether this one does. It is an instrument, in the same category as
+// `npm run doctor` (env preflight) and `npm run context:decay` (the census) —
+// what it produces is the number the decision needs:
+//
+//     npm run typecheck:strict 2>&1 | grep -c "error TS"        # how bad is it?
+//     npm run typecheck:strict 2>&1 | grep -o "^src/[^(]*" | sort | uniq -c | sort -rn
+//                                                                # clustered, or spread?
+//
+// WHY THESE TWO. `strict: true` leaves both off, and both catch the mistake
+// generated code makes most often:
+//
+//   noUncheckedIndexedAccess   `arr[i]` and `record[key]` are typed as possibly
+//                              undefined. Every "cannot read property of
+//                              undefined" that survives typecheck today is here.
+//   exactOptionalPropertyTypes `{ x?: string }` stops accepting `{ x: undefined }`,
+//                              so "absent" and "present but undefined" stop being
+//                              the same thing to the compiler while staying
+//                              different things to Firestore, JSON and the store
+//                              seam.
+//
+// WHAT IS DELIBERATELY NOT HERE. `skipLibCheck: false` (it would drown the count
+// in other people's `.d.ts` files) and `allowJs: false`. The second is worth a
+// sentence, because it looks like free cleanup and is not: `allowJs` is
+// load-bearing on exactly one file. `src/lib/demo/prng.mjs` is imported by seven
+// TypeScript modules (campaigns/keywords/project-data samplers, images/studio)
+// AND executed directly by the node:test suites, which is why it is .mjs and not
+// .ts. Shrinking that set to nothing means either a hand-written `prng.d.mts`
+// next to it, or a conversion that the test suites have to survive — a change
+// with a measurable answer, not a flag flip.
+//
+// PROMOTING ANY OF IT. Same ladder as every other gate here (ADR-0007): if the
+// count is small and clustered, fix it and turn the flag on in tsconfig.json in
+// the same commit. If it is large, this file grows an `include` narrowed to the
+// directories that are already clean — the CODEOWNERS-protected modules first,
+// since those are the ones a human already reviews by hand — and widens as they
+// are cleared. What must not happen is a ratchet baseline invented without
+// running it.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
+  }
+}

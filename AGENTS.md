@@ -49,7 +49,8 @@ npm run test:unit     # node:test suites in test-unit/
 npm run test:e2e      # Playwright — also runs in CI (the key-free `e2e-smoke` job)
 npm run check:ci      # what CI runs: check + seed:check + test:unit + llm:gate:check
                       #   + llm:quality:check + llm:budget:check + adr:check
-                      #   + docs:parity + agents:surface + context:decay:check
+                      #   + docs:parity + agents:surface + checkpoint:check
+                      #   + context:decay:check
                       #   + actions:check + merge-gate + review:agent:gate
 npm run llm:gate      # LLM proof gate (llm:list shows call sites)
 npm run llm:budget    # what each LLM operation COSTS on the input side, vs its
@@ -64,6 +65,8 @@ npm run protection:verify # does GitHub actually enforce them? (needs `gh`; repo
 npm run review:agent  # rubric review of a diff (--base <ref>); what CI runs on a PR
 npm run docs:parity   # bilingual doc pairs still state their shared facts (blocking)
 npm run commit:check  # commit-subject rules (rubric A5): --range <range> | <msgfile>
+npm run checkpoint    # open checkpoints an interrupted run left — READ THIS FIRST;
+                      #   -- --start/--next/--done/--close writes one (.agent/README.md)
 npm run doctor        # env preflight (not a gate — reports missing/odd env)
 npm run i18n:gate     # localization-wave gate: diffs the tree vs a ref (--base)
 npm run i18n:audit    # coverage / leftover-source / register audit (ratcheted)
@@ -164,6 +167,27 @@ you change it.
   history with `npm run commit:check -- --range <range>`. There is no `Ack:`
   escape hatch, because nothing about a change makes a bad subject the right call.
   If a run produced no change, it does not owe the log a commit.
+- **But it does owe the next run a checkpoint.** Refusing the narrating commit is
+  only half the rule; the other half is that a run stopped by its wall clock must
+  leave something better than a commit behind. **Read the open checkpoints before
+  you start** (`npm run checkpoint`) and pick one up rather than re-deriving what
+  it already says. Open one for anything longer than a couple of steps, and
+  update `--next` *before* the step you might not survive:
+
+  ```bash
+  npm run checkpoint -- --start "<the task>" --next "<the very next step>" --budget 20
+  npm run checkpoint -- --done "<what is now true>" --gate "typecheck, lint"
+  npm run checkpoint -- --close     # finished; the commit is the record now
+  ```
+
+  It lives in `.agent/checkpoints/<session>.json`, tracked so it travels out of a
+  worktree, and the field that matters is the one usually missing: `endedAt` is
+  stamped only when a session ends cleanly, so a checkpoint without it belongs to
+  a run that was *stopped*. `npm run checkpoint:check` (blocking, inside
+  `check:ci`) fails when one stops being readable, because a handoff that no
+  longer parses hands the next run nothing and says so to nobody. Why it is
+  shaped this way, and the two hook blocks that make it involuntary:
+  `.agent/README.md`.
 - **The bilingual docs are held in step by a gate, not by care.** `README.md` is
   the source and `docs/README.cs.md` is transcreated from it (same direction as
   the app since 2026-08-05). `npm run docs:parity` (blocking, inside `check:ci`)
