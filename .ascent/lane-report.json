@@ -2,32 +2,32 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "14f7551b-3576-488b-97ec-26977b51cec9",
-      "verdict": "skipped",
-      "reason": "Already covered: every `${{ }}` in agent-review.yml is an `env:` binding, blocking rules P5/P7 in scripts/actions-pin.mjs fail any expression spliced into a `run:` body or any github.event.* outside `env:`, and test-unit/workflow-injection.test.mjs asserts both the tree and the rules — so the only change left would be editing the workflow to satisfy a regex detector.",
+      "recommendationId": "8c2a86b9-b07c-4204-8543-9deb2a76e9b6",
+      "verdict": "resolved",
+      "reason": "Untrusted event text no longer enters agent-review.yml in any form: the PR body, the base revision and the PR number are read out of $GITHUB_EVENT_PATH (new scripts/workflow-event.mjs, and the runner's jq in the `judgment` job, which may not execute repository code before its wipe-to-base) and reach the reviewer as a file, so there is no `github.event.*` left in any workflow — enforced by new blocking rule P9 in scripts/actions-pin.mjs and asserted independently by test-unit/workflow-injection.test.mjs.",
       "files": [
         ".github/workflows/agent-review.yml",
+        ".github/workflows/agent-review-history.yml",
+        ".github/workflows/sast.yml",
+        "scripts/workflow-event.mjs",
         "scripts/actions-pin.mjs",
-        "test-unit/workflow-injection.test.mjs"
+        "test-unit/workflow-injection.test.mjs",
+        "SECURITY.md"
       ]
     },
     {
-      "recommendationId": "d11ab382-7978-43e1-96f1-d4d8e022cd7c",
+      "recommendationId": "57fab90e-9cf2-4970-9219-ce534380f84c",
       "verdict": "skipped",
-      "reason": "Needs network: pinning 25 refs means resolving each tag to the commit it points at right now, and a fabricated SHA breaks CI rather than pinning it; the close is one networked run of `npm run actions:pin`, which already rewrites the workflows AND flips STRICT/RATCHET.pinned in the same pass.",
+      "reason": "Needs network: pinning the 25 action references means asking GitHub what each tag points at right now, and a fabricated SHA breaks CI rather than pinning it; the close is one networked run of `npm run actions:pin`, which already rewrites every workflow AND writes STRICT = true / RATCHET.pinned back into scripts/actions-pin.mjs in the same pass, and Dependabot's github-actions ecosystem is already configured to keep the pins fresh — so there is no offline half worth landing.",
       "files": [
         "scripts/actions-pin.mjs",
-        ".github/workflows/agent-review.yml",
-        ".github/workflows/ci.yml",
-        ".github/workflows/sast.yml",
-        ".github/workflows/supply-chain.yml",
-        ".github/workflows/agent-review-history.yml"
+        ".github/dependabot.yml"
       ]
     }
   ],
   "lessons": [
-    "This repository answers a D9 finding with a blocking script plus a unit test that asserts the script still evaluates the rule — check scripts/*.mjs and test-unit/ for an existing gate before treating a scanner hit as an open gap; workflow-injection.test.mjs and workflow-triggers.test.mjs already cover the script-injection and privileged-trigger classes.",
-    "Action pinning here is deliberately one atomic networked command: `npm run actions:pin` resolves the digests, rewrites the workflows, and writes STRICT = true / RATCHET.pinned back into scripts/actions-pin.mjs, because pins that nothing enforces come undone on the next Dependabot bump. Half of it offline is worse than none.",
-    "`.github/workflows/` is a CODEOWNERS law file, so the usual offline consolation prize for a supply-chain item (add a scheduled burn-down workflow) is itself out of bounds and would need write scopes plus an unpinned third-party action."
+    "This repository answers a D9 finding with a blocking zero-dependency script in scripts/ PLUS a unit test that asserts the script still evaluates the rule — read scripts/*.mjs and test-unit/workflow-*.test.mjs before treating a scanner hit as an open gap, and when the existing gate already covers the class, the useful move is to tighten it a rung (shape -> presence) rather than to restate it.",
+    "The `judgment` job in .github/workflows/agent-review.yml is the one place here holding a secret and a write scope, and test-unit/workflow-injection.test.mjs fails if it runs node/npm/npx before `git clean -ffdx` moves its tree to the base. Any helper script you add for workflow hardening cannot be used in that job before the wipe — use tooling from the runner image there and say why in the step's comment.",
+    "Action pinning here is deliberately one atomic networked command: `npm run actions:pin` resolves the digests, rewrites the workflows, and flips STRICT/RATCHET.pinned in scripts/actions-pin.mjs, because pins that nothing enforces come undone on the next Dependabot bump. Half of it offline is worse than none."
   ]
 }

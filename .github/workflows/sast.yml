@@ -83,11 +83,15 @@ jobs:
       # enumerated once in scripts/actions-pin.mjs under P2 and asserted from the
       # other side by test-unit/workflow-triggers.test.mjs; no
       # action tracking a moving branch; third-party actions pinned to a SHA;
-      # container images pinned by digest; and no attacker-controlled context
-      # outside an `env:` binding — not in a `run:` script, not in a `with:`
-      # input, not in an `if:`. Substitution happens before any shell or action
-      # sees the line, which is how a fork's branch name or a PR title becomes
-      # code in a job holding this repository's advertiser tokens. Also runs
+      # container images pinned by digest; and no attacker-shaped context
+      # anywhere in a workflow — not in a `run:` script, not in a `with:` input,
+      # not in an `if:`, and not in an `env:` binding either. Substitution
+      # happens before any shell or action sees the line, which is how a fork's
+      # branch name or a PR title becomes code in a job holding this
+      # repository's advertiser tokens; and a binding fixes that shape while
+      # leaving the value in the environment of every program the step runs. The
+      # event payload is read from `$GITHUB_EVENT_PATH` instead
+      # (scripts/workflow-event.mjs). Also runs
       # inside `npm run check:ci`, so the pre-push hook catches it before master
       # ships (docs/deploy.md).
       - name: Actions policy

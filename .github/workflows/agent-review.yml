@@ -67,9 +67,20 @@ name: Agent review
 # updates master: a blocking finding refuses the push. Both wirings are asserted
 # by test-unit/delivery-contract.test.mjs, so neither can be removed in silence.
 #
-# Untrusted input never reaches a shell: every `${{ … }}` in this file lands in
-# an `env:` variable, and `scripts/actions-pin.mjs` (rule P5, blocking) fails any
-# workflow that interpolates an expression directly into a `run:` body.
+# UNTRUSTED INPUT NEVER ENTERS THIS WORKFLOW AT ALL. Not spliced into a `run:`
+# body (rule P5), not bound in an `env:` block either (rule P9): there is no
+# `github.event.*` in this file. The facts this workflow needs about the event —
+# which revision to review against, the pull request's number, its body, where an
+# `Ack:` line may live — are read out of `$GITHUB_EVENT_PATH`, the JSON payload
+# GitHub itself writes to the runner, by `scripts/workflow-event.mjs`, which
+# writes them to files and to `$GITHUB_OUTPUT` after validating anything a later
+# step will treat as a ref. An `env:` binding fixes the SHAPE of the hazard and
+# leaves the exposure: the value is still in the environment of every program the
+# step runs and still one unquoted expansion from being shell words. Reading the
+# payload from disk means a contributor's text is a string in a JSON parser and
+# then a file, and is never an argument, a variable, or a line of YAML. All three
+# rules are blocking in `scripts/actions-pin.mjs`, and asserted independently by
+# `test-unit/workflow-injection.test.mjs`.
 #
 # And untrusted CODE does not reach the job that holds the trust: `judgment` is
 # the only job here with both a secret and a write scope, so before it runs
@@ -118,31 +129,24 @@ jobs:
       # The base to review against: a PR's own base, or the previous tip on a
       # push. Both resolve locally because the checkout above is unshallowed.
       #
-      # Every value arrives as an environment variable rather than as text
-      # spliced into this script. `github.event.*` is attacker-shaped input on a
-      # fork's pull request, and `${{ … }}` inside `run:` is substituted BEFORE
-      # the shell parses the line — which is how a branch name becomes a command.
-      - name: Resolve base revision
+      # No value from the event is spliced into this step, and none is bound into
+      # its environment. The helper reads `$GITHUB_EVENT_PATH` — the payload
+      # GitHub wrote to the runner — picks the three fields, and emits `ref=` and
+      # `pr=` to `$GITHUB_OUTPUT` only after checking that each looks like a
+      # refname or an integer. A newline in one of those values would otherwise
+      # forge an extra output line for the steps below to trust.
+      - name: Resolve base revision (from the event payload on disk)
         id: base
-        env:
-          PR_BASE: ${{ github.event.pull_request.base.sha }}
-          BEFORE: ${{ github.event.before }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        run: |
-          if [ -n "$PR_BASE" ]; then
-            ref="$PR_BASE"
-          elif [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            ref="$BEFORE"
-          else
-            ref="origin/$DEFAULT_BRANCH"
-          fi
-          printf 'ref=%s\n' "$ref" >> "$GITHUB_OUTPUT"
+        run: node scripts/workflow-event.mjs --base-ref --out "$GITHUB_OUTPUT"
 
+      # An `Ack:` line may live in the PR body. That body is free text an outsider
+      # writes — the one value here that git's refname rules do not constrain — so
+      # it goes from the payload file straight to `pr-body.txt` and reaches the
+      # reviewer as a file. It is never a shell word and never an env var. On a
+      # push there is no pull request and the helper writes the file empty, which
+      # is what `--body-file` expects.
       - name: "Capture the PR body (an Ack line may live there)"
-        if: github.event_name == 'pull_request'
-        env:
-          BODY: ${{ github.event.pull_request.body }}
-        run: printf '%s' "$BODY" > pr-body.txt
+        run: node scripts/workflow-event.mjs --get pull_request.body --out pr-body.txt
 
       # Blocking. Zero-dependency, so no npm ci.
       #
@@ -203,21 +207,45 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Resolve base revision
+      # Same three fields, same payload file, and the same refusal to let the
+      # event reach this workflow as text — but read with the runner's own `jq`
+      # rather than with scripts/workflow-event.mjs, which the `mechanical` job
+      # uses. That is not an oversight: this job may not execute a single line
+      # out of the checkout before the wipe below, because at this point the
+      # tree on disk is the change's and `.git/config` still holds the token
+      # `actions/checkout` persisted. test-unit/workflow-injection.test.mjs
+      # asserts that ordering, so the helper cannot be used here and a program
+      # the runner image provides is used instead. Keep the two blocks in step.
+      #
+      # `case` is what makes the `$GITHUB_OUTPUT` write safe: a newline inside a
+      # value would forge a second output line, and every step below trusts
+      # these. A base that is not a refname stops the job rather than being
+      # passed on.
+      - name: Resolve base revision (from the event payload on disk)
         id: base
-        env:
-          PR_BASE: ${{ github.event.pull_request.base.sha }}
-          BEFORE: ${{ github.event.before }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          if [ -n "$PR_BASE" ]; then
-            ref="$PR_BASE"
-          elif [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            ref="$BEFORE"
+          pr_base="$(jq -r '.pull_request.base.sha // empty' "$GITHUB_EVENT_PATH")"
+          before="$(jq -r '.before // empty' "$GITHUB_EVENT_PATH")"
+          default_branch="$(jq -r '.repository.default_branch // "master"' "$GITHUB_EVENT_PATH")"
+          pr="$(jq -r '.pull_request.number // empty' "$GITHUB_EVENT_PATH")"
+          if [ -n "$pr_base" ]; then
+            ref="$pr_base"
+          elif [ -n "$before" ] && git cat-file -e "$before^{commit}" 2>/dev/null; then
+            ref="$before"
           else
-            ref="origin/$DEFAULT_BRANCH"
+            ref="origin/$default_branch"
           fi
+          case "$ref" in
+            ''|*[!A-Za-z0-9./_-]*)
+              echo "refusing a base revision that is not a refname" >&2
+              exit 1
+              ;;
+          esac
+          case "$pr" in *[!0-9]*) pr="" ;; esac
           printf 'ref=%s\n' "$ref" >> "$GITHUB_OUTPUT"
+          if [ -n "$pr" ]; then
+            printf 'pr=%s\n' "$pr" >> "$GITHUB_OUTPUT"
+          fi
 
       # The whole working tree becomes the BASE revision. The change stays
       # reachable as a git OBJECT (the `review-head` ref) and reaches the reviewer
@@ -250,8 +278,9 @@ jobs:
       # `review-head` is whatever the checkout above resolved — the pushed commit,
       # or a pull request's merge commit — so both halves of the review judge the
       # identical artifact. It is recorded BEFORE the tree moves, and read back
-      # from an `env:` binding rather than from `github.event.*`, which is a
-      # context a fork writes.
+      # from an `env:` binding fed by the step above — never from `github.event.*`,
+      # which is a context a fork writes and which rule P9 keeps out of this file
+      # entirely.
       - name: Move the working tree to the base revision
         id: head
         env:
@@ -293,7 +322,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BASE_REF: ${{ steps.base.outputs.ref }}
           HEAD_REF: ${{ steps.head.outputs.ref }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ steps.base.outputs.pr }}
         run: |
           if [ -z "$ANTHROPIC_API_KEY" ]; then
             echo "ANTHROPIC_API_KEY is not configured for this repository — Part B skipped." \

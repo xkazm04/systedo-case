@@ -19,18 +19,27 @@
  *  advertiser's budget, so "where does contributor text go before it reaches a
  *  shell?" is not a style question.
  *
- *  THREE INVARIANTS, all of which hold on the tree today:
+ *  FOUR INVARIANTS, all of which hold on the tree today:
  *
  *    1. Every `${{ … }}` in every workflow is an `env:` binding. That is the one
  *       shape that is safe everywhere — `run:` makes it shell source, `with:` feeds
  *       it to a third party's action, `if:` evaluates it — so it is the only shape
  *       allowed, and this restates the check independently of the script that
  *       enforces it.
- *    2. scripts/actions-pin.mjs still evaluates P5 and P7, and P7's list of
+ *    2. No workflow names an attacker-shaped context AT ALL — not even inside an
+ *       `env:` binding. An `env:` binding fixes the shape and leaves the exposure:
+ *       the value is substituted into the YAML before anything can validate it, it
+ *       sits in the environment of every program the step runs, and it is one
+ *       unquoted expansion away from being shell words again. The event payload is
+ *       already a JSON file on the runner (`$GITHUB_EVENT_PATH`), so the field can
+ *       be read from disk instead — scripts/workflow-event.mjs, and the `jq` in the
+ *       runner image for the one job that may not execute repository code yet.
+ *       That is rule P9.
+ *    3. scripts/actions-pin.mjs still evaluates P5, P7 and P9, and P7's list of
  *       untrusted contexts is still the full one. The contexts are spelled out here
  *       so that shortening the script's list is a test failure rather than a
  *       silently narrower gate.
- *    3. agent-review.yml's `judgment` job moves its working tree to the base
+ *    4. agent-review.yml's `judgment` job moves its working tree to the base
  *       revision BEFORE it runs anything out of the checkout. The job's comments
  *       explain that invariant at length; nothing asserted it, so a reordered step
  *       would have run the change's own code with the key already in the
@@ -106,8 +115,67 @@ test("every `${{ … }}` in every workflow is an `env:` binding", () => {
   }
 });
 
-test("the blocking policy still evaluates P5 and P7", () => {
-  // scripts/actions-pin.mjs is what turns the invariant above into a red build. If
+test("no workflow names an attacker-shaped context at all, `env:` included", () => {
+  // P9. The shape rule above says where such a value may appear; this says it may
+  // not appear. The fix for a failure here is never to move the expression to a
+  // safer line — it is to read the field out of the payload GitHub already wrote
+  // to the runner, which is what scripts/workflow-event.mjs does.
+  for (const name of workflows) {
+    const lines = uncommented(readFileSync(join(WF_DIR, name), "utf8"));
+    lines.forEach((line, i) => {
+      for (const ctx of UNTRUSTED_CONTEXTS) {
+        assert.ok(
+          !line.includes(ctx),
+          `${name}:${i + 1}: \`${ctx}\` appears in the workflow:\n\n    ${line.trim()}\n\n` +
+            "An `env:` binding fixes the shape of this hazard and not the exposure — the value is substituted " +
+            "into the YAML before anything can validate it, it lands in the environment of every program the " +
+            "step runs, and it is one unquoted expansion from being shell words in a job holding this " +
+            "repository's advertiser credentials. Read the field from `$GITHUB_EVENT_PATH` instead: " +
+            "`node scripts/workflow-event.mjs --get <field> --out <file>`. Enforced by scripts/actions-pin.mjs " +
+            "rule P9."
+        );
+      }
+    });
+  }
+});
+
+test("the reader that replaces those bindings exists and reads the payload from disk", () => {
+  // P9 is only a real practice if there is somewhere for the value to come from.
+  // Without this the rule is satisfiable by deleting the feature that needed the
+  // field, which is not the same thing.
+  const helper = join(ROOT, "scripts", "workflow-event.mjs");
+  const text = readFileSync(helper, "utf8");
+  assert.match(
+    text,
+    /process\.env\.GITHUB_EVENT_PATH/,
+    "scripts/workflow-event.mjs no longer reads $GITHUB_EVENT_PATH — the workflows have nowhere to get the " +
+      "event's fields from except an expression, and P9 forbids that."
+  );
+  assert.match(
+    text,
+    /const REF_RE = /,
+    "scripts/workflow-event.mjs no longer validates what it writes back. `--base-ref` appends to $GITHUB_OUTPUT, " +
+      "and a newline in a value there forges a second output line for every later step to trust."
+  );
+
+  const review = readFileSync(join(WF_DIR, "agent-review.yml"), "utf8");
+  assert.match(
+    review,
+    /--get pull_request\.body --out pr-body\.txt/,
+    "agent-review.yml no longer takes the PR body from the payload file. That body is free text an outsider " +
+      "writes and it is what the `Ack:` escape hatch is read out of — it must reach the reviewer as a file, " +
+      "not as an environment variable."
+  );
+  assert.match(
+    review,
+    /--body-file pr-body\.txt/,
+    "the mechanical review is no longer handed pr-body.txt, so an `Ack:` line in a PR body would stop " +
+      "unblocking rubric A3/A4 — the rule would be enforced with its escape hatch gone."
+  );
+});
+
+test("the blocking policy still evaluates P5, P7 and P9", () => {
+  // scripts/actions-pin.mjs is what turns the invariants above into a red build. If
   // its rules stop being evaluated the workflows can go back to splicing an
   // expression into a shell and nothing above would catch the first one to try.
   const policy = readFileSync(POLICY, "utf8");
@@ -115,6 +183,7 @@ test("the blocking policy still evaluates P5 and P7", () => {
   for (const [rule, needles] of [
     ["P5 (no expression inside a `run:` body)", [/RUN_RE\.exec\(l\)/, /EXPR_RE\.test\(/]],
     ["P7 (untrusted context only in an `env:` binding)", [/ENV_RE\.exec\(l\)/, /UNTRUSTED_RE\.test\(/]],
+    ["P9 (untrusted context nowhere in a workflow, `env:` included)", [/if \(!UNTRUSTED_RE\.test\(l\)\) return;/]],
   ]) {
     for (const needle of needles) {
       assert.match(

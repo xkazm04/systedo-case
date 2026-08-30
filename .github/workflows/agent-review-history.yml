@@ -43,9 +43,12 @@ name: Agent review history
 # than the diff — putting it on every push would spend API calls to tell you
 # nothing new.
 #
-# Untrusted input never reaches a shell here either: every `${{ … }}` lands in an
-# `env:` binding, which scripts/actions-pin.mjs (rules P5 and P7, blocking)
-# enforces across every workflow in this repository.
+# Untrusted input never reaches a shell here either, and no longer reaches the
+# job's environment at all: there is no `github.event.*` in this file. The one
+# field it wants — the default branch to ask GitHub about — is read out of
+# `$GITHUB_EVENT_PATH`, the payload GitHub writes to the runner, by
+# `scripts/workflow-event.mjs`. Rules P5, P7 and P9 in scripts/actions-pin.mjs
+# are blocking and enforce that across every workflow in this repository.
 on:
   schedule:
     # Monday morning, ahead of the weekly triage — and after the other weekly
@@ -114,10 +117,11 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
-          BRANCH: ${{ github.event.repository.default_branch }}
         run: |
+          node scripts/workflow-event.mjs --get repository.default_branch --out default-branch.txt
+          branch="$(cat default-branch.txt)"
           node scripts/branch-protection.mjs --verify \
-            --branch "${BRANCH:-master}" \
+            --branch "${branch:-master}" \
             --out protection.md \
             --summary "$GITHUB_STEP_SUMMARY"
           if [ -s protection.md ]; then

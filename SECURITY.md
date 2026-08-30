@@ -120,12 +120,27 @@ deliberately non-blocking.
   which starts a job in the *base* repository's context, holding its token and its
   secrets, on an event someone who cannot push here controls — no action may track
   a moving branch,
-  every **third-party** action must be pinned to a commit SHA, and **no
+  every **third-party** action must be pinned to a commit SHA, **no
   `${{ … }}` expression may be interpolated into a `run:` script** — that
   substitution happens before any shell parses the line, so a fork's branch name
   or a PR title would be executing as code in a job holding this repository's
-  advertiser tokens. Bind such values in the step's `env:` and read `"$VAR"`.
-  First-party (`actions/*`, `github/*`) references on a version tag are reported,
+  advertiser tokens — and **no attacker-shaped context (`github.event.*`,
+  `github.head_ref`) may appear in a workflow at all, `env:` bindings included**.
+  Binding such a value in `env:` is the usual advice and it fixes the *shape*
+  without removing the exposure: the substitution still happens before anything
+  can validate the value, the value still sits in the environment of every
+  program the step runs, and it is still one unquoted expansion away from being
+  shell words again. GitHub already writes the whole event payload to a JSON file
+  on the runner, so the field is read from there instead —
+  `scripts/workflow-event.mjs --get <field> --out <file>`, and the runner's own
+  `jq` in the one job that may not execute repository code yet. Contributor text
+  therefore reaches the reviewer as a *file*, never as an argument, a variable or
+  a line of YAML. Anything that script writes back to `$GITHUB_OUTPUT` is
+  validated first, because a newline in such a value forges an output line every
+  later step would trust. **Asserted from the other side by
+  `test-unit/workflow-injection.test.mjs`**, which fails both when a workflow
+  names one of those contexts and when the policy script stops evaluating the
+  rule. First-party (`actions/*`, `github/*`) references on a version tag are reported,
   not blocked — `npm run actions:pin` resolves them to SHAs, after which the
   strict mode in that script covers them too. The count of SHA-pinned references
   is ratcheted: it may rise, and a commit that lets it fall is a failure.

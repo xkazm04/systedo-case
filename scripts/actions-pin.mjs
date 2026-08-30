@@ -59,6 +59,28 @@
  *        problem as an action on a tag, except the thing behind the tag is a whole
  *        root filesystem. `image@sha256:…` cannot be moved. There are none in this
  *        repository today; the rule is what keeps the first one honest.
+ *    P9  An ATTACKER-SHAPED context does not enter a workflow AT ALL. P7 makes
+ *        `env:` the only allowed shape, which is where the standard advice stops —
+ *        and it fixes the shape without removing the exposure. The substitution
+ *        still happens before anything can validate the value; the value still
+ *        lands in the process environment of every program the step runs; and it
+ *        is still one unquoted expansion (`printf %s $BODY`) away from being
+ *        parsed as shell words by whoever edits the step next. On this repository
+ *        those jobs hold live Google Ads / Sklik / Resend credentials and a model
+ *        key, so "safe as long as every reference stays quoted forever" is a
+ *        weaker guarantee than the value never arriving.
+ *
+ *        GitHub already writes the whole event payload to a JSON file on the
+ *        runner and names it in `GITHUB_EVENT_PATH`. Reading it there is the same
+ *        data with none of the substitution: `scripts/workflow-event.mjs` picks a
+ *        field and writes it to a file, so contributor text is a JSON string and
+ *        then a file, and never an argument, a variable, or a line of YAML. So
+ *        `github.event.*` and `github.head_ref` may not appear in a workflow at
+ *        all — including inside `env:`. P7 stays as the backstop for the shape, in
+ *        case a value ever has to come back through a binding: a narrower rule
+ *        that still holds is worth more than one deleted because a wider one
+ *        covers it today. Asserted from the other side by
+ *        test-unit/workflow-injection.test.mjs.
  *
  *  And this REPORTS: first-party actions still on a version tag. The repo depends
  *  on actions/checkout, actions/setup-node, actions/upload-artifact and
@@ -258,6 +280,24 @@ for (const name of workflows) {
     });
   }
 
+  // P9 — an attacker-shaped context anywhere in the file, `env:` included. P7
+  // above already fails the dangerous SHAPES; this fails the value's presence, so
+  // the fix is to read the field out of `$GITHUB_EVENT_PATH` (scripts/workflow-event.mjs)
+  // rather than to move the expression to a safer line. Comments are skipped for
+  // the same reason as P5 and P7: these workflows explain the hazard in prose that
+  // names it, and a sentence about a rule is not a breach of it.
+  lines.forEach((l, i) => {
+    if (/^\s*#/.test(l)) return;
+    if (!UNTRUSTED_RE.test(l)) return;
+    violations.push(
+      `${name}:${i + 1}: an attacker-shaped context (\`github.event.*\` / \`github.head_ref\`) appears in the ` +
+        "workflow. An `env:` binding fixes the shape and not the exposure — the value is still substituted into " +
+        "the YAML before anything can check it, and still sits in the environment of every program the step runs. " +
+        "Read the field out of `$GITHUB_EVENT_PATH` instead: `node scripts/workflow-event.mjs --get <field> " +
+        "--out <file>`."
+    );
+  });
+
   // P8 — a `container:` / `services:` image on a mutable tag.
   lines.forEach((l, i) => {
     if (/^\s*#/.test(l)) return;
@@ -447,6 +487,7 @@ say("");
 say(
   `✓ actions policy: permissions declared, none of the ${Object.keys(PRIVILEGED_TRIGGERS).length} privileged ` +
     "triggers, no moving-branch refs, " +
-    "third-party actions pinned, container images digest-pinned, and every untrusted context " +
-    "bound in `env:` rather than spliced into a `run:` script, a `with:` input or an `if:`."
+    "third-party actions pinned, container images digest-pinned, and no attacker-shaped context anywhere in a " +
+    "workflow — not spliced into a `run:` script, a `with:` input or an `if:`, and not bound in `env:` either. " +
+    "The event payload is read from `$GITHUB_EVENT_PATH` (scripts/workflow-event.mjs)."
 );
