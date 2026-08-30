@@ -23,9 +23,15 @@
     "",
     "Rung discipline (docs/adr/0007-gate-rung-discipline.md) decides what belongs here: a",
     "check is required only if it passes today. The reporting-rung jobs — sast.yml's",
-    "`repo-rules` and `semgrep`, supply-chain.yml's `audit`, agent-review.yml's `judgment` —",
-    "are deliberately absent, and each one's workflow says why. Promoting one means fixing",
-    "its findings, dropping its `continue-on-error`, and adding it here in the same commit."
+    "`repo-rules` and `semgrep`, supply-chain.yml's `audit`, agent-review.yml's `judgment`,",
+    "and agent-review-history.yml's `history` — are deliberately absent, and each one's",
+    "workflow says why. Promoting one means fixing its findings, dropping its",
+    "`continue-on-error`, and adding it here in the same commit.",
+    "",
+    "The `check` string below is also read back by scripts/agent-review-history.mjs, which",
+    "uses it to find the blocking job's annotations when it aggregates what the review has",
+    "caught. That is deliberate: one declaration of the name, and a rename that forgets this",
+    "file fails the merge gate before it can make the report aggregate nothing."
   ],
   "required": [
     {
@@ -53,7 +59,7 @@
       "check": "Actions supply-chain policy (blocking)",
       "workflow": "sast.yml",
       "job": "workflow-policy",
-      "why": "Token scope, no pull_request_target, no moving-branch action refs, third-party actions pinned, and no expression interpolated into a `run:` script. This repository's secrets are advertiser OAuth tokens.",
+      "why": "Token scope, no pull_request_target, no moving-branch action refs, third-party actions pinned, container images digest-pinned, and no attacker-controlled context outside an `env:` binding — not in a `run:` script, not in a `with:` input, not in an `if:`. This repository's secrets are advertiser OAuth tokens.",
       "softenedSteps": []
     },
     {

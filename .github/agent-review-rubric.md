@@ -152,3 +152,30 @@ operator would see.
 Findings, most severe first. For each: the file and line, one sentence of what
 breaks, and the concrete case that breaks it. If nothing is wrong, say so in one
 line — a review that always finds something teaches people to skip reviews.
+
+---
+
+## Where the review leaves its trail
+
+A verdict that exists only as a pass or fail inside one CI chain cannot be read
+after the fact and cannot be answered in place, which is how an automated
+reviewer stops being trusted. So a review is written down four ways:
+
+| Where | What is there | Who reads it |
+| --- | --- | --- |
+| **Check annotations** | Every Part A finding, anchored to its file and line (`scripts/agent-review.mjs --annotate`) | Whoever opens the change — they render inline on the diff and on a PR's Files view |
+| **A pull request comment** | Part B's review; **or Part A's report when no `ANTHROPIC_API_KEY` is configured**, so a PR is never left with a bare tick | The contributor, in the place a finding can be replied to |
+| **An artifact, 90 days** | `mechanical.md` and `mechanical.json` — the same verdict in prose and in a countable form | The weekly triage, asking what the review said about a change that shipped a fortnight ago |
+| **A weekly aggregate** | Which Part A rules fired, how often, and on what — [`agent-review-history.yml`](./workflows/agent-review-history.yml), or `npm run review:agent:history` | Whoever is deciding whether a rule below still earns its place |
+
+That last one is the feedback loop for this file. **A Part A rule that has never
+fired and one that fires constantly are both questions for the rubric**, not just
+for the change in front of you: the first is dead weight in a blocking gate, the
+second is either a real recurring problem or a line drawn in the wrong place.
+Neither is visible from inside a single red build, which is why the aggregate
+exists. When you change a rule here, say in the commit which of the two it was.
+
+Annotations are also what makes the aggregate possible — they are the only part
+of a run that stays addressable through the API once the logs have scrolled away.
+Part A is emitted with `--annotate` in CI and without it locally, so
+`npm run review:agent` and the pre-push gate stay readable.

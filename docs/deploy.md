@@ -149,8 +149,20 @@ release act, and the contract below is what keeps it honest.
   stage is a deliberate no-op — that checkout is shallow, `origin/master` is the
   pushed commit, the diff is empty — while the dedicated job does the real review
   with full history. `test-unit/delivery-contract.test.mjs` fails if either
-  wiring is removed, and the review's report is kept as the `mechanical-review`
-  artifact for 90 days, so a merged change has a trail a reader can open.
+  wiring is removed.
+- **The review leaves a trail on the change it judged.** On the push path there is
+  no pull request to comment on, so the verdict has to be attached to the commit
+  itself: the workflow runs Part A with `--annotate`, and each finding becomes a
+  check annotation anchored to its file and line — readable from the commit, from
+  the Checks tab, and inline on a PR's Files view. The report is also kept as the
+  `mechanical-review` artifact (`mechanical.md` plus `mechanical.json`) for 90
+  days, which outlives the weekly triage cycle. A pull request always gets a
+  comment: Part B's review, or Part A's report when no `ANTHROPIC_API_KEY` is
+  configured. And once a week
+  [`agent-review-history.yml`](../.github/workflows/agent-review-history.yml)
+  (`npm run review:agent:history`) reads those annotations back and reports which
+  rubric rules have actually been firing — reporting rung, never blocking, because
+  it needs the network and a token and so can never be proven in `check:ci`.
 - **What may stop a change is enumerated, not remembered.**
   [`.github/required-checks.json`](../.github/required-checks.json) lists the
   jobs that must be green — including the rubric review of the diff — with the

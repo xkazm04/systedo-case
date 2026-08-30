@@ -112,3 +112,80 @@ test("the agent review workflow's blocking job is the one with no write token", 
   assert.doesNotMatch(mechanical, /continue-on-error/, "the blocking job must be able to fail.");
   assert.match(wf.slice(to), /pull-requests:\s*write/, "the judgment job is the one that comments on a PR.");
 });
+
+/** The review's TRAIL. A verdict that exists only as an exit code inside one CI
+ *  chain cannot be read after the fact, cannot be answered in place, and leaves
+ *  no record of what the automation has caught over time — which is how an
+ *  automated reviewer stops being trusted and stops being improved. Each of these
+ *  asserts one of the places the verdict is now written down. */
+const reviewWorkflow = read(".github/workflows/agent-review.yml")
+  .split(/\r?\n/)
+  .filter((l) => !/^\s*#/.test(l))
+  .join("\n");
+const reviewJudgment = reviewWorkflow.slice(reviewWorkflow.indexOf("\n  judgment:"));
+
+test("Part A annotates the change it judged, not just the run", () => {
+  // An annotation is attached to the commit and rendered inline on the diff and
+  // on a PR's Files view — it is the only form of the finding that lands where it
+  // can be answered, and the only one still addressable through the API later.
+  assert.match(
+    reviewWorkflow,
+    /--annotate/,
+    "the mechanical job no longer passes `--annotate`, so Part A's findings exist only as a red tick and a " +
+      "job summary. Nothing anchors them to the file and line they are about, and scripts/agent-review-history.mjs " +
+      "has nothing left to read."
+  );
+  assert.match(
+    reviewWorkflow,
+    /--json\s+mechanical\.json/,
+    "the mechanical job no longer writes a machine-readable verdict, so the review's findings can only be " +
+      "re-derived from prose."
+  );
+  assert.match(
+    reviewWorkflow,
+    /retention-days:\s*90/,
+    "the report artifact no longer outlives the weekly triage cycle, which is the only reason it is kept."
+  );
+});
+
+test("a pull request always gets the review as a comment, key or no key", () => {
+  // Part B needs ANTHROPIC_API_KEY. The keyless case — a fork, a clone, a lapsed
+  // key — is exactly when nobody goes digging through job summaries, so Part A's
+  // own report is posted instead.
+  assert.match(
+    reviewJudgment,
+    /gh pr comment/,
+    "the judgment job no longer posts anything to the PR without a model key, so a keyless repository's " +
+      "review leaves no comment trail at all."
+  );
+});
+
+test("what the review has caught over time is answerable without re-running it", () => {
+  assert.ok(
+    existsSync(join(ROOT, "scripts/agent-review-history.mjs")),
+    "no scripts/agent-review-history.mjs — 'which rubric rules have actually fired?' goes back to being a " +
+      "question only a commit-by-commit re-run can answer."
+  );
+  assert.match(scripts["review:agent:history"] ?? "", /scripts\/agent-review-history\.mjs/);
+
+  const history = read(".github/workflows/agent-review-history.yml");
+  assert.match(history, /schedule:/, "the aggregate is about the trend, so it runs on a schedule, not on a diff.");
+  assert.match(history, /checks:\s*read/, "reading past annotations needs `checks: read`.");
+  assert.match(history, /actions:\s*read/, "listing the review workflow's runs needs `actions: read`.");
+  assert.doesNotMatch(history, /:\s*write\b/, "a reporting job has no reason to hold a write scope.");
+
+  // It must not hardcode the blocking job's display name: .github/required-checks.json
+  // is the one place that name is declared, and merge-gate.mjs already fails on a
+  // rename there. Two copies would mean the report quietly aggregating nothing.
+  assert.match(
+    read("scripts/agent-review-history.mjs"),
+    /required-checks\.json/,
+    "the history report must take the blocking job's name from .github/required-checks.json, not repeat it."
+  );
+
+  assert.ok(
+    !required.some((r) => r.workflow === "agent-review-history.yml"),
+    "the history report is reporting-rung (ADR-0007): it needs the network and a token, so it can never be " +
+      "proven in check:ci and must not be enumerated as a check that stops a change."
+  );
+});

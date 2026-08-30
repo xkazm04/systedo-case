@@ -32,6 +32,25 @@ name: Agent review
 # `Ack:` is the escape hatch for the two rules that need a human sentence rather
 # than a code change. Put `Ack: <why>` in a commit message or the PR body.
 #
+# WHERE THE VERDICT LANDS. A reviewer that leaves no trail is hard to trust and
+# harder to improve, so neither half stops at an exit code:
+#
+#   • check annotations — Part A runs with `--annotate`, so every finding is
+#     attached to the COMMIT and rendered inline on the diff and on a PR's Files
+#     view. Annotations outlive the run and stay addressable through the API,
+#     which is the whole reason the history report below can exist.
+#   • a PR comment, always — Part B posts its own review; when no key is
+#     configured it posts Part A's report instead, so a pull request is never left
+#     with a bare tick and nothing to read.
+#   • an artifact, 90 days — mechanical.md plus mechanical.json (the same verdict,
+#     countable). Changes here land by direct push to master and are triaged
+#     weekly, so "what did the review say about the commit that shipped on the
+#     3rd?" is asked well after the run's logs stop being convenient.
+#   • a weekly aggregate — .github/workflows/agent-review-history.yml reads those
+#     annotations back and reports which rubric rules have actually been firing.
+#     A Part A rule that never fires and one that fires constantly are both
+#     questions for the rubric, and neither is visible from inside one red build.
+#
 # `mechanical` is a REQUIRED check — see .github/required-checks.json, and
 # scripts/merge-gate.mjs, which fails `npm run check:ci` if this job is renamed,
 # removed, stops running on pull requests, or is softened with
@@ -110,6 +129,15 @@ jobs:
         run: printf '%s' "$BODY" > pr-body.txt
 
       # Blocking. Zero-dependency, so no npm ci.
+      #
+      # `--annotate` is what gives the verdict somewhere to live other than this
+      # job's exit code: each finding is emitted as a check annotation, which
+      # GitHub attaches to the COMMIT and renders inline on the diff and on a PR's
+      # Files view. That is where a finding can be answered, and — unlike a job
+      # summary — it is still addressable through the API afterwards, which is what
+      # scripts/agent-review-history.mjs reads to say which rubric rules have
+      # actually been firing. `--json` is the same verdict in a countable form.
+      # Neither changes what blocks: the exit code is still Part A's alone.
       - name: Mechanical review (Part A)
         env:
           BASE_REF: ${{ steps.base.outputs.ref }}
@@ -118,6 +146,8 @@ jobs:
             --base "$BASE_REF" \
             --body-file pr-body.txt \
             --out mechanical.md \
+            --json mechanical.json \
+            --annotate \
             --summary "$GITHUB_STEP_SUMMARY"
 
       # Part B wants Part A's report as context, and it runs in a different job.
@@ -134,7 +164,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: mechanical-review
-          path: mechanical.md
+          path: |
+            mechanical.md
+            mechanical.json
           if-no-files-found: ignore
           retention-days: 90
 
@@ -184,6 +216,12 @@ jobs:
 
       # Comment-only, and only with a key. On a fork's pull request GitHub hands
       # out no secrets at all, so this step self-skips there and Part A still ran.
+      #
+      # Without a key it does NOT go silent: Part A's own report is posted as the
+      # comment instead. A review whose only trace on a pull request is a red tick
+      # is a review a maintainer has to go digging for, and the keyless case (a
+      # fork, a clone, a repository whose key has lapsed) is exactly when nobody
+      # goes digging. `|| true` because this job never fails a build.
       - name: Judgment review (Part B)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -194,6 +232,9 @@ jobs:
           if [ -z "$ANTHROPIC_API_KEY" ]; then
             echo "ANTHROPIC_API_KEY is not configured for this repository — Part B skipped." \
               >> "$GITHUB_STEP_SUMMARY"
+            if [ -n "$PR_NUMBER" ] && [ -s mechanical.md ]; then
+              gh pr comment "$PR_NUMBER" --body-file mechanical.md || true
+            fi
             exit 0
           fi
           set -- --base "$BASE_REF" \

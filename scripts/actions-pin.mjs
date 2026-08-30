@@ -27,6 +27,18 @@
  *        this repository's tokens. The fix is always the same shape: bind the
  *        expression in the step's `env:` block and reference "$VAR" in the script,
  *        where the shell treats it as data.
+ *    P7  An ATTACKER-CONTROLLED context (`github.event.*`, `github.head_ref`) may
+ *        appear ONLY as an `env:` binding — never in `run:`, `with:`, `if:` or a
+ *        job name. P5 covers the shell case, which is the famous one; it is not
+ *        the only one. `with:` feeds a third party's action, and `actions/github-script`
+ *        evaluates its `script:` input as JavaScript, so the same PR title that is
+ *        harmless as "$TITLE" is code there. Binding in `env:` is the one shape
+ *        that is safe everywhere, so this makes it the only shape allowed.
+ *    P8  Container images are pinned by DIGEST. A `uses: docker://image:tag` step
+ *        and a `container:`/`services:` `image:` are the same mutable-reference
+ *        problem as an action on a tag, except the thing behind the tag is a whole
+ *        root filesystem. `image@sha256:…` cannot be moved. There are none in this
+ *        repository today; the rule is what keeps the first one honest.
  *
  *  And this REPORTS: first-party actions still on a version tag. The repo depends
  *  on actions/checkout, actions/setup-node, actions/upload-artifact and
@@ -36,6 +48,21 @@
  *  needs network). Promote P4 to cover first-party actions — set STRICT below to
  *  true — once that has been run and Dependabot's `github-actions` ecosystem is
  *  keeping the pins fresh.
+ *
+ *  BE CLEAR ABOUT WHAT THAT MEANS TODAY: every `uses:` in this repository is
+ *  first-party, so STRICT = false and RATCHET.pinned = 0 together mean the count
+ *  this script prints is "0 of N pinned" and the gate is green anyway. That is a
+ *  deliberate exemption, not an oversight — and it is the only rule here that is
+ *  green by exemption rather than by compliance. Closing it is three steps and one
+ *  networked run, in ONE commit:
+ *
+ *      npm run actions:pin        # resolves each tag to its digest, rewrites in place
+ *      # set STRICT = true and RATCHET.pinned = <the count it printed>
+ *      npm run actions:check      # must print "N of N" and stay green
+ *
+ *  Do not do the first step and stop: pins that nothing enforces come undone on
+ *  the next Dependabot bump or copy-pasted step, and then the exemption is back
+ *  without anyone choosing it.
  *
  *  P6 is the ratchet that makes that a one-way door: the number of SHA-pinned refs
  *  may never fall below RATCHET.pinned. Run `npm run actions:pin` once (it needs
@@ -80,6 +107,16 @@ const MOVING = new Set(["main", "master", "HEAD"]);
  *  computed — a block scalar's body is everything indented past that column. */
 const RUN_RE = /^(\s*)(-\s+)?run:\s*(.*)$/;
 const EXPR_RE = /\$\{\{/;
+/** P7: the `env:` key, whose body is the ONE place an untrusted context may be
+ *  named, and the contexts that count as untrusted. `github.event.` needs the
+ *  trailing dot so it does not swallow `github.event_name`, which is a fixed
+ *  vocabulary of GitHub's own words rather than anything a contributor writes. */
+const ENV_RE = /^(\s*)(-\s+)?env:\s*$/;
+const UNTRUSTED_RE = /github\.event\.|github\.head_ref/;
+/** P8: a container reference — `uses: docker://…` and the `image:` of a
+ *  `container:` or a `services:` entry. */
+const IMAGE_RE = /^\s*(?:-\s+)?image:\s*(\S+)/;
+const DIGEST_RE = /@sha256:[0-9a-f]{64}$/;
 
 if (!existsSync(WF_DIR)) {
   console.error(`✗ actions policy: ${WF_DIR} does not exist.`);
@@ -147,11 +184,64 @@ for (const name of workflows) {
     });
   }
 
+  // P7 — an untrusted context outside an `env:` binding. Same block-tracking shape
+  // as P5 above: remember the column of the `env:` key we are inside, and treat
+  // everything indented past it as the binding block. Comments are skipped for the
+  // same reason as there — the workflows in this repo explain the hazard in prose
+  // that quotes it, and a sentence about a rule is not a breach of it.
+  {
+    let envCol = -1;
+    lines.forEach((l, i) => {
+      const bare = l.replace(/^\s*/, "");
+      if (bare === "" || bare.startsWith("#")) return;
+      const indent = l.length - bare.length;
+
+      if (envCol !== -1 && indent <= envCol) envCol = -1;
+
+      const m = ENV_RE.exec(l);
+      if (m) {
+        envCol = m[1].length + (m[2] ? m[2].length : 0);
+        return;
+      }
+      if (envCol !== -1) return; // inside `env:` — a binding, which is the safe shape
+      if (UNTRUSTED_RE.test(l)) {
+        violations.push(
+          `${name}:${i + 1}: an attacker-controlled context is used outside an \`env:\` binding — ` +
+            "a fork controls that text, and here it reaches a shell, an action input or an expression as itself. " +
+            "Bind it in the step's `env:` and reference \"$VAR\"."
+        );
+      }
+    });
+  }
+
+  // P8 — a `container:` / `services:` image on a mutable tag.
+  lines.forEach((l, i) => {
+    if (/^\s*#/.test(l)) return;
+    const m = IMAGE_RE.exec(l);
+    if (!m) return;
+    const image = m[1].replace(/^["']|["']$/g, "");
+    if (!DIGEST_RE.test(image)) {
+      violations.push(
+        `${name}:${i + 1}: container image \`${image}\` is not pinned by digest. ` +
+          "A tag is a mutable pointer to a whole root filesystem — pin `image@sha256:…`."
+      );
+    }
+  });
+
   lines.forEach((l, i) => {
     const m = USES_RE.exec(l);
     if (!m) return;
     const ref = m[2];
-    if (ref.startsWith("./") || ref.startsWith("docker://")) return; // local / container step
+    if (ref.startsWith("./")) return; // a step from this repository
+    if (ref.startsWith("docker://")) {
+      // P8, the `uses:` spelling of the same thing.
+      if (!DIGEST_RE.test(ref)) {
+        violations.push(
+          `${name}:${i + 1}: \`${ref}\` runs a container from a mutable tag. Pin it by digest (\`@sha256:…\`).`
+        );
+      }
+      return;
+    }
 
     const at = ref.lastIndexOf("@");
     const action = at === -1 ? ref : ref.slice(0, at);
@@ -287,5 +377,6 @@ if (violations.length) process.exit(1);
 say("");
 say(
   "✓ actions policy: permissions declared, no pull_request_target, no moving-branch refs, " +
-    "third-party actions pinned, no expression interpolated into a `run:` script."
+    "third-party actions pinned, container images digest-pinned, and every untrusted context " +
+    "bound in `env:` rather than spliced into a `run:` script, a `with:` input or an `if:`."
 );

@@ -1,0 +1,62 @@
+name: Agent review history
+
+# What the rubric review has actually been catching, aggregated for the weekly
+# triage pass.
+#
+# agent-review.yml answers "is THIS change clean?" and then the answer scrolls
+# away. This answers the question the maintainer asks on Monday: which Part A
+# rules have been firing, on what, and how often. Both ends of that distribution
+# are actionable and neither is visible from inside a single build — a rule that
+# never fires is dead weight in a blocking gate, and a rule that fires constantly
+# is either a real problem or a badly drawn line. `.github/agent-review-rubric.md`
+# is where that gets decided; this is the evidence it gets decided on.
+#
+# It reads the check ANNOTATIONS that scripts/agent-review.mjs emits with
+# `--annotate`, which is why the annotations matter beyond rendering inline on a
+# diff: they are the only part of a run that is still queryable afterwards.
+#
+# REPORTING RUNG (docs/adr/0007-gate-rung-discipline.md) and permanently so: it
+# needs the network and a token, so it can never sit in `check:ci` or the pre-push
+# hook, and it is deliberately absent from .github/required-checks.json. It runs
+# on a schedule, not on a change, because it is about the trend rather than the
+# diff — putting it on every push would spend API calls to tell you nothing new.
+on:
+  schedule:
+    # Monday morning, ahead of the weekly triage — and after the other weekly
+    # passes (supply-chain 06:00, sast 07:00) so their findings are in too.
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+# Read-only, including the two scopes this actually needs: `actions: read` to list
+# the review workflow's runs, `checks: read` to read the annotations those runs
+# left. It writes a job summary and nothing else.
+permissions:
+  contents: read
+  actions: read
+  checks: read
+
+jobs:
+  history:
+    name: What the review has been catching (reporting)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.14.0
+
+      # Zero-dependency, so no npm ci. `continue-on-error` is honest here rather
+      # than a softened gate: this job is not in .github/required-checks.json, and
+      # the script exits 0 on an unreachable API by design — the flag only covers
+      # the case where `gh` itself is missing from the runner image.
+      - name: Aggregate the review's findings
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/agent-review-history.mjs \
+            --runs 60 \
+            --summary "$GITHUB_STEP_SUMMARY"

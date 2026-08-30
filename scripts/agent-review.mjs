@@ -30,9 +30,25 @@
  *  rather than earned. The judgment half of the rubric is a model's job and only
  *  comments; see scripts/agent-review-llm.mjs.
  *
+ *  WHERE THE VERDICT GOES. A pass/fail buried in one CI chain is a review nobody
+ *  can answer. So this writes the same finding four ways, each for a different
+ *  reader:
+ *
+ *    stdout          — the person running it locally, or reading the failed step.
+ *    --summary FILE  — the run's job summary, where the weekly triage starts.
+ *    --annotate      — GitHub check annotations (`::error file=…,line=…`). These
+ *                      attach to the COMMIT, render inline on the diff and on a
+ *                      PR's Files view, and outlive the run: past annotations are
+ *                      queryable, which is what makes scripts/agent-review-history.mjs
+ *                      able to answer "which rubric rules have actually been firing"
+ *                      without re-running anything.
+ *    --json FILE     — one machine-readable record of the verdict, uploaded next to
+ *                      the report so a run's findings can be diffed and counted
+ *                      later rather than re-derived from prose.
+ *
  *  Usage:
  *    node scripts/agent-review.mjs [--base <ref>] [--body-file <f>] [--summary <f>]
- *                                  [--out <f>]
+ *                                  [--out <f>] [--json <f>] [--annotate]
  */
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -49,6 +65,8 @@ const arg = (name) => {
 const SUMMARY_FILE = arg("--summary");
 const OUT_FILE = arg("--out");
 const BODY_FILE = arg("--body-file");
+const JSON_FILE = arg("--json");
+const ANNOTATE = argv.includes("--annotate");
 
 const COMPONENT_LOC_LIMIT = 200;
 const LARGE_DIFF_LINES = 800;
@@ -123,18 +141,29 @@ for (const line of numstat ? numstat.split(/\r?\n/) : []) {
   if (d !== "-") removedTotal += Number(d) || 0;
 }
 
-/** Added lines of the patch, per file. */
+/** Added lines of the patch, per file, as `{ line, text }` — `line` numbered in
+ *  the NEW file, read off each hunk header. The number is what turns a finding
+ *  into an annotation GitHub can anchor to the exact line of the diff, instead of
+ *  a sentence in a job summary nobody opened. */
 const addedByFile = new Map();
 {
   const patch = git(["diff", "--unified=0", range]) ?? "";
   let current = null;
+  let next = 0;
   for (const line of patch.split(/\r?\n/)) {
     if (line.startsWith("+++ ")) {
       const p = line.slice(4).trim();
       current = p === "/dev/null" ? null : p.replace(/^b\//, "");
       if (current && !addedByFile.has(current)) addedByFile.set(current, []);
-    } else if (current && line.startsWith("+") && !line.startsWith("+++")) {
-      addedByFile.get(current).push(line.slice(1));
+      next = 0;
+    } else if (line.startsWith("@@")) {
+      // `@@ -a,b +c,d @@` — with --unified=0 every added line in the hunk runs
+      // consecutively from c, so the counter needs no context bookkeeping.
+      const m = /\+(\d+)/.exec(line);
+      next = m ? Number(m[1]) : 0;
+    } else if (current && line.startsWith("+")) {
+      addedByFile.get(current).push({ line: next || 1, text: line.slice(1) });
+      if (next) next += 1;
     }
   }
 }
@@ -170,6 +199,7 @@ for (const f of changed) {
     blocking.push({
       rule: "A1 component-growth",
       path: f.path,
+      line: 1,
       detail:
         `${now} lines (was ${wasLoc || "new"}), over the ${COMPONENT_LOC_LIMIT}-line ceiling and growing. ` +
         "Extract a sub-component or a data hook. A file already over the line may shrink or stay put — it may not get worse.",
@@ -180,12 +210,13 @@ for (const f of changed) {
 // --- A2 · route segment config ----------------------------------------------
 for (const [path, lines] of addedByFile) {
   if (!path.startsWith("src/app/")) continue;
-  for (const line of lines) {
-    const m = /export\s+const\s+(dynamic|runtime|revalidate|fetchCache|dynamicParams)\b/.exec(line);
+  for (const { line, text } of lines) {
+    const m = /export\s+const\s+(dynamic|runtime|revalidate|fetchCache|dynamicParams)\b/.exec(text);
     if (m) {
       blocking.push({
         rule: "A2 route-segment-config",
         path,
+        line,
         detail:
           `adds \`export const ${m[1]}\`. This app runs with cacheComponents — express a dynamic read as a ` +
           "<Suspense> boundary around the read, not as a segment-level opt-out that un-caches the whole route.",
@@ -264,8 +295,8 @@ if (lawTouched.length) {
 {
   const todos = [];
   for (const [path, lines] of addedByFile) {
-    for (const line of lines) {
-      if (/\b(TODO|FIXME|XXX|HACK)\b/.test(line)) todos.push(`${path}: ${line.trim().slice(0, 120)}`);
+    for (const { line, text } of lines) {
+      if (/\b(TODO|FIXME|XXX|HACK)\b/.test(text)) todos.push(`${path}:${line}: ${text.trim().slice(0, 120)}`);
     }
   }
   if (todos.length) notes.push({ title: `Added TODO/FIXME markers (${todos.length})`, body: todos.slice(0, 15) });
@@ -274,9 +305,9 @@ if (lawTouched.length) {
 {
   const gateSoftening = [];
   for (const [path, lines] of addedByFile) {
-    for (const line of lines) {
-      if (/eslint-disable|@ts-(expect-error|ignore)|\.skip\(|continue-on-error/.test(line)) {
-        gateSoftening.push(`${path}: ${line.trim().slice(0, 120)}`);
+    for (const { line, text } of lines) {
+      if (/eslint-disable|@ts-(expect-error|ignore)|\.skip\(|continue-on-error/.test(text)) {
+        gateSoftening.push(`${path}:${line}: ${text.trim().slice(0, 120)}`);
       }
     }
   }
@@ -331,6 +362,33 @@ for (const n of notes) {
 }
 
 const text = md.join("\n");
+
+// --- the trail on the change itself -----------------------------------------
+//
+// Annotations, not just a summary. A job summary belongs to the run; an
+// annotation belongs to the COMMIT — it renders inline on the diff and on a PR's
+// Files view, so a finding lands where it can be answered, and it is still there
+// weeks later when the weekly triage asks what the review said about the change
+// that shipped on the 3rd. `--annotate` is opt-in so a local run and the pre-push
+// gate stay quiet; agent-review.yml passes it.
+if (ANNOTATE) {
+  const esc = (s) => String(s).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+  const escProp = (s) => esc(s).replace(/:/g, "%3A").replace(/,/g, "%2C");
+  for (const b of blocking) {
+    const props = [`title=${escProp(`Agent review · ${b.rule}`)}`];
+    // A deleted test has no file to hang an annotation on, and A3 reports the
+    // whole list in one finding — those become repository-level annotations.
+    if (b.path && !b.path.includes(",") && existsSync(join(ROOT, b.path))) {
+      props.push(`file=${escProp(b.path)}`);
+      if (b.line) props.push(`line=${b.line}`);
+    }
+    console.log(`::error ${props.join(",")}::${esc(`${b.path} — ${b.detail}`)}`);
+  }
+  for (const n of notes) {
+    console.log(`::notice title=${escProp("Agent review · note")}::${esc(`${n.title} — ${n.body.slice(0, 3).join(" · ")}`)}`);
+  }
+}
+
 console.log(text);
 
 if (OUT_FILE) writeFileSync(OUT_FILE, text);
@@ -339,6 +397,30 @@ if (SUMMARY_FILE) {
     appendFileSync(SUMMARY_FILE, text + "\n");
   } catch (err) {
     console.error(`(could not write summary: ${err.message})`);
+  }
+}
+
+// One machine-readable record per reviewed change, so the history of what the
+// review caught can be counted rather than re-derived from prose.
+if (JSON_FILE) {
+  const head = (git(["rev-parse", "HEAD"], { allowFail: true }) ?? "").trim();
+  const record = {
+    schema: 1,
+    generatedAt: new Date().toISOString(),
+    base: BASE,
+    head,
+    files: changed.length,
+    added: addedTotal,
+    removed: removedTotal,
+    ack: ackLines,
+    verdict: blocking.length ? "blocked" : "clean",
+    blocking: blocking.map((b) => ({ rule: b.rule, path: b.path, line: b.line ?? null, detail: b.detail })),
+    notes: notes.map((n) => ({ title: n.title, items: n.body.length })),
+  };
+  try {
+    writeFileSync(JSON_FILE, JSON.stringify(record, null, 2) + "\n");
+  } catch (err) {
+    console.error(`(could not write ${JSON_FILE}: ${err.message})`);
   }
 }
 
