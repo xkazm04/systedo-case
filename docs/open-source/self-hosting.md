@@ -298,8 +298,7 @@ makes no outbound calls at all.
 | `accounts.google.com` / `oauth2.googleapis.com` | `GOOGLE_CLIENT_ID` | login, Ads authorisation |
 | `graph.facebook.com` | `META_APP_ID` | social publishing |
 | `api.linkedin.com` | `LINKEDIN_CLIENT_ID` | social publishing |
-| `api.resend.com` | `RESEND_API_KEY` | alert and digest email |
-| your SMTP host | `TWIN_SMTP_URL` | twin outbound email |
+| `api.resend.com` | `RESEND_API_KEY` | alert and digest email; twin outbound email (S2 — the `email` connector; `TWIN_SMTP_URL` is retired) |
 | your webhook host | `ALERT_WEBHOOK_URL` | Slack/Teams/Discord alerts |
 | your Sentry host | `SENTRY_DSN` | error reports, errors-only, no tracing, no replay |
 | `127.0.0.1:8787` (or your `LIGHTTRACK_URL`) | `LIGHTTRACK_PROJECT` or `LIGHTTRACK_KEY` | LLM observability, loopback by default |

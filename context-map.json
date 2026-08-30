@@ -155,7 +155,8 @@
         "src/lib/sklik/types.ts",
         "src/lib/google/ads.ts",
         "src/lib/google/keyword-planner.ts",
-        "src/lib/google/token.ts"
+        "src/lib/google/token.ts",
+        "test-unit/sklik-writes.test.mjs"
       ],
       "group": "Campaign & Ads Management",
       "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
@@ -1086,7 +1087,13 @@
         "src/components/campaigns/TypeBreakdown.tsx",
         "src/components/campaigns/MicrositeCard.tsx",
         "src/components/campaigns/PillButton.tsx",
-        "src/components/campaigns/ChangeSetLedgerRow.tsx"
+        "src/components/campaigns/ChangeSetLedgerRow.tsx",
+        "src/components/campaigns/PendingProposal.tsx",
+        "src/components/campaigns/ProposalProjection.tsx",
+        "src/components/campaigns/SourceSwitch.tsx",
+        "src/components/campaigns/RealizedLine.tsx",
+        "src/components/campaigns/SearchTermsPanel.tsx",
+        "src/components/campaigns/SearchTermsLists.tsx"
       ],
       "group": "Campaign & Ads Management",
       "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
@@ -1377,7 +1384,19 @@
         "src/lib/campaigns/connector.ts",
         "src/lib/campaigns/envelope.ts",
         "src/lib/campaigns/mutations.ts",
-        "src/lib/campaigns/currency.ts"
+        "src/lib/campaigns/currency.ts",
+        "src/lib/campaigns/mutator.ts",
+        "test-unit/campaigns-mutator.test.mjs",
+        "test-unit/campaigns-google-write-identity.test.mjs",
+        "test-unit/campaigns-cross-source-policy.test.mjs",
+        "test-unit/campaigns-sklik-control-plane.test.mjs",
+        "src/lib/campaigns/store/search-terms.ts",
+        "src/lib/campaigns/term-moves.ts",
+        "src/lib/campaigns/move-label.ts",
+        "test-unit/ads-search-terms.test.mjs",
+        "test-unit/campaigns-term-moves.test.mjs",
+        "test-unit/campaigns-term-moves-apply.test.mjs",
+        "test-unit/campaigns-search-terms-store.test.mjs"
       ],
       "group": "Campaign Management",
       "group_id": "e5d040ea-3527-41ae-965b-8f0c3d82564e",
@@ -2910,7 +2929,19 @@
         "test-unit/leads-conversion-ledger.test.mjs",
         "test-unit/leads-conversion-rollup.test.mjs",
         "test-unit/leads-conversion-grounding.test.mjs",
-        "test-unit/conversions-export.test.mjs"
+        "test-unit/conversions-export.test.mjs",
+        "src/lib/conversions/mapping.ts",
+        "src/lib/conversions/google-upload.ts",
+        "src/lib/conversions/drain-step.ts",
+        "src/app/api/projects/[id]/conversions/upload/route.ts",
+        "src/components/hooks/useConversionUpload.ts",
+        "src/components/app/modules/ConversionUploadCard.tsx",
+        "src/components/app/modules/ConversionUploadDryRun.tsx",
+        "src/components/app/modules/leads/ConsentControl.tsx",
+        "test-unit/fixtures/conversion-events.mjs",
+        "test-unit/conversions-mapping.test.mjs",
+        "test-unit/conversions-upload-payload.test.mjs",
+        "test-unit/conversions-drain.test.mjs"
       ],
       "group": "Lead & CRM Management",
       "group_id": "f1a820c1-0783-4550-b47c-133532ad7ea4",
@@ -5449,7 +5480,12 @@
         "src/lib/twin/edit-facts.ts",
         "src/lib/twin/load.ts",
         "src/lib/twin/persisted.ts",
-        "src/lib/twin/readiness.ts"
+        "src/lib/twin/readiness.ts",
+        "src/lib/twin/deliver.ts",
+        "src/lib/twin/dispatch-step.ts",
+        "test-unit/twin-deliver-claim.test.mjs",
+        "test-unit/twin-delivery-gate.test.mjs",
+        "test-unit/twin-dispatch-step.test.mjs"
       ],
       "group": "Lead & CRM Management",
       "group_id": "f1a820c1-0783-4550-b47c-133532ad7ea4",
@@ -5500,7 +5536,8 @@
         "src/components/app/twin/TwinVoiceStudio.tsx",
         "src/components/app/twin/labels.ts",
         "src/components/app/twin/useArchivedRejects.ts",
-        "src/components/app/twin/useTwinState.ts"
+        "src/components/app/twin/useTwinState.ts",
+        "src/components/app/twin/TwinChannelDelivery.tsx"
       ],
       "group": "Social & Content Publishing",
       "group_id": "79748803-cfff-4395-b8bd-69e33a473856",
