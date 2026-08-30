@@ -48,3 +48,28 @@ browser automation.
 - Where a vendor's rules are genuinely better, the repo runs the vendor tool
   *alongside* the local one rather than instead of it: `gitleaks` in CI backs the
   local secret scanner, and Semgrep's registry packs back `scripts/sast.mjs`.
+
+## Consequences observed
+
+_Read back 2026-08-30 against the tree, not against intentions._
+
+- **The count in the Context section is already out of date, and that is the
+  finding.** The dev list is still thirteen; the runtime list is twelve, not the
+  eleven recorded here, and the twelfth entry is a types-only package sitting in
+  `dependencies`. Nothing was wrong with the addition — what it shows is that
+  "the list is small" is a claim nobody re-measures, which is why rubric A4
+  blocks a new runtime dependency without an `Ack:` line rather than trusting the
+  sentence.
+- **Zero-dependency tooling paid off in the place it was not argued for.** The
+  reason given here was supply chain and install time. The return actually
+  collected is that every gate runs in a checkout with no `node_modules` — which
+  is what lets an offline agent session, a pre-commit hook and a container all
+  run the same gate. The strongest argument for this decision is one it did not
+  make.
+- **The written code is holding, and the sharing is thinner than the record
+  implies.** No script in `scripts/` has been replaced by a package since. But
+  `scripts/lib/` holds four modules and the two named here
+  (`scripts/lib/fingerprint.mjs`, `scripts/lib/diff-lines.mjs`) have exactly one
+  caller between them — `scripts/llm-eval.mjs` — plus a unit test. They are
+  extracted primitives, not yet shared ones. The "cost is written code" line has
+  not compounded, and neither has the reuse that would justify the extraction.

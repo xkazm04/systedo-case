@@ -52,6 +52,7 @@
     "llm:quality:rejudge": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --conditions react-server --import ./test-llm/setup.mjs test-llm/quality/rejudge.mjs",
     "llm:quality:bake": "node scripts/bake-quality-scores.mjs",
     "llm:quality:check": "node scripts/quality-gate.mjs --check",
+    "llm:quality:baseline": "node scripts/quality-gate.mjs --accept",
     "prepare": "husky"
   },
   "dependencies": {

@@ -52,3 +52,25 @@ decision, never an accident.
   `process.env` directly — that is what makes the mode testable without setting
   globals (`test-unit/self-host-unmeter.test.mjs`). `src/lib/usage.ts` composes
   it with `LOCAL_DB` at the store seam.
+
+## Consequences observed
+
+_Read back 2026-08-30 against the tree, not against intentions._
+
+- **"Opt in at your own seam" is measurable, and it is spreading as predicted.**
+  The mode is now read in eleven modules — auth, metering, the store flag, the
+  durable limit, the LLM entry point, readiness, instrumentation and the AI
+  status surface among them — and every one of them is an explicit `|| SELF_HOSTED`
+  at its own guard rather than a loosened shared predicate. The cost the ADR
+  accepted ("three modes to reason about") is being paid in exactly the currency
+  it named: each new guard has to decide which of the three it belongs to, and
+  there is no single expression that would decide for it.
+- **`DEV_AUTH` never widened.** The specific catastrophe this ADR was written to
+  avoid — a login bypass reachable in production because a shared predicate was
+  relaxed — has not happened, and the reason it has not is structural:
+  `src/lib/deploy-mode.ts` returns a third value instead of making the existing
+  two more permissive.
+- The unproven half is the operator's, not the code's: no live self-hosted
+  install has been reported back into this repository, so `selfHostBootError()`
+  and the container's mode wiring are proven by tests and by the image build,
+  not by an install on the internet.

@@ -46,7 +46,7 @@ operation in the `ByomMatrix` settings module
 ## Thresholds — what can actually stop a change
 
 A harness that informs is worth having; a harness with a threshold is what lets
-an agent land a change without a human reading the output. Three thresholds
+an agent land a change without a human reading the output. Five thresholds
 exist, and each one is cheap enough to run on every pull request because none of
 them calls a model.
 
@@ -71,8 +71,40 @@ point for run-to-run variance and still catches a real drop. The comparison-fiel
 columns are deliberately **not** gated: their job is to inform BYOM
 recommendations, and a bad score there is information, not a defect.
 
-**3. Coverage of the scorecard is ratcheted.**
-The same gate reports two counts against a baseline (reporting rung, per
+**3. An operation may not score worse than it did last time.**
+The floor is an absolute: it catches a collapse and misses everything above it.
+`brief` at 8.5 could fall to 7.0 after a prompt edit — a change a marketer would
+read as worse copy — and the floor would stay green. So the scores the app ships
+with are recorded per operation and per serving model in
+[`test-llm/quality/baseline.json`](../../test-llm/quality/baseline.json), and the
+same gate fails when a baked cell is more than **1.0** below its recorded score.
+Half a point is judge variance; a full point is a change in kind.
+
+There is a second threshold on the same data, because the per-cell rule has a
+blind spot: every operation losing 0.9 passes it. The **mean** across all
+baselined serving cells may not fall more than **0.35** below the recorded mean
+(7.7 at seeding, 30 cells). Uniform drift is the failure mode a model swap
+actually produces, and it is invisible one cell at a time.
+
+Moving the baseline is deliberate and carries a reason —
+`npm run llm:quality:baseline -- --reason "..."` refuses filler, rewrites the
+baseline from the current bake, and appends `operation | model | from | to` plus
+the reason to [`test-llm/quality/CHANGELOG.md`](../../test-llm/quality/CHANGELOG.md).
+Same discipline as the goldens, for the same reason: re-recording a number is how
+a regression gets absorbed.
+
+**4. The recorded quality must describe the model the app actually serves.**
+`SERVING_MODELS` in the gate is the gate's own opinion, and an opinion cannot
+notice a model swap: change the served model and the old scorecard keeps passing,
+describing output the app no longer produces. So the baseline records *where the
+app declares each served model* — `CLAUDE_API_MODEL` and
+`BYOM_DEFAULT_MODELS.gemini.quality` in `src/lib/llm/models.ts` — and the gate
+reads those declarations on every run. A swap goes red immediately, with the
+instruction to re-run the matrix and accept a new baseline, rather than staying
+green until somebody happens to spend thirty minutes on a fresh bake.
+
+**5. Coverage of the scorecard is ratcheted.**
+The same gate reports three counts against a baseline (reporting rung, per
 [ADR-0007](../adr/0007-gate-rung-discipline.md)): registry tools with no baked
 score at all — nine today: `ads-diagnosis` (added by WP W1-D; no baked score yet,
 the reporting rung), `local-page` (added by WP W2-C, 2026-08-29 — same reason: it
@@ -81,8 +113,10 @@ lands with its contract golden and is measured on the next full bake),
 `channel-research`, `local-diagnosis`, `monthly-recap`,
 `onboarding-scan`, `twin-reply`, `twin-style` — and baked operations that no
 longer exist in the registry — one today: `lead-reply`, retired when the twin
-absorbed it and still displayed on the public scorecard. `--check` fails if
-either count rises. Fix and lower in the same commit; never raise.
+absorbed it and still displayed on the public scorecard — and baked serving cells
+with no recorded baseline, zero today and expected to stay there, since a freshly
+baked operation has by definition been measured. `--check` fails if any of the
+three counts rises. Fix and lower in the same commit; never raise.
 
 What is deliberately **not** gated is the judged run itself. It is ~90 OpenRouter
 generations plus up to 405 judge spawns; wiring that into a pull request would be

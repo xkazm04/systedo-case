@@ -54,3 +54,31 @@ decoration.
   months is itself a finding.
 - New checks land on the reporting rung by default and earn their way up. That is
   why the first version of a gate is cheap to add and hard to weaponise.
+
+## Consequences observed
+
+_Read back 2026-08-30 against the tree, not against intentions._
+
+- **A third rung appeared anyway, and it is not the one this ADR banned.** It
+  banned "runs, prints, and nobody can tell whether it got worse". What exists
+  instead is *green by exemption*: `scripts/actions-pin.mjs` carries
+  `STRICT = false` and a pinned floor of 0, so the line it prints is "0 of N
+  pinned" and the gate passes. Every rule in that file blocks except the one the
+  file is named after. A ratchet at zero is a rung this record did not
+  anticipate, because it satisfies rule 1 (never raised) while enforcing
+  nothing.
+- **"Never raise a baseline" has a legitimate exception, and it was taken three
+  times without being written down here.** `scripts/quality-gate.mjs` raised
+  `unbaked` from 6 to 9 as `local-page`, `lp-variant-draft` and their siblings
+  landed: a new AI tool ships with its contract golden and is measured on the
+  next full quality bake, so the count rises for a reason that is not debt. The
+  rule as stated ("never raise it") is therefore not the rule being followed. The
+  honest version is: never raise a baseline for a finding you could have fixed —
+  and say, in the baseline's own comment, what will lower it again.
+- **Rung discipline made the rungs legible to agents, which is the return that
+  showed up.** The gate scripts written since state their rung in their own
+  header — `scripts/quality-gate.mjs`, `scripts/actions-pin.mjs` and
+  `scripts/i18n-audit.mjs` each say which of the two they are and what would
+  promote them — so an agent reading a red run can tell whether it broke
+  something or inherited it. That was not a predicted consequence; it is the one
+  most visible in day-to-day use.

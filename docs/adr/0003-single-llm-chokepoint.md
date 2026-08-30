@@ -57,3 +57,26 @@ captured corpus replayed through each tool's validator — runs in CI for free.
 - The goldens are a contract, so changing a prompt is a reviewable diff. What
   the gate could not tell you until ADR-0007's provenance rule was added is
   *why* a golden changed; see `test-llm/golden/CHANGELOG.md`.
+
+## Consequences observed
+
+_Read back 2026-08-30 against the tree, not against intentions._
+
+- **The chokepoint stopped being prose before it was tested.** The fence in
+  `eslint.config.mjs` (`adamant/seams`) now refuses a second Gemini client and a
+  direct provider-adapter import in the editor, which is the same rule the gate
+  enforces in a diff. Nothing about the decision changed; the moment of refusal
+  moved earlier, and that is where an agent can still choose the other design
+  cheaply.
+- **Retiring the real-model re-prove cost a number nobody replaced for three
+  weeks.** After 2026-08-05 the gate proved the contract — tag, fixture, golden
+  fingerprint — and *no* check said how good the output had to be until the
+  baked scorecard acquired a floor, and then a per-operation baseline
+  (`test-llm/quality/baseline.json`, 2026-08-30). "The output still matches" and
+  "the output is still good" are different claims, and only the first one
+  survived the retirement.
+- **The named exception is still an exception.** Image generation, vision scoring
+  and embeddings remain outside the chokepoint, so metering, the spend ceiling
+  and LightTrack mirroring still do not cover them. Two months on, no drift into
+  the wrapper and no second implementation of its guarantees — the boundary has
+  been stable, not blurred.

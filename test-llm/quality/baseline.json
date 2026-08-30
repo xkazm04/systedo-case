@@ -1,0 +1,53 @@
+{
+  "$comment": "How good the output has to be, per operation, for the models the app actually serves. The floor in scripts/quality-gate.mjs says 'not terrible'; this says 'not worse than it was'. Written by `npm run llm:quality:baseline -- --reason \"...\"` from the baked scorecard (src/lib/llm/quality-scores.ts) and read on every CI run by scripts/quality-gate.mjs. Every move is recorded in test-llm/quality/CHANGELOG.md.",
+
+  "schema": 1,
+  "acceptedOn": "2026-08-30",
+  "acceptedReason": "seeded from the 2026-07-07 matrix bake — the numbers the app has been shipping with, recorded so the next bake can be compared to them instead of only to the 6.5 floor",
+  "measuredAt": "2026-07-07T12:17:55.091Z",
+  "judge": "claude-sonnet",
+
+  "$thresholds": "maxDrop is per cell: half a point is judge variance (the same variance the 6.5 floor allows for), so a full point is the smallest drop that means something changed. maxMeanDrop is the answer to the failure the per-cell rule cannot see — every operation losing 0.9 and passing. The two together are what makes a slow degradation a red build rather than something a marketer notices first.",
+  "maxDrop": 1,
+  "maxMeanDrop": 0.35,
+  "mean": 7.7,
+
+  "serving": [
+    {
+      "column": "anthropic/claude-sonnet-5",
+      "id": "claude-sonnet-5",
+      "declaredBy": {
+        "file": "src/lib/llm/models.ts",
+        "symbol": "CLAUDE_API_MODEL",
+        "pattern": "export const CLAUDE_API_MODEL\\s*=\\s*\"([^\"]+)\""
+      }
+    },
+    {
+      "column": "google/gemini-3.5-flash",
+      "id": "gemini-3.5-flash",
+      "declaredBy": {
+        "file": "src/lib/llm/models.ts",
+        "symbol": "BYOM_DEFAULT_MODELS.gemini.quality",
+        "pattern": "gemini:\\s*\\{\\s*quality:\\s*\"([^\"]+)\""
+      }
+    }
+  ],
+
+  "operations": {
+    "ads": { "anthropic/claude-sonnet-5": 7, "google/gemini-3.5-flash": 7 },
+    "analysis": { "anthropic/claude-sonnet-5": 7, "google/gemini-3.5-flash": 7 },
+    "article-draft": { "anthropic/claude-sonnet-5": 8, "google/gemini-3.5-flash": 8.5 },
+    "brief": { "anthropic/claude-sonnet-5": 8.5, "google/gemini-3.5-flash": 7.5 },
+    "campaign-eval": { "anthropic/claude-sonnet-5": 8, "google/gemini-3.5-flash": 8 },
+    "chat": { "anthropic/claude-sonnet-5": 7, "google/gemini-3.5-flash": 7.5 },
+    "cohort-diagnosis": { "anthropic/claude-sonnet-5": 7.5, "google/gemini-3.5-flash": 7.5 },
+    "comparison-outline": { "anthropic/claude-sonnet-5": 8, "google/gemini-3.5-flash": 7 },
+    "keyword-clusters": { "anthropic/claude-sonnet-5": 8, "google/gemini-3.5-flash": 8.5 },
+    "lead-reply": { "anthropic/claude-sonnet-5": 7, "google/gemini-3.5-flash": 7 },
+    "lead-source-diagnosis": { "anthropic/claude-sonnet-5": 8, "google/gemini-3.5-flash": 8.5 },
+    "local-review-reply": { "anthropic/claude-sonnet-5": 8, "google/gemini-3.5-flash": 8 },
+    "lp-variant-ideas": { "anthropic/claude-sonnet-5": 8.5, "google/gemini-3.5-flash": 8.5 },
+    "repurpose": { "anthropic/claude-sonnet-5": 8, "google/gemini-3.5-flash": 8 },
+    "social": { "anthropic/claude-sonnet-5": 7, "google/gemini-3.5-flash": 7 }
+  }
+}

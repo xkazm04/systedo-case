@@ -45,3 +45,21 @@ reprices CZK as USD.
 - The cost is repetition: the same word is translated in several components. That
   is accepted, because the alternative failure (a shared key changed for one
   caller and silently changed for six others) is worse and harder to see.
+
+## Consequences observed
+
+_Read back 2026-08-30 against the tree, not against intentions._
+
+- **Reversing the authoring direction cost nothing structural.** `en` became the
+  source and `cs` the transcreation on 2026-08-05 — a change that would have been
+  a catalogue-wide migration under a central message file. Colocation made it a
+  per-component edit and a pair of constants, and the split between
+  `DEFAULT_LOCALE` and `HOME_MARKET_LOCALE` is what kept CZK prices from being
+  repriced as USD.
+- **The ratchet has moved, downward, which is the point.** The baselines in
+  `scripts/i18n-audit.mjs` went 40 → 38 (hardcoded strings) and 42 → 40
+  (untranslated `cs` values) on 2026-08-28, each lowered in the commit that fixed
+  the findings. Both counts are still non-zero and have been for months, so
+  "measured, not asserted" is holding as a description and not yet as a cure.
+- **No parity script has been invented since**, which was the specific temptation
+  this record was written to head off. The prohibition earned its sentence.

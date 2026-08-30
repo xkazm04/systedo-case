@@ -49,3 +49,24 @@ check:ci`) enforces the parts that can be enforced:
 
 Superseding beats editing. When a decision is reversed, add a new ADR, and set
 the old one's Status to `Superseded by ADR-NNNN`.
+
+## Reading one back
+
+`## Consequences` is written on the day of the decision, which is the day of most
+confidence and least evidence. It is a prediction. So a record that has been in
+force long enough also carries **`## Consequences observed`** — a few sentences
+on what actually happened: which prediction held, which one did not, and what a
+reader should do differently now. ADR-0008's says the dependency count it opens
+with is already wrong; ADR-0007's says the "never raise a baseline" rule has an
+exception that has been taken three times.
+
+`npm run adr:check` decides when that section is due, and it does it without
+dates or `git log`: a record is **settled** once its Status is Accepted and three
+higher-numbered records have landed on top of it. The newest three decisions are
+never due, so writing an ADR stays cheap; the section falls due later, on its
+own, and nobody has to schedule it. Any honest sentence passes — including
+"nothing has tested this yet" — but an empty section or a `TBD` fails, because
+that is the shape of a section added to make a gate green.
+
+When you find yourself writing that a decision was wrong, that is a new ADR
+superseding this one, not an edit to the old record's Decision.

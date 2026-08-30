@@ -53,3 +53,23 @@ container concern.
 - `scripts/cron-runner.mjs` and `vercel.json` ride along in the image so the
   cron sidecar runs from the same image and reads the same schedule source the
   cloud deploy uses — one schedule, two hosts.
+
+## Consequences observed
+
+_Read back 2026-08-30 against the tree, not against intentions._
+
+- **The build flag did its job by being boring.** `output: "standalone"` is still
+  reachable only through `ADAMANT_DOCKER_BUILD`, and `next.config.ts` has taken
+  several changes since (Cache Components among them) without anyone reaching for
+  it. A conditional that nobody has been tempted to make unconditional is the
+  outcome this decision wanted, and it is invisible unless someone writes it
+  down.
+- **The base pin is the one that will age.** `node:24-alpine` is still correct
+  because `node:sqlite` still sets the floor, but nothing in CI fails when the
+  image drifts from `engines.node` in `package.json` — the two are kept in step
+  by whoever remembers ADR-0008. That is the weakest link in this record, and it
+  is a candidate for a fence rather than a sentence.
+- The healthcheck decision has not been revisited, which is mild evidence it was
+  right: a `CRON_SECRET`-gated `/api/health` would have reported every
+  unconfigured install as permanently unhealthy, and the failure would have been
+  read as "the image is broken".

@@ -45,3 +45,23 @@ that take a project id call `rejectUnknownProject()` / `requireOwnedProject()`
 - Changing the key format is a data migration, not a refactor — existing
   documents are addressed by it. `SKLIK_TENANT_SUFFIX` is the worked example of
   extending the key without orphaning history.
+
+## Consequences observed
+
+_Read back 2026-08-30 against the tree, not against intentions._
+
+- **The migration this ADR feared was avoided rather than paid.** ADR-0010
+  (2026-08) had to make a project read across several ad accounts — exactly the
+  change that "changing the key format is a data migration" predicts as
+  expensive. The answer was to keep the key per-account, tag the sources, and
+  blend on read. The prediction held; the way out was to stop treating the key as
+  the place to express a new relation.
+- **The exception list is the number that moved.** This record says "two routes
+  are listed today" in `.github/security/sast-allowlist.json`; there are five
+  now, and four of them are deliberately anonymous machine endpoints (a feed
+  puller, a webhook, a pre-sign-in scan claim) rather than handlers that forgot a
+  guard. The structural claim is intact; what grew is the class of route the rule
+  was not written for. The count is therefore the wrong thing to watch — whether
+  each entry still states a reason is the right one.
+- `buildTenantKey()` in `src/lib/campaigns/store-keys.ts` is still the single
+  spelling, and both drivers still call it (ADR-0001's invariant table).

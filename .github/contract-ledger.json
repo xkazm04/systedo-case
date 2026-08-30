@@ -1,0 +1,346 @@
+{
+  "$comment": "One row per rule in this repository's contract: what enforces it, what it is currently absorbing, and every breach recorded against it. Kept honest by scripts/contract-ledger.mjs (`npm run contract:ledger:check`, blocking inside check:ci): a rule defined in the sources with no row here fails, and a row claiming a rule that no longer exists fails. The numbers are reporting-rung — they inform what AGENTS.md should say next, they never fail a build. Breaches are appended by `--record`, fed the JSON a rubric review writes.",
+
+  "schema": 1,
+  "seededOn": "2026-08-30",
+  "$breaches": "Empty for every row today, and that is a statement about the ledger's age rather than about the rules: recorded breaches start accumulating from the first review run that is folded in with `--record`. The 'Absorbing now' column is NOT empty, because absorbed debt (allowlist entries, ratchet baselines, files already over a limit) is measured live from the files the gates read — so this ledger says something useful on the day it lands.",
+
+  "rules": [
+    {
+      "id": "A1 component-growth",
+      "source": "agent-review",
+      "surface": "fence",
+      "enforcedBy": "scripts/agent-review.mjs (Part A, blocking)",
+      "guidance": "AGENTS.md § Conventions that bite — components under 200 LOC",
+      "why": "a component may not grow past 200 lines; one already over may shrink or stay put",
+      "measure": { "kind": "locOver", "dir": "src/components", "ext": [".tsx", ".ts"], "loc": 200 },
+      "breaches": []
+    },
+    {
+      "id": "A2 route-segment-config",
+      "source": "agent-review",
+      "surface": "fence",
+      "enforcedBy": "scripts/agent-review.mjs (Part A, blocking) + eslint adamant/route-segment-config",
+      "guidance": "AGENTS.md § Architecture, Cache Components",
+      "why": "a segment-level opt-out un-caches a whole route to serve one dynamic read",
+      "measure": {
+        "kind": "occurrences",
+        "dir": "src/app",
+        "ext": [".ts", ".tsx"],
+        "pattern": "export\\s+const\\s+(dynamic|runtime|revalidate|fetchCache|dynamicParams)\\b"
+      },
+      "breaches": []
+    },
+    {
+      "id": "A3 test-deletion",
+      "source": "agent-review",
+      "surface": "fence",
+      "enforcedBy": "scripts/agent-review.mjs (Part A, blocking; unblocked by an `Ack:` line)",
+      "guidance": "AGENTS.md § What you may do unattended — amber",
+      "why": "a deleted test looks exactly like a test that never existed",
+      "breaches": []
+    },
+    {
+      "id": "A4 new-dependency",
+      "source": "agent-review",
+      "surface": "fence",
+      "enforcedBy": "scripts/agent-review.mjs (Part A, blocking; unblocked by an `Ack:` line)",
+      "guidance": "ADR-0008",
+      "why": "this repo holds live ad-platform credentials and keeps a deliberately small dependency list",
+      "breaches": []
+    },
+    {
+      "id": "A5 commit-subject",
+      "source": "agent-review",
+      "surface": "fence",
+      "enforcedBy": "scripts/agent-review.mjs (Part A, blocking) via scripts/commit-subject.mjs",
+      "guidance": "AGENTS.md § Conventions that bite — a commit subject names the change, not the session",
+      "why": "the log is what a future agent bisects; 'fix: Done. Here's what I found' is well-formed and useless",
+      "breaches": []
+    },
+
+    {
+      "id": "raw-engine-outside-seam",
+      "source": "sast",
+      "surface": "fence",
+      "enforcedBy": "scripts/sast.mjs (blocking)",
+      "guidance": "ADR-0001",
+      "why": "a caller that reaches for a driver has picked a backend and skipped the tenant key",
+      "measure": { "kind": "allowlist", "rule": "raw-engine-outside-seam" },
+      "breaches": []
+    },
+    {
+      "id": "route-auth",
+      "source": "sast",
+      "surface": "fence",
+      "enforcedBy": "scripts/sast.mjs (blocking)",
+      "guidance": "ADR-0002",
+      "why": "a route that establishes no caller identity mints a phantom tenant instead of failing",
+      "measure": { "kind": "allowlist", "rule": "route-auth" },
+      "breaches": []
+    },
+    {
+      "id": "client-env",
+      "source": "sast",
+      "surface": "fence",
+      "enforcedBy": "scripts/sast.mjs (blocking)",
+      "guidance": "AGENTS.md § Security rules are a gate",
+      "why": "a server env var read in a client module ships to the browser",
+      "measure": { "kind": "allowlist", "rule": "client-env" },
+      "breaches": []
+    },
+    {
+      "id": "eval-sink",
+      "source": "sast",
+      "surface": "fence",
+      "enforcedBy": "scripts/sast.mjs (blocking)",
+      "guidance": "AGENTS.md § Security rules are a gate",
+      "why": "dynamic code execution in a process holding live advertiser credentials",
+      "measure": { "kind": "allowlist", "rule": "eval-sink" },
+      "breaches": []
+    },
+    {
+      "id": "sql-template-interpolation",
+      "source": "sast",
+      "surface": "fence",
+      "enforcedBy": "scripts/sast.mjs (blocking)",
+      "guidance": "AGENTS.md § Security rules are a gate",
+      "why": "SQL built by interpolation; the two exceptions are table NAMES, which cannot be bound",
+      "measure": { "kind": "allowlist", "rule": "sql-template-interpolation" },
+      "breaches": []
+    },
+    {
+      "id": "secret-in-log",
+      "source": "sast",
+      "surface": "fence",
+      "enforcedBy": "scripts/sast.mjs (blocking)",
+      "guidance": "AGENTS.md § Red — printing a secret",
+      "why": "a credential-shaped identifier passed to console survives in the platform's log retention",
+      "measure": { "kind": "allowlist", "rule": "secret-in-log" },
+      "breaches": []
+    },
+    {
+      "id": "plaintext-key-in-route",
+      "source": "sast",
+      "surface": "fence",
+      "enforcedBy": "scripts/sast.mjs (blocking)",
+      "guidance": "BYOM design",
+      "why": "a route importing the decrypted BYOM key can return it by accident",
+      "measure": { "kind": "allowlist", "rule": "plaintext-key-in-route" },
+      "breaches": []
+    },
+    {
+      "id": "insecure-transport",
+      "source": "sast",
+      "surface": "fence",
+      "enforcedBy": "scripts/sast.mjs (blocking)",
+      "guidance": "SECURITY.md",
+      "why": "TLS verification disabled anywhere in a process that talks to ad platforms",
+      "measure": { "kind": "allowlist", "rule": "insecure-transport" },
+      "breaches": []
+    },
+    {
+      "id": "public-env-secret",
+      "source": "sast",
+      "surface": "fence",
+      "enforcedBy": "scripts/sast.mjs (blocking)",
+      "guidance": "SECURITY.md",
+      "why": "a secret-shaped value behind NEXT_PUBLIC_ is a published secret",
+      "measure": { "kind": "allowlist", "rule": "public-env-secret" },
+      "breaches": []
+    },
+    {
+      "id": "deprecated-cipher",
+      "source": "sast",
+      "surface": "fence",
+      "enforcedBy": "scripts/sast.mjs (blocking)",
+      "guidance": "SECURITY.md",
+      "why": "a key-derived cipher with no explicit IV",
+      "measure": { "kind": "allowlist", "rule": "deprecated-cipher" },
+      "breaches": []
+    },
+
+    {
+      "id": "adamant/seams",
+      "source": "eslint",
+      "surface": "fence",
+      "enforcedBy": "eslint.config.mjs (blocking via npm run lint)",
+      "guidance": "ADR-0003 + ADR-0001",
+      "why": "the LLM chokepoint and the store seam, refused in the editor rather than in a diff",
+      "breaches": []
+    },
+    {
+      "id": "adamant/seams-lib",
+      "source": "eslint",
+      "surface": "fence",
+      "enforcedBy": "eslint.config.mjs (blocking via npm run lint)",
+      "guidance": "ADR-0003",
+      "why": "src/lib owns the drivers, so it relaxes the store half — and keeps the chokepoint half",
+      "breaches": []
+    },
+    {
+      "id": "adamant/seams-llm-chokepoint",
+      "source": "eslint",
+      "surface": "exemption",
+      "enforcedBy": "eslint.config.mjs (the exception the fence is built around)",
+      "guidance": "ADR-0003",
+      "why": "src/lib/llm is allowed to be the exception it enforces on everyone else",
+      "breaches": []
+    },
+    {
+      "id": "adamant/route-segment-config",
+      "source": "eslint",
+      "surface": "fence",
+      "enforcedBy": "eslint.config.mjs (blocking via npm run lint)",
+      "guidance": "AGENTS.md § Architecture, Cache Components",
+      "why": "the editor-time half of A2",
+      "breaches": []
+    },
+
+    {
+      "id": "llm-tool tag contract",
+      "surface": "gate",
+      "enforcedBy": "scripts/llm-gate.mjs (blocking, pre-commit + CI)",
+      "probe": { "file": "scripts/llm-gate.mjs", "contains": "llm-tool" },
+      "guidance": "ADR-0003",
+      "why": "an untagged generateStructured call site has no test and no contract golden",
+      "breaches": []
+    },
+    {
+      "id": "golden provenance",
+      "surface": "gate",
+      "enforcedBy": "scripts/llm-eval.mjs --update (reason required) + scripts/llm-gate.mjs (blocking)",
+      "probe": { "file": "scripts/llm-eval.mjs", "contains": "--reason" },
+      "guidance": "AGENTS.md § llm-tool tag contract",
+      "why": "a hand-edited golden passes the drift check by construction; the ledger row is what catches it",
+      "breaches": []
+    },
+    {
+      "id": "quality floor + baseline",
+      "surface": "gate",
+      "enforcedBy": "scripts/quality-gate.mjs (blocking inside check:ci)",
+      "probe": { "file": "scripts/quality-gate.mjs", "contains": "maxDrop" },
+      "guidance": "docs/testing/llm-quality-matrix.md",
+      "why": "how good the output has to be, per operation, and which model it was measured on",
+      "measure": { "kind": "ratchet", "file": "scripts/quality-gate.mjs", "key": "unbaked" },
+      "breaches": []
+    },
+    {
+      "id": "docs parity",
+      "surface": "gate",
+      "enforcedBy": "scripts/docs-parity.mjs (blocking inside check:ci)",
+      "probe": { "file": "scripts/docs-parity.mjs", "contains": "parity.json" },
+      "guidance": "AGENTS.md § The bilingual docs are held in step by a gate",
+      "why": "the Czech edition going stale is a confident wrong answer, not a gap",
+      "breaches": []
+    },
+    {
+      "id": "required checks enumerated",
+      "surface": "gate",
+      "enforcedBy": "scripts/merge-gate.mjs (blocking inside check:ci)",
+      "probe": { "file": "scripts/merge-gate.mjs", "contains": "continue-on-error" },
+      "guidance": "ADR-0011",
+      "why": "a gate must not be able to become a comment by being renamed or made non-blocking",
+      "breaches": []
+    },
+    {
+      "id": "agent surface lock",
+      "surface": "gate",
+      "enforcedBy": "scripts/agent-surface.mjs (blocking inside check:ci)",
+      "probe": { "file": "scripts/agent-surface.mjs", "contains": "agent-surface.lock.json" },
+      "guidance": "AGENTS.md § the vendor block",
+      "why": "a regenerated instruction block has to be read on its own, not ride along in an unrelated diff",
+      "breaches": []
+    },
+    {
+      "id": "adr hindsight",
+      "surface": "gate",
+      "enforcedBy": "scripts/adr-check.mjs (blocking inside check:ci)",
+      "probe": { "file": "scripts/adr-check.mjs", "contains": "## Consequences observed" },
+      "guidance": "docs/adr/README.md § Reading one back",
+      "why": "a settled decision records whether its predicted consequences held",
+      "breaches": []
+    },
+    {
+      "id": "P1 workflow-permissions",
+      "surface": "gate",
+      "enforcedBy": "scripts/actions-pin.mjs (blocking in CI and check:ci)",
+      "probe": { "file": "scripts/actions-pin.mjs", "contains": "permissions:" },
+      "guidance": "AGENTS.md § Commands — actions:check",
+      "why": "an unset permissions block inherits the repository default token scope",
+      "breaches": []
+    },
+    {
+      "id": "P4 action-sha-pin",
+      "surface": "gate",
+      "enforcedBy": "scripts/actions-pin.mjs — third-party blocking, first-party EXEMPT (STRICT = false)",
+      "probe": { "file": "scripts/actions-pin.mjs", "contains": "const STRICT" },
+      "guidance": "AGENTS.md § Commands — actions:check",
+      "why": "a tag is a mutable pointer; a retagged action runs with the pipeline's token before any downstream proof applies",
+      "verdict": "green by exemption — the one rule here that passes because it is switched off for the actions this repo actually uses. Closing it is one networked run (`npm run actions:pin`), which no offline session can do.",
+      "measure": {
+        "kind": "occurrences",
+        "dir": ".github/workflows",
+        "ext": [".yml", ".yaml"],
+        "pattern": "uses:\\s*[^\\s#]+@(?![0-9a-f]{40}\\b)"
+      },
+      "breaches": []
+    },
+    {
+      "id": "P5 run-expression-injection",
+      "surface": "gate",
+      "enforcedBy": "scripts/actions-pin.mjs (blocking in CI and check:ci)",
+      "probe": { "file": "scripts/actions-pin.mjs", "contains": "EXPR_RE" },
+      "guidance": "AGENTS.md § Two of these are enforced rather than trusted",
+      "why": "an expression spliced into a run: body is source code, not an argument",
+      "breaches": []
+    },
+    {
+      "id": "i18n colocated dictionaries",
+      "surface": "gate",
+      "enforcedBy": "typecheck (parity) + scripts/i18n-audit.mjs (reporting, ratcheted)",
+      "probe": { "file": "scripts/i18n-audit.mjs", "contains": "RATCHET" },
+      "guidance": "ADR-0006",
+      "why": "parity is the type system; what typecheck cannot see is measured instead of asserted",
+      "measure": { "kind": "ratchet", "file": "scripts/i18n-audit.mjs", "key": "coverage" },
+      "breaches": []
+    },
+
+    {
+      "id": "pathspec commits only",
+      "surface": "prose",
+      "enforcedBy": "nothing — AGENTS.md only",
+      "guidance": "AGENTS.md § Conventions that bite",
+      "why": "the checkout is shared with concurrent agents, so `git add -A` commits someone else's half-finished work",
+      "verdict": "unfenceable from inside this repo (the damage is done by the time a hook sees it), and it has bitten before — the closest thing to a fence is that a commit which breaks the build is the committer's to fix.",
+      "breaches": []
+    },
+    {
+      "id": "never raise a ratchet you could have lowered",
+      "surface": "prose",
+      "enforcedBy": "nothing — each ratchet enforces its own direction, nothing enforces the intent",
+      "guidance": "ADR-0007 + AGENTS.md § amber",
+      "why": "raising a baseline is how a finding gets absorbed instead of fixed",
+      "verdict": "candidate fence: three baselines have been raised legitimately (a new AI tool ships unbaked), and nothing distinguishes that from absorbing a regression. A raised baseline could be required to carry a reason in the same commit, the way a golden already is.",
+      "breaches": []
+    },
+    {
+      "id": "amber work says so in its own words",
+      "surface": "prose",
+      "enforcedBy": "nothing — AGENTS.md only",
+      "guidance": "AGENTS.md § What you may do unattended — amber",
+      "why": "a real-model run spends money, so the change should say what it proved and against which model",
+      "verdict": "unfenced on purpose for now: the reviewable artefact (a commit message sentence) is exactly what rubric A5 already looks at, and adding a second message rule risks making both easier to ignore.",
+      "breaches": []
+    },
+    {
+      "id": "red actions need the operator",
+      "surface": "prose",
+      "enforcedBy": "partly the runtime guards (SKLIK_WRITES_ENABLED, the schranka review gate); the boundary itself is prose",
+      "guidance": "AGENTS.md § Red — stop and ask",
+      "why": "spending an advertiser's budget, sending mail, publishing under the operator's name, pushing to master",
+      "verdict": "the load-bearing half is unfenceable by design — it is about what an agent decides to do, not about what the code allows. Worth re-reading whenever a run reports it 'nearly' did one of these.",
+      "breaches": []
+    }
+  ]
+}

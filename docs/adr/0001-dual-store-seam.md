@@ -128,3 +128,24 @@ asymmetry rather than discovering it from a bill.
   Firestore-only before the 2026-07-16 sweep caught them.
 - The seam is what made self-hosting cheap: promoting sqlite to a production
   store was a mode flag, not a port.
+
+## Consequences observed
+
+_Read back 2026-08-30 against the tree, not against intentions._
+
+- **The seam held; the twin is what slips.** Promoting sqlite to a production
+  store really was a mode flag (ADR-0004 shipped on top of it without touching a
+  driver). What the decision did not make automatic is the *second* driver: the
+  2026-07-16 sweep found twelve modules Firestore-only, i.e. the cost of the seam
+  is paid per domain, every time, by whoever remembers.
+- **The migration hazard fired for real.** "Adding a table to `SCHEMA` is not
+  enough" was written as a warning and then happened: `idx_projects_user` existed
+  on fresh databases and on no migrated one, and the guard that was supposed to
+  catch it compared table *names* only. `test-unit/db-migrations.test.mjs` now
+  compares tables, indexes and columns. A guard for a known hazard is worth what
+  its comparison covers, which is the reusable lesson.
+- **The one unimplemented invariant is still unimplemented.** `src/lib/usage.ts`
+  still short-circuits under `LOCAL_DB`/self-hosted, so every caller's
+  `ok: false` branch is still unreachable offline. Recorded here in 2026-06 as a
+  deliberate asymmetry; it is still deliberate, and it is now two months of
+  offline test runs that have never exercised a metering refusal.
