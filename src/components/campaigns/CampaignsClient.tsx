@@ -60,6 +60,9 @@ const MicrositeCard = dynamic(() => import("./MicrositeCard"), {
 const ControlPlane = dynamic(() => import("./ControlPlane"), {
   loading: () => <SectionSkeleton height="h-48" lines={2} />,
 });
+const SearchTermsPanel = dynamic(() => import("./SearchTermsPanel"), {
+  loading: () => <SectionSkeleton height="h-64" lines={2} />,
+});
 
 const T = {
   cs: {
@@ -537,14 +540,13 @@ export default function CampaignsClient({
         goals={goals ?? undefined}
       />
 
-      {/* Budget governance — one workflow, one place: the deterministic
-          recommendation preview (BudgetMoves) flows top-to-bottom into the
-          governed change-set + reversible ledger (ControlPlane) under a single
-          section heading. The SINGLE propose affordance lives in BudgetMoves
-          (the richer preview); ControlPlane's own bare propose button is
-          suppressed (hideProposeButton) so the two panels read as one flow. The
-          control-plane anchor id (thread.ts reveal target for alert-staging and
-          the table's preparePackage) is unchanged — only its position moved. */}
+      {/* Budget governance — one workflow, one place: the deterministic previews
+          (BudgetMoves at campaign level, SearchTermsPanel at query level — WP S1b)
+          flow top-to-bottom into the governed change-set + reversible ledger under
+          one heading. Each preview owns ONE propose affordance and a change-set is
+          never a mix of the two kinds, so one approval covers one kind of decision;
+          ControlPlane's own bare propose button stays suppressed (hideProposeButton)
+          and its anchor id (thread.ts reveal target) is unchanged. */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <Bolt width={18} height={18} className="text-brand-600" />
@@ -558,6 +560,7 @@ export default function CampaignsClient({
           fmtMoneySigned={fmtMoneySigned}
           onProposed={() => setControlPlaneRefresh((n) => n + 1)}
         />
+        <SearchTermsPanel refreshKey={controlPlaneRefresh} fmtMoney={fmtMoney} onProposed={() => setControlPlaneRefresh((n) => n + 1)} />
         <ControlPlane refreshKey={controlPlaneRefresh} hideProposeButton fmtMoney={fmtMoney} fmtMoneySigned={fmtMoneySigned} />
       </section>
 

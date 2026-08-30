@@ -3,7 +3,7 @@
  *  budget moves into one reviewable, simulated, human-approved unit with a
  *  reversible ledger entry — the governance envelope that lets software touch
  *  real ad spend safely. */
-import type { BudgetMove, SimulationResult } from "./simulate";
+import { isCriterionMove, type BudgetMove, type SimulationResult } from "./simulate";
 import type { AdsSource } from "./types";
 import { grossProfit } from "@/lib/profit/core";
 
@@ -128,6 +128,35 @@ export interface StatusSnapshot {
   platform?: "sklik";
 }
 
+/** WP S1b — the record of a keyword CRITERION a change-set created, so a revert can
+ *  remove exactly that criterion and nothing else.
+ *
+ *  This snapshot is shaped unlike the two above, and the difference is the point.
+ *  A budget/status snapshot records a PRIOR VALUE to restore; there is no prior value
+ *  for a criterion that did not exist five seconds ago. What a revert needs instead is
+ *  the criterion's ADDRESS — the resource name Google minted at creation — because it
+ *  is the only handle that can ever remove it. That is why the create returns it, why
+ *  the apply loop persists it before starting the next move, and why a create whose
+ *  response carried no resource name is treated as a failure: a criterion nobody can
+ *  address is a permanent, silent account change.
+ *
+ *  `platform` is REQUIRED and always written (unlike the Google budget snapshot's
+ *  absent-means-Google rule) because this key is new in S1b: there is no pre-existing
+ *  blob whose shape has to be preserved, and an explicit tag is what lets an older
+ *  build recognise "this is not one of mine" after a rollback. */
+export interface CriterionSnapshot {
+  platform: "google-ads";
+  /** `customers/{cid}/campaignCriteria/{campaignId}~{id}` for a negative,
+   *  `customers/{cid}/adGroupCriteria/{adGroupId}~{id}` for a promoted keyword */
+  resourceName: string;
+  campaignId: string;
+  /** present for a promote (the ad group the exact keyword was added to) */
+  adGroupId?: string;
+  /** the search query the criterion was created for */
+  term: string;
+  action: "negative" | "promote";
+}
+
 // "applying"/"reverting" are transient claim states: approveChangeSet/revertChangeSet
 // flip into them atomically before running the live mutation loop, so a concurrent
 // Approve/Revert (double-click, retry) can't run the loop twice. They settle to
@@ -179,6 +208,11 @@ export interface ChangeSet {
   /** prior campaign statuses captured at approval for every pause move that
    *  landed, so a revert resumes exactly what it paused (live only) */
   statusSnapshots?: StatusSnapshot[];
+  /** WP S1b — the keyword criteria this set CREATED, each with the resource name a
+   *  revert removes it by. Persisted incrementally (one per landed move, before the
+   *  next move starts), for the same evidence-based recovery reason the budget
+   *  snapshots are. Absent on every set created before S1b. */
+  criterionSnapshots?: CriterionSnapshot[];
   /** true if applied despite guardrail violations via an explicit override */
   overridden?: boolean;
   /** ISO timestamp the current transient claim ("applying"/"reverting") was taken,
@@ -273,9 +307,13 @@ export function checkPolicy(moves: BudgetMove[], policy: ControlPolicy): string[
     // the recipient funded in another, which is not one move and cannot be reverted
     // as one. A pause has no recipient, so it can never breach this. Unreachable
     // today (single-tenant sets) and deliberately in place before it is reachable.
+    // WP S1b: a criterion move has no recipient either, so it joins the pause in
+    // being structurally incapable of breaching this — stated, not left to the
+    // absent `toSource`, so a later change that stamps one cannot resurrect it.
     if (
       !policy.crossSource &&
       m.kind !== "pause" &&
+      !isCriterionMove(m) &&
       m.fromSource &&
       m.toSource &&
       m.fromSource !== m.toSource
@@ -283,14 +321,31 @@ export function checkPolicy(moves: BudgetMove[], policy: ControlPolicy): string[
       v.push("Přesun mezi sítěmi (Google ↔ Sklik) není povolený.");
     }
     if (m.amount > policy.maxMoveAmountCzk) {
-      v.push(
-        m.kind === "pause"
-          ? `Pozastavení ${m.fromName} (${Math.round(m.amount)} Kč útraty) překračuje limit ${policy.maxMoveAmountCzk} Kč.`
-          : `Přesun ${m.fromName} → ${m.toName} (${Math.round(m.amount)} Kč) překračuje limit ${policy.maxMoveAmountCzk} Kč.`
-      );
+      v.push(moveAmountViolation(m, policy.maxMoveAmountCzk));
     }
   }
   return v;
+}
+
+/** The amount-cap breach message for ONE move, per kind. Split out of
+ *  {@link checkPolicy} by WP S1b because there are now four kinds and a two-arm
+ *  ternary would have had to lie about two of them: the shift wording ("Přesun A → B")
+ *  reads as budget moving between campaigns, which is precisely what a criterion move
+ *  does NOT do. The three pre-S1b strings are byte-identical to what they were. */
+function moveAmountViolation(m: BudgetMove, capCzk: number): string {
+  const amount = Math.round(m.amount);
+  if (m.kind === "pause") {
+    return `Pozastavení ${m.fromName} (${amount} Kč útraty) překračuje limit ${capCzk} Kč.`;
+  }
+  // WP S1b — the cap is read against the query's own period spend: it is the size of
+  // what the criterion affects, which is the same thing the cap means everywhere else.
+  if (m.kind === "negative") {
+    return `Vyloučení dotazu „${m.criterion?.term ?? m.fromName}“ (${amount} Kč útraty) překračuje limit ${capCzk} Kč.`;
+  }
+  if (m.kind === "promote") {
+    return `Přidání klíčového slova „${m.criterion?.term ?? m.fromName}“ (${amount} Kč útraty) překračuje limit ${capCzk} Kč.`;
+  }
+  return `Přesun ${m.fromName} → ${m.toName} (${amount} Kč) překračuje limit ${capCzk} Kč.`;
 }
 
 /** WP S1 — which ad network a change-set acted on, for the console's pill and its
@@ -314,9 +369,21 @@ export function changeSetSource(
   return undefined;
 }
 
-/** The reverse of each move (recipient → donor), for one-click revert. */
+/** The reverse of each move (recipient → donor), for one-click revert.
+ *
+ *  WP S1b fixed a real bug here: this dropped `kind` entirely, so the inverse of a
+ *  PAUSE came back looking like a shift (`from` and `to` swapped, both naming the
+ *  same campaign) and the inverse of a criterion move came back looking like a budget
+ *  shift of the query's spend. The revert path itself has restored from snapshots
+ *  since before S1, so nothing was mis-applied — but this is exported, and any future
+ *  caller that trusted the returned kind would have been lied to. The kind is now
+ *  carried, spread-only-when-present so a legacy (kind-less) move still inverts
+ *  byte-identically. `criterion` rides along for the same reason: an inverse that
+ *  says "negative" without naming the query names nothing. */
 export function inverseMoves(moves: BudgetMove[]): BudgetMove[] {
   return moves.map((m) => ({
+    ...(m.kind !== undefined ? { kind: m.kind } : {}),
+    ...(m.criterion !== undefined ? { criterion: m.criterion } : {}),
     fromId: m.toId,
     fromName: m.toName,
     toId: m.fromId,
@@ -381,15 +448,34 @@ export function settledApplyStatus(results: MoveResult[]): "applied" | "failed" 
  *  an ABSOLUTE snapshot write (idempotent), so the one state where a retry is
  *  needed is exactly the one where it is safe. Mirrors {@link settledApplyStatus}
  *  on the apply side: never write a terminal status the live account contradicts. */
-export function settledRevertStatus(budgetOk: boolean, resumeOk: boolean): "reverted" | "applied" {
-  return budgetOk && resumeOk ? "reverted" : "applied";
+export function settledRevertStatus(
+  budgetOk: boolean,
+  resumeOk: boolean,
+  /** WP S1b — every created criterion was removed. Defaults to true so a set with no
+   *  criterion snapshots (every set before S1b, and every budget-only set after)
+   *  settles exactly as it always did. */
+  criterionOk = true
+): "reverted" | "applied" {
+  return budgetOk && resumeOk && criterionOk ? "reverted" : "applied";
 }
 
-/** Whether a change-set carries at least one restore snapshot (budget or status) —
- *  i.e. at least one forward move actually landed, so a revert has something exact
- *  to restore. The sole gate for allowing a revert. */
-export function hasRestoreSnapshots(cs: Pick<ChangeSet, "budgetSnapshots" | "statusSnapshots">): boolean {
-  return (cs.budgetSnapshots?.length ?? 0) > 0 || (cs.statusSnapshots?.length ?? 0) > 0;
+/** Whether a change-set carries at least one restore snapshot (budget, status or
+ *  criterion) — i.e. at least one forward move actually landed, so a revert has
+ *  something exact to restore. The sole gate for allowing a revert.
+ *
+ *  WP S1b added the criterion arm, and it is what makes a CRITERION-ONLY set (every
+ *  set proposed from the search-terms panel) revertable at all: such a set captures no
+ *  budget and no status snapshot, so before this arm it would have settled `applied`
+ *  and then refused its own revert — keywords written to a live account with no way
+ *  back through the console. */
+export function hasRestoreSnapshots(
+  cs: Pick<ChangeSet, "budgetSnapshots" | "statusSnapshots" | "criterionSnapshots">
+): boolean {
+  return (
+    (cs.budgetSnapshots?.length ?? 0) > 0 ||
+    (cs.statusSnapshots?.length ?? 0) > 0 ||
+    (cs.criterionSnapshots?.length ?? 0) > 0
+  );
 }
 
 /** What an actor should do with a change-set when trying to claim it:
@@ -417,7 +503,7 @@ export type ClaimAction =
  *  recovers to `failed` (no evidence any move landed; the mutation audit is the
  *  place to double-check). Everything else is a no-op. */
 export function planApproveClaim(
-  cs: Pick<ChangeSet, "status" | "claimedAt" | "budgetSnapshots" | "statusSnapshots">,
+  cs: Pick<ChangeSet, "status" | "claimedAt" | "budgetSnapshots" | "statusSnapshots" | "criterionSnapshots">,
   now: number,
   ttlMs = CLAIM_TTL_MS
 ): ClaimAction {
@@ -434,7 +520,7 @@ export function planApproveClaim(
  *  and its loop re-run — safe because the restore is an ABSOLUTE snapshot write
  *  (set exact micros / resume), which is idempotent. Everything else is a no-op. */
 export function planRevertClaim(
-  cs: Pick<ChangeSet, "status" | "claimedAt" | "budgetSnapshots" | "statusSnapshots">,
+  cs: Pick<ChangeSet, "status" | "claimedAt" | "budgetSnapshots" | "statusSnapshots" | "criterionSnapshots">,
   now: number,
   ttlMs = CLAIM_TTL_MS
 ): ClaimAction {

@@ -129,6 +129,15 @@ export function campaignSeriesDocId(period: CampaignPeriod): string {
   return `campaigns_${period}`;
 }
 
+/** WP S1b — search-terms doc id, one doc per period in the `searchTerms`
+ *  sub-collection. There is no legacy shape to be compatible with (the collection
+ *  is new), so the id is period-keyed from day one and the `searchTerms_` prefix is
+ *  carried in the id itself: a rollback of S1b leaves docs whose ids say plainly
+ *  what wrote them, which is what makes them inert rather than mysterious. */
+export function searchTermsDocId(period: CampaignPeriod): string {
+  return `searchTerms_${period}`;
+}
+
 /**
  * Does a stored doc belong to the requested period?
  *

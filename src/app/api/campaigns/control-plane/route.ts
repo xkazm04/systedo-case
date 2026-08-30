@@ -20,6 +20,7 @@ import {
   revertChangeSet,
 } from "@/lib/campaigns/control-plane";
 import { GuardrailError, NoSnapshotsError } from "@/lib/campaigns/control-plane-types";
+import { getSearchTerms } from "@/lib/campaigns/store";
 import { getAlert } from "@/lib/campaigns/alerts";
 import { alertCampaignIds } from "@/lib/campaigns/alert-suppression";
 import { getCostModel } from "@/lib/cost-model/store";
@@ -72,9 +73,15 @@ export async function GET(request: Request) {
   const writable = (await resolveProjectTenants(userId, projectId))
     .map((t) => t.source)
     .filter((s): s is "google-ads" | "sklik" => s === "google-ads" || s === "sklik");
+  // WP S1b — the search-terms panel asks for the stored terms with `?terms=1`. Opt-in
+  // rather than always-on: the ledger GET runs on every console render and every
+  // network switch, and it must not pay for a document the panel below it may never
+  // show. Without the flag the payload is byte-identical to before.
+  const terms = params.get("terms") === "1" ? await getSearchTerms(tenant) : null;
   return Response.json({
     changeSets: await listChangeSets(tenant),
     ...(writable.length > 1 ? { sources: writable, source: source ?? writable[0] } : {}),
+    ...(terms ? { searchTerms: terms } : {}),
   });
 }
 
@@ -90,6 +97,7 @@ export async function POST(request: Request) {
     alertId?: unknown;
     scopeCampaignIds?: unknown;
     source?: unknown;
+    moveSource?: unknown;
   };
   try {
     body = await request.json();
@@ -139,6 +147,23 @@ export async function POST(request: Request) {
       if (!changeSet) {
         return Response.json(
           { error: "Pro upozorněné kampaně není žádný smysluplný přesun." },
+          { status: 422 }
+        );
+      }
+      return Response.json({ changeSet });
+    }
+    // WP S1b — which recommender fills the set. Only the literal "terms" switches it;
+    // anything else (absent, a typo, a future value) reads as the budget recommender,
+    // so an unrecognised value can never silently propose account-changing keyword
+    // writes in place of the budget moves the caller asked for.
+    if (body.moveSource === "terms") {
+      const changeSet = await createChangeSet(tenant, { moveSource: "terms", marginPct });
+      if (!changeSet) {
+        return Response.json(
+          {
+            error:
+              "Žádné vyhledávací dotazy k řešení — buď účet ještě nebyl synchronizován, nebo žádný dotaz nesplňuje prahy.",
+          },
           { status: 422 }
         );
       }

@@ -14,6 +14,10 @@ import {
   type CampaignType,
   type DailyPoint,
 } from "@/lib/campaigns/types";
+// ── S1b ── type-only (erased at compile, so no runtime coupling to the store):
+// the search-terms row shape is owned by the store that persists it, and this
+// module's mapper produces exactly that shape rather than a second copy of it.
+import type { SearchTermMatchType, SearchTermRow } from "@/lib/campaigns/store/search-terms";
 
 const API_VERSION = "v18";
 /** Base URL for the Google Ads REST API. Exported alongside {@link adsApiHeaders}
@@ -127,7 +131,17 @@ export interface SearchRow {
     amountMicros?: string | number;
   };
   customer?: { descriptiveName?: string; id?: string; currencyCode?: string; timeZone?: string };
-  segments?: { date?: string };
+  /** ── S1b ── the ad group a row belongs to; selected only by the search-terms
+   *  query. Optional, so every existing caller's rows are unchanged. */
+  adGroup?: { id?: string; name?: string };
+  /** ── S1b ── the actual user query behind a `search_term_view` row. */
+  searchTermView?: { searchTerm?: string };
+  segments?: {
+    date?: string;
+    /** ── S1b ── how the query matched the keyword that served it
+     *  (`segments.keyword.info.match_type`). */
+    keyword?: { info?: { matchType?: string } };
+  };
   metrics?: {
     impressions?: string | number;
     clicks?: string | number;
@@ -856,4 +870,247 @@ export async function uploadClickConversions(
     );
   }
   return parseClickConversionResponse(rows, (await res.json()) as UploadClickConversionsResponse);
+}
+
+/* ── S1b ─────────────────────────────────────────────────────────────────────────
+ *  QUERY-LEVEL NEGATIVES (WP S1b). Everything below this marker was APPENDED by
+ *  S1b; nothing above it was reformatted, and the only edit S1b made outside this
+ *  region is three OPTIONAL fields on {@link SearchRow} (adGroup / searchTermView /
+ *  segments.keyword) that no existing query selects. This file is co-owned with S3
+ *  this wave — S3's region sits directly above and is untouched.
+ *
+ *  What is new here, and why each piece is shaped the way it is:
+ *
+ *  1. ONE READ — {@link fetchSearchTerms} over `search_term_view`. It reuses the
+ *     module's {@link searchStream} (exported by S3) and the module's own date
+ *     window, so a search-terms read is windowed in the ACCOUNT's clock exactly
+ *     like every other date-segmented read. The GAQL text lives in
+ *     {@link searchTermsQuery}, a pure builder, so the query a real account is
+ *     asked is pinnable in a unit test without credentials.
+ *  2. THREE WRITES — the criterion mutations. These are the first writes in this
+ *     module that CREATE something rather than update a field, which means the
+ *     caller cannot address the thing it made unless the created RESOURCE NAME
+ *     comes back. Each create therefore returns that name and the change-set
+ *     persists it before the next move runs; that string is the only handle a
+ *     revert has. A create whose response carries no resource name is an error,
+ *     not a silent success — an unaddressable criterion is an un-revertable one.
+ *  3. The S3 `fetchImpl` precedent is adopted for all three writes: the transport
+ *     is a parameter defaulting to the global `fetch`, so the request bodies below
+ *     are pinned byte-for-byte by tests that can never reach Google.
+ *  4. The module invariant holds throughout: every non-OK response throws
+ *     {@link AdsApiError}, so the connector's live-retry can classify it. */
+
+/** The injectable transport (S3's precedent), so a unit test can pin a request
+ *  body without any possibility of reaching Google. Production passes nothing. */
+type FetchLike = typeof fetch;
+
+/** Rows one search-terms read asks for. The report is inherently long-tailed and
+ *  the recommender only ever acts on expensive terms, so the query is ordered by
+ *  cost and truncated here rather than paged — 500 costliest queries is far more
+ *  than any proposal can use and keeps the persisted doc small. */
+export const SEARCH_TERMS_LIMIT = 500;
+
+/** The EXACT GAQL a search-terms read issues, as a pure function of the window.
+ *  Extracted so the query text is a pinnable value: this string is the whole
+ *  contract with Google, and a silent edit to it (a dropped metric, a lost status
+ *  filter that lets REMOVED campaigns back in) would change which terms become
+ *  permanent negative keywords on a real account. */
+export function searchTermsQuery(start: string, end: string, limit = SEARCH_TERMS_LIMIT): string {
+  return `SELECT campaign.id, campaign.name, ad_group.id, ad_group.name, search_term_view.search_term, segments.keyword.info.match_type, metrics.cost_micros, metrics.clicks, metrics.impressions, metrics.conversions, metrics.conversions_value FROM search_term_view WHERE segments.date BETWEEN '${start}' AND '${end}' AND campaign.status != 'REMOVED' ORDER BY metrics.cost_micros DESC LIMIT ${limit}`;
+}
+
+/** Google's `KeywordMatchType` enum → the store's own union. Anything unrecognised
+ *  (absent, `UNSPECIFIED`, `UNKNOWN`, a future enum) becomes `"OTHER"`, NEVER a
+ *  guessed BROAD: `matchType !== "EXACT"` is the promote gate, so coercing an
+ *  unknown value to a real match type would make an unclassifiable row eligible to
+ *  be added as a keyword. */
+function toMatchType(raw: string | undefined): SearchTermMatchType {
+  return raw === "EXACT" || raw === "PHRASE" || raw === "BROAD" ? raw : "OTHER";
+}
+
+/** Map raw `search_term_view` rows into the store's row shape. Pure — fixture-
+ *  tested with no credentials, like {@link mapRowsToDailySeries}.
+ *
+ *  `currencyScale` is micros-per-unit (1e6), the same divisor {@link fetchCampaigns}
+ *  applies to `cost_micros`: costs are micros of the ACCOUNT currency, so this
+ *  converts a unit, never BETWEEN currencies. Cost and conversion value are rounded
+ *  like every other money field in the app; clicks / impressions / conversions are
+ *  not — a fractional conversion count is Google's own number and the recommender's
+ *  `=== 0` test must see 0.4 as non-zero rather than as a rounded 0. */
+export function mapSearchTermRows(rows: SearchRow[], currencyScale = 1_000_000): SearchTermRow[] {
+  const out: SearchTermRow[] = [];
+  for (const r of rows) {
+    const term = r.searchTermView?.searchTerm;
+    const campaignId = r.campaign?.id ? String(r.campaign.id) : "";
+    const adGroupId = r.adGroup?.id ? String(r.adGroup.id) : "";
+    // A row without a term, or without both ids, cannot be acted on (there is
+    // nothing to attach the criterion to), so it is dropped here rather than
+    // carried as a half-row every later stage would have to re-check.
+    if (!term || !campaignId || !adGroupId) continue;
+    const m = r.metrics ?? {};
+    out.push({
+      term,
+      campaignId,
+      campaignName: r.campaign?.name ?? `Kampaň ${campaignId}`,
+      adGroupId,
+      adGroupName: r.adGroup?.name ?? `Sestava ${adGroupId}`,
+      matchType: toMatchType(r.segments?.keyword?.info?.matchType),
+      cost: Math.round(num(m.costMicros) / currencyScale),
+      clicks: num(m.clicks),
+      impressions: num(m.impressions),
+      conversions: num(m.conversions),
+      conversionValue: Math.round(num(m.conversionsValue)),
+    });
+  }
+  return out;
+}
+
+/** The account's costliest search queries over the trailing `days`, mapped into the
+ *  store's row shape. Windowed in the account's own time zone when known (the same
+ *  `dateRange` every other date-segmented read uses); digits-only customerId. */
+export async function fetchSearchTerms(
+  accessToken: string,
+  customerId: string,
+  days: number,
+  timeZone?: string | null
+): Promise<SearchTermRow[]> {
+  const { start, end } = dateRange(days, timeZone);
+  const rows = await searchStream(
+    accessToken,
+    customerId.replace(/\D/g, ""),
+    searchTermsQuery(start, end)
+  );
+  return mapSearchTermRows(rows);
+}
+
+/** What a `*Criteria:mutate` call answers: one result per operation, each carrying
+ *  the resource name of the criterion it created. */
+interface CriterionMutateResponse {
+  results?: Array<{ resourceName?: string }>;
+}
+
+/** Run one criterion mutate operation and return the created resource name.
+ *  Shared by both creates so the error contract, the response shape and the
+ *  "a create with no resource name is a FAILURE" rule exist exactly once. */
+async function criterionMutate(
+  accessToken: string,
+  customerId: string,
+  endpoint: "campaignCriteria" | "adGroupCriteria",
+  operation: Record<string, unknown>,
+  label: string,
+  fetchImpl: FetchLike = fetch
+): Promise<string> {
+  const res = await fetchImpl(`${BASE}/customers/${customerId}/${endpoint}:mutate`, {
+    method: "POST",
+    headers: adsApiHeaders(accessToken),
+    body: JSON.stringify({ operations: [operation] }),
+  });
+  if (!res.ok) {
+    throw new AdsApiError(res.status, `Google Ads ${label} ${res.status}: ${await res.text().catch(() => "")}`);
+  }
+  const json = (await res.json()) as CriterionMutateResponse;
+  const resourceName = json.results?.[0]?.resourceName;
+  // Not a 200-with-a-shrug: without the name the criterion exists on the account and
+  // nothing can ever remove it, so the change-set must record this move as failed.
+  if (!resourceName) {
+    throw new AdsApiError(502, `Google Ads ${label}: odpověď neobsahuje resourceName vytvořeného kritéria.`);
+  }
+  return resourceName;
+}
+
+/** Add a CAMPAIGN-level negative keyword (PHRASE match) and return the created
+ *  criterion's resource name (`customers/{cid}/campaignCriteria/{campaignId}~{id}`).
+ *
+ *  Campaign level, not ad-group level, on purpose: a wasted query is wasted for the
+ *  whole campaign, and one campaign-level criterion is one thing to revert instead
+ *  of one per ad group. PHRASE, not EXACT: an exact negative blocks the one literal
+ *  string and lets every close variant straight back through, which reads to an
+ *  operator as "Adamant did nothing". */
+export async function addCampaignNegativeKeyword(
+  accessToken: string,
+  customerId: string,
+  campaignId: string,
+  term: string,
+  fetchImpl: FetchLike = fetch
+): Promise<string> {
+  const cid = customerId.replace(/\D/g, "");
+  return criterionMutate(
+    accessToken,
+    cid,
+    "campaignCriteria",
+    {
+      create: {
+        campaign: `customers/${cid}/campaigns/${campaignId}`,
+        negative: true,
+        keyword: { text: term, matchType: "PHRASE" },
+      },
+    },
+    "addCampaignNegativeKeyword",
+    fetchImpl
+  );
+}
+
+/** Add an EXACT keyword to an ad group and return the created criterion's resource
+ *  name (`customers/{cid}/adGroupCriteria/{adGroupId}~{id}`). This is the promote
+ *  half: a query that already converts gets its own exact keyword in the ad group
+ *  that was already serving it, so it stops competing for a broad match's budget.
+ *  `status: ENABLED` is explicit — a criterion created without one is not what the
+ *  operator approved. */
+export async function addAdGroupExactKeyword(
+  accessToken: string,
+  customerId: string,
+  adGroupId: string,
+  term: string,
+  fetchImpl: FetchLike = fetch
+): Promise<string> {
+  const cid = customerId.replace(/\D/g, "");
+  return criterionMutate(
+    accessToken,
+    cid,
+    "adGroupCriteria",
+    {
+      create: {
+        adGroup: `customers/${cid}/adGroups/${adGroupId}`,
+        status: "ENABLED",
+        keyword: { text: term, matchType: "EXACT" },
+      },
+    },
+    "addAdGroupExactKeyword",
+    fetchImpl
+  );
+}
+
+/** Which mutate endpoint removes a given criterion, derived from its own resource
+ *  name. Pure, and deliberately a WHITELIST: a name that is neither a campaign nor
+ *  an ad-group criterion returns null and the caller refuses, rather than guessing
+ *  an endpoint and sending a remove operation somewhere it does not belong. */
+export function criterionMutateEndpoint(
+  resourceName: string
+): "campaignCriteria" | "adGroupCriteria" | null {
+  if (/^customers\/\d+\/campaignCriteria\/[^/]+$/.test(resourceName)) return "campaignCriteria";
+  if (/^customers\/\d+\/adGroupCriteria\/[^/]+$/.test(resourceName)) return "adGroupCriteria";
+  return null;
+}
+
+/** Remove a criterion created by one of the two functions above — the revert half.
+ *  The endpoint is derived from the resource name, so a change-set's snapshot list
+ *  can hold both kinds and each row still goes to the right place. */
+export async function removeCriterion(
+  accessToken: string,
+  customerId: string,
+  resourceName: string,
+  fetchImpl: FetchLike = fetch
+): Promise<void> {
+  const endpoint = criterionMutateEndpoint(resourceName);
+  if (!endpoint) {
+    throw new AdsApiError(400, `Google Ads removeCriterion: neznámý tvar resourceName "${resourceName}".`);
+  }
+  const res = await fetchImpl(`${BASE}/customers/${customerId.replace(/\D/g, "")}/${endpoint}:mutate`, {
+    method: "POST",
+    headers: adsApiHeaders(accessToken),
+    body: JSON.stringify({ operations: [{ remove: resourceName }] }),
+  });
+  if (!res.ok) {
+    throw new AdsApiError(res.status, `Google Ads removeCriterion ${res.status}: ${await res.text().catch(() => "")}`);
+  }
 }

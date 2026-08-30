@@ -9,8 +9,16 @@ import { tenantDocs } from "@/lib/tenant-docs/backend";
 import { listCampaigns } from "./store";
 import { withMetrics } from "./types";
 import { recommendBudgetMoves } from "./budget-moves";
-import { simulateBudgetShift } from "./simulate";
-import { applyBudgetShift, applyPause, applyResume, restoreBudgets } from "./mutations";
+import { recommendTermMoves } from "./term-moves";
+import { isCriterionMove, simulateBudgetShift, type BudgetMove } from "./simulate";
+import {
+  applyBudgetShift,
+  applyCriterionMove,
+  applyPause,
+  applyResume,
+  restoreBudgets,
+  restoreCriteria,
+} from "./mutations";
 import { recordActivity } from "./activity";
 import { resolveAlert } from "./alerts";
 import { fmtCZK } from "@/lib/format";
@@ -34,6 +42,7 @@ import {
   type ChangeSet,
   type ChangeSetStatus,
   type ControlPolicy,
+  type CriterionSnapshot,
   type MoveResult,
   type StatusSnapshot,
 } from "./control-plane-types";
@@ -77,6 +86,16 @@ export interface CreateChangeSetOptions {
    *  by the route (which already holds the projectId) so the recommender chases profit
    *  and the proposal shows the projected-profit line. Absent → margin-blind set. */
   marginPct?: number;
+  /** WP S1b — WHICH recommender fills the set. `"budget"` (the default, and what
+   *  every caller before S1b implicitly asked for) runs `recommendBudgetMoves` over
+   *  the campaigns. `"terms"` runs `recommendTermMoves` over the period's STORED
+   *  search terms instead, producing negative/promote criterion moves.
+   *
+   *  Deliberately a source switch rather than a union: one change-set is one kind of
+   *  decision an operator approves in one click. Mixing a budget shift and a negative
+   *  keyword into the same approval would mean a single "yes" covering two unrelated
+   *  account changes with different blast radii and different reverts. */
+  moveSource?: "budget" | "terms";
 }
 
 /** Build a pending change-set from the current campaigns + recommendation engine,
@@ -100,12 +119,30 @@ export async function createChangeSet(
   // marginPct: when the route resolved the tenant's persisted blended margin, the
   // recommender ranks donors by profit destruction (not revenue waste) and every
   // move carries an estProfitGain. Absent → the original margin-blind scoring.
-  const { moves } = recommendBudgetMoves(rows, {
-    maxMoves: policy.maxMoves,
-    includePauses: true,
-    donorScopeIds: opts.scopeCampaignIds,
-    marginPct: opts.marginPct,
-  });
+  // WP S1b — moveSource picks the recommender. The "terms" path scores the period's
+  // STORED search terms (never a fresh provider read: the panel and the proposal must
+  // agree on the same numbers, and a sample-degraded sync writes no terms at all, so
+  // an empty store is the honest "nothing to propose"). Its simulation is an exact
+  // identity — criterion moves shift no budget — which is why it is run through the
+  // same simulateBudgetShift rather than being given a projection of its own.
+  //
+  // `getSearchTerms` is reached through a LAZY import for the same reason mutator.ts
+  // reaches the criterion writes lazily: adding it to this file's static
+  // `from "./store"` list would fail to LINK against the pre-S1b store doubles the
+  // untouched control-plane and Sklik suites install, and those suites are the pin
+  // that the budget path did not change. The store graph is already loaded by the
+  // `listCampaigns` call above, so this resolves from the loader cache.
+  const moves: BudgetMove[] =
+    opts.moveSource === "terms"
+      ? recommendTermMoves(await (await import("./store")).getSearchTerms(tenant), {
+          maxMoves: policy.maxMoves,
+        })
+      : recommendBudgetMoves(rows, {
+          maxMoves: policy.maxMoves,
+          includePauses: true,
+          donorScopeIds: opts.scopeCampaignIds,
+          marginPct: opts.marginPct,
+        }).moves;
   if (moves.length === 0) return null;
 
   // WP W2-E: temper the projection with what this tenant's applied change-sets
@@ -254,6 +291,8 @@ export async function approveChangeSet(
   const results: MoveResult[] = [];
   const budgetSnapshots: BudgetSnapshot[] = [];
   const statusSnapshots: StatusSnapshot[] = [];
+  // WP S1b — the created criteria, in creation order. The revert walks it backwards.
+  const criterionSnapshots: CriterionSnapshot[] = [];
   // Persist the per-move evidence INCREMENTALLY (best-effort): a crash later in
   // the loop must not lose the snapshots of moves that already landed on the
   // live account. Recovery (planApproveClaim) reads exactly this evidence to
@@ -266,7 +305,7 @@ export async function approveChangeSet(
         tenant,
         CHANGE_SETS,
         id,
-        { results, budgetSnapshots, statusSnapshots },
+        { results, budgetSnapshots, statusSnapshots, criterionSnapshots },
         { merge: true }
       );
     } catch (err) {
@@ -274,7 +313,25 @@ export async function approveChangeSet(
     }
   };
   for (const m of cs.moves) {
-if (m.kind === "pause") {
+    // WP S1b — a criterion move (negative / promote). Ordered FIRST in the loop body
+    // only because it is the newest arm; the loop still walks the moves in the order
+    // the recommender emitted them. The snapshot is pushed and persisted BEFORE the
+    // next move starts, which is the whole invariant: a crash between two creates
+    // must never leave a criterion on the live account with no recorded address.
+    if (isCriterionMove(m)) {
+      const r = await applyCriterionMove(userId, tenant, m);
+      results.push({
+        fromName: m.fromName,
+        toName: m.toName,
+        ok: r.ok,
+        error: r.error,
+        ...(r.platform ? { platform: r.platform } : {}),
+      });
+      if (r.ok && r.criterion) criterionSnapshots.push(r.criterion);
+      await persistEvidence();
+      continue;
+    }
+    if (m.kind === "pause") {
       // Pause the zero-return donor; on success snapshot its prior status so the
       // revert resumes exactly what we paused. (Donors are enabled by construction
       // — recommendBudgetMoves only pauses enabled campaigns.)
@@ -333,6 +390,7 @@ if (m.kind === "pause") {
     results,
     budgetSnapshots,
     statusSnapshots,
+    criterionSnapshots,
     overridden: cs.violations.length > 0,
   };
   await store.setDoc(tenant, CHANGE_SETS, id, updated, { merge: true });
@@ -413,7 +471,15 @@ export async function revertChangeSet(
   for (const s of cs.statusSnapshots ?? []) {
     resumeById.set(s.campaignId, await applyResume(userId, tenant, s.campaignId, s.campaignName));
   }
+  // WP S1b — remove every criterion this set created, newest first (restoreCriteria
+  // reverses the list). A set with no criterion snapshots gets `{ ok: true }` without
+  // resolving a mutator, so a budget-only revert is byte-identical to before.
+  const criterionSnaps = cs.criterionSnapshots ?? [];
+  const criterionResult = await restoreCriteria(userId, tenant, criterionSnaps);
   const results: MoveResult[] = cs.moves.map((m) => {
+    if (isCriterionMove(m)) {
+      return { fromName: m.fromName, toName: m.toName, ok: criterionResult.ok, error: criterionResult.error };
+    }
     if (m.kind === "pause") {
       const r = resumeById.get(m.fromId);
       return { fromName: m.fromName, toName: m.fromName, ok: r?.ok ?? false, error: r?.error };
@@ -422,17 +488,30 @@ export async function revertChangeSet(
   });
   const budgetOk = !hasBudgetSnaps || (budgetResult?.ok ?? false);
   const resumeOk = [...resumeById.values()].every((r) => r.ok);
+  const criterionOk = criterionResult.ok;
   // Honest settle, mirroring the apply side: "reverted" is written ONLY when the
   // whole restore landed. A (partial) failure returns the set to "applied" so
   // planRevertClaim lets the operator retry — the restore is an idempotent
   // absolute snapshot write, so re-running it is safe, whereas settling
   // "reverted" here would be terminal (planRevertClaim no-ops it) while the live
   // budgets still hold the applied values.
-  const status = settledRevertStatus(budgetOk, resumeOk);
+  const status = settledRevertStatus(budgetOk, resumeOk, criterionOk);
   const reverted = status === "reverted";
+  // WP S1b — a criterion-only set restores no budget and resumes nothing, so the
+  // budget wording would be a false claim about what was undone. The set says what it
+  // actually did instead of what the usual set does.
+  const criterionOnly = criterionSnaps.length > 0 && !hasBudgetSnaps && resumeById.size === 0;
   const detail = reverted
-    ? "Rozpočty obnoveny na přesné hodnoty a pozastavené kampaně znovu spuštěny (ze snímku)."
-    : `Obnovení selhalo: ${budgetResult && !budgetResult.ok ? budgetResult.error : "resume kampaně se nezdařilo"}. Balíček zůstává aplikovaný — vrácení lze bezpečně opakovat.`;
+    ? criterionOnly
+      ? "Vytvořená klíčová slova byla z účtu odebrána (podle uložených identifikátorů kritérií)."
+      : "Rozpočty obnoveny na přesné hodnoty a pozastavené kampaně znovu spuštěny (ze snímku)."
+    : `Obnovení selhalo: ${
+        budgetResult && !budgetResult.ok
+          ? budgetResult.error
+          : !criterionOk
+            ? criterionResult.error
+            : "resume kampaně se nezdařilo"
+      }. Balíček zůstává aplikovaný — vrácení lze bezpečně opakovat.`;
 
   const updated: Partial<ChangeSet> = {
     status,

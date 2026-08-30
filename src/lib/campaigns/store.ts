@@ -15,6 +15,7 @@
  *    - `./store/series`    — the daily-series store
  *    - `./store/reports`   — the AI-report store + caching
  *    - `./store/snapshots` — the sync-snapshot / change-diff engine
+ *    - `./store/search-terms` — WP S1b's per-period search-query store
  *  (`./store/tenant` holds the shared root-read + `activePeriod()` helpers, and
  *  `./store/backend` the LOCAL_DB-vs-Firestore document backend the four dispatch
  *  through — both internal, intentionally not part of the public API). */
@@ -25,6 +26,7 @@ import type { AdsSource, Campaign, CampaignPeriod } from "./types";
 
 export * from "./store/campaigns";
 export * from "./store/series";
+export * from "./store/search-terms";
 export * from "./store/reports";
 export * from "./store/snapshots";
 

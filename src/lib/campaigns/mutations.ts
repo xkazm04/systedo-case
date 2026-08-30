@@ -31,7 +31,8 @@ import { recordActivity } from "./activity";
 import { buildTenantKey, mutationAuditReadTenants } from "./store-keys";
 import { CAMPAIGN_PERIOD_DAYS } from "./types";
 import { fmtCZK } from "@/lib/format";
-import { mutatorForTenant, type AdsMutator, type PlatformBudget } from "./mutator";
+import { canWriteCriteria, mutatorForTenant, type AdsMutator, type PlatformBudget } from "./mutator";
+import type { BudgetMove } from "./simulate";
 import {
   computeDailyMicros,
   czkToMicros,
@@ -40,7 +41,11 @@ import {
   planBudgetMove,
   type BudgetMovePlan,
 } from "./budget-math";
-import { partitionBudgetSnapshots, type BudgetSnapshot } from "./control-plane-types";
+import {
+  partitionBudgetSnapshots,
+  type BudgetSnapshot,
+  type CriterionSnapshot,
+} from "./control-plane-types";
 
 /** The immutable audit sub-collection under `tenants/{tenant}` — unchanged;
  *  addressed through the generic per-tenant document seam ({@link tenantDocs},
@@ -58,7 +63,18 @@ export interface MutationResult {
    *  can tag the stored result/status-snapshot. Present only for Sklik: a Google
    *  result must stay byte-identical to the ones already in the ledger. */
   platform?: "sklik";
+  /** WP S1b — the criterion this mutation CREATED, present only on a successful
+   *  criterion move. The control-plane loop persists it before the next move runs;
+   *  it is the only handle a revert has. */
+  criterion?: CriterionSnapshot;
 }
+
+/** WP S1b — the refusal a tenant on a network without a criterion API gets. Named
+ *  once because it is a CONTRACT, not a message: the console shows it verbatim, and
+ *  a change-set whose every move hits it settles `failed` (never a silent "applied"
+ *  with nothing written). Sklik is named explicitly because Sklik is the only such
+ *  network today and "not supported" without a subject reads as a bug. */
+export const CRITERION_UNSUPPORTED = "Klíčová slova ve Skliku zatím neupravujeme.";
 
 /** The shape `applyBudgetShift` needs from a recommended `BudgetMove`. */
 export interface BudgetShiftInput {
@@ -408,6 +424,128 @@ export async function restoreBudgets(
     console.error("[mutations] budget restore failed:", err);
     return { ok: false, error: err instanceof Error ? err.message : "Obnovení se nezdařilo." };
   }
+}
+
+// --- WP S1b: criterion (keyword) writes ---------------------------------------
+
+/** Apply ONE criterion move — add a campaign-level negative keyword for a wasted
+ *  query, or an exact keyword for a converting one — and audit it.
+ *
+ *  Same shape as every other mutation here: resolve the tenant's mutator (so the
+ *  Sklik rails apply automatically), write, audit, record activity, return a
+ *  `{ ok }`. Two things are specific to criteria:
+ *
+ *   1. A NETWORK THAT CANNOT DO THIS REFUSES, it does not throw. The mutator's
+ *      criterion members are optional; when they are absent the caller gets
+ *      {@link CRITERION_UNSUPPORTED} and NOTHING is written — no mutation, no audit
+ *      doc — so a Sklik change-set carrying criterion moves settles `failed` with
+ *      that sentence as its reason.
+ *   2. THE SNAPSHOT IS THE RETURN VALUE. A created criterion has no prior value to
+ *      restore, only an address; the caller must persist `result.criterion` before
+ *      starting the next move, or a crash mid-loop leaves a criterion on the live
+ *      account that nothing can remove. */
+export async function applyCriterionMove(
+  userId: string,
+  /** the project-scoped tenant the campaigns live under (resolveTenant/…Context) */
+  tenant: string,
+  move: BudgetMove
+): Promise<MutationResult> {
+  const criterion = move.criterion;
+  if (!criterion || (move.kind !== "negative" && move.kind !== "promote")) {
+    return { ok: false, error: "Návrh neobsahuje vyhledávací dotaz, na který by šlo sáhnout." };
+  }
+  const resolved = await mutatorForTenant(userId, tenant);
+  if (!resolved.ok) return { ok: false, error: resolved.error };
+  const { mutator } = resolved;
+  // The all-three-or-none capability check: a mutator that could create but not
+  // remove would land un-revertable criteria on a real account.
+  if (!canWriteCriteria(mutator)) return { ok: false, error: CRITERION_UNSUPPORTED };
+  if (move.kind === "promote" && !criterion.adGroupId) {
+    return { ok: false, error: "Chybí sestava, do které by se klíčové slovo přidalo." };
+  }
+
+  try {
+    const snapshot =
+      move.kind === "negative"
+        ? await mutator.addNegativeKeyword(criterion.campaignId, criterion.term)
+        : await mutator.addExactKeyword(criterion.adGroupId!, criterion.term, criterion.campaignId);
+    await (await tenantDocs()).addDoc(tenant, MUTATIONS, {
+      action: "criterion_add",
+      criterionAction: snapshot.action,
+      term: snapshot.term,
+      campaignId: snapshot.campaignId,
+      ...(snapshot.adGroupId ? { adGroupId: snapshot.adGroupId } : {}),
+      resourceName: snapshot.resourceName,
+      ...mutator.auditFields,
+      userId,
+      at: new Date().toISOString(),
+    });
+    await recordActivity(tenant, {
+      kind: "budget_shift",
+      title:
+        move.kind === "negative"
+          ? `Vyloučen dotaz „${snapshot.term}“`
+          : `Přidáno klíčové slovo „${snapshot.term}“`,
+      detail:
+        move.kind === "negative"
+          ? `Dotaz byl přidán jako vylučující klíčové slovo (frázová shoda) v kampani ${move.fromName} (${mutator.networkLabel}).`
+          : `Dotaz byl přidán jako klíčové slovo v přesné shodě do sestavy ${move.toName} (${mutator.networkLabel}).`,
+      actor: "Vy",
+    });
+    return { ok: true, criterion: snapshot, ...platformTag(mutator) };
+  } catch (err) {
+    console.error("[mutations] criterion add failed:", err);
+    return { ok: false, error: err instanceof Error ? err.message : "Úprava se nezdařila." };
+  }
+}
+
+/** Remove criteria a change-set created — the exact inverse of
+ *  {@link applyCriterionMove}, used only by the control-plane revert path.
+ *
+ *  Removals run in REVERSE creation order so the account passes back through the
+ *  same intermediate states the apply walked forward through, and each row is
+ *  attempted independently: one failure must not strand the rest, so the caller can
+ *  retry a partial revert (removing an already-removed criterion is refused by
+ *  Google, which is why the result reports per-row rather than all-or-nothing). */
+export async function restoreCriteria(
+  userId: string,
+  /** the project-scoped tenant the campaigns live under (resolveTenant/…Context) */
+  tenant: string,
+  snapshots: CriterionSnapshot[]
+): Promise<MutationResult> {
+  if (snapshots.length === 0) return { ok: true };
+  const resolved = await mutatorForTenant(userId, tenant);
+  if (!resolved.ok) return { ok: false, error: resolved.error };
+  const { mutator } = resolved;
+  if (!canWriteCriteria(mutator)) return { ok: false, error: CRITERION_UNSUPPORTED };
+
+  const removed: string[] = [];
+  let failure: string | undefined;
+  for (const s of [...snapshots].reverse()) {
+    try {
+      await mutator.removeCriterion(s.resourceName);
+      removed.push(s.resourceName);
+    } catch (err) {
+      console.error(`[mutations] criterion remove failed for ${s.resourceName}:`, err);
+      failure ??= err instanceof Error ? err.message : "Odebrání kritéria se nezdařilo.";
+    }
+  }
+  // Audit what actually came off, even on a partial failure — the ledger must record
+  // the writes that landed, not only the runs that fully succeeded.
+  if (removed.length > 0) {
+    try {
+      await (await tenantDocs()).addDoc(tenant, MUTATIONS, {
+        action: "criterion_remove",
+        resourceNames: removed,
+        ...mutator.auditFields,
+        userId,
+        at: new Date().toISOString(),
+      });
+    } catch (logErr) {
+      console.error("[mutations] criterion-remove audit write failed:", logErr);
+    }
+  }
+  return failure ? { ok: false, error: failure } : { ok: true, ...platformTag(mutator) };
 }
 
 /** One audited mutation as stored (the exact doc shape varies by action; `action`

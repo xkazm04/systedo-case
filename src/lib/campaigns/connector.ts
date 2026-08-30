@@ -24,8 +24,10 @@ import {
   classifyLiveError,
   fetchCampaigns as adsFetchCampaigns,
   fetchDailySeriesBundle as adsFetchDailySeriesBundle,
+  fetchSearchTerms as adsFetchSearchTerms,
   type DailySeriesBundle,
 } from "@/lib/google/ads";
+import type { SearchTermRow } from "./store/search-terms";
 import { getUserAccessToken } from "@/lib/google/token";
 import {
   SklikClient,
@@ -92,6 +94,21 @@ export interface AdsConnector {
    *  successful, non-degraded campaign fetch and persists the verdict on the sync
    *  meta. It NEVER converts; the actual ÷100 only happens once the owner confirms. */
   diagnoseMoneyUnit?(campaigns: Campaign[], period: CampaignPeriod): SklikMoneyVerdict;
+  /** WP S1b — optional provider capability: the account's costliest SEARCH QUERIES
+   *  for the period, the input the query-level negative/promote recommender scores.
+   *
+   *  Optional for the same reason `diagnoseMoneyUnit` is: only one network can
+   *  answer it. Google has `search_term_view`; Sklik has no documented offline
+   *  query-stats method, so its provider leaves this undefined and the sync simply
+   *  skips the step rather than inventing rows. The sample provider answers `[]`
+   *  ON PURPOSE — a demo query must never become a real negative keyword, so the
+   *  honest sample answer is "no terms", not plausible-looking ones.
+   *
+   *  Deliberately NOT wrapped in the degrade-to-sample fallback: a failure here
+   *  throws, the sync's best-effort join records `searchTermsOk: false` and the last
+   *  good terms stay in the store. Degrading THIS fetch to sample data would put
+   *  demo queries one approval away from a permanent account change. */
+  fetchSearchTerms?(period: CampaignPeriod): Promise<SearchTermRow[]>;
 }
 
 /** Compact, persistable summary of a live-fetch error (class + message, capped). */
@@ -162,6 +179,14 @@ function sampleProvider(projectType?: ProjectType, seedKey?: string): AdsConnect
     },
     async fetchCampaignSeries(period) {
       return sampleCampaignSeries(period, projectType, seedKey, envelopeFor(period));
+    },
+    // WP S1b — the sample provider HAS the capability and answers with nothing.
+    // Leaving it undefined would be indistinguishable from "this network cannot do
+    // it"; answering `[]` says the demo account has no search queries to mine, which
+    // is the only honest answer when the alternative is a fabricated negative keyword
+    // on a real account. The sync's `rows.length > 0` guard means this never writes.
+    async fetchSearchTerms() {
+      return [];
     },
   };
 }
@@ -292,7 +317,7 @@ function googleAdsProvider(
     }
     return p;
   };
-  return withSampleFallback(
+  const connector = withSampleFallback(
     "google-ads",
     "Google Ads · živá data",
     {
@@ -312,6 +337,18 @@ function googleAdsProvider(
     },
     fallback
   );
+  // WP S1b — attached AFTER the wrapper (the `diagnoseMoneyUnit` precedent in
+  // sklikProvider) precisely so it is NOT inside withSampleFallback: a failed
+  // search-terms read must surface as a failure the sync records, never as sample
+  // queries the negative-keyword recommender would then score. It still gets the
+  // module's one bounded live retry, and it reuses the account time zone the
+  // campaign fetch captured, so the window matches the rest of the sync.
+  connector.fetchSearchTerms = (period) =>
+    withLiveRetry(
+      () => adsFetchSearchTerms(token, customerId, CAMPAIGN_PERIOD_DAYS[period], accountTimeZone),
+      { refreshToken }
+    );
+  return connector;
 }
 
 /** Whether the deployment-wide env Sklik token is set. This is now only the DEV /

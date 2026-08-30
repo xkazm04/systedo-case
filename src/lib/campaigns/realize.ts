@@ -53,7 +53,11 @@ export function touchedCampaignIds(moves: ChangeSet["moves"]): string[] {
   };
   for (const m of moves) {
     push(m.fromId);
-    if (m.kind !== "pause") push(m.toId);
+    // WP S1b — `push` already ignores an empty id, but the guard is stated: the two
+    // criterion kinds carry no recipient CAMPAIGN (a promote's ad group rides in
+    // `toName`, never in `toId`), so there is nothing here for the realized-impact
+    // window to measure on the far side.
+    if (m.kind !== "pause" && m.toId) push(m.toId);
   }
   return ids;
 }

@@ -43,6 +43,22 @@ import {
   resumeCampaign,
   setCampaignBudgetMicros,
 } from "@/lib/google/ads";
+import type { CriterionSnapshot } from "./control-plane-types";
+
+/** WP S1b — the three criterion functions are reached through a LAZY import, not the
+ *  static one above, and the reason is a hard constraint rather than a preference.
+ *
+ *  ESM named imports are bound at link time, so adding three names to the static
+ *  import list would fail to LINK this module against any `@/lib/google/ads` test
+ *  double that predates them — which is every S1 suite, and the pre-S1 control-plane
+ *  suite those are pinned against. Those suites are the byte-identity proof that the
+ *  Google write path did not change; they must stay untouched, so the new dependency
+ *  is the thing that has to bend. A dynamic import resolves against whatever module
+ *  (or double) is live at CALL time, so an older double simply yields `undefined` and
+ *  the call fails inside `applyCriterionMove`'s try/catch — a failed move, never a
+ *  module that will not load. The module is already in the loader cache by then, so
+ *  this costs a resolved promise, not a second parse. */
+const adsCriteria = () => import("@/lib/google/ads");
 import {
   SklikClient,
   httpSklikTransport,
@@ -77,25 +93,25 @@ export type PlatformBudget =
  * a lossy round-trip in front of a write that today passes its micros through
  * untouched. The unit travels with the discriminant instead.
  *
- * TODO(S1b — keyword/query moves): S1b needs criterion-level writes (negative
- * keywords, keyword-level bids/pause). They are NOT added here: adding a
- * `setCriterion*` to this interface would force the Google implementation to grow a
- * second `:mutate` endpoint before anything calls it. The extension points S1b
- * should use, in preference order:
- *   (a) EXTEND THIS INTERFACE with optional members — `pauseCriterion?(…)`,
- *       `addNegativeKeyword?(…)` — so a network that cannot do it simply omits them
- *       and `mutations.ts` degrades on `typeof mutator.x !== "function"` instead of
- *       throwing. Optionality is the seam; a required member would make every future
- *       network implement every future operation.
- *   (b) REUSE THE RESOLVER, not the interface: `mutatorForTenant` already returns the
- *       resolved tenant plus a typed refusal, and `MutatorRefusal` is the union the
- *       console switches on. A criterion mutator should resolve through the SAME
- *       function (adding its codes to that union) so rails 2 and 3 apply to it
- *       automatically — a keyword write must be gated exactly as hard as a budget one.
- *   (c) REUSE `sklikClientFor`, not `new SklikClient(...)`: it is the single place
- *       the transport is injected, so S1b's fixtures work the way S1's do and no
- *       test can reach the network.
- * Nothing here is added speculatively — this note is the extension point.
+ * S1b — keyword/query moves: TAKEN, exactly as this note prescribed. The three
+ * criterion members below are OPTIONAL (route (a)): a network that cannot write
+ * keywords simply omits them, and `mutations.ts` degrades on
+ * `typeof mutator.x !== "function"` with a typed refusal instead of throwing. They
+ * resolve through the same {@link mutatorForTenant} (route (b)), so the Sklik rails
+ * would gate a keyword write exactly as hard as a budget one the day Sklik gains a
+ * documented criterion API; today it has none, so its mutator leaves all three
+ * undefined and a Sklik change-set carrying criterion moves settles `failed` with a
+ * refusal that names the reason. Route (c) is unused because no criterion write
+ * touches Sklik at all — `sklikClientFor` stays the single construction point.
+ *
+ * DEVIATION from the wp-S1b contract, deliberate and small: `addExactKeyword` takes
+ * `campaignId` as a third argument. The contract has it return a `CriterionSnapshot`,
+ * whose `campaignId` is required — and an ad-group criterion's resource name
+ * (`customers/{cid}/adGroupCriteria/{adGroupId}~{id}`) does not contain one, so the
+ * implementation genuinely cannot know it. The alternatives were a snapshot with an
+ * empty `campaignId` (an unauditable revert record) or composing the snapshot in the
+ * caller (moving the mutator's own output out of the mutator). Passing the id the
+ * caller already holds keeps the snapshot self-describing.
  */
 export interface AdsMutator {
   readonly source: "google-ads" | "sklik";
@@ -112,6 +128,37 @@ export interface AdsMutator {
   /** Set `target`'s daily budget to `amount`, in the target's own unit (see the
    *  interface note): micros for `google-ads`, whole CZK for `sklik`. */
   setBudget(target: PlatformBudget, amount: number): Promise<void>;
+
+  // --- WP S1b, criterion writes (OPTIONAL — see the interface note) ------------
+  // All three are undefined on a network without a documented criterion API. The
+  // three travel together on purpose: a mutator that could CREATE a criterion but
+  // not remove one would produce change-sets that cannot be reverted, so
+  // `mutations.ts` refuses unless all three are present.
+
+  /** Add a campaign-level NEGATIVE keyword (PHRASE) for `term`, and return the
+   *  record a revert removes it by. */
+  addNegativeKeyword?(campaignId: string, term: string): Promise<CriterionSnapshot>;
+  /** Add an EXACT keyword for `term` to `adGroupId`, and return the record a revert
+   *  removes it by. `campaignId` is the ad group's own campaign — see the DEVIATION
+   *  note on the interface for why it is passed rather than derived. */
+  addExactKeyword?(adGroupId: string, term: string, campaignId: string): Promise<CriterionSnapshot>;
+  /** Remove a criterion this mutator created, by its resource name. */
+  removeCriterion?(resourceName: string): Promise<void>;
+}
+
+/** Whether a mutator can write keyword criteria at all — the ONE place the
+ *  all-three-or-none rule is read. A partially-implemented mutator (create without
+ *  remove) is treated as incapable rather than half-used: it would land permanent
+ *  criteria on a live account with no path back through the console. */
+export function canWriteCriteria(
+  m: AdsMutator
+): m is AdsMutator &
+  Required<Pick<AdsMutator, "addNegativeKeyword" | "addExactKeyword" | "removeCriterion">> {
+  return (
+    typeof m.addNegativeKeyword === "function" &&
+    typeof m.addExactKeyword === "function" &&
+    typeof m.removeCriterion === "function"
+  );
 }
 
 /** Why a tenant has no mutator. Each code maps to one next step in the console. */
@@ -234,6 +281,28 @@ export function googleMutator(actor: GoogleActor): AdsMutator {
       }
       await setCampaignBudgetMicros(actor.token, actor.customerId, target.budgetResourceName, amount);
     },
+    // WP S1b — the criterion writes. Each returns the snapshot the revert removes it
+    // by, built around the resource name Google minted; the ads-layer call throws
+    // rather than returning a nameless success, so a snapshot here always addresses
+    // something real.
+    async addNegativeKeyword(campaignId, term) {
+      const { addCampaignNegativeKeyword } = await adsCriteria();
+      const resourceName = await addCampaignNegativeKeyword(
+        actor.token,
+        actor.customerId,
+        campaignId,
+        term
+      );
+      return { platform: "google-ads", resourceName, campaignId, term, action: "negative" };
+    },
+    async addExactKeyword(adGroupId, term, campaignId) {
+      const { addAdGroupExactKeyword } = await adsCriteria();
+      const resourceName = await addAdGroupExactKeyword(actor.token, actor.customerId, adGroupId, term);
+      return { platform: "google-ads", resourceName, campaignId, adGroupId, term, action: "promote" };
+    },
+    async removeCriterion(resourceName) {
+      await (await adsCriteria()).removeCriterion(actor.token, actor.customerId, resourceName);
+    },
   };
 }
 
@@ -277,6 +346,12 @@ export function sklikMutator(client: SklikClient): AdsMutator {
       if (target.platform !== "sklik") throw new Error("Sklik mutator got a non-Sklik budget target.");
       await client.setCampaignDayBudget(numericId(target.campaignId), amount);
     },
+    // WP S1b: the three criterion members are DELIBERATELY ABSENT. Sklik has no
+    // documented offline method for adding a negative keyword, and this file's whole
+    // premise is that an unverifiable wire name must never reach a real account (rail
+    // 1). Omission is the honest implementation: `mutations.ts` reads their absence
+    // and returns a refusal that says so, and the change-set settles `failed` — no
+    // guess, no silent no-op that would report a keyword as written.
   };
 }
 

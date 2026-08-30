@@ -2,12 +2,20 @@
  *  aggregate/deriveMetrics math as the rest of the campaign model, so a projected
  *  portfolio reconciles with the table by construction. No AI, no I/O. */
 import { aggregate, type AdsSource, type Campaign, type CampaignTotals } from "./types";
+import type { SearchTermMatchType } from "./store/search-terms";
 
 export interface BudgetMove {
   /** "shift" re-points spend to a recipient; "pause" stops the donor's spend
    *  entirely (no recipient — `toId`/`toName` stay empty). Optional for
-   *  backward compatibility: absent means "shift". */
-  kind?: "shift" | "pause";
+   *  backward compatibility: absent means "shift".
+   *
+   *  WP S1b added two CRITERION kinds, which are budget-neutral by construction:
+   *  "negative" adds a campaign-level negative keyword for a wasted query, and
+   *  "promote" adds an exact keyword for a converting one. Neither moves a koruna
+   *  of budget anywhere, so {@link simulateBudgetShift} skips them entirely and
+   *  {@link moveDonorShare} reads them as 0 — a criterion move must never be able
+   *  to make a projection claim spend went somewhere. */
+  kind?: "shift" | "pause" | "negative" | "promote";
   fromId: string;
   fromName: string;
   toId: string;
@@ -40,6 +48,24 @@ export interface BudgetMove {
    *  guardrail correctly declines to judge what it cannot see. */
   fromSource?: AdsSource;
   toSource?: AdsSource;
+  /** WP S1b — the search QUERY a criterion move acts on, present only on the
+   *  "negative"/"promote" kinds. This is what the apply loop writes to the account
+   *  and what the console row names, so the stored move is self-describing: a
+   *  change-set read back a month later still says which query was blocked, in
+   *  which campaign, and which ad group would receive the promoted keyword. */
+  criterion?: {
+    term: string;
+    campaignId: string;
+    adGroupId?: string;
+    matchType: SearchTermMatchType;
+  };
+}
+
+/** Does this move act on a keyword CRITERION rather than on budget? The single
+ *  place the two S1b kinds are recognised, so the simulation, the donor-share
+ *  helper and the policy arms can never disagree about which kinds move money. */
+export function isCriterionMove(move: Pick<BudgetMove, "kind">): boolean {
+  return move.kind === "negative" || move.kind === "promote";
 }
 
 export interface SimulationResult {
@@ -70,6 +96,9 @@ export type SimulationConfidence = "high" | "low";
  *  risk and returns 0; an unknown/zero donor cost (legacy move) also returns 0. */
 export function moveDonorShare(move: BudgetMove): number {
   if (move.kind === "pause") return 0;
+  // WP S1b — a criterion move re-points no budget at all, so it extrapolates
+  // nothing and can never degrade a set's projection confidence.
+  if (isCriterionMove(move)) return 0;
   if (typeof move.fromCost !== "number" || move.fromCost <= 0) return 0;
   return move.amount / move.fromCost;
 }
@@ -121,6 +150,12 @@ export function simulateBudgetShift(
   const byId = new Map<string, Campaign>(rows.map((c) => [c.id, { ...c }]));
 
   for (const m of moves) {
+    // WP S1b — a criterion move (negative / promote) changes keywords, not budget.
+    // Skipped BEFORE the donor lookup so the projection for a terms-sourced set is
+    // an exact identity (before === after), which is the honest answer: blocking a
+    // query saves spend the linear campaign model has no way to attribute, and
+    // pretending otherwise would put a fabricated lift on the approval screen.
+    if (isCriterionMove(m)) continue;
     const from = byId.get(m.fromId);
     if (!from) continue;
 

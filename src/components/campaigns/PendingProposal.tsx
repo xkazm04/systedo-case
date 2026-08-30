@@ -10,6 +10,7 @@
 import { Check, Info } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import type { ChangeSet } from "@/lib/campaigns/control-plane-types";
+import { moveRowLabel, moveShowsValueGain } from "@/lib/campaigns/move-label";
 import { revealThreadTarget, THREAD_ANCHORS } from "./thread";
 import ProposalProjection, { CalibrationPill } from "./ProposalProjection";
 
@@ -92,15 +93,14 @@ export default function PendingProposal({
       <CalibrationPill set={pending} />
 
       <ul className="mt-3 space-y-1.5">
+        {/* WP S1b — row shape from the pure, unit-pinned `moveRowLabel`: all four kinds read
+            honestly (a pause is no arrow to nowhere; a criterion move names its query) and a
+            negative omits its 0 gain. `moneySigned`: a reversal set negates estValueGain. */}
         {pending.moves.map((m, i) => (
           <li key={i} className="flex items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2 text-sm">
-            <span className="text-navy-800">
-              {m.fromName} <span className="text-muted">→</span> {m.toName}
-            </span>
-            {/* signed helper: a reversal change-set negates estValueGain, so a
-                hand-written "+" here would render "+−…" */}
+            <span className="text-navy-800">{moveRowLabel(m)}</span>
             <span className="tnum text-muted">
-              {money(m.amount)} · {moneySigned(m.estValueGain)}
+              {money(m.amount)}{moveShowsValueGain(m) ? ` · ${moneySigned(m.estValueGain)}` : ""}
             </span>
           </li>
         ))}

@@ -9,7 +9,7 @@
 import "server-only";
 import type { AdsConnector } from "./connector";
 import type { DailySeriesBundle } from "@/lib/google/ads";
-import { getLatestChanges, saveCampaignSeries, saveSeries, upsertCampaigns } from "./store";
+import { getLatestChanges, saveCampaignSeries, saveSearchTerms, saveSeries, upsertCampaigns } from "./store";
 import { evaluateAndAlert } from "./alerts";
 import { evaluateAnomalyAlerts } from "./anomaly-alerts";
 import { recordActivity } from "./activity";
@@ -29,6 +29,12 @@ export interface TenantSyncResult {
   alerted: number;
   /** newly-anomalous days alerted on (0 for anonymous tenants / failed series) */
   anomalies: number;
+  /** WP S1b — the search-terms fetch succeeded AND wrote rows, so the query-level
+   *  recommender is scoring this sync's queries. False covers all four honest
+   *  no-ops: the provider has no such capability (Sklik), the fetch was skipped
+   *  because the campaign fetch had degraded to sample, the fetch threw, or it came
+   *  back empty (the sample provider always does). */
+  searchTermsOk: boolean;
 }
 
 /**
@@ -130,6 +136,30 @@ export async function runTenantSync(
   if (seriesOk) await saveSeries(tenant, series, { period });
   if (campaignSeries) await saveCampaignSeries(tenant, campaignSeries, { period });
 
+  // WP S1b — the account's costliest SEARCH QUERIES, the input the query-level
+  // negative/promote recommender scores. Third best-effort fetch, same contract as
+  // the two series above (a failure logs and moves on; the store keeps its last good
+  // rows), with ONE extra gate that the series do not need:
+  //
+  //   `!degradation.campaigns` — a degraded campaign fetch means this connector is
+  //   serving SAMPLE data, and a negative keyword is a permanent change to a real
+  //   account. Mining demo queries for it would put a fabricated term one approval
+  //   click away from the live account, so the step is skipped outright rather than
+  //   labelled. `rows.length > 0` is the second half of the same rule: the sample
+  //   provider answers `[]` by design, so it can never overwrite real stored terms.
+  let searchTermsOk = false;
+  if (!degradation.campaigns && connector.fetchSearchTerms) {
+    try {
+      const terms = await connector.fetchSearchTerms(period);
+      if (terms.length > 0) {
+        await saveSearchTerms(tenant, terms, { period });
+        searchTermsOk = true;
+      }
+    } catch (err) {
+      console.error(`[campaigns] search-terms sync failed for ${tenant}:`, err);
+    }
+  }
+
   // Alerts (signed-in tenants): newly-critical campaigns — change-aware, the
   // upsert above appended this sync's snapshot so the diff includes it — plus
   // performance anomalies on the fresh series. Both best-effort.
@@ -194,5 +224,5 @@ export async function runTenantSync(
     }
   }
 
-  return { campaigns, series, seriesOk, alerted, anomalies };
+  return { campaigns, series, seriesOk, alerted, anomalies, searchTermsOk };
 }
