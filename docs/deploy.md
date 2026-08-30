@@ -114,8 +114,9 @@ Notes:
 ## Pre-deploy checklist
 
 - [ ] `npm run check:ci` green locally (typecheck + lint + build + seed check +
-      unit + llm gates + adr:check + agents:surface). `.husky/pre-push` runs
-      this for you on any push to `master` — see the Delivery contract below.
+      unit + llm gates + adr:check + agents:surface + actions:check +
+      merge-gate). `.husky/pre-push` runs this for you on any push to `master` —
+      see the Delivery contract below.
 - [ ] **`DEV_AUTH` and `LOCAL_DB` are UNSET in the Vercel environment.** They
       are ignored in production by code, but an unset variable is the only
       configuration that cannot rot.
@@ -132,10 +133,22 @@ stage between a developer and production. That makes the push itself the
 release act, and the contract below is what keeps it honest.
 
 - **The full blocking gate is `npm run check:ci`** (typecheck + lint + build +
-  seed drift guard + unit suite + LLM gates + `adr:check` + `agents:surface`).
+  seed drift guard + unit suite + LLM gates + `adr:check` + `agents:surface` +
+  `actions:check` + `merge-gate`).
   It is CI's exact contract — `.github/workflows/ci.yml` runs the same script —
   and **`.husky/pre-push` now enforces it on every push that updates
   `refs/heads/master`**. Other branches push freely; CI covers them.
+- **What may stop a change is enumerated, not remembered.**
+  [`.github/required-checks.json`](../.github/required-checks.json) lists the
+  jobs that must be green — including the rubric review of the diff — with the
+  reason each one earns a red build. `npm run merge-gate` (inside `check:ci`,
+  therefore inside the pre-push hook) fails if one of them is renamed, stops
+  running on pull requests, or gains a `continue-on-error` on a step that is not
+  declared reporting-rung. Because master ships on push, that list is doing two
+  jobs: it is what a contributor's PR is required to pass, and it is what the
+  maintainer's own push cannot get around without `SYSTEDO_SKIP_GATE=1`. Keep
+  GitHub's *Settings → Branches → require status checks* a copy of that file;
+  the file is the source.
 - **Escape hatch**: `SYSTEDO_SKIP_GATE=1 git push` skips the gate. The hook
   prints loudly what was skipped; the operator owes a **recorded reason**
   (commit message or this doc). An unrecorded skip is an incident.

@@ -52,6 +52,8 @@ const LAW_PATHS = [
   ".github/security/",
   ".github/agent-surface.lock.json",
   ".github/agent-review-rubric.md",
+  ".github/required-checks.json",
+  "scripts/merge-gate.mjs",
   "LICENSE",
   "CLA.md",
   "SECURITY.md",

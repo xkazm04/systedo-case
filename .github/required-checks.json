@@ -1,0 +1,60 @@
+{
+  "$comment": [
+    "The checks that must be green before anything lands on master — enumerated here so",
+    "the answer to 'what would actually stop this change?' lives in the repository rather",
+    "than in one person's GitHub settings page.",
+    "",
+    "This file is not decorative. `npm run merge-gate` (inside `npm run check:ci`, which",
+    "CI runs and .husky/pre-push runs before every push to master) reads it and fails when",
+    "a named check no longer exists, no longer runs on pull requests, has been renamed, or",
+    "has been softened with `continue-on-error` on a step that is not listed in",
+    "`softenedSteps`. So a check cannot quietly stop being a gate.",
+    "",
+    "`check` is the string GitHub shows as the status check — the job's `name:`. It is what",
+    "you type into Settings → Branches → require status checks. Keep the two in step: this",
+    "file is the source, the settings page is the copy.",
+    "",
+    "Rung discipline (docs/adr/0007-gate-rung-discipline.md) decides what belongs here: a",
+    "check is required only if it passes today. The reporting-rung jobs — sast.yml's",
+    "`repo-rules` and `semgrep`, supply-chain.yml's `audit`, agent-review.yml's `judgment` —",
+    "are deliberately absent, and each one's workflow says why. Promoting one means fixing",
+    "its findings, dropping its `continue-on-error`, and adding it here in the same commit."
+  ],
+  "required": [
+    {
+      "check": "Typecheck, lint & build",
+      "workflow": "ci.yml",
+      "job": "check",
+      "why": "`npm run check:ci` — the single command that reproduces the gate locally. Typecheck is also the i18n parity check, so a locale column added on one side only dies here.",
+      "softenedSteps": ["i18n audit (reporting rung, ratcheted)"]
+    },
+    {
+      "check": "E2E smoke (Playwright, key-free)",
+      "workflow": "ci.yml",
+      "job": "e2e-smoke",
+      "why": "The only layer that loads a whole page. Hydration errors, broken anchors and demo-mode fallbacks are invisible to tsc, the unit suite and `next build`.",
+      "softenedSteps": []
+    },
+    {
+      "check": "Rubric review of the diff",
+      "workflow": "agent-review.yml",
+      "job": "mechanical",
+      "why": "Part A of .github/agent-review-rubric.md. ~97% of commits here are written by an agent and triaged weekly; these four rules are the ways a green build can be bought rather than earned, so the review has to be able to stop a merge and not merely comment on one.",
+      "softenedSteps": []
+    },
+    {
+      "check": "Actions supply-chain policy (blocking)",
+      "workflow": "sast.yml",
+      "job": "workflow-policy",
+      "why": "Token scope, no pull_request_target, no moving-branch action refs, third-party actions pinned, and no expression interpolated into a `run:` script. This repository's secrets are advertiser OAuth tokens.",
+      "softenedSteps": []
+    },
+    {
+      "check": "Secret scan (full history, blocking)",
+      "workflow": "supply-chain.yml",
+      "job": "secrets",
+      "why": "A leaked credential is not a 'report it later' class of problem, and the pre-commit hook only ever sees the commit in front of it.",
+      "softenedSteps": []
+    }
+  ]
+}

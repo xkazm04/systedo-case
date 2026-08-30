@@ -19,6 +19,10 @@
 # reviewed if someone notices the diff — these two are what make sure someone does.
 /.github/agent-surface.lock.json @xkazm04
 /.github/agent-review-rubric.md  @xkazm04
+# What may stop a change, and the gate that keeps that list honest (ADR-0011).
+# Shrinking either one is a governance change, not a cleanup.
+/.github/required-checks.json    @xkazm04
+/scripts/merge-gate.mjs          @xkazm04
 
 # Security policy and its enumerated exceptions
 /SECURITY.md                    @xkazm04

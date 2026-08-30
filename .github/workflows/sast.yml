@@ -78,7 +78,12 @@ jobs:
           node-version: 24.14.0
 
       # Every workflow must declare its token scope; no pull_request_target; no
-      # action tracking a moving branch; third-party actions pinned to a SHA.
+      # action tracking a moving branch; third-party actions pinned to a SHA;
+      # and no `${{ … }}` expression spliced into a `run:` script, because that
+      # substitution happens before any shell parses the line — which is how a
+      # fork's branch name or a PR title becomes code in a job holding this
+      # repository's advertiser tokens. Also runs inside `npm run check:ci`, so
+      # the pre-push hook catches it before master ships (docs/deploy.md).
       - name: Actions policy
         run: node scripts/actions-pin.mjs --summary "$GITHUB_STEP_SUMMARY"
 

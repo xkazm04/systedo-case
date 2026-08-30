@@ -8,9 +8,10 @@ name: Agent review
 # This restores the symmetry — something reviews every diff, on the diff's own
 # schedule rather than the maintainer's.
 #
-# Two halves, matching the rubric:
+# Two halves, matching the rubric, and now two JOBS, because the halves do not
+# deserve the same token:
 #
-#   review (blocking)  — scripts/agent-review.mjs. Four mechanical invariants
+#   mechanical (blocking)  — scripts/agent-review.mjs. Four mechanical invariants
 #                        where "a reviewer will probably notice" is not good
 #                        enough: a component growing past 200 lines, a route
 #                        segment-config opt-out under cacheComponents, a deleted
@@ -18,14 +19,28 @@ name: Agent review
 #                        no `Ack:` line. It also puts law-file touches, gate
 #                        softening and new unmapped files at the top of the job
 #                        summary, where the weekly triage starts.
+#                        This is the job that can fail, so it is the job that
+#                        gets NO secrets and a read-only token.
 #
 #   judgment (comment) — scripts/agent-review-llm.mjs, only when
 #                        ANTHROPIC_API_KEY is configured. Applies Part B of the
 #                        rubric and posts one PR comment. It never blocks; a
-#                        model's taste should not be able to stop a merge.
+#                        model's taste should not be able to stop a merge. It is
+#                        the only job here that holds `pull-requests: write`, and
+#                        it holds nothing else.
 #
 # `Ack:` is the escape hatch for the two rules that need a human sentence rather
 # than a code change. Put `Ack: <why>` in a commit message or the PR body.
+#
+# `mechanical` is a REQUIRED check — see .github/required-checks.json, and
+# scripts/merge-gate.mjs, which fails `npm run check:ci` if this job is renamed,
+# removed, stops running on pull requests, or is softened with
+# `continue-on-error`. Renaming the job means updating that file in the same
+# commit; that is the point.
+#
+# Untrusted input never reaches a shell: every `${{ … }}` in this file lands in
+# an `env:` variable, and `scripts/actions-pin.mjs` (rule P5, blocking) fails any
+# workflow that interpolates an expression directly into a `run:` body.
 on:
   push:
   pull_request:
@@ -34,12 +49,16 @@ permissions:
   contents: read
 
 jobs:
-  review:
+  mechanical:
     name: Rubric review of the diff
     runs-on: ubuntu-latest
+    # Least privilege, and deliberately smaller than the workflow default: this
+    # job executes scripts out of the checkout, which on a pull request is the
+    # contributor's code. It reads a diff and writes a job summary; it has no
+    # reason to hold a token that can write anything, and no secrets are exposed
+    # to it.
     permissions:
       contents: read
-      pull-requests: write # the judgment half posts one comment; nothing else writes
     steps:
       # Full history: the review diffs against the base branch, and a shallow
       # clone has no merge base to diff against.
@@ -55,19 +74,26 @@ jobs:
 
       # The base to review against: a PR's own base, or the previous tip on a
       # push. Both resolve locally because the checkout above is unshallowed.
+      #
+      # Every value arrives as an environment variable rather than as text
+      # spliced into this script. `github.event.*` is attacker-shaped input on a
+      # fork's pull request, and `${{ … }}` inside `run:` is substituted BEFORE
+      # the shell parses the line — which is how a branch name becomes a command.
       - name: Resolve base revision
         id: base
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           BEFORE: ${{ github.event.before }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           if [ -n "$PR_BASE" ]; then
-            echo "ref=$PR_BASE" >> "$GITHUB_OUTPUT"
+            ref="$PR_BASE"
           elif [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            echo "ref=$BEFORE" >> "$GITHUB_OUTPUT"
+            ref="$BEFORE"
           else
-            echo "ref=origin/${{ github.event.repository.default_branch }}" >> "$GITHUB_OUTPUT"
+            ref="origin/$DEFAULT_BRANCH"
           fi
+          printf 'ref=%s\n' "$ref" >> "$GITHUB_OUTPUT"
 
       - name: "Capture the PR body (an Ack line may live there)"
         if: github.event_name == 'pull_request'
@@ -77,29 +103,89 @@ jobs:
 
       # Blocking. Zero-dependency, so no npm ci.
       - name: Mechanical review (Part A)
+        env:
+          BASE_REF: ${{ steps.base.outputs.ref }}
         run: |
           node scripts/agent-review.mjs \
-            --base "${{ steps.base.outputs.ref }}" \
+            --base "$BASE_REF" \
             --body-file pr-body.txt \
             --out mechanical.md \
             --summary "$GITHUB_STEP_SUMMARY"
 
-      # Comment-only, and only with a key. `if: always()` so the judgment review
-      # still runs — and posts — when Part A failed, which is exactly when a human
-      # most wants the context.
-      - name: Judgment review (Part B)
+      # Part B wants Part A's report as context, and it runs in a different job.
+      # `if: always()` because the case where a human most wants the judgment
+      # half is the one where the mechanical half went red.
+      - name: Hand Part A's report to the judgment job
         if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mechanical-review
+          path: mechanical.md
+          if-no-files-found: ignore
+          retention-days: 7
+
+  judgment:
+    name: Judgment review (comment only)
+    runs-on: ubuntu-latest
+    needs: mechanical
+    if: always()
+    # The ONLY write scope in this workflow, on the only job that needs it: the
+    # judgment half posts exactly one PR comment. Nothing here can fail the
+    # build, so a write token and a build verdict never sit in the same job.
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.14.0
+
+      - name: Fetch Part A's report
+        continue-on-error: true
+        uses: actions/download-artifact@v7
+        with:
+          name: mechanical-review
+
+      - name: Resolve base revision
+        id: base
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ -n "$PR_BASE" ]; then
+            ref="$PR_BASE"
+          elif [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            ref="$BEFORE"
+          else
+            ref="origin/$DEFAULT_BRANCH"
+          fi
+          printf 'ref=%s\n' "$ref" >> "$GITHUB_OUTPUT"
+
+      # Comment-only, and only with a key. On a fork's pull request GitHub hands
+      # out no secrets at all, so this step self-skips there and Part A still ran.
+      - name: Judgment review (Part B)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ github.token }}
+          BASE_REF: ${{ steps.base.outputs.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           if [ -z "$ANTHROPIC_API_KEY" ]; then
             echo "ANTHROPIC_API_KEY is not configured for this repository — Part B skipped." \
               >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          node scripts/agent-review-llm.mjs \
-            --base "${{ steps.base.outputs.ref }}" \
-            --mechanical mechanical.md \
-            --summary "$GITHUB_STEP_SUMMARY" \
-            ${{ github.event_name == 'pull_request' && format('--pr {0}', github.event.pull_request.number) || '' }}
+          set -- --base "$BASE_REF" \
+                 --mechanical mechanical.md \
+                 --summary "$GITHUB_STEP_SUMMARY"
+          if [ -n "$PR_NUMBER" ]; then
+            set -- "$@" --pr "$PR_NUMBER"
+          fi
+          node scripts/agent-review-llm.mjs "$@"

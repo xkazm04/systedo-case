@@ -19,6 +19,17 @@ It has two halves, and the split is deliberate.
 The rungs follow [ADR-0007](../docs/adr/0007-gate-rung-discipline.md): a check
 blocks only if it passes today.
 
+**Part A is a required check.** It is named in
+[`.github/required-checks.json`](./required-checks.json) as
+`Rubric review of the diff`, so a red Part A stops the change rather than
+decorating it — and `npm run merge-gate`, inside `npm run check:ci`, fails if
+that job is ever renamed, un-hooked from pull requests, or given a
+`continue-on-error`. Part B is deliberately absent from that list: it needs an
+API key it may not have, and a model's taste blocking a merge is the failure
+mode this split exists to avoid. What Part B can do is put a named, concrete
+finding in front of the weekly triage — and the maintainer answering it is a
+human decision, not a status check.
+
 ---
 
 ## Part A — mechanical, blocking

@@ -20,19 +20,38 @@
  *    P4  Every THIRD-PARTY action (anything not owned by `actions` or `github`)
  *        is pinned to a full 40-character commit SHA. First-party GitHub actions
  *        may still ride a version tag — see below.
+ *    P5  No `${{ … }}` expression inside a `run:` body. GitHub substitutes the
+ *        expression into the script TEXT before any shell parses it, so a value
+ *        an outsider controls — a fork's branch name, a PR title, an issue body —
+ *        is not a string argument, it is source code, running in a job that holds
+ *        this repository's tokens. The fix is always the same shape: bind the
+ *        expression in the step's `env:` block and reference "$VAR" in the script,
+ *        where the shell treats it as data.
  *
  *  And this REPORTS: first-party actions still on a version tag. The repo depends
- *  on actions/checkout, actions/setup-node and actions/upload-artifact; those tags
- *  are moved by GitHub itself, so the exposure is materially different from a
- *  random marketplace action. Pinning them is still better, and `--update`
- *  resolves every tag to its SHA in one pass (it needs network). Promote P4 to
- *  cover first-party actions — set STRICT below to true — once that has been run
- *  and Dependabot's `github-actions` ecosystem is keeping the pins fresh.
+ *  on actions/checkout, actions/setup-node, actions/upload-artifact and
+ *  actions/download-artifact; those tags are moved by GitHub itself, so the
+ *  exposure is materially different from a random marketplace action. Pinning them
+ *  is still better, and `--update` resolves every tag to its SHA in one pass (it
+ *  needs network). Promote P4 to cover first-party actions — set STRICT below to
+ *  true — once that has been run and Dependabot's `github-actions` ecosystem is
+ *  keeping the pins fresh.
+ *
+ *  P6 is the ratchet that makes that a one-way door: the number of SHA-pinned refs
+ *  may never fall below RATCHET.pinned. Run `npm run actions:pin` once (it needs
+ *  network), raise the baseline to what it printed, and pinning can no longer be
+ *  undone by a Dependabot bump, a copy-pasted step, or an agent "simplifying" a
+ *  40-character ref back to `@v4`. Lowering the baseline is the only way back, and
+ *  that is a diff a reviewer sees.
  *
  *  Usage:
  *    node scripts/actions-pin.mjs            # check (exit 1 on a violation)
  *    node scripts/actions-pin.mjs --summary FILE
  *    node scripts/actions-pin.mjs --update   # resolve tags → SHAs, rewrite files
+ *
+ *  Runs blocking in CI (sast.yml, job `workflow-policy` — a required check, see
+ *  .github/required-checks.json) and inside `npm run check:ci`, which the pre-push
+ *  hook runs before any push to master.
  */
 import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -44,6 +63,10 @@ const WF_DIR = join(ROOT, ".github", "workflows");
 /** Flip to true once every first-party `uses:` carries a SHA (see header). */
 const STRICT = false;
 
+/** P6 — monotonic floor on SHA-pinned refs. Raise it in the same commit that runs
+ *  `npm run actions:pin`; never lower it without saying why in the commit. */
+const RATCHET = { pinned: 0 };
+
 const argv = process.argv.slice(2);
 const UPDATE = argv.includes("--update");
 const summaryIdx = argv.indexOf("--summary");
@@ -53,6 +76,10 @@ const FIRST_PARTY = new Set(["actions", "github"]);
 const USES_RE = /^(\s*(?:-\s*)?uses:\s*)([^\s#]+)(.*)$/;
 const SHA_RE = /^[0-9a-f]{40}$/;
 const MOVING = new Set(["main", "master", "HEAD"]);
+/** P5: the `run:` key, with its leading dash captured so the KEY's column can be
+ *  computed — a block scalar's body is everything indented past that column. */
+const RUN_RE = /^(\s*)(-\s+)?run:\s*(.*)$/;
+const EXPR_RE = /\$\{\{/;
 
 if (!existsSync(WF_DIR)) {
   console.error(`✗ actions policy: ${WF_DIR} does not exist.`);
@@ -81,6 +108,44 @@ for (const name of workflows) {
       violations.push(`${name}:${i + 1}: pull_request_target — runs a fork's PR with a writable token in the base repo's context.`);
     }
   });
+
+  // P5 — script injection. Walk the file tracking whether we are inside a `run:`
+  // body, and flag any expression that would be spliced into the script text.
+  // Comments inside a script are skipped: a line documenting the hazard is not
+  // the hazard.
+  {
+    let runCol = -1; // column of the `run:` key whose block we are inside, or -1
+    lines.forEach((l, i) => {
+      const bare = l.replace(/^\s*/, "");
+      const indent = l.length - bare.length;
+
+      // A non-blank line at or left of the key's own column ends the block.
+      if (runCol !== -1 && bare !== "" && indent <= runCol) runCol = -1;
+
+      const m = RUN_RE.exec(l);
+      if (m) {
+        const inline = m[3];
+        const isBlock = inline === "" || /^[|>]/.test(inline);
+        if (isBlock) runCol = m[1].length + (m[2] ? m[2].length : 0);
+        else if (EXPR_RE.test(inline)) {
+          violations.push(
+            `${name}:${i + 1}: a \`\${{ … }}\` expression is interpolated into a \`run:\` command — ` +
+              "it becomes shell source, not an argument. Bind it in the step's `env:` and use \"$VAR\"."
+          );
+        }
+        return;
+      }
+
+      if (runCol === -1) return;
+      if (bare.startsWith("#")) return;
+      if (EXPR_RE.test(l)) {
+        violations.push(
+          `${name}:${i + 1}: a \`\${{ … }}\` expression is interpolated into a \`run:\` script — ` +
+            "it becomes shell source, not an argument. Bind it in the step's `env:` and use \"$VAR\"."
+        );
+      }
+    });
+  }
 
   lines.forEach((l, i) => {
     const m = USES_RE.exec(l);
@@ -160,7 +225,10 @@ if (UPDATE) {
     }
     writeFileSync(path, lines.join("\n"));
   }
-  console.log(`\n✓ pinned ${rewritten} action reference(s). Re-run without --update to verify, then set STRICT = true.`);
+  console.log(
+    `\n✓ pinned ${rewritten} action reference(s). Re-run without --update to verify, then RAISE ` +
+      "RATCHET.pinned to the count it prints (so the pins cannot silently come undone) and set STRICT = true."
+  );
   process.exit(0);
 }
 
@@ -177,6 +245,23 @@ say("");
 for (const i of inventory) {
   const kind = SHA_RE.test(i.version) ? "sha" : i.firstParty ? "tag (first-party)" : "tag (third-party)";
   say(`  ${i.workflow}:${i.line}  ${i.action}@${i.version}  [${kind}]`);
+}
+
+// P6 — the pinning ratchet.
+const pinnedCount = inventory.filter((i) => SHA_RE.test(i.version)).length;
+say("");
+say(`  SHA-pinned: ${pinnedCount} of ${inventory.length} (floor ${RATCHET.pinned})`);
+if (pinnedCount < RATCHET.pinned) {
+  violations.push(
+    `SHA-pinned action refs fell to ${pinnedCount}, below the floor of ${RATCHET.pinned}. ` +
+      "A pin was replaced by a mutable tag — restore it (`npm run actions:pin`), or lower the floor in " +
+      "scripts/actions-pin.mjs with the reason in the commit message."
+  );
+} else if (pinnedCount < inventory.length) {
+  say(
+    `  → ${inventory.length - pinnedCount} ref(s) still on a mutable tag. \`npm run actions:pin\` resolves every ` +
+      "one to its digest (needs network); then raise RATCHET.pinned to what this line prints."
+  );
 }
 
 if (reported.length) {
@@ -200,4 +285,7 @@ if (SUMMARY_FILE) {
 
 if (violations.length) process.exit(1);
 say("");
-say("✓ actions policy: permissions declared, no pull_request_target, no moving-branch refs, third-party actions pinned.");
+say(
+  "✓ actions policy: permissions declared, no pull_request_target, no moving-branch refs, " +
+    "third-party actions pinned, no expression interpolated into a `run:` script."
+);

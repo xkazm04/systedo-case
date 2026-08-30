@@ -8,6 +8,38 @@ repo:
   name: systedo-case
   purpose: "An AI workspace for advertising: measures account performance and generates the content that follows from it"
 
+# Which document an agent should trust first, stated once, in the file designed to
+# answer it. CLAUDE.md is a two-line shim: an `@AGENTS.md` import and a generated
+# context map. Readers that do not resolve `@` imports (and there are several) were
+# getting 117 context names and no conventions, with nothing telling them what they
+# had missed - so precedence is declared here as well as in prose at the top of
+# CLAUDE.md itself.
+guidance:
+  canonical: AGENTS.md
+  # Read in this order. Everything after the canonical file ADDS to it; nothing
+  # overrides it. Where two disagree, AGENTS.md wins and the other is the bug.
+  order:
+    - AGENTS.md
+    - CLAUDE.md
+    - CONTRIBUTING.md
+  files:
+    - path: AGENTS.md
+      role: canonical
+      note: "Conventions, seams, the commands, the tool-permission policy. Its first block is the vendor's - see the marker."
+    - path: CLAUDE.md
+      role: entry-point
+      note: "Claude Code's entry file. Imports AGENTS.md and appends the generated Personas context map; holds no guidance of its own."
+    - path: CONTRIBUTING.md
+      role: contributor
+      note: "The same conventions for a human opening a PR, plus licensing and the CLA."
+  # The standard an automated review applies to a diff before a human sees it.
+  review: .github/agent-review-rubric.md
+  # What must be green before a change lands, and what keeps that list honest.
+  requiredChecks: .github/required-checks.json
+  # Drift between the generated parts of the surface above and what was accepted:
+  # `npm run agents:surface`, blocking inside `npm run check:ci`.
+  surfaceLock: .github/agent-surface.lock.json
+
 # The organization's AI registry - knowledge bundles this repo consumes and the skill
 # marketplace it installs from. Unknown fields MUST be ignored by a reader.
 registry:

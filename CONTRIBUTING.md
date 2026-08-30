@@ -76,6 +76,7 @@ review comment, it's a blocked merge.
 ```bash
 npm run check:ci   # typecheck + lint + build + seed:check + test:unit
                    #   + llm:gate:check + llm:quality:check + adr:check + agents:surface
+                   #   + actions:check + merge-gate
 ```
 
 The pieces, if you need to run them individually:
@@ -93,13 +94,31 @@ npm run test:e2e     # Playwright — NOT in CI, run it when you touch a flow
 
 Two more things run on your PR that are not in `check:ci`:
 
-- **`.github/workflows/sast.yml`** — the repo security rules and the Actions
-  supply-chain policy (both blocking), plus Semgrep's registry packs (reporting).
+- **`.github/workflows/sast.yml`** — the repo security rules (reporting, see the
+  note in that file) and the Actions supply-chain policy (blocking), plus
+  Semgrep's registry packs (reporting).
 - **`.github/workflows/agent-review.yml`** — an automated review of your diff
   against [`.github/agent-review-rubric.md`](.github/agent-review-rubric.md). Its
   mechanical half blocks; two of its four rules are unblocked by writing a
   sentence rather than changing code — put `Ack: <why>` in a commit message or
   the PR body when you delete a test or add a runtime dependency.
+
+### What actually stops a merge
+
+Not everything red is a blocker, and guessing which is which wastes your time
+and the maintainer's. So it is enumerated:
+[`.github/required-checks.json`](.github/required-checks.json) lists the checks
+that must be green before a change lands, each with the reason it earns a red
+build. The rubric review of your diff is one of them — this repository's review
+is a gate, not a comment.
+
+That file is the source and GitHub's branch-protection settings are a copy of
+it. `npm run merge-gate` runs inside `check:ci` and fails if a listed check is
+renamed, stops running on pull requests, or is softened with `continue-on-error`
+on a step not declared reporting-rung — so a gate cannot quietly become advice.
+The jobs deliberately *not* on that list (Semgrep, `npm audit`, the repo
+security rules, the judgment half of the review) are reporting-rung: read them,
+they will not block you.
 
 Before you change a seam, read its decision record in
 [`docs/adr/`](docs/adr/README.md). Why a check blocks or merely reports is
@@ -192,6 +211,11 @@ under the same deal the maintainer holds himself to:
   useful to a self-hoster, it probably belongs in the ops layer.
 
 Deeper guidance for automated agents and humans alike lives in
-[`AGENTS.md`](./AGENTS.md). Its first block is injected and re-injected by
+[`AGENTS.md`](./AGENTS.md), which is the **canonical** guidance document for this
+repository — `CLAUDE.md` imports it, this file restates it for humans, and
+`.ai/manifest.yaml` declares the precedence under `guidance.canonical`. If two of
+them ever disagree, `AGENTS.md` wins and the other is the bug. Its "What you may
+do unattended" section is the one to read before you point an agent at this
+tree. Its first block is injected and re-injected by
 `next dev` itself (see `node_modules/next/dist/server/lib/generate-agent-files.js`)
 — that is expected, not a stray edit.

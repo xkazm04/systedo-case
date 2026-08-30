@@ -23,6 +23,14 @@
  *    • every path context-map.json points at must still exist (blocking, 0 today);
  *    • tracked source files that no context maps is a ratcheted count (159 today).
  *
+ *  And it answers the question two documents cannot answer about each other: which
+ *  one wins. `.ai/manifest.yaml` must declare `guidance.canonical`, it must name a
+ *  file that exists, and CLAUDE.md / CONTRIBUTING.md must name that file in prose —
+ *  because precedence carried only by an `@AGENTS.md` import is precedence that
+ *  only some readers honour, and the one that does not gets a generated context map
+ *  and no conventions. The other pointers in that block (the review rubric, the
+ *  required checks, this lock file) must resolve too.
+ *
  *  Runs blocking in CI as part of `npm run check:ci`.
  *
  *  Usage:
@@ -257,6 +265,75 @@ if (!existsSync(MAP_PATH)) {
     if (map.generated_at) {
       const days = Math.floor((Date.now() - Date.parse(map.generated_at)) / 86_400_000);
       if (Number.isFinite(days)) say(`  • map last scanned ${days} day(s) ago (${map.generated_at.slice(0, 10)})`);
+    }
+  }
+}
+
+// --- 3. is a canonical guidance document nominated, and does it hold? --------
+//
+// Two documents that agree today are still two documents, and an agent that
+// resolves `@` imports reads them in a different order from one that does not.
+// `.ai/manifest.yaml` is the file designed to answer "which do I trust first", so
+// the answer has to be IN it, has to name a file that exists, and the entry-point
+// document has to point at the same place in prose — otherwise a reader without
+// import support gets a generated map and no conventions, with nothing telling it
+// what it missed.
+
+say("");
+{
+  const manifestPath = join(ROOT, ".ai", "manifest.yaml");
+  if (!existsSync(manifestPath)) {
+    failures.push(".ai/manifest.yaml does not exist, so nothing declares which guidance document is canonical.");
+  } else {
+    const lines = readFileSync(manifestPath, "utf8").split(/\r?\n/);
+    const start = lines.findIndex((l) => /^guidance\s*:/.test(l));
+    if (start === -1) {
+      failures.push(
+        ".ai/manifest.yaml declares no `guidance:` block — add `guidance.canonical` naming the document that wins " +
+          "when two disagree. Precedence that lives only in an `@` import is precedence only some readers honour."
+      );
+    } else {
+      const body = [];
+      for (let i = start + 1; i < lines.length; i++) {
+        const l = lines[i];
+        if (l.trim() !== "" && !l.startsWith(" ")) break;
+        body.push(l);
+      }
+      const scalar = (key) => {
+        const hit = body.find((l) => new RegExp(`^\\s{2}${key}\\s*:`).test(l));
+        if (!hit) return null;
+        const v = hit.slice(hit.indexOf(":") + 1).trim();
+        return v.replace(/^["']|["']$/g, "") || null;
+      };
+
+      const canonical = scalar("canonical");
+      if (!canonical) {
+        failures.push(".ai/manifest.yaml has a `guidance:` block but no `canonical:` — name the document that wins.");
+      } else if (!existsSync(join(ROOT, canonical))) {
+        failures.push(`.ai/manifest.yaml nominates \`${canonical}\` as canonical guidance, but that file does not exist.`);
+      } else {
+        // The entry-point files must say so too, in prose a reader that does not
+        // resolve imports still sees.
+        const silent = ["CLAUDE.md", "CONTRIBUTING.md"]
+          .filter((f) => f !== canonical && existsSync(join(ROOT, f)))
+          .filter((f) => !readFileSync(join(ROOT, f), "utf8").includes(canonical));
+        if (silent.length) {
+          failures.push(
+            `${silent.join(" and ")} never mention${silent.length === 1 ? "s" : ""} ${canonical}, which ` +
+              ".ai/manifest.yaml nominates as canonical. A reader that opens only that file learns nothing about it."
+          );
+        } else {
+          say(`  ✓ canonical guidance: ${canonical} — nominated in .ai/manifest.yaml and named in the entry points`);
+        }
+      }
+
+      // The other pointers in the block are only useful if they resolve.
+      for (const key of ["review", "requiredChecks", "surfaceLock"]) {
+        const value = scalar(key);
+        if (!value) continue;
+        if (existsSync(join(ROOT, value))) say(`  ✓ guidance.${key} → ${value}`);
+        else failures.push(`.ai/manifest.yaml guidance.${key} points at \`${value}\`, which does not exist.`);
+      }
     }
   }
 }

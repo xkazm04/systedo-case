@@ -112,13 +112,26 @@ deliberately non-blocking.
   artifact, and exits 0. It is not blocking because it has never had a clean run
   on this tree; promoting it is a stated next step, not a silent omission.
 - **Actions supply chain** — `scripts/actions-pin.mjs`
-  (`.github/workflows/sast.yml`, job `workflow-policy`). **Blocking**: every
-  workflow must declare a top-level `permissions:` scope, no workflow may use
-  `pull_request_target`, no action may track a moving branch, and every
-  **third-party** action must be pinned to a commit SHA. First-party
-  (`actions/*`, `github/*`) references on a version tag are reported, not
-  blocked — `npm run actions:pin` resolves them to SHAs, after which the strict
-  mode in that script covers them too.
+  (`.github/workflows/sast.yml`, job `workflow-policy`, and also inside
+  `npm run check:ci`, so the pre-push hook catches it before master ships).
+  **Blocking**: every workflow must declare a top-level `permissions:` scope, no
+  workflow may use `pull_request_target`, no action may track a moving branch,
+  every **third-party** action must be pinned to a commit SHA, and **no
+  `${{ … }}` expression may be interpolated into a `run:` script** — that
+  substitution happens before any shell parses the line, so a fork's branch name
+  or a PR title would be executing as code in a job holding this repository's
+  advertiser tokens. Bind such values in the step's `env:` and read `"$VAR"`.
+  First-party (`actions/*`, `github/*`) references on a version tag are reported,
+  not blocked — `npm run actions:pin` resolves them to SHAs, after which the
+  strict mode in that script covers them too. The count of SHA-pinned references
+  is ratcheted: it may rise, and a commit that lets it fall is a failure.
+- **What may stop a change** — `scripts/merge-gate.mjs` over
+  `.github/required-checks.json`, inside `npm run check:ci`. **Blocking**: a
+  check that is declared able to stop a merge must still exist, still run on pull
+  requests, still carry the name branch protection matches, and still be able to
+  fail. It is here because a security gate that has quietly become a comment is
+  indistinguishable from a security gate. See
+  [ADR-0011](./docs/adr/0011-required-checks-are-enumerated-in-the-repo.md).
 - **Dependency scanning** — GitHub Dependabot alerts on the default branch, plus
   `npm audit --audit-level=high` on every push and weekly. **Reporting**: the
   advisory summary is the deliverable, the exit code is not, because a

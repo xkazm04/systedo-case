@@ -24,6 +24,20 @@ Adtech marketing-automation suite ("Adamant", ex-Systedo). Czech-first (cs is th
 source locale, en derived). Public site at `/`, authed product at `/app` with
 per-project tenancy. Deploys to Vercel serverless.
 
+**This file is canonical.** `CLAUDE.md` is a shim — an `@AGENTS.md` import plus a
+generated context map — and `CONTRIBUTING.md` says the same things to a human
+opening a PR. Read in the order `AGENTS.md` → `CLAUDE.md` → `CONTRIBUTING.md`;
+everything after the first one adds, nothing overrides. Where two disagree, this
+file wins and the other is the bug. Declared machine-readably in
+`.ai/manifest.yaml` under `guidance.canonical`, and enforced: `npm run
+agents:surface` (blocking, inside `check:ci`) fails if that key is missing, names
+a file that does not exist, or names a file the entry points never mention.
+
+Two files decide whether your work lands, so read them before you write:
+`.github/agent-review-rubric.md` (the rubric a review applies to your diff — its
+mechanical half blocks) and `.github/required-checks.json` (what must be green
+before a change lands, and why each one earns a red build).
+
 ## Commands
 
 ```bash
@@ -35,9 +49,12 @@ npm run test:unit     # node:test suites in test-unit/
 npm run test:e2e      # Playwright — also runs in CI (the key-free `e2e-smoke` job)
 npm run check:ci      # what CI runs: check + seed:check + test:unit + llm:gate:check
                       #   + llm:quality:check + adr:check + agents:surface
+                      #   + actions:check + merge-gate
 npm run llm:gate      # LLM proof gate (llm:list shows call sites)
 npm run sast          # repo security rules over src/ (blocking in CI)
-npm run actions:check # workflow token scope + action pinning policy
+npm run actions:check # workflow token scope, action pinning, no ${{ }} in a run: script
+npm run merge-gate    # the required checks named in .github/required-checks.json
+                      #   still exist, still run on PRs, and can still fail
 npm run review:agent  # rubric review of a diff (--base <ref>); what CI runs on a PR
 npm run doctor        # env preflight (not a gate — reports missing/odd env)
 npm run i18n:gate     # localization-wave gate: diffs the tree vs a ref (--base)
@@ -85,7 +102,17 @@ you change it.
   revalidate` under `src/app/`, a deleted test, a new runtime dependency. The last
   two are unblocked by a sentence — put `Ack: <why>` in the commit message or the
   PR body; there is no flag that turns the rule off. Part B is a model applying
-  the judgment half and posting a comment; it never blocks.
+  the judgment half and posting a comment; it never blocks — and it runs in a
+  separate job, because the half that holds `pull-requests: write` should not be
+  the half that decides the build.
+- **What may stop a change is written down.** `.github/required-checks.json`
+  enumerates the checks that must be green — including the rubric review — each
+  with the reason it earns a red build. `npm run merge-gate` (blocking, inside
+  `check:ci`) fails when one of them is renamed, stops running on pull requests,
+  or gains a `continue-on-error` on a step not declared reporting-rung, so a gate
+  cannot quietly become a comment. Master ships on push, so that list is enforced
+  twice: as required status checks on a PR, and by `.husky/pre-push` before the
+  maintainer's own push (`docs/deploy.md` § Delivery contract).
 - **Pathspec commits only** (shared checkout, concurrent agents):
   `git add <paths>` then `git commit <same paths>`. Never `-A`, never a bare
   `git commit`, never stash or reset work that is not yours.
@@ -114,6 +141,71 @@ you change it.
   `.github/security/sast-allowlist.json`; there is no in-code opt-out.
 - Deploy/env questions (required env names, rollback, crons, host rename):
   `docs/deploy.md`.
+
+## What you may do unattended
+
+This repository holds live credentials — Google Ads and Sklik tokens, a Resend
+key, a Leonardo key, Gemini and provider keys — and most of its commits are
+written by an agent working alone. So the boundary is not "be careful", it is a
+list. **Green means do it; amber means do it and say so in the change; red means
+stop and ask the operator, every time, even if you did the same thing an hour
+ago.**
+
+**Green — go ahead.**
+
+- Read anything in the tree. Run `npm run dev:local`, `seed:local`, `check`,
+  `check:ci`, `test:unit`, `test:e2e`, `lint`, `typecheck`, and any of the
+  `--check` / audit / gate scripts. All of them are offline and free: with no
+  provider configured every AI operation falls back to its deterministic `demo`,
+  which is a product property, not a dev convenience.
+- Edit code, tests and docs inside the context you were asked to change
+  (`context-map.json` says which files that is).
+- Commit **by pathspec** — `git add <paths>` then `git commit <same paths>`.
+  Never `-A`, never a bare `git commit`, never stash or reset work that is not
+  yours; the checkout is shared with other agents.
+
+**Amber — allowed, but it costs something, so it goes in the change's own words.**
+
+- Real-model runs: `npm run test:llm`, `npm run llm:quality`, and any
+  `generateStructured` call against a configured provider. These spend money and
+  are deliberately on-demand rather than in `check:ci`. Say in the commit
+  message what you proved and against which model.
+- Accepting a golden (`npm run llm:eval:update -- --reason "…"`), accepting a
+  regenerated instruction block (`npm run agents:surface -- --accept "…"`),
+  adding a `.github/security/sast-allowlist.json` entry, raising any ratchet
+  baseline. Each is legitimate sometimes and each is what an agent under time
+  pressure reaches for — the rubric's B3 exists to ask, every time, whether the
+  finding was fixed or absorbed. Never raise a ratchet you could have lowered.
+- Adding a runtime dependency or deleting a test: allowed, with an `Ack:` line
+  saying why (ADR-0008). The review blocks without one.
+
+**Red — stop and ask, and do not decide on the operator's behalf.**
+
+- **Anything that spends an advertiser's budget or mutates a real ad account.**
+  `SKLIK_WRITES_ENABLED` arms real Sklik mutations and is off unless the exact
+  value is `1`; the live proof for that path is the owner's and its steps are in
+  `docs/deploy.md` § Sklik writes. Never set it, never widen the guard, never
+  add a second one modelled on it, and never run the write path against a real
+  token to "check".
+- **Anything that leaves the machine under the operator's name**: publishing a
+  post, sending mail through Resend, uploading conversions to Google Ads,
+  contacting a person. Drafts go through the review gate in `schranka`; the
+  operator presses send.
+- `git push`, and especially any push to `master` — Vercel ships master on push,
+  so the push *is* the release. `SYSTEDO_SKIP_GATE=1` is the operator's escape
+  hatch, not yours.
+- Editing `.env*`, printing a secret, or moving a credential anywhere — including
+  into a test fixture, a log line, or a prompt.
+- Touching a CODEOWNERS law file (billing, metering, the LLM chokepoint, the
+  agent instruction surface, `.github/workflows/`, security policy, the ADRs)
+  beyond what the task explicitly asked for.
+- Loosening a gate to make your own change pass. Fix the finding, or bring the
+  operator the reason it should not be a finding.
+
+Two of these are enforced rather than trusted, which is the point: `npm run sast`
+blocks a route with no caller identity and a client module reading a server env
+var, and `npm run actions:check` blocks a workflow that would splice an
+expression into a shell. The rest are load-bearing on you.
 
 ## AI registry (knowledge + skills)
 

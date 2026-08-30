@@ -50,7 +50,11 @@ jobs:
       #   check (typecheck && lint && build) → seed drift guard → unit tests →
       #   llm:gate:check (chokepoint coverage + contract goldens + the golden
       #   provenance ledger) → llm:quality:check (the baked scorecard's floor on
-      #   the models we actually serve). All deterministic and key-free — zero
+      #   the models we actually serve) → adr:check → agents:surface →
+      #   actions:check (workflow token scope, action pinning, no expression
+      #   spliced into a `run:` script) → merge-gate (every check that
+      #   .github/required-checks.json says may stop a change still exists, still
+      #   runs on PRs, and can still fail). All deterministic and key-free — zero
       #   model calls; the real-model run stays on demand (npm run test:llm).
       - name: Full CI gate (npm run check:ci)
         run: npm run check:ci

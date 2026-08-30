@@ -1,5 +1,24 @@
 @AGENTS.md
 
+# Read AGENTS.md first — it is the canonical guidance for this repository
+
+**If your reader did not resolve the `@AGENTS.md` import on the line above, open
+[`AGENTS.md`](./AGENTS.md) now and read it before writing any code.** Everything
+this repository actually asks of you — the commands, the seams, the conventions
+that bite, what you may run unattended — is in that file. This one holds the
+import and a generated map, nothing else. Where the two ever disagree,
+`AGENTS.md` wins and this file is the bug. The same precedence is declared
+machine-readably in [`.ai/manifest.yaml`](./.ai/manifest.yaml) under
+`guidance.canonical`.
+
+Two more files you will be measured against, so read them before you are:
+
+- [`.github/agent-review-rubric.md`](./.github/agent-review-rubric.md) — the
+  rubric an automated review applies to your diff on every push and pull
+  request. Its mechanical half **blocks**.
+- [`.github/required-checks.json`](./.github/required-checks.json) — what must
+  be green before a change lands, and why each one earns a red build.
+
 <!-- personas:context-map:start -->
 ## Project Context Map
 
