@@ -27,13 +27,33 @@ Optional / feature-gating:
 | `GEMINI_MODEL`, `GEMINI_VISION_MODEL`, `GEMINI_EMBED_MODEL` | Model overrides (cost table in `src/lib/llm/cost.ts` is keyed by model name) |
 | `LEONARDO_API_KEY` | Creative Studio image generation (demo placeholders without it) |
 | `FIREBASE_STORAGE_BUCKET` | Generated-asset library persistence |
-| `RESEND_API_KEY`, `ALERT_FROM_EMAIL`, `ALERT_WEBHOOK_URL` | Cron alert e-mails / Slack-style webhook (log-only without them) — the OPERATOR's single destination |
+| `RESEND_API_KEY`, `ALERT_FROM_EMAIL`, `ALERT_WEBHOOK_URL` | Cron alert e-mails / Slack-style webhook (log-only without them) — the OPERATOR's single destination. `RESEND_API_KEY` also enables **real twin delivery**, see below |
+
 | `WEBHOOK_SECRET_KEY` | Encrypts each project's own outbound-webhook signing secret at rest (falls back to `AUTH_SECRET`). Without either, the per-project webhooks card refuses to register a destination rather than store a plaintext secret. Changing it invalidates every stored secret — a mass re-mint |
 | `GOOGLE_ADS_DEVELOPER_TOKEN`, `GOOGLE_ADS_LOGIN_CUSTOMER_ID` | Live Google Ads sync (sample data without them) |
 | `SKLIK_API_TOKEN` | Live Sklik data-in sync (one token per instance for now) |
 | `AI_RATE_PER_MIN`, `AI_RATE_PER_DAY`, `SYNC_RATE_PER_MIN`, `AI_MAX_CONCURRENT`, `AI_MAX_BODY_BYTES` | Per-IP AI rate limits (defaults in code) |
 | `AI_GLOBAL_DAILY_CEILING`, `AI_CEILING_FAIL_CLOSED` | Global daily AI spend ceiling (durable Firestore guard) |
 | `LIGHTTRACK_URL`, `LIGHTTRACK_PROJECT`, `LIGHTTRACK_KEY`, `LIGHTTRACK_SOURCE`, `LIGHTTRACK_ENABLED` | Optional self-hosted LLM observability mirror |
+
+<!-- S2 -->
+**`RESEND_API_KEY` is a two-in-one switch, and the second half sends mail to your
+customers' customers.** Setting it makes the twin's `email` connector selectable on
+the `email` and `leads` channels; an approved draft on a channel using it is
+genuinely mailed to the recipient, and there is no undo. On a channel the operator
+set to `autonomy: "auto"`, the half-hourly `twin-dispatch` ledger step also drafts an
+answer to an arrived message, self-approves it when it clears the channel's
+confidence bar with zero flagged risks, and delivers it — with no human click at all.
+Three server-enforced brakes stand in front of that, all set in Správa kanálů and all
+decided inside the same transaction that marks a draft `sent`: keep a channel on
+**assist** and every message waits for a person; set a **weekly send limit** and the
+claim refuses the send that would break it; switch on **require consent** and nothing
+goes out to a contact without a recorded, in-force grant for that channel's purpose
+(no linked contact, no record, or an unreachable CRM all refuse — the gate fails
+closed). Grants are recorded per contact in the CRM detail. Retired with this change:
+`TWIN_SMTP_URL` — there is no SMTP transport and no `nodemailer` dependency, and a
+stored `email-smtp` connector id is read as `email`.
+<!-- /S2 -->
 
 ## Data stores — Firestore vs `.data/`
 
@@ -283,6 +303,32 @@ the hourly `sync`/`social` tick, and each invocation writes one `cron_runs` row
 carrying per-step counts plus each step's `lastRunAt` (which is how a step's
 cadence survives across runs). One step failing never stops the others.
 
+<!-- S3 -->
+### Nahrávání konverzí do Google Ads (the `conversion-drain` step)
+
+The one background job in this deployment that writes to a **third party
+irreversibly**: it POSTs offline click conversions to
+`customers/{cid}:uploadClickConversions`, and Google counts a gclid twice if it is
+sent twice. Operational facts an on-call reader needs. It runs only where
+`GOOGLE_ADS_DEVELOPER_TOKEN` is set (no token → the step reports zero work and
+`ok`, so a preview deploy can never upload) and only for a project whose owner has
+**approved** the mapping in Nastavení after a dry run inside the previous 24 h —
+the approval is a `project_state` blob (`conversionUpload`, `http:false`), so it
+cannot be minted by a client PUT. It claims one period per project per day
+(`claimSentPeriod(tenant, "ledger-conversion-drain", <YYYY-MM-DD>)`); the claim is
+**released** when the transport threw (network / 401 / 429 / 5xx) so the next
+hourly tick retries, and **kept** on a permanent 4xx so a misconfigured account is
+retried tomorrow rather than hammered hourly. Every accepted row is marked
+`uploaded` in the same pass the acceptance is read, and the drain's query excludes
+marked rows — which is why replaying the step is safe and why **restoring the
+`conversion_events` table from a backup taken before an upload is not**: the
+restored rows would have lost their markers and would be sent again. There is no
+migration to roll back (the marker rides the event JSON); reverting the code leaves
+approved mappings inert and already-uploaded conversions in Google, which is the
+irreversibility this feature accepts and bounds with the dry run. Only gclid,
+conversion action, time, value and currency leave the product — no identity field
+is on the wire. Sklik has no live path and stays the hand-mapped CSV.
+
 ## Host rename → adamant-named project (operator action)
 
 The product is Adamant but the Vercel project is still `systedo-case`, so the
@@ -314,3 +360,30 @@ host = an adamant-named Vercel host; free during validation.
       a blanket `Disallow: /`, the deploy is not `VERCEL_ENV=production`
       (preview deploys are crawl-blocked by design — `src/app/robots.ts`).
 - [ ] One cron route answers 401 without the bearer token.
+
+<!-- S1 -->
+## Sklik writes
+
+`SKLIK_WRITES_ENABLED` arms REAL Sklik campaign mutations (daily budget, pause /
+resume) from the ad-ops control plane. It is **off by default** — only the exact
+value `1` arms it — because one input to the write path, the Sklik JSON-RPC method
+name, cannot be verified without a live account; the fixture suite proves the
+payloads, but the **live proof is the owner's**, and it runs in this order. (1) In a
+NON-production environment holding a real Sklik token, set `SKLIK_WRITES_ENABLED=1`
+and confirm `npm run doctor` reports "zápisy do Skliku ZAPNUTÉ". (2) In that Sklik
+account create a THROWAWAY test campaign with a small daily budget, and make sure
+the connection's money unit is settled — the console refuses the write outright
+while the verdict is `halere-suspected` or the account has never been evaluated.
+(3) In the console pick the Sklik network, propose a change set, and approve the
+SMALLEST single-move set you can get (the confirm button reads "Potvrdit zápis do
+Skliku" — if it does not, you are pointed at Google Ads). (4) Verify in the Sklik
+web UI that the two campaigns' daily budgets actually changed by the amount the
+ledger states. (5) Revert the set from the ledger row. (6) Verify in the Sklik UI
+that both budgets are back to their exact prior values. (7) Only after 4 and 6 both
+pass, set `SKLIK_WRITES_ENABLED=1` in production. If step 4 shows nothing changed,
+the method name is wrong: fix `SKLIK_CAMPAIGN_UPDATE_METHOD` (and, for pause /
+resume, `SKLIK_STATUS_ACTIVE` / `SKLIK_STATUS_SUSPEND`) in `src/lib/sklik/client.ts`
+— that constant is deliberately the only thing to change — and start again at 3. To
+disarm at any time, unset the variable and redeploy: with it off the console refuses
+Sklik approvals with a message instead of writing, and nothing else in the product
+changes.

@@ -1,8 +1,16 @@
 /** Sklik → neutral campaign-model adapter: the three fetchers the AdsConnector
  *  seam needs (campaigns list, portfolio daily series, per-campaign daily series),
  *  each mapping Sklik's wire shapes onto this app's framework-free Campaign /
- *  DailyPoint. DATA-IN only — no mutations. Pure over a {@link SklikClient}, so a
- *  fixture transport exercises the whole mapping with no network.
+ *  DailyPoint. DATA-IN only — this module maps what comes back and writes nothing.
+ *  Pure over a {@link SklikClient}, so a fixture transport exercises the whole
+ *  mapping with no network.
+ *
+ *  WP S1 gave Sklik a write path, but NOT here: budget/status mutations go through
+ *  `campaigns/mutator.ts` → `SklikClient.setCampaignDayBudget` /
+ *  `setCampaignStatus`, behind three rails (isolated method constants that degrade,
+ *  a settled money-unit verdict, and the default-off `SKLIK_WRITES_ENABLED` flag).
+ *  The one seam that matters here: this adapter STRINGIFIES Sklik's numeric ids into
+ *  `Campaign.id` (below), so the write path converts them back with `Number(...)`.
  *
  *  Parallels @/lib/google/ads (the Google provider's raw fetchers): the connector
  *  wraps whichever set with the same degrade-to-sample fallback. Money is native

@@ -7,7 +7,12 @@
  *  returns a clear non-destructive error but the governance trail is still kept.
  *  Node runtime. */
 import { currentUserId } from "@/lib/session";
-import { resolveTenant } from "@/lib/campaigns/connector";
+import {
+  resolveTenant,
+  resolveCampaignContextForSource,
+  resolveProjectTenants,
+} from "@/lib/campaigns/connector";
+import type { AdsSource } from "@/lib/campaigns/types";
 import {
   createChangeSet,
   listChangeSets,
@@ -20,18 +25,57 @@ import { alertCampaignIds } from "@/lib/campaigns/alert-suppression";
 import { getCostModel } from "@/lib/cost-model/store";
 import { rejectUnknownProject } from "@/lib/projects/api-guard";
 
+/** WP S1 — the WRITABLE networks a change-set may target. `sample` is deliberately
+ *  absent: you cannot approve a change-set against demo data. */
+const WRITABLE_SOURCES = ["google-ads", "sklik"] as const;
+
+/** Read an optional `source` off the wire. Anything unrecognised (including
+ *  "sample") reads as ABSENT, so the request falls back to today's `resolveTenant`
+ *  and behaves byte-identically to a request that never mentioned a source — an
+ *  unknown source must never silently retarget a write. */
+function parseSource(raw: unknown): AdsSource | undefined {
+  return typeof raw === "string" && (WRITABLE_SOURCES as readonly string[]).includes(raw)
+    ? (raw as AdsSource)
+    : undefined;
+}
+
+/** ADR-0010 — resolve the tenant a request acts on. With no `source` this is
+ *  exactly the call the route always made. With one, it is that network's OWN
+ *  tenant ({@link resolveCampaignContextForSource}), which is the same key the sync
+ *  writes for it — a union READ is not a union WRITE: a change-set is still created,
+ *  approved and reverted against exactly ONE tenant. ADR-0002 holds either way, the
+ *  userId comes from the session and never from the body. */
+async function tenantFor(
+  userId: string,
+  projectId: string | undefined,
+  source: AdsSource | undefined
+): Promise<string> {
+  if (!source) return resolveTenant(userId, projectId);
+  return (await resolveCampaignContextForSource(userId, projectId, undefined, source)).tenant;
+}
 
 export async function GET(request: Request) {
   const userId = await currentUserId();
   if (!userId) return Response.json({ changeSets: [] });
-  const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  const params = new URL(request.url).searchParams;
+  const projectId = params.get("projectId") ?? undefined;
   // Prove the wire projectId before it composes a tenant key — an unverified id
   // mints a fresh empty tenant, which for a governance ledger means an EMPTY
   // ledger, which is exactly the answer you must not give about ad-ops changes.
   const unknown = await rejectUnknownProject(userId, projectId);
   if (unknown) return unknown;
-  const tenant = await resolveTenant(userId, projectId);
-  return Response.json({ changeSets: await listChangeSets(tenant) });
+  const source = parseSource(params.get("source"));
+  const tenant = await tenantFor(userId, projectId, source);
+  // The networks this project could target, so the console can offer a switch
+  // instead of guessing. Only emitted when there is a real choice (>1 writable
+  // network), so a single-network response is byte-identical to before.
+  const writable = (await resolveProjectTenants(userId, projectId))
+    .map((t) => t.source)
+    .filter((s): s is "google-ads" | "sklik" => s === "google-ads" || s === "sklik");
+  return Response.json({
+    changeSets: await listChangeSets(tenant),
+    ...(writable.length > 1 ? { sources: writable, source: source ?? writable[0] } : {}),
+  });
 }
 
 export async function POST(request: Request) {
@@ -45,6 +89,7 @@ export async function POST(request: Request) {
     projectId?: unknown;
     alertId?: unknown;
     scopeCampaignIds?: unknown;
+    source?: unknown;
   };
   try {
     body = await request.json();
@@ -58,7 +103,7 @@ export async function POST(request: Request) {
   const alertId = typeof body.alertId === "string" ? body.alertId : "";
   const unknown = await rejectUnknownProject(userId, projectId);
   if (unknown) return unknown;
-  const tenant = await resolveTenant(userId, projectId);
+  const tenant = await tenantFor(userId, projectId, parseSource(body.source));
 
   if (action === "create") {
     // Direction 1 — profit-aware money-mover: resolve the project's persisted blended

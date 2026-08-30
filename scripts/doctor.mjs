@@ -59,7 +59,20 @@ for (const r of rows) {
 
 // Production-readiness matrix: present/absent booleans for the prod credentials
 // (same matrix GET /api/health exposes) — no secret values, just what's set.
-const readiness = buildReadinessMatrix(process.env, probes);
+// WP S1 — the Sklik WRITE switch. Reported here rather than in doctor-rules'
+// surface table because it is not a credential and not a surface: it is a
+// default-OFF arming flag for real ad-account mutations, and "off" is the correct,
+// expected state everywhere until the owner has done the manual live proof
+// (docs/deploy.md § "Sklik writes"). Reporting rung — it never fails the run.
+const readiness = [
+  ...buildReadinessMatrix(process.env, probes),
+  {
+    key: "sklikWrites",
+    label: "SKLIK_WRITES_ENABLED",
+    present: process.env.SKLIK_WRITES_ENABLED === "1",
+    value: process.env.SKLIK_WRITES_ENABLED === "1" ? "zápisy do Skliku ZAPNUTÉ" : "zápisy do Skliku vypnuté",
+  },
+];
 console.log("  produkční credentials (readiness — jen present/absent):");
 const rWidth = Math.max(...readiness.map((r) => r.label.length)) + 2;
 for (const r of readiness) {

@@ -2,7 +2,7 @@
  *  money-moving math — micros conversion, the donor floor, and exact-revert
  *  de-duplication — is unit-testable without a live Google Ads / Firestore stack.
  *  applyBudgetShift / restoreBudgets delegate here. */
-import type { BudgetSnapshot } from "./control-plane-types";
+import type { GoogleBudgetSnapshot, SklikBudgetSnapshot } from "./control-plane-types";
 
 /** The donor is never dropped below this daily budget, so it keeps serving. */
 export const MIN_DAILY_MICROS = 10_000_000; // 10 CZK/day
@@ -66,12 +66,42 @@ export function planBudgetMove(params: {
   return { fromNew, toNew: params.toMicros + movedMicros, movedMicros };
 }
 
-/** De-duplicate revert snapshots by budget, keeping the FIRST (prior-most) value
- *  for each — the exact inverse of an apply, with no re-flooring drift. */
-export function dedupeSnapshots(snapshots: BudgetSnapshot[]): Map<string, number> {
+/** De-duplicate GOOGLE revert snapshots by budget resource, keeping the FIRST
+ *  (prior-most) value for each — the exact inverse of an apply, with no re-flooring
+ *  drift.
+ *
+ *  WP S1 made {@link BudgetSnapshot} a per-platform union, and the de-dupe KEY is
+ *  what has to become platform-aware: two campaigns on different networks can share
+ *  an id, and only Google has a budget resource at all. Rather than key a single map
+ *  on a synthetic `platform + id` string, `restoreBudgets` partitions first
+ *  (`partitionBudgetSnapshots`) and de-dupes each group with its own natural key —
+ *  which keeps THIS function's key, value and behaviour exactly what they were, so
+ *  the Google restore (and the audit doc's `budgets:` array of resource names) is
+ *  unchanged down to the byte. */
+export function dedupeSnapshots(snapshots: GoogleBudgetSnapshot[]): Map<string, number> {
   const byBudget = new Map<string, number>();
   for (const s of snapshots) {
     if (!byBudget.has(s.budgetResourceName)) byBudget.set(s.budgetResourceName, s.prevMicros);
   }
   return byBudget;
+}
+
+/** The Sklik half of {@link dedupeSnapshots}: keyed by CAMPAIGN id (Sklik has no
+ *  budget resource — the daily cap lives on the campaign), valued in native CZK.
+ *  Same first-wins rule, for the same reason. */
+export function dedupeSklikSnapshots(snapshots: SklikBudgetSnapshot[]): Map<string, number> {
+  const byCampaign = new Map<string, number>();
+  for (const s of snapshots) {
+    if (!byCampaign.has(s.campaignId)) byCampaign.set(s.campaignId, s.prevDayBudgetCzk);
+  }
+  return byCampaign;
+}
+
+/** CZK ⇄ micros for the shared budget planner. `planBudgetMove` (and therefore the
+ *  MIN_DAILY_CZK donor floor) is the ONE piece of budget arithmetic both networks
+ *  run through, so the Sklik path lifts its native-CZK budgets into micros, plans,
+ *  and comes back down — instead of forking the floor into a second constant that
+ *  could drift from this one. */
+export function czkToMicros(czk: number): number {
+  return Math.round(czk * 1_000_000);
 }

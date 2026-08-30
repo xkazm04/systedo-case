@@ -278,9 +278,24 @@ if (m.kind === "pause") {
       // Pause the zero-return donor; on success snapshot its prior status so the
       // revert resumes exactly what we paused. (Donors are enabled by construction
       // — recommendBudgetMoves only pauses enabled campaigns.)
+      // WP S1: `r.platform` is present only for a Sklik write, so a Google set's
+      // stored results + snapshots keep the exact shape every set already in the
+      // ledger has (and an old build could still read them after a rollback).
       const r = await applyPause(userId, tenant, m.fromId, m.fromName);
-      results.push({ fromName: m.fromName, toName: m.fromName, ok: r.ok, error: r.error });
-      if (r.ok) statusSnapshots.push({ campaignId: m.fromId, campaignName: m.fromName, prevStatus: "enabled" });
+      results.push({
+        fromName: m.fromName,
+        toName: m.fromName,
+        ok: r.ok,
+        error: r.error,
+        ...(r.platform ? { platform: r.platform } : {}),
+      });
+      if (r.ok)
+        statusSnapshots.push({
+          campaignId: m.fromId,
+          campaignName: m.fromName,
+          prevStatus: "enabled",
+          ...(r.platform ? { platform: r.platform } : {}),
+        });
       await persistEvidence();
       continue;
     }
@@ -293,7 +308,15 @@ if (m.kind === "pause") {
       toName: m.toName,
       amount: m.amount,
     });
-    results.push({ fromName: m.fromName, toName: m.toName, ok: r.ok, error: r.error });
+    results.push({
+      fromName: m.fromName,
+      toName: m.toName,
+      ok: r.ok,
+      error: r.error,
+      ...(r.platform ? { platform: r.platform } : {}),
+    });
+    // The snapshots are already per-platform — the mutation layer built them in the
+    // shape its own network restores from, so the loop just carries them through.
     if (r.ok && r.snapshots) budgetSnapshots.push(...r.snapshots);
     await persistEvidence();
   }

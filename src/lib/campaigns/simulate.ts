@@ -1,7 +1,7 @@
 /** Deterministic budget-reallocation simulation. Pure: reuses the same
  *  aggregate/deriveMetrics math as the rest of the campaign model, so a projected
  *  portfolio reconciles with the table by construction. No AI, no I/O. */
-import { aggregate, type Campaign, type CampaignTotals } from "./types";
+import { aggregate, type AdsSource, type Campaign, type CampaignTotals } from "./types";
 
 export interface BudgetMove {
   /** "shift" re-points spend to a recipient; "pause" stops the donor's spend
@@ -31,6 +31,15 @@ export interface BudgetMove {
    *  persisted cost model whose blended margin was threaded into the recommender;
    *  absent otherwise, so margin-blind change-sets stay byte-identical. */
   estProfitGain?: number;
+  /** WP S1 — the ad network the DONOR / RECIPIENT campaign belongs to, stamped by
+   *  `recommendBudgetMoves` from the rows (which carry `source` after the ADR-0010
+   *  union read). Two jobs: the apply path knows which network's mutator a move
+   *  belongs to without re-reading the tenant, and `checkPolicy` can refuse a
+   *  cross-network shift. OPTIONAL for backward compatibility — a move recommended
+   *  from source-less rows (every stored change-set before S1) omits both, and the
+   *  guardrail correctly declines to judge what it cannot see. */
+  fromSource?: AdsSource;
+  toSource?: AdsSource;
 }
 
 export interface SimulationResult {

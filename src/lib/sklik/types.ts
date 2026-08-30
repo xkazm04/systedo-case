@@ -4,7 +4,15 @@
  *
  *  Sklik is the #1 strategic anchor for the Czech market: many local advertisers
  *  run Sklik alongside — or instead of — Google Ads. This models the DATA-IN
- *  surface only (campaigns + daily stats). Mutations stay Google-only for now. */
+ *  surface only (campaigns + daily stats).
+ *
+ *  WP S1 opened a WRITE path — campaign `dayBudget` and serving `status`, and
+ *  nothing else. It does not live here: the wire shapes a write sends are built in
+ *  `sklik/client.ts` from the isolated `SKLIK_CAMPAIGN_UPDATE_METHOD` /
+ *  `SKLIK_STATUS_*` constants, and it is gated by three independent rails (the
+ *  method constants degrade rather than corrupt; a write is refused unless the
+ *  account's money-unit verdict is settled; the `SKLIK_WRITES_ENABLED` env flag is
+ *  off by default). These types stay read-shaped. */
 import type { CampaignStatus, CampaignType } from "@/lib/campaigns/types";
 
 /** A campaign as returned by `campaigns.list`. Only the fields the connector maps

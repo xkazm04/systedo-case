@@ -4,6 +4,7 @@
  *  reversible ledger entry — the governance envelope that lets software touch
  *  real ad spend safely. */
 import type { BudgetMove, SimulationResult } from "./simulate";
+import type { AdsSource } from "./types";
 import { grossProfit } from "@/lib/profit/core";
 
 /** Guardrails applied to a change-set. Enforced at approval: a change-set that
@@ -14,6 +15,15 @@ export interface ControlPolicy {
   maxMoveAmountCzk: number;
   /** max number of moves in one change-set (blast-radius cap) */
   maxMoves: number;
+  /** WP S1 — allow a move whose donor and recipient sit on DIFFERENT ad networks
+   *  (Google ↔ Sklik). Off by default (absent = off): money taken out of one
+   *  network's account cannot land in another's, so a cross-network "shift" is two
+   *  unrelated writes wearing one move's clothes — the donor is throttled for a
+   *  recipient that never receives. Future-proofing only: `createChangeSet` is
+   *  single-tenant (one network per set), so as of S1 no recommender can EMIT such a
+   *  move; the guardrail exists so it is refused by construction the day union
+   *  (project-level) change-sets arrive, rather than being remembered then. */
+  crossSource?: boolean;
 }
 
 export const DEFAULT_POLICY: ControlPolicy = { maxMoveAmountCzk: 50_000, maxMoves: 3 };
@@ -42,23 +52,80 @@ export class NoSnapshotsError extends Error {
   }
 }
 
-/** Snapshot of a campaign budget's value *before* a change-set was applied, so a
- *  revert can restore the EXACT prior micros rather than an approximate inverse
- *  shift (which re-reads current budgets and re-floors the donor). */
-export interface BudgetSnapshot {
+/** Snapshot of a GOOGLE ADS campaign budget's value *before* a change-set was
+ *  applied, so a revert can restore the EXACT prior micros rather than an
+ *  approximate inverse shift (which re-reads current budgets and re-floors the
+ *  donor).
+ *
+ *  `platform` is OPTIONAL and, for Google, is never written: every blob this app
+ *  has ever persisted for Google omits it, and continuing to omit it is what makes
+ *  a WP S1 rollback safe — an older `restoreBudgets` reads these back unchanged.
+ *  Absent therefore MEANS Google (see {@link normalizeBudgetSnapshot}). */
+export interface GoogleBudgetSnapshot {
+  platform?: "google-ads";
   budgetResourceName: string;
   prevMicros: number;
 }
 
+/** WP S1 — the same snapshot for a SKLIK campaign. Sklik has no budget resource
+ *  (the daily cap lives on the campaign itself) and no micros (`dayBudget` is
+ *  native CZK), so the shape genuinely differs rather than pretending to be
+ *  Google's. Always carries `platform: "sklik"` — that tag is the discriminant AND
+ *  the reason a rolled-back deploy can tell "I cannot restore this" from "this is
+ *  one of mine". */
+export interface SklikBudgetSnapshot {
+  platform: "sklik";
+  campaignId: string;
+  prevDayBudgetCzk: number;
+}
+
+export type BudgetSnapshot = GoogleBudgetSnapshot | SklikBudgetSnapshot;
+
+/** Read a persisted snapshot blob back into the union, tolerantly: anything
+ *  without an explicit `platform: "sklik"` is a Google snapshot, because that is
+ *  what every blob written before WP S1 is. Pure; the store is schemaless, so this
+ *  is the whole "migration". */
+export function normalizeBudgetSnapshot(raw: BudgetSnapshot): BudgetSnapshot {
+  return isSklikSnapshot(raw) ? raw : (raw as GoogleBudgetSnapshot);
+}
+
+/** Type guard for the Sklik member — the ONE place the discriminant is read. */
+export function isSklikSnapshot(s: BudgetSnapshot): s is SklikBudgetSnapshot {
+  return (s as SklikBudgetSnapshot).platform === "sklik";
+}
+
+/** Split a change-set's snapshots by platform, so the restore loop hands each
+ *  group to the mutator that can actually write it. A single-tenant change-set
+ *  (all of them, as of S1) yields exactly one non-empty group; the split exists so
+ *  a future union set cannot silently restore half of itself. */
+export function partitionBudgetSnapshots(snapshots: BudgetSnapshot[]): {
+  google: GoogleBudgetSnapshot[];
+  sklik: SklikBudgetSnapshot[];
+} {
+  const google: GoogleBudgetSnapshot[] = [];
+  const sklik: SklikBudgetSnapshot[] = [];
+  for (const raw of snapshots) {
+    const s = normalizeBudgetSnapshot(raw);
+    if (isSklikSnapshot(s)) sklik.push(s);
+    else google.push(s);
+  }
+  return { google, sklik };
+}
+
 /** Snapshot of a campaign's status *before* a change-set paused it, so a revert
  *  can resume it to exactly its prior state. Captured at approval for every pause
- *  move that actually landed on the live account. */
+ *  move that actually landed on the live account. Already platform-agnostic (a
+ *  campaign id and a serving state exist on both networks), so WP S1 only adds the
+ *  optional tag — written for Sklik, never for Google, same rollback contract as
+ *  {@link GoogleBudgetSnapshot}. */
 export interface StatusSnapshot {
   campaignId: string;
   campaignName: string;
   /** the status the campaign held before the change-set paused it (always
    *  "enabled" today — pause moves only target enabled donors) */
   prevStatus: "enabled" | "paused";
+  /** WP S1: present only on a Sklik set; absent means Google (legacy shape). */
+  platform?: "sklik";
 }
 
 // "applying"/"reverting" are transient claim states: approveChangeSet/revertChangeSet
@@ -87,6 +154,11 @@ export interface MoveResult {
   toName: string;
   ok: boolean;
   error?: string;
+  /** WP S1 — which network the move was dispatched to. Stamped ONLY for Sklik, for
+   *  the same reason the snapshot blobs are: a Google result written before S1 has
+   *  no such key, and keeping it absent means a Google set's stored `results` array
+   *  stays byte-identical to every one already in the ledger. */
+  platform?: "sklik";
 }
 
 export interface ChangeSet {
@@ -196,6 +268,20 @@ export function checkPolicy(moves: BudgetMove[], policy: ControlPolicy): string[
     v.push(`Počet přesunů (${moves.length}) překračuje limit ${policy.maxMoves}.`);
   }
   for (const m of moves) {
+    // WP S1 — a shift whose donor and recipient sit on different networks. Refused
+    // unless explicitly allowed: the donor's budget would be cut in one account and
+    // the recipient funded in another, which is not one move and cannot be reverted
+    // as one. A pause has no recipient, so it can never breach this. Unreachable
+    // today (single-tenant sets) and deliberately in place before it is reachable.
+    if (
+      !policy.crossSource &&
+      m.kind !== "pause" &&
+      m.fromSource &&
+      m.toSource &&
+      m.fromSource !== m.toSource
+    ) {
+      v.push("Přesun mezi sítěmi (Google ↔ Sklik) není povolený.");
+    }
     if (m.amount > policy.maxMoveAmountCzk) {
       v.push(
         m.kind === "pause"
@@ -205,6 +291,27 @@ export function checkPolicy(moves: BudgetMove[], policy: ControlPolicy): string[
     }
   }
   return v;
+}
+
+/** WP S1 — which ad network a change-set acted on, for the console's pill and its
+ *  "this really writes to Sklik" confirm copy. Read in evidence order: the moves'
+ *  own stamped sources first (present from S1 on), then the platform tag the apply
+ *  loop wrote onto results / snapshots. Undefined for every set created before any
+ *  of those existed — a legacy set is Google by construction, but this returns
+ *  undefined rather than asserting it, and the UI simply shows no pill. */
+export function changeSetSource(
+  cs: Pick<ChangeSet, "moves" | "results" | "budgetSnapshots" | "statusSnapshots">
+): AdsSource | undefined {
+  // `?? []` because this reads persisted, schemaless documents: a set stored before
+  // a field existed is exactly the case this function is for.
+  for (const m of cs.moves ?? []) {
+    if (m.fromSource) return m.fromSource;
+    if (m.toSource) return m.toSource;
+  }
+  if (cs.results?.some((r) => r.platform === "sklik")) return "sklik";
+  if (cs.budgetSnapshots?.some(isSklikSnapshot)) return "sklik";
+  if (cs.statusSnapshots?.some((s) => s.platform === "sklik")) return "sklik";
+  return undefined;
 }
 
 /** The reverse of each move (recipient → donor), for one-click revert. */
@@ -221,6 +328,11 @@ export function inverseMoves(moves: BudgetMove[]): BudgetMove[] {
     // Mirror the profit delta's sign only when the forward move carried one, so a
     // margin-blind set's inverse stays byte-identical (no estProfitGain field).
     ...(m.estProfitGain !== undefined ? { estProfitGain: -m.estProfitGain } : {}),
+    // WP S1: the networks swap with the campaigns they describe, so an inverse move
+    // is checkPolicy-equivalent to its forward. Same spread-only-when-present rule —
+    // a source-less (pre-S1) move inverts byte-identically.
+    ...(m.toSource !== undefined ? { fromSource: m.toSource } : {}),
+    ...(m.fromSource !== undefined ? { toSource: m.fromSource } : {}),
   }));
 }
 

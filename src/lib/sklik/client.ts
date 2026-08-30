@@ -88,6 +88,37 @@ function num(v: unknown): number {
  *  an unknown method simply throws and the connector degrades to no Sklik contribution. */
 export const SKLIK_KEYWORDS_METHOD = "keywords.suggest";
 
+/** WP S1 rail 1 — the WRITE method, isolated exactly like {@link SKLIK_KEYWORDS_METHOD}
+ *  and for the same reason, only with real money behind it.
+ *
+ *  Sklik's drak API is not stably documented offline, so the one thing this repo
+ *  cannot prove without a live account is the method NAME. Keeping it (and the two
+ *  status literals below) as isolated constants means a wrong guess DEGRADES rather
+ *  than corrupts: the transport throws `Sklik campaigns.update …`, the mutation
+ *  returns `{ ok: false, error }`, the change-set settles `failed`, and nothing else
+ *  in the set moves. Fixing a name is a one-line edit here, never a hunt through the
+ *  mutation path. `campaigns.update` is the documented-plausible RPC; it takes the
+ *  `{ session }` user struct and an ARRAY of partial campaign structs, each keyed by
+ *  its numeric `id`:
+ *
+ *    [ { session }, [ { id: 42, dayBudget: 250 } ] ]   // budget write (native CZK)
+ *    [ { session }, [ { id: 42, status: "suspend" } ] ] // status write
+ *
+ *  See docs/deploy.md § "Sklik writes" for the manual live proof that settles the
+ *  name before `SKLIK_WRITES_ENABLED` is turned on anywhere real. */
+export const SKLIK_CAMPAIGN_UPDATE_METHOD = "campaigns.update";
+
+/** Serving status literals for {@link SKLIK_CAMPAIGN_UPDATE_METHOD}. Isolated with
+ *  the method for the same degrade-not-corrupt reason, and mirrored by the read-side
+ *  mapping in `sklik/adapter.ts` (`sklikStatus`: "active" → enabled, everything else
+ *  → paused), so a rename has exactly two places to touch. */
+export const SKLIK_STATUS_ACTIVE = "active";
+export const SKLIK_STATUS_SUSPEND = "suspend";
+
+/** The serving statuses a write may set — the only two the control plane ever asks
+ *  for (pause / resume). */
+export type SklikWritableStatus = typeof SKLIK_STATUS_ACTIVE | typeof SKLIK_STATUS_SUSPEND;
+
 /** Stats granularity Sklik supports for a report. */
 export type SklikGranularity = "total" | "daily";
 
@@ -134,6 +165,65 @@ export class SklikClient {
   /** Sklik rotates the session on each response; keep the freshest one. */
   private refresh(res: Record<string, unknown>): void {
     if (typeof res.session === "string" && res.session) this.session = res.session;
+  }
+
+  /** Re-assert Sklik's own status envelope on a WRITE response.
+   *
+   *  {@link httpSklikTransport} already throws on `status >= 300`, so on the real
+   *  wire this is redundant — deliberately. A write is the one call where "the
+   *  transport was supposed to check" is not good enough: any other transport (a
+   *  fixture, a future retrying/caching one) that returns an error envelope instead
+   *  of throwing must NOT be able to make a failed mutation look like a landed one.
+   *  The read paths keep their tolerant "map whatever came back" contract. */
+  private assertWriteOk(res: Record<string, unknown>, method: string): void {
+    const status = typeof res.status === "number" ? res.status : 200;
+    if (status >= 300) {
+      const msg = typeof res.statusMessage === "string" ? res.statusMessage : "";
+      throw new SklikApiError(status, `Sklik ${method} status ${status}: ${msg}`);
+    }
+  }
+
+  /** WP S1 — set a campaign's DAILY BUDGET, in native CZK (Sklik money fields carry
+   *  no micros; see SklikCampaign.dayBudget). Rounded to a whole koruna because
+   *  `dayBudget` is an integer cap. Logs in first (via {@link user}), asserts Sklik's
+   *  own status envelope, then adopts the rotated session. */
+  async setCampaignDayBudget(campaignId: number, dayBudgetCzk: number): Promise<void> {
+    const user = await this.user();
+    const res = await this.transport.call(SKLIK_CAMPAIGN_UPDATE_METHOD, [
+      user,
+      [{ id: campaignId, dayBudget: Math.round(dayBudgetCzk) }],
+    ]);
+    this.assertWriteOk(res, SKLIK_CAMPAIGN_UPDATE_METHOD);
+    this.refresh(res);
+  }
+
+  /** WP S1 — set a campaign's serving status ({@link SKLIK_STATUS_ACTIVE} /
+   *  {@link SKLIK_STATUS_SUSPEND}) — the Sklik half of pause / resume. */
+  async setCampaignStatus(campaignId: number, status: SklikWritableStatus): Promise<void> {
+    const user = await this.user();
+    const res = await this.transport.call(SKLIK_CAMPAIGN_UPDATE_METHOD, [
+      user,
+      [{ id: campaignId, status }],
+    ]);
+    this.assertWriteOk(res, SKLIK_CAMPAIGN_UPDATE_METHOD);
+    this.refresh(res);
+  }
+
+  /** WP S1 — current daily budgets (native CZK) for specific campaigns: the Sklik
+   *  counterpart of Google's `fetchCampaignBudgets`, and the read a budget shift does
+   *  BEFORE it writes. Deliberately reuses {@link listCampaigns} (the already-proven
+   *  `campaigns.list` + `dayBudget` column) rather than introducing a second read
+   *  method — one account-wide list, then a local filter, so a write path adds no new
+   *  unverifiable method name. Campaigns without a stored `dayBudget` are absent from
+   *  the map (the caller refuses rather than guessing a budget). */
+  async readCampaignBudgets(campaignIds: number[]): Promise<Map<number, number>> {
+    const wanted = new Set(campaignIds);
+    const out = new Map<number, number>();
+    if (wanted.size === 0) return out;
+    for (const c of await this.listCampaigns()) {
+      if (wanted.has(c.id) && c.dayBudget != null) out.set(c.id, c.dayBudget);
+    }
+    return out;
   }
 
   /** Every non-deleted campaign in the account (id, name, status, type, budget). */

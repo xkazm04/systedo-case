@@ -159,6 +159,10 @@ export function recommendBudgetMoves(
         // was buying ~nothing). Only attached under a persisted margin so the
         // margin-blind path stays byte-identical.
         ...(marginPct !== undefined ? { estProfitGain: donor.cost } : {}),
+        // WP S1: carry the donor's network so the apply path and checkPolicy can
+        // see it. Spread only when the row actually has one (source-less rows —
+        // every pre-union read — produce the byte-identical prior move).
+        ...(donor.source !== undefined ? { fromSource: donor.source } : {}),
       });
       continue;
     }
@@ -193,6 +197,11 @@ export function recommendBudgetMoves(
       // Profit the re-pointed revenue actually earns = gross profit on the
       // incremental value (= margin × estValueGain). Persisted-model only.
       ...(marginPct !== undefined ? { estProfitGain: grossProfit(estValueGain, marginPct) } : {}),
+      // WP S1: both ends' networks, spread only when the rows carry them — so a
+      // union-read portfolio produces a move `checkPolicy` can judge, and a
+      // single-source (or pre-union) portfolio produces the exact prior move.
+      ...(donor.source !== undefined ? { fromSource: donor.source } : {}),
+      ...(recipient.source !== undefined ? { toSource: recipient.source } : {}),
     });
   }
 
