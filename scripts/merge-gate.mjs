@@ -30,6 +30,20 @@
  *  maintainer is the shape of gate this file exists to replace. The settings
  *  page is the copy; this file is the source, and CONTRIBUTING.md says so.
  *
+ *  It does, however, check that the COPY IS WRITTEN DOWN. ADR-0011 recorded the
+ *  residue honestly — "the list can lie about GitHub's settings, because nothing
+ *  here can read them without a token" — and that residue is what made the rubric
+ *  review's teeth unverifiable from outside the repository. So
+ *  `.github/branch-ruleset.json` states the GitHub side as a real Rulesets payload,
+ *  and step 6 below fails when it stops matching this enumeration. Whether that
+ *  declaration has actually been APPLIED is the networked half
+ *  (`npm run protection:verify`, reporting rung, published weekly by
+ *  .github/workflows/agent-review-history.yml) — see scripts/branch-protection.mjs.
+ *
+ *    6. `.github/branch-ruleset.json` is an active branch ruleset whose required
+ *       status checks are exactly the `check` strings enumerated here — no more,
+ *       no fewer, no drifted wording.
+ *
  *  Usage:
  *    node scripts/merge-gate.mjs
  *    node scripts/merge-gate.mjs --summary FILE
@@ -37,6 +51,7 @@
 import { appendFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkDeclaredRuleset } from "./branch-protection.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WF_DIR = join(ROOT, ".github", "workflows");
@@ -240,6 +255,24 @@ for (const entry of required) {
   say(`  ${ok ? "✓" : "✗"} "${check}"  ←  ${file} · job \`${jobId}\`${softenedSteps.size ? `  (${softenedSteps.size} reporting step allowed)` : ""}`);
 }
 
+// --- the GitHub side, declared in the repository -----------------------------
+//
+// A required status check only bites if GitHub has been told to require it, and
+// nothing in a checkout can read a settings page. `.github/branch-ruleset.json`
+// is that setting written down as the payload that produces it, so the claim is
+// at least reviewable, diffable, and impossible to forget when a check is added.
+// Applying it and confirming it stays applied is the networked half —
+// `npm run protection:verify`, published weekly (scripts/branch-protection.mjs).
+
+const rulesetDrift = checkDeclaredRuleset();
+say("");
+if (rulesetDrift.length) {
+  say("  ✗ .github/branch-ruleset.json — the declared GitHub ruleset no longer matches this enumeration");
+  failures.push(...rulesetDrift);
+} else {
+  say("  ✓ .github/branch-ruleset.json declares exactly these checks to GitHub (apply: see that file's header)");
+}
+
 // --- note: jobs that could block but are not enumerated ----------------------
 
 const enumerated = new Set(required.map((r) => `${r.workflow}:${r.job}`));
@@ -270,7 +303,10 @@ if (failures.length) {
   say("  with the reason — do not soften it in place and leave the list claiming otherwise.");
 } else {
   say("");
-  say("✓ merge gate: every required check exists, runs on pull requests, keeps its name, and can still fail.");
+  say(
+    "✓ merge gate: every required check exists, runs on pull requests, keeps its name, can still fail, " +
+      "and is named to GitHub by .github/branch-ruleset.json."
+  );
 }
 
 if (SUMMARY_FILE) {

@@ -149,6 +149,14 @@ before a human opens the diff. It is not a convention, it is a job:
   what may stop a change and why each one earns a red build. `npm run merge-gate`
   fails if one of them is renamed, stops running on pull requests, or is softened
   — so a gate cannot quietly become a comment.
+- **And whether GitHub agrees is checkable, not assumed.**
+  [`.github/branch-ruleset.json`](./.github/branch-ruleset.json) declares the same
+  list as the ruleset the default branch is meant to carry; `npm run merge-gate`
+  fails when the two drift apart, and `npm run protection:verify` reads the rules
+  GitHub is *actually* applying and reports, check by check, whether each one is
+  enforced. That report is appended to the weekly issue above, so "does the rubric
+  review block a merge, or only comment?" has an answer you can read from outside
+  this repository.
 
 ## Where to go next
 

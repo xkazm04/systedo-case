@@ -136,7 +136,14 @@ build. The rubric review of your diff is one of them — this repository's revie
 is a gate, not a comment.
 
 That file is the source and GitHub's branch-protection settings are a copy of
-it. `npm run merge-gate` runs inside `check:ci` and fails if a listed check is
+it — and you do not have to take that on faith either.
+[`.github/branch-ruleset.json`](.github/branch-ruleset.json) is the copy, written
+down as the ruleset payload it produces, and `npm run protection:verify` asks
+GitHub which of those checks it is *actually* enforcing on the default branch.
+That answer is appended to the weekly issue above, so whether the review of your
+diff can block your merge is something you can read rather than infer.
+
+`npm run merge-gate` runs inside `check:ci` and fails if a listed check is
 renamed, stops running on pull requests, or is softened with `continue-on-error`
 on a step not declared reporting-rung — so a gate cannot quietly become advice.
 The jobs deliberately *not* on that list (Semgrep, `npm audit`, the repo

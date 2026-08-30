@@ -1,0 +1,92 @@
+/** The seams AGENTS.md states in prose, asserted as lint rules that exist.
+ *
+ *  `eslint.config.mjs` was the vendor default and nothing else for the life of this
+ *  repository, which meant the constraints an agent reads in AGENTS.md — one LLM
+ *  chokepoint, a store seam between a route and a driver, no route segment-config
+ *  opt-out under `cacheComponents` — were enforced by a reviewer noticing. ~97% of
+ *  commits here are written by an agent, so "a reviewer notices" is a slow, lossy
+ *  channel for a rule that should simply fail.
+ *
+ *  ESLint is the thing that now fails: `npm run lint` sits inside `npm run check`,
+ *  inside `check:ci`, inside `.husky/pre-push`. These tests do not re-implement the
+ *  rules — they assert the fences are still DECLARED, and declared at full width, so
+ *  that quietly dropping a restricted name (the cheapest way to make a red build
+ *  green) turns the unit suite red instead. Same shape and same reason as
+ *  test-unit/delivery-contract.test.mjs.
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
+
+const config = read("eslint.config.mjs");
+const scripts = JSON.parse(read("package.json")).scripts ?? {};
+
+test("the linter is inside the blocking gate at all", () => {
+  // A fence that no gate runs is a comment with a stricter syntax.
+  assert.match(scripts.lint ?? "", /eslint/);
+  assert.match(scripts.check ?? "", /npm run lint/, "`npm run check` no longer lints, so nothing runs these rules.");
+  assert.match(scripts["check:ci"] ?? "", /npm run check\b/);
+});
+
+test("the LLM chokepoint is fenced, not merely documented", () => {
+  // src/lib/llm/index.ts is where the provider order, BYOM keys, the demo
+  // fallback, metering, telemetry and the language check live. A second client
+  // built elsewhere opts out of all of them at once, and nothing about the code
+  // that does it looks wrong in review.
+  assert.match(
+    config,
+    /"no-restricted-imports"/,
+    "eslint.config.mjs no longer restricts any import, so the chokepoint and the store seam are prose again."
+  );
+  assert.match(config, /@google\/genai/);
+  assert.match(
+    config,
+    /importNames:\s*\["GoogleGenAI"\]/,
+    "the fence on constructing a Gemini client outside src/lib/llm/ is gone."
+  );
+  for (const adapter of ["@/lib/llm/gemini", "@/lib/llm/claude", "@/lib/llm/codex"]) {
+    assert.ok(
+      config.includes(adapter),
+      `${adapter} is a provider adapter and is no longer fenced — anything may now call it directly instead ` +
+        "of going through generateStructured()."
+    );
+  }
+});
+
+test("the store seam is fenced: a route may not reach for a driver", () => {
+  // Prod is Firestore, local dev is node:sqlite, and the pair is env-switched
+  // behind one interface. A page that imports a driver picks a backend, breaks
+  // LOCAL_DB, and skips the tenant key the store applies — which is the thing that
+  // makes cross-user IDOR impossible by construction.
+  assert.match(config, /"firebase-admin",\s*"firebase-admin\/\*",\s*"node:sqlite"/);
+  assert.match(
+    config,
+    /files:\s*\["src\/lib\/\*\*\/\*\.\{ts,tsx\}"\]/,
+    "the relaxation for src/lib/ is gone; either the drivers are now banned in the layer that owns them, or " +
+      "the whole fence was rewritten."
+  );
+});
+
+test("route segment config is refused at full width", () => {
+  // cacheComponents is on, so a segment-level opt-out un-caches a whole route to
+  // serve one dynamic read. Part A of the rubric refuses it in a diff; this refuses
+  // it in the editor. Dropping one name from the list is the cheap way out.
+  assert.match(config, /"no-restricted-exports"/);
+  for (const name of ["dynamic", "runtime", "revalidate", "fetchCache", "dynamicParams"]) {
+    assert.match(
+      config,
+      new RegExp(`"${name}"`),
+      `\`export const ${name}\` is no longer refused under src/app/. scripts/agent-review.mjs (rule A2) ` +
+        "refuses exactly these five; the two lists must not drift."
+    );
+  }
+  // maxDuration and preferredRegion are Vercel function settings, not caching
+  // opt-outs, and the repo uses both. Restricting them would be a false positive
+  // that gets the whole rule switched off.
+  assert.doesNotMatch(config, /restrictedNamedExports:[^\]]*"maxDuration"/);
+});

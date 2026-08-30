@@ -77,6 +77,20 @@ findings for the weekly triage; a human answers them.
 - The list can lie about GitHub's settings, because nothing here can read them
   without a token. What it cannot do is lie about the repository: every claim it
   makes about a workflow is verified against the workflow.
+- That residue turned out to have a cost worth paying down, so it is now split in
+  two rather than left open. `.github/branch-ruleset.json` states the GitHub side
+  as the literal Rulesets payload that produces it, and `scripts/merge-gate.mjs`
+  fails when its required contexts stop being exactly the `check` strings here —
+  offline, blocking, so adding a check and forgetting the ruleset cannot land.
+  Whether that declaration has been APPLIED still needs a token, so it stays
+  reporting rung: `scripts/branch-protection.mjs --verify` reads the rules GitHub
+  is actually enforcing on the default branch and
+  `.github/workflows/agent-review-history.yml` publishes the answer weekly into
+  the trail issue. The claim "the rubric review blocks a merge" is therefore
+  checkable by anyone with read access, which it was not before. What the token
+  can read is rulesets only — classic branch protection needs an admin token
+  `GITHUB_TOKEN` cannot be granted, so the report says "no ruleset requires it"
+  and never "the branch is unprotected".
 - `.github/required-checks.json` is a law file in the sense of
   `.github/CODEOWNERS`: shrinking it is a governance change, not a cleanup, and
   should be reviewed as one.

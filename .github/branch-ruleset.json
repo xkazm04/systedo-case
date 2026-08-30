@@ -1,0 +1,85 @@
+{
+  "$comment": [
+    "The branch ruleset this repository declares for its default branch — the GitHub-side",
+    "half of .github/required-checks.json, written down instead of remembered.",
+    "",
+    "WHY IT EXISTS. ADR-0011 enumerated what may stop a change and built a gate",
+    "(scripts/merge-gate.mjs) that keeps the enumeration honest about the REPOSITORY: every",
+    "named check must exist, run on pull requests, keep its display name, and still be able",
+    "to fail. It said plainly what it could not do: 'the list can lie about GitHub's",
+    "settings, because nothing here can read them without a token.' So from outside this",
+    "repository the rubric review was indistinguishable from a review that merely comments —",
+    "the teeth were readable from inside the tree and nowhere else.",
+    "",
+    "This file is the missing side. It is a literal GitHub Rulesets API payload: the",
+    "required status checks below are exactly the `check` strings in",
+    ".github/required-checks.json, and `npm run merge-gate` (blocking, inside",
+    "`npm run check:ci`, therefore inside .husky/pre-push) fails when the two drift apart.",
+    "Adding a required check and forgetting this file is a red build, not a silent gap.",
+    "",
+    "APPLY IT (the operator, once — it needs the network and an admin token). The `$comment`",
+    "key is documentation, not part of the payload, so strip it on the way out:",
+    "",
+    "  jq 'del(.[\"$comment\"])' .github/branch-ruleset.json |",
+    "    gh api --method POST repos/xkazm04/systedo-case/rulesets --input -   # first time",
+    "  jq 'del(.[\"$comment\"])' .github/branch-ruleset.json |",
+    "    gh api --method PUT repos/xkazm04/systedo-case/rulesets/<id> --input -   # thereafter",
+    "",
+    "  gh api repos/xkazm04/systedo-case/rulesets --jq '.[] | \"\\(.id) \\(.name)\"'   # find <id>",
+    "",
+    "VERIFY IT (anyone with read access, and weekly in CI):",
+    "",
+    "  npm run protection:verify                      # needs `gh`, reads the live rules",
+    "",
+    ".github/workflows/agent-review-history.yml runs that verification every Monday and",
+    "publishes the answer into the trail issue, so 'is the rubric review actually required?'",
+    "has a linkable answer that nobody has to take on faith. It is REPORTING rung (ADR-0007)",
+    "and permanently so: it needs a token, so it can never sit in check:ci.",
+    "",
+    "BYPASS, DELIBERATELY. `bypass_actors` grants repository admins an always-bypass.",
+    "docs/deploy.md § Delivery contract records that master ships to Vercel ON PUSH and the",
+    "maintainer pushes directly; without this entry the ruleset would refuse the release act",
+    "itself. What governs the maintainer is .husky/pre-push, which runs the same blocking set",
+    "locally. Removing the bypass is a deployment-model change, not a hardening tweak.",
+    "",
+    "This file is a law file in the sense of .github/CODEOWNERS: shrinking the list of",
+    "required checks here is a governance change and should be reviewed as one."
+  ],
+  "name": "default branch — required checks",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["~DEFAULT_BRANCH"],
+      "exclude": []
+    }
+  },
+  "bypass_actors": [
+    {
+      "actor_id": 5,
+      "actor_type": "RepositoryRole",
+      "bypass_mode": "always"
+    }
+  ],
+  "rules": [
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": false,
+        "required_status_checks": [
+          { "context": "Typecheck, lint & build" },
+          { "context": "E2E smoke (Playwright, key-free)" },
+          { "context": "Rubric review of the diff" },
+          { "context": "Actions supply-chain policy (blocking)" },
+          { "context": "Secret scan (full history, blocking)" }
+        ]
+      }
+    }
+  ]
+}

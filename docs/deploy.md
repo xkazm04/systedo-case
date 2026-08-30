@@ -174,6 +174,19 @@ release act, and the contract below is what keeps it honest.
   maintainer's own push cannot get around without `SYSTEDO_SKIP_GATE=1`. Keep
   GitHub's *Settings → Branches → require status checks* a copy of that file;
   the file is the source.
+- **And the copy is written down, then checked.**
+  [`.github/branch-ruleset.json`](../.github/branch-ruleset.json) is that GitHub
+  side as the literal Rulesets payload — apply it with the `gh api` line in its own
+  header. `npm run merge-gate` fails when its required contexts stop being exactly
+  the enumerated `check` strings (offline, blocking, so it holds in the pre-push
+  hook), and `npm run protection:verify` reads what GitHub is really enforcing and
+  reports it check by check. The weekly history workflow runs that verification and
+  appends the answer to the published trail issue — reporting rung, because it
+  needs a token. Note what it can see: rulesets, not classic branch protection, so
+  a "no" there means *no ruleset requires this check*, not *the branch is open*.
+  The admin bypass in that payload is deliberate — master ships on push, and
+  without it the ruleset would refuse the release act itself; `.husky/pre-push` is
+  what governs the maintainer.
 - **Escape hatch**: `SYSTEDO_SKIP_GATE=1 git push` skips the gate. The hook
   prints loudly what was skipped; the operator owes a **recorded reason**
   (commit message or this doc). An unrecorded skip is an incident.

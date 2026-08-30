@@ -278,3 +278,79 @@ test("the two documented editions cannot drift apart in silence", () => {
     );
   }
 });
+
+/** WHOSE TEETH ARE VISIBLE FROM OUTSIDE. The enumeration and scripts/merge-gate.mjs
+ *  prove the REPOSITORY side: each named check exists, runs on pull requests, keeps
+ *  the name GitHub matches, and can still fail. ADR-0011 recorded the residue — a
+ *  checkout cannot read a settings page — and that residue is exactly why, from
+ *  outside this tree, the rubric review was indistinguishable from a review that
+ *  merely comments.
+ *
+ *  .github/branch-ruleset.json is the GitHub side written down as the payload that
+ *  produces it, held equal to the enumeration by the same blocking gate; whether it
+ *  has actually been applied is read back weekly and published into the trail issue.
+ *  These tests fail when either half is removed. */
+test("the GitHub side of the enumeration is declared in the repository", () => {
+  const ruleset = JSON.parse(read(".github/branch-ruleset.json"));
+  assert.equal(ruleset.target, "branch");
+  assert.equal(
+    ruleset.enforcement,
+    "active",
+    "an `evaluate` or `disabled` ruleset reports without stopping anything — which is the state this file " +
+      "exists to make impossible to hold by accident."
+  );
+
+  const contexts = (ruleset.rules ?? [])
+    .filter((r) => r.type === "required_status_checks")
+    .flatMap((r) => (r.parameters?.required_status_checks ?? []).map((c) => c.context));
+  assert.deepEqual(
+    [...contexts].sort(),
+    required.map((r) => r.check).sort(),
+    ".github/branch-ruleset.json and .github/required-checks.json name different checks. GitHub matches a " +
+      "check by that exact string, so the two drifting apart is how an enumerated gate becomes advice."
+  );
+  assert.ok(
+    contexts.includes(rubric.check),
+    "the rubric review is enumerated as a check that may stop a change but is missing from the ruleset this " +
+      "repository declares to GitHub — the one claim this whole file exists to make verifiable."
+  );
+});
+
+test("that declaration is proven by the same gate that runs before a master push", () => {
+  // Offline and blocking, so it holds in the pre-push hook and in a fork's CI:
+  // adding a required check and forgetting the ruleset is a red build, not a gap
+  // nobody notices until something merges that should not have.
+  assert.match(
+    read("scripts/merge-gate.mjs"),
+    /checkDeclaredRuleset/,
+    "merge-gate.mjs no longer checks the declared ruleset against the enumeration, so the two can drift and " +
+      "nothing says so."
+  );
+  assert.ok(existsSync(join(ROOT, "scripts/branch-protection.mjs")));
+  assert.match(scripts["protection:check"] ?? "", /scripts\/branch-protection\.mjs/);
+  assert.match(scripts["protection:verify"] ?? "", /--verify/);
+});
+
+test("whether GitHub actually enforces those checks is read back and published", () => {
+  // The networked half. It needs a token, so it is reporting rung for good
+  // (ADR-0007) — but its answer is appended to the report published into the trail
+  // issue, which is the only place a reader who is not the maintainer can see
+  // whether the review blocks or comments.
+  assert.match(
+    history,
+    /scripts\/branch-protection\.mjs --verify/,
+    "the weekly run no longer asks GitHub whether the enumerated checks are enforced, so the enumeration is " +
+      "once again a claim about a settings page nobody can read."
+  );
+  assert.match(
+    history,
+    /cat protection\.md >> review-history\.md/,
+    "the enforcement answer is no longer appended to the published report, so it lives only in a job summary " +
+      "that expires with its run."
+  );
+  assert.ok(
+    !required.some((r) => r.job === "protection" || String(r.workflow).includes("branch")),
+    "reading GitHub's live rules needs a token and so can never be proven in check:ci; it must not be " +
+      "enumerated as a check that stops a change."
+  );
+});

@@ -95,6 +95,36 @@ jobs:
             --out review-history.md \
             --summary "$GITHUB_STEP_SUMMARY"
 
+      # The other half of "is this review a gate or a comment?", and the half the
+      # repository could not answer about itself: whether GitHub is ACTUALLY
+      # requiring the checks that .github/required-checks.json says may stop a
+      # change — the rubric review among them. `npm run merge-gate` proves the
+      # repository side offline and blocking; this proves the GitHub side, needs a
+      # token, and therefore reports (ADR-0007) and exits 0 whatever it finds.
+      #
+      # Its output is appended to the published report, so the answer lands in the
+      # trail issue: one linkable page where a contributor who has never opened
+      # package.json can see that the review blocks rather than comments — or that
+      # it does not, which is the more important case to make visible.
+      #
+      # `GET /rules/branches/{branch}` needs only read access, which is why the
+      # answer is checkable by anyone; it does not cover CLASSIC branch protection,
+      # and the report says so rather than claiming the branch is unprotected.
+      - name: Are those checks actually enforced on the default branch?
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          node scripts/branch-protection.mjs --verify \
+            --branch "${BRANCH:-master}" \
+            --out protection.md \
+            --summary "$GITHUB_STEP_SUMMARY"
+          if [ -s protection.md ]; then
+            printf '\n' >> review-history.md
+            cat protection.md >> review-history.md
+          fi
+
       - name: Keep the report as an artifact too
         if: always()
         continue-on-error: true

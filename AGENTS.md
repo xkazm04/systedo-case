@@ -56,6 +56,7 @@ npm run sast          # repo security rules over src/ (blocking in CI)
 npm run actions:check # workflow token scope, action pinning, no ${{ }} in a run: script
 npm run merge-gate    # the required checks named in .github/required-checks.json
                       #   still exist, still run on PRs, and can still fail
+npm run protection:verify # does GitHub actually enforce them? (needs `gh`; reporting)
 npm run review:agent  # rubric review of a diff (--base <ref>); what CI runs on a PR
 npm run docs:parity   # bilingual doc pairs still state their shared facts (blocking)
 npm run commit:check  # commit-subject rules (rubric A5): --range <range> | <msgfile>
@@ -119,7 +120,23 @@ you change it.
   or gains a `continue-on-error` on a step not declared reporting-rung, so a gate
   cannot quietly become a comment. Master ships on push, so that list is enforced
   twice: as required status checks on a PR, and by `.husky/pre-push` before the
-  maintainer's own push (`docs/deploy.md` § Delivery contract).
+  maintainer's own push (`docs/deploy.md` § Delivery contract). And GitHub's half
+  is written down rather than remembered: `.github/branch-ruleset.json` is the
+  ruleset payload for the default branch, `merge-gate` fails when its contexts stop
+  matching the enumeration, and `npm run protection:verify` reads what GitHub is
+  actually enforcing — published weekly into the review's trail issue, so "is this
+  a gate or a comment?" is answerable from outside the repository.
+- **Three of these constraints are lint rules, not just prose.**
+  `eslint.config.mjs` fences the LLM chokepoint (no `GoogleGenAI` client and no
+  provider adapter outside `src/lib/llm/`), the store seam (no `firebase-admin` or
+  `node:sqlite` outside `src/lib/` — routes and components go through a store), and
+  route segment config (`export const dynamic|runtime|revalidate|fetchCache|
+  dynamicParams` under `src/app/`, which `cacheComponents` makes a whole-route
+  opt-out). All blocking, via `npm run lint` inside `check:ci`. They catch in the
+  editor what `llm-gate`, `sast` and rubric A2 catch in a diff — the fix is the
+  seam, never an `eslint-disable`. There is deliberately no Prettier or Biome
+  (ADR-0008): style is not reviewed here, so do not reformat files you are not
+  otherwise changing.
 - **Pathspec commits only** (shared checkout, concurrent agents):
   `git add <paths>` then `git commit <same paths>`. Never `-A`, never a bare
   `git commit`, never stash or reset work that is not yours.

@@ -29,6 +29,8 @@
     "actions:check": "node scripts/actions-pin.mjs",
     "actions:pin": "node scripts/actions-pin.mjs --update",
     "merge-gate": "node scripts/merge-gate.mjs",
+    "protection:check": "node scripts/branch-protection.mjs",
+    "protection:verify": "node scripts/branch-protection.mjs --verify",
     "i18n:gate": "node scripts/i18n-gate.mjs",
     "i18n:audit": "node scripts/i18n-audit.mjs",
     "i18n:audit:check": "node scripts/i18n-audit.mjs --check",
