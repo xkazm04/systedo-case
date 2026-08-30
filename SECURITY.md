@@ -125,6 +125,23 @@ deliberately non-blocking.
   not blocked — `npm run actions:pin` resolves them to SHAs, after which the
   strict mode in that script covers them too. The count of SHA-pinned references
   is ratcheted: it may rise, and a commit that lets it fall is a failure.
+- **The privileged reviewer runs the base's code, not the change's** —
+  `.github/workflows/agent-review.yml`, job `judgment`. It is the only job in the
+  repository holding a secret (`ANTHROPIC_API_KEY`) and a write scope
+  (`pull-requests: write`) at the same time, and what it reads is a diff someone
+  else wrote. So before it runs anything, its working tree is moved to the **base
+  revision in full** — `git checkout --force --detach` onto the base, then
+  `git clean -ffdx` to remove what the change added. The change stays reachable as
+  a git object and is passed as `--head`, so it reaches the reviewer as `git diff`
+  output and never as a file that `node` might load: not the reviewer script, not
+  the rubric, not `package.json` (which decides module type and the `imports` map
+  for every specifier resolved), not a `node_modules/`. On this repository that is
+  not a fork-only concern — nearly every branch is same-repo and therefore *is*
+  handed the secrets. **Asserted, not trusted**:
+  `test-unit/delivery-contract.test.mjs` fails if that job stops moving its tree
+  to the base, stops cleaning, goes back to a pathspec restore, or stops naming
+  the ref to review — and `npm run test:unit` is inside `npm run check:ci`, which
+  `.husky/pre-push` runs before master ships.
 - **What may stop a change** — `scripts/merge-gate.mjs` over
   `.github/required-checks.json`, inside `npm run check:ci`. **Blocking**: a
   check that is declared able to stop a merge must still exist, still run on pull

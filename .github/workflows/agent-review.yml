@@ -73,8 +73,14 @@ name: Agent review
 #
 # And untrusted CODE does not reach the job that holds the trust: `judgment` is
 # the only job here with both a secret and a write scope, so before it runs
-# anything it restores `scripts/` and the rubric from the BASE revision. The diff
-# under review still comes from the head; the program that reads it does not.
+# anything its WORKING TREE is moved to the BASE revision in full — every tracked
+# file checked out from the base, every file the change added removed. The change
+# enters that job only as `git diff` output, which is data. It used to restore
+# just `scripts/` and the rubric, which left the rest of the change's tree on disk
+# next to a job holding ANTHROPIC_API_KEY and `pull-requests: write` — and a tree
+# is not inert to `node`: `package.json` alone decides module type and the
+# `imports` map for every specifier the reviewer resolves. Restoring the whole
+# tree costs one extra command and removes the class rather than the instance.
 # `mechanical` needs no such treatment — it holds no secret and a read-only
 # token, and it is re-run against master by `.husky/pre-push` on the path this
 # repository actually lands changes on.
@@ -197,17 +203,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24.14.0
-
-      - name: Fetch Part A's report
-        continue-on-error: true
-        uses: actions/download-artifact@v7
-        with:
-          name: mechanical-review
-
       - name: Resolve base revision
         id: base
         env:
@@ -224,28 +219,68 @@ jobs:
           fi
           printf 'ref=%s\n' "$ref" >> "$GITHUB_OUTPUT"
 
-      # The reviewer runs from the BASE revision, not from the change.
+      # The whole working tree becomes the BASE revision. The change stays
+      # reachable as a git OBJECT (the `review-head` ref) and reaches the reviewer
+      # only through `git diff`, which is data.
       #
       # This is the only job in the repository that holds a secret
       # (ANTHROPIC_API_KEY) and a write scope (pull-requests: write) at the same
       # time, and the checkout above is the change's own tree. Running
-      # scripts/agent-review-llm.mjs straight out of it would let the thing under
+      # scripts/agent-review-llm.mjs out of that tree would let the thing under
       # review choose the program that reads it, with the key already in the
       # environment — and on this repository that is not a hypothetical fork: every
       # branch an agent pushes is same-repo, so the secrets ARE handed out.
-      # Restoring the reviewer and its rubric from the base means the diff still
-      # comes from the head while the code that reads the diff does not.
       #
-      # No `continue-on-error`: if the base has no such paths, this job stops
-      # rather than silently falling back to the change's own copy. It comments,
-      # it never blocks, so a red here costs a comment and not a release.
-      - name: Restore the reviewer from the base revision
+      # Restoring only `scripts/` and the rubric — which is what this step used to
+      # do — left the rest of the change on disk, and `node` does not treat a tree
+      # as inert: the nearest `package.json` decides module type and supplies the
+      # `imports` map used to resolve every specifier the reviewer loads, a
+      # `node_modules/` sits on the resolution path, and any file the reviewer
+      # happens to read is the change's. Checking the base out over everything and
+      # removing what the change added costs one more command and closes the class
+      # instead of the instance.
+      #
+      # `--force`/`-ff` because the point is that nothing from the head survives,
+      # and `-x` because at this point in the job an ignored file can only have
+      # arrived with the change (no npm ci has run). No `continue-on-error`: if
+      # this cannot complete, the job stops rather than falling through to the
+      # change's own tree. It comments, it never blocks, so a red here costs a
+      # comment and not a release.
+      #
+      # `review-head` is whatever the checkout above resolved — the pushed commit,
+      # or a pull request's merge commit — so both halves of the review judge the
+      # identical artifact. It is recorded BEFORE the tree moves, and read back
+      # from an `env:` binding rather than from `github.event.*`, which is a
+      # context a fork writes.
+      - name: Move the working tree to the base revision
+        id: head
         env:
           BASE_REF: ${{ steps.base.outputs.ref }}
-        run: git checkout "$BASE_REF" -- scripts .github/agent-review-rubric.md
+        run: |
+          head="$(git rev-parse HEAD)"
+          git branch --force review-head "$head"
+          git checkout --force --detach "$BASE_REF"
+          git clean -ffdx
+          printf 'ref=%s\n' "$head" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.14.0
+
+      # After the tree is base, so `git clean` above cannot take the report with it.
+      - name: Fetch Part A's report
+        continue-on-error: true
+        uses: actions/download-artifact@v7
+        with:
+          name: mechanical-review
 
       # Comment-only, and only with a key. On a fork's pull request GitHub hands
       # out no secrets at all, so this step self-skips there and Part A still ran.
+      #
+      # `--head` is not optional here: the working tree is the base now, so the
+      # reviewer would otherwise diff the base against itself and find nothing to
+      # say. It names the ref the step above parked the change on.
       #
       # Without a key it does NOT go silent: Part A's own report is posted as the
       # comment instead. A review whose only trace on a pull request is a red tick
@@ -257,6 +292,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ github.token }}
           BASE_REF: ${{ steps.base.outputs.ref }}
+          HEAD_REF: ${{ steps.head.outputs.ref }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           if [ -z "$ANTHROPIC_API_KEY" ]; then
@@ -268,6 +304,7 @@ jobs:
             exit 0
           fi
           set -- --base "$BASE_REF" \
+                 --head "$HEAD_REF" \
                  --mechanical mechanical.md \
                  --summary "$GITHUB_STEP_SUMMARY"
           if [ -n "$PR_NUMBER" ]; then

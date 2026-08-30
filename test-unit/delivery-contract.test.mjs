@@ -169,6 +169,47 @@ test("a pull request always gets the review as a comment, key or no key", () => 
   );
 });
 
+test("the job holding the key and the write token never has the change on disk", () => {
+  // `judgment` is the only job in the repository with a secret and a write scope
+  // at the same time. On this repository every branch an agent pushes is
+  // same-repo, so the secrets ARE handed to it — which makes "what code does that
+  // job execute?" the load-bearing question, and the answer has to be "the base's,
+  // all of it". Restoring only `scripts/` and the rubric was not enough: `node`
+  // reads the nearest package.json for the module type and the `imports` map, and
+  // resolves through whatever node_modules is on disk.
+  assert.match(
+    reviewJudgment,
+    /git checkout --force --detach "\$BASE_REF"/,
+    "the judgment job no longer moves its whole working tree to the base revision, so the change's own files sit " +
+      "next to ANTHROPIC_API_KEY and `pull-requests: write`."
+  );
+  assert.match(
+    reviewJudgment,
+    /git clean -ffdx/,
+    "files the change ADDED survive the base checkout — they are untracked at the base, so only a clean removes " +
+      "them, and a file the change added is exactly the shape this is defending against."
+  );
+  assert.doesNotMatch(
+    reviewJudgment,
+    /git checkout "\$BASE_REF" -- /,
+    "the partial restore is back: a pathspec checkout leaves the rest of the change's tree in place."
+  );
+  // With the tree at the base, HEAD *is* the base — the ref to review has to be
+  // named, or the reviewer diffs the base against itself and comments nothing.
+  assert.match(
+    reviewJudgment,
+    /--head "\$HEAD_REF"/,
+    "the judgment job stopped naming the ref to review, so Part B now diffs the base against itself and finds " +
+      "nothing to say — a silent no-op, not a failure."
+  );
+  assert.match(
+    read("scripts/agent-review-llm.mjs"),
+    /arg\("--head"\)/,
+    "scripts/agent-review-llm.mjs no longer accepts --head, so the workflow's ref is ignored and the review is " +
+      "empty."
+  );
+});
+
 test("what the review has caught over time is answerable without re-running it", () => {
   assert.ok(
     existsSync(join(ROOT, "scripts/agent-review-history.mjs")),

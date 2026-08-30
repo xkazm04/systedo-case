@@ -16,9 +16,17 @@
  *  marketplace action would be a third-party dependency in a workflow that reads
  *  the diff of a repository holding live ad-platform credentials.
  *
+ *  `--head` exists because of where this runs. The workflow's `judgment` job is
+ *  the only place in the repository holding a model key and `pull-requests: write`
+ *  at once, so it moves its working tree to the BASE revision and keeps the change
+ *  reachable as a git object instead — the change reaches this script as `git diff`
+ *  output, never as files it might load. Then HEAD is the base, and the ref to
+ *  diff against has to be named. Defaults to `HEAD`, which is what a local
+ *  `npm run review:agent`-style invocation wants.
+ *
  *  Usage:
  *    ANTHROPIC_API_KEY=… node scripts/agent-review-llm.mjs \
- *        [--base <ref>] [--mechanical <file>] [--summary <file>] [--pr <number>]
+ *        [--base <ref>] [--head <ref>] [--mechanical <file>] [--summary <file>] [--pr <number>]
  */
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -60,8 +68,13 @@ if (!git(["rev-parse", "--verify", "--quiet", `${BASE}^{commit}`])) {
   console.log(`agent review (model): base ${BASE} does not resolve — skipping.`);
   process.exit(0);
 }
+const HEAD = arg("--head") || process.env.AGENT_REVIEW_HEAD || "HEAD";
+if (!git(["rev-parse", "--verify", "--quiet", `${HEAD}^{commit}`])) {
+  console.log(`agent review (model): head ${HEAD} does not resolve — skipping.`);
+  process.exit(0);
+}
 
-let diff = git(["diff", `${BASE}...HEAD`]) ?? "";
+let diff = git(["diff", `${BASE}...${HEAD}`]) ?? "";
 if (!diff.trim()) {
   console.log(`agent review (model): no changes against ${BASE}.`);
   process.exit(0);
@@ -74,7 +87,7 @@ if (diff.length > MAX_DIFF_CHARS) {
 
 const rubric = existsSync(RUBRIC) ? readFileSync(RUBRIC, "utf8") : "";
 const mechanical = MECHANICAL && existsSync(MECHANICAL) ? readFileSync(MECHANICAL, "utf8") : "";
-const messages = git(["log", "--format=%B%n---", `${BASE}..HEAD`]) ?? "";
+const messages = git(["log", "--format=%B%n---", `${BASE}..${HEAD}`]) ?? "";
 
 const system = [
   "You are reviewing a diff in Adamant, an adtech marketing-automation product that holds live",
