@@ -5,8 +5,16 @@
 import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { apiError, readJson, trimmedString } from "@/lib/api/route-utils";
 import { getContact, listActivities } from "@/lib/leads/store";
-import { changeStage, eraseContact, patchContact } from "@/lib/leads/mutate";
-import { isLostReason, isPipelineStage, isErased } from "@/lib/leads/types";
+import { changeConsent, changeStage, eraseContact, patchContact } from "@/lib/leads/mutate";
+import {
+  CONSENT_PURPOSES,
+  LAWFUL_BASES,
+  isLostReason,
+  isPipelineStage,
+  isErased,
+  type ConsentPurpose,
+  type LawfulBasis,
+} from "@/lib/leads/types";
 
 const TIMELINE_LIMIT = 200;
 
@@ -68,6 +76,39 @@ export async function PATCH(
       project.id,
       contact,
       { to: stage, ...(reason ? { reason } : {}), note: trimmedString(body.note) || undefined, actorId: uid },
+      now
+    );
+  }
+
+  // WP S2 — the CONSENT decision. Its own key rather than a field edit, because it is
+  // append-only history with a lawful basis, not a mutable property — and because it
+  // is what lets the twin's `consentRequired` delivery gate ever open. Both the
+  // purpose and the basis are checked against their closed unions: a typo'd purpose
+  // would write a record that no `mayContact` lookup will ever find, which reads as a
+  // grant to the operator and refuses forever in practice.
+  if (body.consent !== undefined) {
+    const c = (body.consent ?? {}) as Record<string, unknown>;
+    const purpose = trimmedString(c.purpose);
+    const basis = trimmedString(c.basis) || "consent";
+    if (!(CONSENT_PURPOSES as readonly string[]).includes(purpose)) {
+      return apiError(422, "Neznámý účel souhlasu.", "invalid-type", { envelope: "ok" });
+    }
+    if (!(LAWFUL_BASES as readonly string[]).includes(basis)) {
+      return apiError(422, "Neznámý právní základ.", "invalid-type", { envelope: "ok" });
+    }
+    if (typeof c.granted !== "boolean") {
+      return apiError(422, "Pole „granted“ musí být true/false.", "invalid-type", { envelope: "ok" });
+    }
+    contact = await changeConsent(
+      project.id,
+      contact,
+      {
+        purpose: purpose as ConsentPurpose,
+        basis: basis as LawfulBasis,
+        granted: c.granted,
+        ...(trimmedString(c.evidenceText) ? { evidenceText: trimmedString(c.evidenceText) } : {}),
+        actorId: uid,
+      },
       now
     );
   }

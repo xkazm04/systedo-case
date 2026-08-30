@@ -20,11 +20,14 @@ import type { PublishingCalendar } from "@/lib/publishing/types";
 const T = {
   cs: {
     label: "tento týden {n}/{cap}",
-    hint: "Týdenní limit kadence z Kanálů. Vynucuje se při plánování příspěvků.",
+    // WP S2 — the cap used to be enforced only when a post was SCHEDULED. The twin's
+    // delivery claim now counts and refuses sends against a per-channel weekly cap of
+    // its own, so the pill says where the limit actually bites.
+    hint: "Týdenní limit kadence z Kanálů. Vynucuje se při plánování i při odeslání.",
   },
   en: {
     label: "this week {n}/{cap}",
-    hint: "The weekly cadence cap from Channels. Enforced when scheduling posts.",
+    hint: "The weekly cadence cap from Channels. Enforced when scheduling and when sending.",
   },
 } as const;
 

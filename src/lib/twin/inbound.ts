@@ -23,7 +23,7 @@
  *  the original rule's purpose (drop an empty shell) while admitting the message that
  *  has not been answered yet. Both halves are pinned in test-unit/twin-inbound. */
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-import { isTwinChannel, type TwinChannel, type TwinDraft, type TwinState } from "./types";
+import { isEmailShaped, isTwinChannel, type TwinChannel, type TwinDraft, type TwinState } from "./types";
 import { INBOUND_ID_PREFIX, isInboundDraft } from "./inbound-id";
 
 /* -------------------------------------------------------------------------- */
@@ -38,6 +38,10 @@ export interface InboundMessage {
   contact: { name?: string; handle?: string };
   inbound: string;
   channel: TwinChannel;
+  /** WP S2 — the REPLY-TO address, when the wire shape carries one. Only the mail
+   *  flavour does: a Meta mid and a GBP review name are not addresses, and inventing
+   *  one from a display handle is how a reply gets mailed to "Jana N.". */
+  to?: string;
 }
 
 /** Hard clamp on a stored inbound body. Long enough for a real review or e-mail,
@@ -86,6 +90,24 @@ export function stripInboundText(v: unknown, max: number = INBOUND_TEXT_MAX): st
 /** A short label (a name, a handle, an e-mail address) — same hygiene, tighter clamp. */
 function label(v: unknown): string {
   return stripInboundText(v, CONTACT_MAX).replace(/\n+/g, " ").trim();
+}
+
+/** WP S2 — the REPLY-TO address out of a `from` field, or "" when there isn't one.
+ *
+ *  Handles the two shapes a forwarder actually sends: a bare `jana@example.cz` and
+ *  the RFC-5322 `Jana N. <jana@example.cz>`. Note it must NOT go through
+ *  `stripInboundText`, which deletes everything between angle brackets and would
+ *  turn the second shape into a name — the exact value we are here to avoid storing.
+ *  Anything that is not address-shaped after extraction yields "", so the draft ends
+ *  up address-less and the delivery gate refuses it loudly rather than mailing a
+ *  display name. */
+export function replyToAddress(v: unknown): string {
+  if (typeof v !== "string") return "";
+  // Control characters only — they would corrupt a log line or a header echo.
+  const raw = [...v].filter((ch) => ch.charCodeAt(0) > 31 && ch.charCodeAt(0) !== 127).join("").trim().slice(0, 400);
+  const angled = /<([^<>]+)>/.exec(raw);
+  const candidate = (angled ? angled[1] : raw).trim().slice(0, 320);
+  return isEmailShaped(candidate) ? candidate : "";
 }
 
 /** A provider-side IDENTIFIER (a Graph mid, an RFC-5322 Message-ID, a GBP resource
@@ -176,11 +198,15 @@ function normalizeEmail(channel: TwinChannel, raw: unknown): InboundMessage[] {
     const text = body([stripInboundText(m.subject), stripInboundText(m.text ?? m.body)]);
     if (!text) continue;
     const id = m.messageId ?? m.message_id ?? m.id;
+    // WP S2 — `replyTo` wins over `from` when a forwarder sets both (that is what the
+    // header is for). Anything not address-shaped yields "" and no `to` is stored.
+    const to = replyToAddress(m.replyTo ?? m.reply_to ?? m.from ?? m.email);
     out.push({
       ...(typeof id === "string" && id ? { externalId: identifier(id) } : {}),
       contact: contactOf(m.fromName ?? m.name, m.from ?? m.email),
       inbound: text,
       channel,
+      ...(to ? { to } : {}),
     });
   }
   return out;
@@ -278,6 +304,10 @@ export function buildInboundDraft(msg: InboundMessage, id: string, createdAt: st
     risks: ["inbound"],
     status: "pending",
     autoApproved: false,
+    // WP S2 — the reply address, when the wire carried one. Only ever an address the
+    // sanitizer would accept; a draft without it can be read and answered by a human
+    // but can never be DELIVERED by a connector that transmits (see twin/deliver).
+    ...(msg.to ? { to: msg.to } : {}),
     createdAt,
   };
 }

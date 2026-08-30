@@ -13,10 +13,11 @@ import { useRouter } from "next/navigation";
 import { Button, Pill } from "@/components/ui";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { sourceLabel } from "@/lib/leads/aggregate";
-import { consentInForce, CONSENT_PURPOSES, isErased, type Activity, type Contact } from "@/lib/leads/types";
+import { isErased, type Activity, type Contact } from "@/lib/leads/types";
 import { seedTwinReply, schrankaHref } from "./handoff";
 import { STAGE_T, STAGE_TONE } from "./copy";
 import LeadStageControl from "./LeadStageControl";
+import ConsentControl from "./ConsentControl";
 
 const T = {
   cs: {
@@ -29,13 +30,6 @@ const T = {
     score: "Fit {fit} · Zájem {eng} · {grade}",
     firstSeen: "První kontakt", lastActivity: "Poslední aktivita", source: "Zdroj",
     campaign: "Kampaň", owner: "Vlastník", tags: "Štítky", notes: "Poznámka", none: "—",
-    consentNone: "Nezaznamenán žádný souhlas. Bez záznamu marketingovou zprávu neposílejte — § 7 zák. 480/2004 Sb.",
-    granted: "Uděleno", denied: "Neuděleno",
-    basis: "právní základ: {basis}", origin: "zdroj: {origin}",
-    purpose_service: "Odpověď na poptávku",
-    purpose_marketing_email: "Marketing e-mailem",
-    purpose_marketing_sms: "Marketing SMS",
-    purpose_profiling: "Profilování",
     reply: "Odpovědět dvojníkem",
     loading: "Načítám…",
   },
@@ -49,13 +43,6 @@ const T = {
     score: "Fit {fit} · Engagement {eng} · {grade}",
     firstSeen: "First seen", lastActivity: "Last activity", source: "Source",
     campaign: "Campaign", owner: "Owner", tags: "Tags", notes: "Note", none: "—",
-    consentNone: "No consent on record. Do not send a marketing message without one — Czech Act 480/2004 Coll., § 7.",
-    granted: "Granted", denied: "Not granted",
-    basis: "lawful basis: {basis}", origin: "origin: {origin}",
-    purpose_service: "Answering the enquiry",
-    purpose_marketing_email: "Email marketing",
-    purpose_marketing_sms: "SMS marketing",
-    purpose_profiling: "Profiling",
     reply: "Reply with the twin",
     loading: "Loading…",
   },
@@ -193,28 +180,10 @@ export default function LeadDetail({
           </dl>
         )}
 
-        {tab === "consent" &&
-          (contact.consent.length === 0 ? (
-            <p className="text-sm leading-relaxed text-muted">{t("consentNone")}</p>
-          ) : (
-            <ul className="space-y-3">
-              {CONSENT_PURPOSES.map((p) => {
-                const rec = consentInForce(contact.consent, p);
-                if (!rec) return null;
-                return (
-                  <li key={p} className="text-xs">
-                    <span className="font-medium text-navy-800">{t(`purpose_${p}` as const)}</span>{" "}
-                    <Pill tone={rec.granted ? "positive" : "negative"}>
-                      {rec.granted ? t("granted") : t("denied")}
-                    </Pill>
-                    <p className="mt-0.5 text-muted">
-                      {t("basis", { basis: rec.basis })} · {t("origin", { origin: rec.origin })}
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
-          ))}
+        {/* WP S2 — the consent tab now WRITES as well as reads: the twin's delivery
+            gate fails closed, so recording a grant is what lets a gated channel ever
+            send. The whole pane (list + grant/withdraw) lives in ConsentControl. */}
+        {tab === "consent" && <ConsentControl projectId={projectId} contact={contact} live={live && !isSample} />}
       </div>
 
       {!erased && (

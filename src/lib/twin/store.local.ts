@@ -69,3 +69,18 @@ export async function saveTwin(projectId: string, state: TwinState): Promise<voi
 export async function clearTwin(projectId: string): Promise<void> {
   getDb().prepare("DELETE FROM twin WHERE project_id = ?").run(projectId);
 }
+
+/** WP S2 — the (owner, project) work list for the `twin-dispatch` ledger step. The
+ *  twin table is project-keyed; `projects` is where the owner lives, so the join is
+ *  one statement here rather than an owner column on every twin row (the
+ *  `listConversionTenants` precedent). Parameterised, never interpolated. */
+export async function listTwinTenants(limit = 500): Promise<{ userId: string; projectId: string }[]> {
+  const rows = getDb()
+    .prepare(
+      `SELECT t.project_id AS project_id, p.user_id AS user_id
+       FROM twin t JOIN projects p ON p.id = t.project_id
+       ORDER BY t.project_id ASC LIMIT ?`
+    )
+    .all(limit) as unknown as Array<{ project_id: string; user_id: string }>;
+  return rows.map((r) => ({ userId: r.user_id, projectId: r.project_id }));
+}

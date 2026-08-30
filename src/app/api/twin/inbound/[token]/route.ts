@@ -35,11 +35,15 @@ import { mutateTwin } from "@/lib/twin/store";
 import { verifyOutboundSignature, MAX_PAYLOAD_BYTES } from "@/lib/outbound/types";
 import {
   applyInboundToState,
+  inboundDraftId,
   metaVerifyToken,
   normalizeInbound,
   safeEqual,
   verifyMetaSignature,
+  type InboundMessage,
 } from "@/lib/twin/inbound";
+import { contactKeys } from "@/lib/leads/normalize";
+import { findContactByKeys } from "@/lib/leads/store";
 
 /** Hard cap on the accepted body — the outbound bus's own `MAX_PAYLOAD_BYTES` (64 KB).
  *  A page webhook batch is a few kilobytes; anything larger is not a message. */
@@ -121,9 +125,51 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     return Response.json({ ok: false, error: "storage-unavailable" }, { status: 500 });
   }
 
+  // WP S2 — best-effort CRM join, strictly AFTER the intake write and strictly
+  // non-blocking. It reads the lead store to see whether the address that just wrote
+  // to us is already a known contact, and stamps `contactId` on the draft if so. That
+  // stamp is what makes the twin's consent gate answerable at all: without it the gate
+  // has nobody to look up and (when consent is required) refuses.
+  //
+  // Everything about it degrades to "no stamp": a CRM outage, an unmatched address, a
+  // second write that loses a race. That is correct — an unstamped draft is refused by
+  // the delivery gate rather than sent, so a failure here can only ever be MORE
+  // conservative, never less.
+  if (accepted > 0) await joinContacts(row.projectId, messages, raw);
+
   // A payload we could not make sense of is `accepted: 0`, not an error: a webhook that
   // gets a 4xx retries forever, and a shape we do not read will never start parsing.
   return Response.json({ ok: true, accepted, duplicates });
+}
+
+/** How many CRM lookups one intake POST may make. A batch is capped at 50 messages;
+ *  ten lookups is plenty for a real forwarder batch and bounds the work a caller can
+ *  cause with one signed request. */
+const CONTACT_JOIN_MAX = 10;
+
+async function joinContacts(projectId: string, messages: readonly InboundMessage[], raw: string): Promise<void> {
+  try {
+    const pairs: Array<{ draftId: string; contactId: string }> = [];
+    for (const msg of messages.filter((m) => m.to).slice(0, CONTACT_JOIN_MAX)) {
+      const contact = await findContactByKeys(projectId, contactKeys({ email: msg.to }));
+      if (contact) pairs.push({ draftId: inboundDraftId(msg, raw), contactId: contact.id });
+    }
+    if (pairs.length === 0) return;
+    const byDraft = new Map(pairs.map((p) => [p.draftId, p.contactId]));
+    await mutateTwin(projectId, (prev) => {
+      if (!prev) throw new Error("twin vanished between intake and contact join");
+      return {
+        ...prev,
+        // Assign, never increment — the mutator may re-run inside the transaction. An
+        // existing stamp is never overwritten: a human's correction outranks a match.
+        drafts: prev.drafts.map((d) =>
+          !d.contactId && byDraft.has(d.id) ? { ...d, contactId: byDraft.get(d.id) } : d
+        ),
+      };
+    });
+  } catch (err) {
+    console.error("[twin] inbound contact join failed (non-fatal):", err instanceof Error ? err.message : err);
+  }
 }
 
 /** Either signature flavour, both over the RAW body.

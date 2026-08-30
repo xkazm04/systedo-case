@@ -89,9 +89,35 @@ export interface TwinChannelConfig {
   connector: string;
   /** confidence (0–100) an `auto` draft must clear to self-approve */
   autoThreshold: number;
+  /** WP S2 — how many messages may LEAVE on this channel in one ISO week.
+   *  `undefined` = uncapped. Counted inside the delivery claim (see ./deliver), so
+   *  two concurrent sends cannot both pass a cap of 1. This caps SENDS; it is not a
+   *  drafting cadence (the twin still only answers, it never initiates). */
+  maxPerWeek?: number;
+  /** WP S2 — require a recorded, in-force CRM consent for this channel's purpose
+   *  before anything is delivered. Fails CLOSED: no linked contact, no record, or an
+   *  unreadable store all refuse. Defaults per channel (see
+   *  {@link defaultConsentRequired}) when a stored blob predates the field. */
+  consentRequired?: boolean;
 }
 
 export const DEFAULT_AUTO_THRESHOLD = 80;
+
+/** Bounds on {@link TwinChannelConfig.maxPerWeek}. One is the strictest cap that
+ *  still means "send"; 500/week is far past any human review loop, so anything
+ *  larger is a typo rather than an intention. */
+export const MIN_MAX_PER_WEEK = 1;
+export const MAX_MAX_PER_WEEK = 500;
+
+/** The channels whose messages are MARKETING by default under Czech/EU rules — an
+ *  SMS or a WhatsApp message to a person is direct marketing unless it is plainly a
+ *  service reply, and the safe default is to demand a recorded consent. The rest
+ *  (a reply to an enquiry, a chat answer, a review response) are service
+ *  communication and default to no consent gate; an operator can still switch one on
+ *  per channel. Pure so the sanitizer, the UI and the delivery gate share one rule. */
+export function defaultConsentRequired(channel: TwinChannel): boolean {
+  return channel === "sms" || channel === "whatsapp";
+}
 
 /** How far below a channel's confidence bar (`autoThreshold`) a draft may still sit and
  *  read as "close" (coral) rather than "well short" (red) on the outbox confidence meter. */
@@ -167,6 +193,15 @@ export interface TwinDraft {
   status: DraftStatus;
   /** true when `auto` mode approved this without a human */
   autoApproved: boolean;
+  /** WP S2 — the DELIVERY address (an e-mail address for the email/leads channels).
+   *  `contact` is a display label (a name or a handle) and has always been allowed to
+   *  be one; a connector that puts a message on a wire needs an addressable string,
+   *  and sending to a name is the failure this field exists to make impossible. */
+  to?: string;
+  /** WP S2 — the CRM contact this conversation belongs to, when the intake could
+   *  match one. It is what makes a consent gate answerable at all: without it the
+   *  delivery gate has nothing to look up, and (consent required) therefore refuses. */
+  contactId?: string;
   rejectReason?: RejectReason;
   rejectNote?: string;
   createdAt: string;
@@ -212,6 +247,7 @@ export function channelConfig(channels: TwinChannelConfig[], channel: TwinChanne
       autonomy: "assist",
       connector: "manual",
       autoThreshold: DEFAULT_AUTO_THRESHOLD,
+      consentRequired: defaultConsentRequired(channel),
     }
   );
 }
@@ -245,6 +281,48 @@ export function decideDraft(
   const clears =
     cfg.enabled && cfg.autonomy === "auto" && draft.confidence >= cfg.autoThreshold && draft.risks.length === 0;
   return clears ? { status: "approved", autoApproved: true } : { status: "pending", autoApproved: false };
+}
+
+/* ── the DELIVERY gate (WP S2) ────────────────────────────────────────────────── */
+
+/** Why a draft may not leave the building. Distinct from {@link DraftGateVerdict}
+ *  (may the twin WRITE here) and from {@link decideDraft} (may this draft skip a
+ *  human) — this is the last gate, and the only one behind which a real message
+ *  goes out. */
+export type DeliveryRefusal = "disabled" | "connector-unconfigured" | "cap-exceeded" | "consent-required";
+
+export type DeliveryVerdict = { allowed: true } | { allowed: false; reason: DeliveryRefusal };
+
+/** May THIS draft be delivered right now?
+ *
+ *  Pure, and deliberately separate from `decideDraft`: approval is a judgement about
+ *  the TEXT, delivery is a judgement about the ACT — a draft a human approved last
+ *  week must still be refused today if the channel was switched off, the weekly cap
+ *  is full, or the recipient's consent was withdrawn in between.
+ *
+ *  Everything here FAILS CLOSED. `consentOk: null` means "we could not establish a
+ *  consent" (no linked contact, no record, an unreadable store) and is refused
+ *  exactly like an explicit `false` — an absent record has never been a permission
+ *  (`mayContact`, lib/leads/types). Same for a draft handed to the wrong channel's
+ *  config: that is a caller bug, and the safe reading of a caller bug on a send path
+ *  is "do not send".
+ *
+ *  Order matters only for the message the operator reads; every branch refuses. */
+export function decideDelivery(
+  cfg: TwinChannelConfig,
+  draft: Pick<TwinDraft, "channel">,
+  ctx: { sentThisWeek: number; consentOk: boolean | null; connectorConfigured: boolean }
+): DeliveryVerdict {
+  // A draft judged against another channel's config is not a judgement at all.
+  if (draft.channel !== cfg.channel) return { allowed: false, reason: "disabled" };
+  if (!cfg.enabled) return { allowed: false, reason: "disabled" };
+  if (!ctx.connectorConfigured) return { allowed: false, reason: "connector-unconfigured" };
+  if (typeof cfg.maxPerWeek === "number" && cfg.maxPerWeek > 0 && ctx.sentThisWeek >= cfg.maxPerWeek) {
+    return { allowed: false, reason: "cap-exceeded" };
+  }
+  const consentRequired = cfg.consentRequired ?? defaultConsentRequired(cfg.channel);
+  if (consentRequired && ctx.consentOk !== true) return { allowed: false, reason: "consent-required" };
+  return { allowed: true };
 }
 
 /** True for a draft in a terminal lifecycle state — past the autonomy gate's reach and
@@ -491,7 +569,29 @@ export function sanitizeChannelConfig(raw: unknown): TwinChannelConfig | null {
     // is env-dependent, so it can't live in this client-imported module.
     connector: str(o.connector, 40) || "manual",
     autoThreshold: clamp(o.autoThreshold, 50, 100, DEFAULT_AUTO_THRESHOLD),
+    // WP S2 — both optional and both BACKWARD-COMPATIBLE by construction: a stored
+    // blob written before these existed reads as uncapped (`maxPerWeek` absent) and
+    // consent-per-channel-default, which is what the delivery gate assumes anyway.
+    // A junk/0/negative cap is dropped rather than clamped to 1 — silently turning
+    // "no cap" into "one a week" would refuse sends the operator never limited.
+    ...(typeof o.maxPerWeek === "number" && Number.isFinite(o.maxPerWeek) && o.maxPerWeek >= MIN_MAX_PER_WEEK
+      ? { maxPerWeek: Math.min(MAX_MAX_PER_WEEK, Math.floor(o.maxPerWeek)) }
+      : {}),
+    consentRequired: typeof o.consentRequired === "boolean" ? o.consentRequired : defaultConsentRequired(o.channel),
   };
+}
+
+/** Loosest possible shape check for a delivery address: exactly one `@`, something
+ *  on both sides, no whitespace. Not RFC 5322 — the point is only to refuse a NAME
+ *  ("Jana N.") before it reaches a mail API, which is the failure `to` exists to
+ *  prevent. A genuinely odd but valid address is the connector's problem, not ours. */
+export function isEmailShaped(v: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+}
+
+/** Which channels deliver over an address rather than a platform handle. */
+function addressedChannel(channel: TwinChannel): boolean {
+  return channel === "email" || channel === "leads";
 }
 
 function sanitizeFact(raw: unknown, i: number): TwinStyleFact | null {
@@ -539,7 +639,18 @@ function sanitizeDraft(raw: unknown, i: number): TwinDraft | null {
   const rejectReason = (REJECT_REASONS as readonly string[]).includes(o.rejectReason as string)
     ? (o.rejectReason as RejectReason)
     : undefined;
-  const draft: TwinDraft = {
+  // WP S2 — the delivery address. On an ADDRESSED channel (email/leads) a value that
+  // is not address-shaped is DROPPED rather than stored: a stored name would read as
+  // "we have somewhere to send this" and the gate would let it through to a mail API.
+  // Dropping it leaves the draft address-less, which the delivery path refuses loudly.
+  const toRaw = str(o.to, 320);
+  const to = toRaw && (!addressedChannel(o.channel) || isEmailShaped(toRaw)) ? toRaw : "";
+  const contactId = str(o.contactId, 60);
+  const note = str(o.rejectNote, 400);
+  // Every optional field rides a conditional spread rather than a post-hoc assignment,
+  // so `sentAt` is ASSIGNED in exactly one function in this repo (twin/deliver.ts's
+  // mint) and the grep that proves it stays honest. Key order is unchanged.
+  return {
     id: str(o.id, 60) || `d${i}`,
     channel: o.channel,
     contact: str(o.contact, 120),
@@ -550,14 +661,14 @@ function sanitizeDraft(raw: unknown, i: number): TwinDraft | null {
     risks: strList(o.risks, 5, 300),
     status,
     autoApproved: o.autoApproved === true,
+    ...(to ? { to } : {}),
+    ...(contactId ? { contactId } : {}),
     createdAt: iso(o.createdAt),
+    ...(rejectReason ? { rejectReason } : {}),
+    ...(note ? { rejectNote: note } : {}),
+    ...(typeof o.decidedAt === "string" ? { decidedAt: iso(o.decidedAt) } : {}),
+    ...(typeof o.sentAt === "string" ? { sentAt: iso(o.sentAt) } : {}),
   };
-  if (rejectReason) draft.rejectReason = rejectReason;
-  const note = str(o.rejectNote, 400);
-  if (note) draft.rejectNote = note;
-  if (typeof o.decidedAt === "string") draft.decidedAt = iso(o.decidedAt);
-  if (typeof o.sentAt === "string") draft.sentAt = iso(o.sentAt);
-  return draft;
 }
 
 /** One voice per scope — a duplicate scope would make `resolveVoice` order-dependent. */

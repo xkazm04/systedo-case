@@ -58,3 +58,30 @@ export async function saveTwin(projectId: string, state: TwinState): Promise<voi
 export async function clearTwin(projectId: string): Promise<void> {
   await twinDoc(projectId).delete();
 }
+
+/** WP S2 — the (owner, project) work list for the `twin-dispatch` ledger step.
+ *
+ *  Two reads rather than an owner field on every twin doc: the first names the
+ *  projects that actually HAVE a twin, the second maps a project back to the user
+ *  whose subcollection it lives in (`users/{uid}/projects/{pid}`). A project whose
+ *  doc is gone (a mid-delete race) drops out of the work list rather than being
+ *  dispatched under a guessed owner. Mirrors `listConversionTenants` exactly. */
+export async function listTwinTenants(limit = 500): Promise<{ userId: string; projectId: string }[]> {
+  const twins = await firestore.collection("twins").select().limit(limit).get();
+  const projectIds = twins.docs.map((d) => d.id).sort();
+  if (projectIds.length === 0) return [];
+
+  const owners = new Map<string, string>();
+  const projects = await firestore.collectionGroup("projects").select().get();
+  for (const doc of projects.docs) {
+    const uid = doc.ref.parent.parent?.id;
+    if (uid) owners.set(doc.id, uid);
+  }
+
+  const out: { userId: string; projectId: string }[] = [];
+  for (const projectId of projectIds) {
+    const userId = owners.get(projectId);
+    if (userId) out.push({ userId, projectId });
+  }
+  return out;
+}

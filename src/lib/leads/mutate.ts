@@ -9,13 +9,17 @@ import "server-only";
 import {
   clampTags,
   clampText,
+  consentInForce,
   EMAIL_MAX,
   NAME_MAX,
   NOTE_MAX,
   PHONE_MAX,
   isTerminalStage,
   type Activity,
+  type ConsentPurpose,
+  type ConsentRecord,
   type Contact,
+  type LawfulBasis,
   type LostReason,
   type PipelineStage,
 } from "./types";
@@ -179,6 +183,99 @@ export async function patchContact(
     summary: changed.join(", "),
   });
   return next;
+}
+
+/* ── consent (WP S2) ─────────────────────────────────────────────────────────── */
+
+/** The longest piece of evidence text we store — the exact wording the person was
+ *  shown. Long enough for a real consent paragraph, bounded like every other field. */
+export const EVIDENCE_MAX = 2_000;
+
+export interface ConsentChangeInput {
+  purpose: ConsentPurpose;
+  granted: boolean;
+  basis: LawfulBasis;
+  /** the exact wording shown to the person, or how it was obtained — the evidence */
+  evidenceText?: string;
+  /** where it was captured; defaults to "operator" (someone typed it in the CRM) */
+  origin?: string;
+  actorId?: string;
+}
+
+/** WP S2 — RECORD A CONSENT DECISION. This is the path that lets the twin's delivery
+ *  gate ever OPEN: `mayContact` fails closed, so without a way to write a grant, a
+ *  `consentRequired` channel could never send at all.
+ *
+ *  APPEND-ONLY, and that is a legal property rather than a style choice: consent has
+ *  to be provable at a point in time, so nothing here rewrites an existing record.
+ *   • A GRANT appends a new `ConsentRecord`.
+ *   • A WITHDRAWAL stamps `withdrawnAt` on the record currently in force for that
+ *     purpose AND appends a `granted: false` record. The stamp is what makes
+ *     `consentInForce` stop returning it; the appended row is what makes the
+ *     withdrawal itself visible in the history rather than inferable from an absence.
+ *  A `consent_change` activity is appended either way — a consent decision nobody can
+ *  see in the timeline is a consent decision nobody can defend. */
+export async function changeConsent(
+  projectId: string,
+  contact: Contact,
+  input: ConsentChangeInput,
+  now: Date = new Date()
+): Promise<Contact> {
+  const nowIso = now.toISOString();
+  const evidenceText = clampText(input.evidenceText, EVIDENCE_MAX);
+  const record: ConsentRecord = {
+    purpose: input.purpose,
+    granted: input.granted,
+    basis: input.basis,
+    at: nowIso,
+    origin: clampText(input.origin, NAME_MAX) ?? "operator",
+    ...(evidenceText ? { evidenceText } : {}),
+  };
+
+  const previous = input.granted ? null : consentInForce(contact.consent, input.purpose);
+  const consent: ConsentRecord[] = [
+    ...contact.consent.map((r) =>
+      previous && r === previous ? { ...r, withdrawnAt: nowIso } : r
+    ),
+    record,
+  ];
+
+  const next: Contact = { ...contact, consent, lastActivityAt: nowIso, updatedAt: nowIso };
+  await saveContact(projectId, next);
+  await appendActivity(projectId, contact.id, {
+    id: newLeadId("cc"),
+    at: nowIso,
+    kind: "consent_change",
+    actor: { type: "user", ...(input.actorId ? { id: input.actorId } : {}) },
+    summary: `${input.granted ? "Souhlas udělen" : "Souhlas odvolán"}: ${input.purpose}`,
+    ...(evidenceText ? { body: evidenceText } : {}),
+    refs: { purpose: input.purpose, basis: input.basis, granted: String(input.granted) },
+  });
+  return next;
+}
+
+/** Sugar for the two directions, so a caller reads as what it does. */
+export function grantConsent(
+  projectId: string,
+  contact: Contact,
+  input: Omit<ConsentChangeInput, "granted">,
+  now?: Date
+): Promise<Contact> {
+  return changeConsent(projectId, contact, { ...input, granted: true }, now);
+}
+
+export function withdrawConsent(
+  projectId: string,
+  contact: Contact,
+  input: Omit<ConsentChangeInput, "granted" | "basis"> & { basis?: LawfulBasis },
+  now?: Date
+): Promise<Contact> {
+  return changeConsent(
+    projectId,
+    contact,
+    { ...input, basis: input.basis ?? "consent", granted: false },
+    now
+  );
 }
 
 /** GDPR Art. 17 erasure. Hard-clears every PII field on the contact AND deletes the

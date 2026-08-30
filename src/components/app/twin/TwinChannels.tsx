@@ -1,24 +1,27 @@
 "use client";
 
-/** Per-channel configuration: on/off, how much autonomy the twin gets, which
- *  connector delivers an approved draft, and (for `auto`) the confidence bar a
- *  draft must clear to skip human review.
+/** Per-channel configuration: on/off, and how much autonomy the twin gets. The
+ *  delivery half of a channel (connector, confidence bar, weekly cap, consent) lives
+ *  in ./TwinChannelDelivery.
  *
  *  The honesty rule this screen enforces: `auto` never means "fire and forget".
  *  A draft self-approves only above the threshold AND with zero flagged risks
- *  (lib/twin/types `decideDraft`), and with only the `manual` connector configured
- *  nothing is actually transmitted — the copy says so rather than implying a
- *  delivery that doesn't happen. */
+ *  (lib/twin/types `decideDraft`).
+ *
+ *  WP S2 — the banner is now CONDITIONAL, because the old one ("Adamant transmits
+ *  nothing") stopped being true the moment a real connector was configured. With no
+ *  real connector it still says exactly that; with one, it says the opposite just as
+ *  plainly, because a message really can leave from here now. */
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
 import { Info } from "@/components/icons";
 import type { ConnectorInfo } from "@/lib/twin/connectors";
 import { formatVoiceAge, shouldNudgeRetrain, voiceTrainedAt } from "@/lib/twin/voice-age";
 import { CHANNEL_LABELS } from "./labels";
+import TwinChannelDelivery from "./TwinChannelDelivery";
 import {
   AUTONOMY_LEVELS,
   channelConfig,
-  DEFAULT_AUTO_THRESHOLD,
   resolveVoice,
   TWIN_CHANNELS,
   type Autonomy,
@@ -34,11 +37,10 @@ const T = {
       'Kde twin mluví a jak moc mu věříte. „Samostatně“ znamená: twin odpověď schválí sám, ale jen když si je jistý nad zvolenou hranicí a nenajde žádné riziko. Cokoli jiného počká na vás.',
     enabled: "Zapnuto",
     autonomy: "Samostatnost",
-    connector: "Doručení",
-    threshold: "Hranice jistoty",
-    notConfigured: "nenastaveno",
     manualWarning:
       "Zatím není připojený žádný odesílací konektor. Schválené zprávy si zkopírujete a odešlete sami. Adamant nic neodesílá.",
+    liveWarning:
+      "Je připojený odesílací konektor: schválené zprávy na kanálech s ním opravdu odejdou příjemci. Kanál, kde to nechcete, nechte na „Twin píše, člověk schvaluje“ a hlídejte týdenní limit a souhlas.",
     autonomyReview: "Jen člověk",
     autonomyAssist: "Twin píše, člověk schvaluje",
     autonomyAuto: "Samostatně",
@@ -54,11 +56,10 @@ const T = {
       "Where the twin speaks and how far you trust it. “Autonomous” means: the twin approves its own reply, but only above the confidence bar you set and with zero risks found. Anything else waits for you.",
     enabled: "Enabled",
     autonomy: "Autonomy",
-    connector: "Delivery",
-    threshold: "Confidence bar",
-    notConfigured: "not configured",
     manualWarning:
       "No send connector is wired up yet. You copy approved messages and send them yourself. Adamant transmits nothing.",
+    liveWarning:
+      "A send connector is wired up: approved messages on its channels really do go out to the recipient. Leave a channel you don't want that on at “Twin drafts, human approves”, and mind the weekly limit and consent.",
     autonomyReview: "Human only",
     autonomyAssist: "Twin drafts, human approves",
     autonomyAuto: "Autonomous",
@@ -114,12 +115,12 @@ export default function TwinChannels({
     <div className="space-y-5">
       <p className="max-w-2xl text-sm leading-relaxed text-muted">{t("intro")}</p>
 
-      {!anyRealConnector && (
-        <div className="flex items-start gap-3 rounded-card border border-line bg-canvas px-4 py-3">
-          <Info width={16} height={16} className="mt-0.5 shrink-0 text-muted" />
-          <p className="text-sm leading-relaxed text-navy-700">{t("manualWarning")}</p>
-        </div>
-      )}
+      <div className="flex items-start gap-3 rounded-card border border-line bg-canvas px-4 py-3">
+        <Info width={16} height={16} className="mt-0.5 shrink-0 text-muted" />
+        <p className="text-sm leading-relaxed text-navy-700">
+          {anyRealConnector ? t("liveWarning") : t("manualWarning")}
+        </p>
+      </div>
 
       <ul className="space-y-3">
         {TWIN_CHANNELS.map((channel) => {
@@ -180,50 +181,12 @@ export default function TwinChannels({
                     <p className="mt-1.5 text-xs text-muted">{t(AUTONOMY_HINT[cfg.autonomy])}</p>
                   </div>
 
-                  <div className="space-y-3">
-                    <div>
-                      <label
-                        htmlFor={`connector-${channel}`}
-                        className="text-xs font-semibold uppercase tracking-wide text-muted"
-                      >
-                        {t("connector")}
-                      </label>
-                      <select
-                        id={`connector-${channel}`}
-                        value={cfg.connector}
-                        onChange={(e) => update(channel, { connector: e.target.value })}
-                        className="mt-1.5 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                      >
-                        {available.map((c) => (
-                          <option key={c.id} value={c.id} disabled={!c.configured}>
-                            {(L === "en" ? c.labelEn : c.label) + (c.configured ? "" : ` (${t("notConfigured")})`)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {cfg.autonomy === "auto" && (
-                      <div>
-                        <label
-                          htmlFor={`threshold-${channel}`}
-                          className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-muted"
-                        >
-                          <span>{t("threshold")}</span>
-                          <span className="tnum text-navy-800">{cfg.autoThreshold} %</span>
-                        </label>
-                        <input
-                          id={`threshold-${channel}`}
-                          type="range"
-                          min={50}
-                          max={100}
-                          step={5}
-                          value={cfg.autoThreshold ?? DEFAULT_AUTO_THRESHOLD}
-                          onChange={(e) => update(channel, { autoThreshold: Number(e.target.value) })}
-                          className="mt-1.5 w-full accent-brand-600"
-                        />
-                      </div>
-                    )}
-                  </div>
+                  <TwinChannelDelivery
+                    channel={channel}
+                    cfg={cfg}
+                    connectors={available}
+                    onChange={(patch) => update(channel, patch)}
+                  />
                 </div>
               )}
             </li>

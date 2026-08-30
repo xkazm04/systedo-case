@@ -9,7 +9,13 @@
  *  Real-integration seam: `resolveTwin` swaps this for the project's saved state
  *  the moment anything is trained. Pure (no clock at module scope). */
 import type { ProjectType } from "@/lib/projects/types";
-import { DEFAULT_AUTO_THRESHOLD, type TwinChannelConfig, type TwinState, type TwinVoice } from "./types";
+import {
+  DEFAULT_AUTO_THRESHOLD,
+  defaultConsentRequired,
+  type TwinChannelConfig,
+  type TwinState,
+  type TwinVoice,
+} from "./types";
 
 const EPOCH = new Date(0).toISOString();
 
@@ -65,6 +71,11 @@ function channelDefaults(channel: TwinChannelConfig["channel"]): TwinChannelConf
     autonomy: "assist",
     connector: "manual",
     autoThreshold: DEFAULT_AUTO_THRESHOLD,
+    // WP S2 — no seeded weekly cap (`maxPerWeek` absent = uncapped): a cap the app
+    // invented would refuse a send the operator never limited. The consent gate DOES
+    // come pre-armed on the marketing channels, because the safe default for "may we
+    // message this person" is "not until someone recorded that we may".
+    consentRequired: defaultConsentRequired(channel),
   };
 }
 

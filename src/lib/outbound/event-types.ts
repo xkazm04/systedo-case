@@ -15,6 +15,11 @@ export const OUTBOUND_EVENT_TYPES = [
   "digest.weekly",
   "report.sent",
   "sync.failed",
+  // WP S2 — a twin draft actually LEFT the building (through a real connector, or
+  // recorded as the operator's own manual send). The one outbound event that
+  // corresponds to a message reaching a person, so a customer's own system can log
+  // it beside the conversation it belongs to.
+  "twin.sent",
   "ping",
 ] as const;
 

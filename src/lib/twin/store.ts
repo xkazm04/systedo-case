@@ -43,3 +43,23 @@ export async function mutateTwin(
 export async function clearTwin(projectId: string): Promise<void> {
   return (await backend()).clearTwin(projectId);
 }
+
+/** One tenant that owns a stored twin. */
+export interface TwinTenant {
+  userId: string;
+  projectId: string;
+}
+
+/** WP S2 — every project with a stored twin, joined back to its OWNER.
+ *
+ *  The twin store is project-keyed (see the keying invariant above), which is fine
+ *  for every request path because a guard has already established the owner. A CRON
+ *  has no request and therefore no owner, and it needs one: the outbound event bus
+ *  and the activity feed are `(userId, projectId)`-keyed. So this is the join —
+ *  exactly the `listConversionTenants` bridge W3-C built for the same reason, and
+ *  for the same reason it lives here rather than as an owner column on every row.
+ *  A project whose row is gone (a mid-delete race) simply drops out of the work
+ *  list rather than being processed under a guessed owner. */
+export async function listTwinTenants(limit = 500): Promise<TwinTenant[]> {
+  return (await backend()).listTwinTenants(limit);
+}
