@@ -77,7 +77,11 @@ jobs:
         with:
           node-version: 24.14.0
 
-      # Every workflow must declare its token scope; no pull_request_target; no
+      # Every workflow must declare its token scope; no privileged trigger — the
+      # family that starts a job in the BASE repository's context, holding its
+      # token and its secrets, on an event somebody who cannot push here controls,
+      # enumerated once in scripts/actions-pin.mjs under P2 and asserted from the
+      # other side by test-unit/workflow-triggers.test.mjs; no
       # action tracking a moving branch; third-party actions pinned to a SHA;
       # container images pinned by digest; and no attacker-controlled context
       # outside an `env:` binding — not in a `run:` script, not in a `with:`

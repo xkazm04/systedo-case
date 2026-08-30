@@ -59,7 +59,7 @@
       "check": "Actions supply-chain policy (blocking)",
       "workflow": "sast.yml",
       "job": "workflow-policy",
-      "why": "Token scope, no pull_request_target, no moving-branch action refs, third-party actions pinned, container images digest-pinned, and no attacker-controlled context outside an `env:` binding — not in a `run:` script, not in a `with:` input, not in an `if:`. This repository's secrets are advertiser OAuth tokens.",
+      "why": "Token scope, no privileged trigger (pull_request_target, workflow_run, issue_comment, pull_request_review, pull_request_review_comment — each one starts a job in the base repo's context on an outsider's event), no moving-branch action refs, third-party actions pinned, container images digest-pinned, and no attacker-controlled context outside an `env:` binding — not in a `run:` script, not in a `with:` input, not in an `if:`. This repository's secrets are advertiser OAuth tokens.",
       "softenedSteps": []
     },
     {

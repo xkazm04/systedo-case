@@ -13,9 +13,29 @@
  *
  *    P1  Every workflow declares a top-level `permissions:` block. Unset means
  *        the repository default, which on many repositories is write.
- *    P2  No `pull_request_target`. It runs with a writable token in the base
- *        repository's context, and combined with a checkout of the PR head it is
- *        the standard way repositories get their secrets stolen by a fork.
+ *    P2  No PRIVILEGED TRIGGER — a trigger that starts a job in the BASE
+ *        repository's context, holding its token and its secrets, on an event
+ *        somebody outside the repository controls.
+ *
+ *        `pull_request_target` is the famous member: combined with a checkout of
+ *        the PR head it is the standard way repositories get their secrets stolen
+ *        by a fork. But it is a FAMILY, and a rule that names only the instance
+ *        leaves the class open — which matters here, because the next workflow
+ *        added to this repository is likely to be written by an agent reaching for
+ *        whatever trigger makes its idea work.
+ *
+ *          workflow_run                 re-enters the privileged context AFTER an
+ *                                       untrusted workflow has run, and inherits
+ *                                       the artifacts it chose to leave behind.
+ *          issue_comment                fires on text anyone with a GitHub
+ *          pull_request_review          account can write, in a job that holds
+ *          pull_request_review_comment  live Google Ads / Sklik / Resend
+ *                                       credentials.
+ *
+ *        None of them are in use today, which is what makes this blocking rather
+ *        than a ratchet (ADR-0007). If a change genuinely needs one, it needs the
+ *        operator's decision — there is no flag here that turns the rule off, and
+ *        the fix is never to widen this list to make your own workflow pass.
  *    P3  No action pinned to a moving branch (`@main`, `@master`, `@HEAD`).
  *    P4  Every THIRD-PARTY action (anything not owned by `actions` or `github`)
  *        is pinned to a full 40-character commit SHA. First-party GitHub actions
@@ -104,6 +124,25 @@ const summaryIdx = argv.indexOf("--summary");
 const SUMMARY_FILE = summaryIdx !== -1 ? argv[summaryIdx + 1] : null;
 
 const FIRST_PARTY = new Set(["actions", "github"]);
+/** P2 — triggers that run in the base repository's privileged context on an event
+ *  an outsider controls. Keyed by trigger name, valued by the sentence a violation
+ *  prints, so the message says WHY rather than only which rule fired. */
+const PRIVILEGED_TRIGGERS = {
+  pull_request_target:
+    "runs a fork's pull request with a writable token and this repository's secrets in the base repo's context.",
+  workflow_run:
+    "re-enters the base repo's privileged context after an untrusted workflow has run, and can be handed the artifacts it left.",
+  issue_comment:
+    "fires on comment text anyone with a GitHub account can write, in a job holding this repository's credentials.",
+  pull_request_review:
+    "fires on review text from outside the repository, in a job holding this repository's credentials.",
+  pull_request_review_comment:
+    "fires on review-comment text from outside the repository, in a job holding this repository's credentials.",
+};
+/** Anchored to the key at the start of its line, so prose that NAMES a forbidden
+ *  trigger — in these workflows, in SECURITY.md, in this file — is not itself a
+ *  violation. A trigger is a mapping key; a sentence about one is not. */
+const PRIVILEGED_TRIGGER_RE = new RegExp(`^\\s*(${Object.keys(PRIVILEGED_TRIGGERS).join("|")})\\s*:`);
 const USES_RE = /^(\s*(?:-\s*)?uses:\s*)([^\s#]+)(.*)$/;
 const SHA_RE = /^[0-9a-f]{40}$/;
 const MOVING = new Set(["main", "master", "HEAD"]);
@@ -143,11 +182,12 @@ for (const name of workflows) {
     violations.push(`${name}: no top-level \`permissions:\` block — the job inherits the repository default token scope.`);
   }
 
-  // P2
+  // P2 — a privileged trigger, any member of the family.
   lines.forEach((l, i) => {
-    if (/^\s*pull_request_target\s*:/.test(l)) {
-      violations.push(`${name}:${i + 1}: pull_request_target — runs a fork's PR with a writable token in the base repo's context.`);
-    }
+    if (/^\s*#/.test(l)) return;
+    const m = PRIVILEGED_TRIGGER_RE.exec(l);
+    if (!m) return;
+    violations.push(`${name}:${i + 1}: \`${m[1]}\` — ${PRIVILEGED_TRIGGERS[m[1]]}`);
   });
 
   // P5 — script injection. Walk the file tracking whether we are inside a `run:`
@@ -405,7 +445,8 @@ if (SUMMARY_FILE) {
 if (violations.length) process.exit(1);
 say("");
 say(
-  "✓ actions policy: permissions declared, no pull_request_target, no moving-branch refs, " +
+  `✓ actions policy: permissions declared, none of the ${Object.keys(PRIVILEGED_TRIGGERS).length} privileged ` +
+    "triggers, no moving-branch refs, " +
     "third-party actions pinned, container images digest-pinned, and every untrusted context " +
     "bound in `env:` rather than spliced into a `run:` script, a `with:` input or an `if:`."
 );

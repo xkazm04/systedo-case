@@ -2,30 +2,22 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "9d194f2b-afb9-47e3-a297-ed8d1225181b",
+      "recommendationId": "05b51ddc-42d5-4e53-a11f-6d1b09baa97f",
       "verdict": "skipped",
-      "reason": "Neither pattern exists: sast.yml triggers on push/pull_request/schedule (never pull_request_target), and every ${{ }} in agent-review.yml is bound in an env: block and read as a quoted shell variable — the only literal occurrences of 'pull_request_target' and of expressions near run: bodies are in the prose comments explaining why they are forbidden, and both rules are already enforced repo-wide and blocking by scripts/actions-pin.mjs (P2, P5, P7).",
-      "files": [
-        ".github/workflows/sast.yml",
-        ".github/workflows/agent-review.yml",
-        "scripts/actions-pin.mjs",
-        "SECURITY.md"
-      ]
-    },
-    {
-      "recommendationId": "cf0a4293-6d58-442d-842f-05a405ba42c4",
-      "verdict": "skipped",
-      "reason": "needs network: pinning the 25 actions/* refs requires resolving each tag through the GitHub API and the 3 node:24-alpine stages require a registry digest lookup; the tooling to do it in one pass already exists and is complete (npm run actions:pin rewrites the workflows AND flips STRICT/RATCHET in the same run), and this session has no shell or network, so there was nothing left to build and no way to run it.",
+      "reason": "Neither named instance exists in the tree — sast.yml triggers only on push/pull_request/schedule and never checks out a PR head under a privileged trigger, and every ${{ }} in agent-review.yml is bound in an env: block and read back as a quoted shell variable, with the only literal occurrences of both patterns sitting in prose that explains why they are forbidden; both were already blocking via scripts/actions-pin.mjs P2/P5/P7, so the specific gap could not be closed by this change. What was genuinely open is the CLASS rather than the instance, and that is what I closed: P2 now forbids the whole privileged-trigger family (workflow_run, issue_comment, pull_request_review, pull_request_review_comment as well as pull_request_target), with a new unit test that fails both when a workflow declares one and when the policy's list of them is shortened. The remaining scan finding, SHA-pinning the 25 first-party action refs, needs network and stays open.",
       "files": [
         "scripts/actions-pin.mjs",
-        ".github/workflows/",
-        "Dockerfile"
+        "test-unit/workflow-triggers.test.mjs",
+        "SECURITY.md",
+        ".github/required-checks.json",
+        ".github/workflows/sast.yml"
       ]
     }
   ],
   "lessons": [
-    "systedo-case already encodes its workflow-security invariants as a blocking repo-local policy script (scripts/actions-pin.mjs, rules P1-P8, run in sast.yml and inside npm run check:ci) and documents each rule in SECURITY.md — check that script and the workflow's own comments before treating a dangerous-workflow finding as real, because those files quote the exact patterns they forbid in prose and that is what a text-matching scanner hits.",
-    "This repository's remaining action-pinning gap is a decision plus one networked command, not a build: scripts/actions-pin.mjs --update pins every ref and writes STRICT = true / RATCHET.pinned back into itself in the same pass, so an offline agent can neither close it nor usefully prepare it.",
-    "Ascent lanes in this worktree get no command execution at all (even `node script.mjs` is refused), so changes to blocking gate scripts are unverifiable here and should not be attempted — master ships on push, and an unverified edit to check:ci is a broken release."
+    "systedo-case encodes its workflow-security invariants as a blocking repo-local policy script (scripts/actions-pin.mjs, rules P1-P8, run in sast.yml's `workflow-policy` job and inside `npm run check:ci`) and documents each rule in SECURITY.md. Read that script and the workflows' own comments before treating a dangerous-workflow finding here as real: those files deliberately quote the exact patterns they forbid in prose, and a text-matching scanner hits the explanation rather than an occurrence. The repository already knows this about itself — test-unit/delivery-contract.test.mjs strips comment lines before asserting over the same YAML, for the same reason.",
+    "When a dangerous-workflow finding turns out to be a false positive in a repo this hardened, the useful move is not to re-argue the instance but to check whether the rule behind it names only the famous member of a class. Here P2 forbade `pull_request_target` alone; `workflow_run`, `issue_comment` and the two review triggers reach the same privileged context and were unenforced. Extending the enumeration is rung-correct (all five pass today, so the rule can be blocking) and cheap.",
+    "This repository's action-pinning gap is a decision plus one networked command, not a build: `npm run actions:pin` resolves every tag to a SHA AND writes STRICT = true / RATCHET.pinned back into scripts/actions-pin.mjs in the same pass. An offline agent can neither close it nor usefully prepare it, and must not flip STRICT by hand — that turns a blocking gate red on a tree nobody changed.",
+    "Ascent lanes in this worktree get no command execution at all (even `node script.mjs` is refused), so any edit to a script inside `check:ci` ships unverified and master ships on push. Keep such edits additive and obviously-correct — a new enumerated constant and a regex that mirrors an existing one — and pair them with a unit test that a human can run, rather than restructuring gate logic."
   ]
 }

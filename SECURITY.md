@@ -114,8 +114,12 @@ deliberately non-blocking.
 - **Actions supply chain** — `scripts/actions-pin.mjs`
   (`.github/workflows/sast.yml`, job `workflow-policy`, and also inside
   `npm run check:ci`, so the pre-push hook catches it before master ships).
-  **Blocking**: every workflow must declare a top-level `permissions:` scope, no
-  workflow may use `pull_request_target`, no action may track a moving branch,
+  **Blocking**: every workflow must declare a top-level `permissions:` scope, **no
+  workflow may use a privileged trigger** — `pull_request_target`, `workflow_run`,
+  `issue_comment`, `pull_request_review` or `pull_request_review_comment`, each of
+  which starts a job in the *base* repository's context, holding its token and its
+  secrets, on an event someone who cannot push here controls — no action may track
+  a moving branch,
   every **third-party** action must be pinned to a commit SHA, and **no
   `${{ … }}` expression may be interpolated into a `run:` script** — that
   substitution happens before any shell parses the line, so a fork's branch name
@@ -125,6 +129,12 @@ deliberately non-blocking.
   not blocked — `npm run actions:pin` resolves them to SHAs, after which the
   strict mode in that script covers them too. The count of SHA-pinned references
   is ratcheted: it may rise, and a commit that lets it fall is a failure.
+  **The trigger half is asserted twice**: `test-unit/workflow-triggers.test.mjs`
+  fails if a workflow declares one of those triggers *and* if the policy script's
+  list of them is ever shortened — narrowing the list is the cheaper way to
+  reintroduce the class, and the gate alone would stay green through it. That
+  suite runs inside `npm run check:ci`, which `.husky/pre-push` proves before the
+  push that ships master.
 - **The privileged reviewer runs the base's code, not the change's** —
   `.github/workflows/agent-review.yml`, job `judgment`. It is the only job in the
   repository holding a secret (`ANTHROPIC_API_KEY`) and a write scope
