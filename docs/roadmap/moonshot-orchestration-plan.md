@@ -271,17 +271,78 @@ v30 (`lp_arm_counts`) · v31 (`conversion_events`) · v32 (`twin_inbound_tokens`
   `risks:["inbound"]` (auto-approve refused by construction); S3 (live conversion
   upload) has the exporter seam (`CONVERSION_EXPORTERS`) + gclid capture to build on.
 
+## 3f. Wave 4 outcome (2026-08-30) — DONE (code); live proofs are the owner's
+
+Special-care rung run as a dependency pipeline, not strictly serial: S2 `2149c7c7` · S3
+`44c79e94` · S1 `3fb4c957` built in PARALLEL (disjoint write sets), S1b landed after S1;
+seams commit follows. `check` (tsc+lint+build) green, `test:unit` 3532/3535 (3 skipped),
+llm-gate green (23 tools, no new tool this wave), agents:surface at baseline, `sast` red
+only on the 4 pre-wave architect-backlog findings. NO migrations, NO sast waivers, NO
+mode entries this wave. ~692 new assertions.
+
+**What changed against the plan:**
+- S3 left the change-set envelope: a conversion-action mapping is not a budget move
+  (`BudgetMove`/`SimulationResult` cannot express it) — it is a frozen approval record on
+  `project_state` (`conversionUpload`, the inventory-plan "accepted, mutates nothing"
+  precedent). That removed S3's control-plane dependency, which is why it could run with
+  S1 instead of after it.
+- S1 gained a THIRD rail beyond the plan's two: `SKLIK_WRITES_ENABLED` (exact `"1"`,
+  default off) so deploying the code mutates nobody until the owner completes the manual
+  live proof (`docs/deploy.md § Sklik writes`, 7 steps). Rail 2 is a REFUSAL, not a
+  conversion: `dayBudget` is native CZK (only stats are haléře-convertible), so writes
+  wait until the money-unit verdict is settled (`czk-plausible` or `halereConfirmed`).
+- S1b dropped Sklik query stats (no documented offline method) and the Czech-lemma LLM
+  tool; campaign-level PHRASE negatives + ad-group EXACT promotes only; `removeCriterion`
+  derives its endpoint from a resource-name WHITELIST and refuses unknown shapes.
+- S2's `leads` channel maps to the `service` consent purpose (a reply to someone's own
+  enquiry is not marketing); `consentRequired` defaults on only for sms/whatsapp; no
+  seeded `maxPerWeek` (an invented cap would refuse a send nobody limited). Deferred: the
+  reply-to-inbound composer seed (needs `TwinOutbox.tsx` 781-LOC state wiring — not on an
+  irreversible rung).
+- S3's acceptance rule for Google's positional `results`: a row is uploaded iff its entry
+  is non-empty AND no partial-failure index names it — the conservative direction. The
+  Firestore `uploaded` filter is done in memory on purpose (equality cannot see a missing
+  field; a `where` would have hidden the whole pre-S3 backlog from the drain).
+- One builder ran a `git stash`/`pop` to measure a baseline (S1b) — disclosed, verified
+  harmless (Director's dirty files were outside its pathspec). The brief's "never run any
+  git write" now needs "…including stash" spelled out.
+
+**Owner's live proofs (the rung's real gates — none run yet):**
+1. Sklik write: the 7-step procedure in `docs/deploy.md § Sklik writes` (non-prod env,
+   throwaway campaign, smallest 1-move set, verify in the Sklik UI, revert, verify, THEN
+   flip the flag in prod). If step 4 shows no change, the fix is the one constant
+   `SKLIK_CAMPAIGN_UPDATE_METHOD` in `sklik/client.ts`.
+2. Google conversion upload: the `validateOnly` dry run in Nastavení → Nahrávání konverzí
+   is the first live proof; `dryRunValidated: null` means "we could not ask" and the card
+   says so. Also: restoring `conversion_events` from a pre-upload backup RE-SENDS those
+   rows (markers lost) — documented in deploy.md.
+3. Google criterion writes (S1b): first approve of a terms set on a real account; if the
+   minted resource names don't match `…Criteria/{parent}~{id}`, remove refuses (whitelist)
+   and the set stays `applied` + retryable.
+4. Real Resend delivery for the twin `email` connector (`ALERT_FROM_EMAIL` sandbox 403 is
+   the likely first surprise).
+
+**Carried forward (owed):**
+- `src/app/api/cron/digest/route.ts:165` renders `${fromName} → ${toName}` for moves; it
+  only consumes `recommendBudgetMoves` today, but should use `moveRowLabel` if it ever
+  reads stored sets.
+- `CampaignsClient.tsx` ended +3 lines (a code-split mount) — if the review rubric objects,
+  extract the governance section.
+- Three unbaked quality scores (ads-diagnosis, local-page, lp-variant-draft): one
+  `npm run llm:quality` run, then lower `scripts/quality-gate.mjs` unbaked 9 → 6.
+- Everything the concept cards deferred (#5 autopilot needs W2-E/W3-A outcomes to prove
+  projections first; #7 seats; #25 media posts…) — the deck's Concept list is the next
+  proposal pool, not "no".
+
 ## 4. What the Director does first (next session)
 
 1. ~~ADR-0010~~ ~~foundation specs~~ ~~F1–F4~~ — done (§3b).
 2. ~~Write the six Wave-1 specs~~ — done (§3c). ~~Write the five Wave-2 specs~~ — done (§3d).
 3. ~~Dispatch Wave 1~~ — done (§3c). ~~Dispatch Wave 2~~ — done (§3d). ~~Dispatch Wave 3~~ —
-   done (§3e). What remains is Wave 4 — S1 → S1b → S2 → S3, SERIAL, Director-driven or
-   paired, each irreversible or contract-breaking (§1). Preconditions: S1 needs ADR-0010
-   (accepted) + live Sklik creds for a fixture-then-real proof — ASK THE OWNER before
-   starting S1; S2 builds on W3-D's intake + W1-B's calendar cadence; S3 on W3-C's
-   exporter seam + F2's change-set envelope. Also owed before/alongside wave 4: bake the
-   three unbaked quality scores (`npm run llm:quality`), and the §3e carry-forwards.
+   done (§3e). ~~Wave 4~~ — done in code (§3f). **All 15 accepted cards are built.** What
+   remains is the OWNER's: the four live proofs in §3f (Sklik write first — nothing is
+   armed until `SKLIK_WRITES_ENABLED=1`), one `npm run llm:quality` bake, and a decision
+   on which Concept cards (deck, 11) become the next proposal pool.
 
 ## 5. Risks the plan accepts
 
