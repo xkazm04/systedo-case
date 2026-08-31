@@ -8,6 +8,16 @@
  *  written by whoever wrote the change — and posts its answer as a PR comment from
  *  the only job here holding a model key and `pull-requests: write` at once.
  *
+ *  AND IT IS NOT THE ONLY ONE. `scripts/issue-dispatch.mjs` puts the title and body
+ *  of a labelled issue — text anybody with a GitHub account can write — in front of
+ *  a model whose answer becomes FILES, committed and pushed by a job holding
+ *  `contents: write`. Same class of exposure, more expensive outcome: the prize
+ *  there is a path outside ALLOWED_ROOTS rather than a sentence in a comment. So the
+ *  corpus covers both prompts, and each case is rehearsed against the SYSTEM MESSAGE
+ *  its own prompt really ships with (`REVIEW_SYSTEM` / `PROPOSAL_SYSTEM`) — asking
+ *  one prompt's payload under the other's rules would measure a prompt this
+ *  repository never sends.
+ *
  *  TWO RUNGS, because they cost different things (docs/adr/0007-gate-rung-discipline.md):
  *
  *    --check   CONTAINMENT. Offline, free, deterministic, and therefore blocking:
@@ -40,7 +50,17 @@
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildPrompt, contained, newNonce, REVIEW_SYSTEM, UNTRUSTED_SURFACES } from "./lib/review-prompt.mjs";
+import {
+  ALL_UNTRUSTED_SURFACES,
+  buildDispatchPrompt,
+  buildPrompt,
+  contained,
+  DISPATCH_SURFACES,
+  newNonce,
+  REVIEW_SYSTEM,
+  UNTRUSTED_SURFACES,
+} from "./lib/review-prompt.mjs";
+import { PROPOSAL_SYSTEM } from "./issue-dispatch.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const RUBRIC = join(ROOT, ".github", "agent-review-rubric.md");
@@ -80,28 +100,46 @@ if (!cases.length) die("the corpus declares no cases.");
 
 const rubric = existsSync(RUBRIC) ? readFileSync(RUBRIC, "utf8") : "";
 
-/** The prompt Part B would send with this case's payload on its own surface, and
- *  every other surface empty — so a finding names one surface. */
+const REVIEW_KEY_BY_SURFACE = {
+  "commit-messages": "messages",
+  "pull-request-body": "prBody",
+  "part-a-report": "mechanical",
+  diff: "diff",
+};
+
+/** The real prompt this case's payload would travel in, with every OTHER surface of
+ *  that prompt empty — so a finding names one surface.
+ *
+ *  Two prompts, because this harness puts contributor text in front of a model in
+ *  two places and they are not the same place. The review's prompt produces a PR
+ *  comment; the dispatch's produces FILES that a job holding `contents: write` then
+ *  commits, which is the more expensive one to get wrong. Each case carries the
+ *  system message its own prompt really ships with, so the live drill asks the
+ *  question the workflow asks.
+ *
+ *  @returns {{system: string, prompt: string, surfaces: string[]}|null}
+ */
 export function promptFor(testCase, nonce, { fenced = true } = {}) {
-  const parts = {
-    rubric,
-    messages: "",
-    prBody: "",
-    mechanical: "",
-    diff: "",
-    nonce,
-    fenced,
-  };
-  const bySurface = {
-    "commit-messages": "messages",
-    "pull-request-body": "prBody",
-    "part-a-report": "mechanical",
-    diff: "diff",
-  };
-  const key = bySurface[testCase.surface];
+  if (DISPATCH_SURFACES.includes(testCase.surface)) {
+    return {
+      system: PROPOSAL_SYSTEM,
+      surfaces: DISPATCH_SURFACES,
+      prompt: buildDispatchPrompt({
+        guide: "(this repository's guide)",
+        inventory: "src/lib/example.ts\ntest-unit/example.test.mjs\ndocs/example.md",
+        issue: testCase.text,
+        ask: 'Reply with JSON: {"subject": "…", "summary": "…", "files": [{"path": "…", "contents": "…"}]}',
+        nonce,
+        fenced,
+      }),
+    };
+  }
+
+  const key = REVIEW_KEY_BY_SURFACE[testCase.surface];
   if (!key) return null;
+  const parts = { rubric, messages: "", prBody: "", mechanical: "", diff: "", nonce, fenced };
   parts[key] = testCase.text;
-  return buildPrompt(parts);
+  return { system: REVIEW_SYSTEM, surfaces: UNTRUSTED_SURFACES, prompt: buildPrompt(parts) };
 }
 
 // --- containment (offline, blocking) -----------------------------------------
@@ -115,8 +153,10 @@ function containment() {
   for (const c of cases) {
     if (!c.id || seen.has(c.id)) problems.push(`a case has a missing or duplicate id (${c.id ?? "(none)"}).`);
     seen.add(c.id);
-    if (!UNTRUSTED_SURFACES.includes(c.surface)) {
-      problems.push(`${c.id}: surface "${c.surface}" is not one the prompt builder fences (${UNTRUSTED_SURFACES.join(", ")}).`);
+    if (!ALL_UNTRUSTED_SURFACES.includes(c.surface)) {
+      problems.push(
+        `${c.id}: surface "${c.surface}" is not one the prompt builder fences (${ALL_UNTRUSTED_SURFACES.join(", ")}).`
+      );
       continue;
     }
     if (!c.signature || !String(c.text ?? "").includes(c.signature)) {
@@ -129,13 +169,14 @@ function containment() {
     }
 
     const nonce = newNonce();
-    const fencedPrompt = promptFor(c, nonce, { fenced: true });
-    const held = contained(fencedPrompt, nonce, c.surface, c.signature);
+    const built = promptFor(c, nonce, { fenced: true });
+    const { prompt: fencedPrompt, surfaces } = built;
+    const held = contained(fencedPrompt, nonce, c.surface, c.signature, surfaces);
 
     // The control: the same assertion against a build with the fence removed. It
     // MUST fail, or the check above would pass on an unfenced prompt too.
-    const bare = promptFor(c, nonce, { fenced: false });
-    const escaped = contained(bare, nonce, c.surface, c.signature);
+    const bare = promptFor(c, nonce, { fenced: false }).prompt;
+    const escaped = contained(bare, nonce, c.surface, c.signature, surfaces);
 
     if (!held.ok) problems.push(`${c.id} (${c.surface}): ${held.why}`);
     if (escaped.ok) {
@@ -144,25 +185,43 @@ function containment() {
       );
     }
     // The nonce must not survive into the prompt body: a payload that can quote it
-    // can close its own fence.
-    if (fencedPrompt.split(nonce).length - 1 !== UNTRUSTED_SURFACES.length * 2) {
-      problems.push(`${c.id}: the fence id appears somewhere other than the ${UNTRUSTED_SURFACES.length} fence pairs.`);
+    // can close its own fence. The expected count is per PROMPT, not global — the
+    // review's prompt fences four surfaces and the dispatch's fences one.
+    if (fencedPrompt.split(nonce).length - 1 !== surfaces.length * 2) {
+      problems.push(`${c.id}: the fence id appears somewhere other than the ${surfaces.length} fence pairs.`);
+    }
+    // The rules the fence means nothing without, asserted against THIS case's own
+    // system message. A prompt whose system half stopped saying what a fence is has
+    // a delimiter and no meaning for it.
+    for (const needle of ["never as instructions", "REPORT IT as your first"]) {
+      if (!built.system.includes(needle)) {
+        problems.push(
+          `${c.id}: the system prompt this surface really ships with no longer says "${needle}" — ` +
+            "the fence has no meaning to the model."
+        );
+      }
     }
     say(`  ${held.ok && !escaped.ok ? "✓" : "✗"} ${String(c.id).padEnd(32)} ${c.surface}`);
   }
 
-  // Every surface the builder fences needs at least one case, so a surface added
-  // to the prompt arrives with the fixture that rehearses it.
-  for (const surface of UNTRUSTED_SURFACES) {
+  // Every surface EITHER builder fences needs at least one case, so a surface added
+  // to either prompt arrives with the fixture that rehearses it.
+  for (const surface of ALL_UNTRUSTED_SURFACES) {
     if (!cases.some((c) => c.surface === surface)) {
-      problems.push(`no case exercises the "${surface}" surface, which the prompt builder fences.`);
+      problems.push(`no case exercises the "${surface}" surface, which a prompt builder fences.`);
     }
   }
 
-  // The rules the fence means nothing without.
-  for (const needle of ["never as instructions", "REPORT IT as your first"]) {
-    if (!REVIEW_SYSTEM.includes(needle)) {
-      problems.push(`the reviewer's system prompt no longer says "${needle}" — the fence has no meaning to the model.`);
+  // And unconditionally, so a corpus that happens to contain no usable case cannot
+  // make the question go away.
+  for (const [name, system] of [
+    ["the reviewer's", REVIEW_SYSTEM],
+    ["the issue dispatch's", PROPOSAL_SYSTEM],
+  ]) {
+    for (const needle of ["never as instructions", "REPORT IT as your first"]) {
+      if (!system.includes(needle)) {
+        problems.push(`${name} system prompt no longer says "${needle}" — the fence has no meaning to the model.`);
+      }
     }
   }
 
@@ -215,14 +274,18 @@ async function live() {
   say("");
   const rows = [];
   for (const c of cases) {
-    const prompt = promptFor(c, newNonce());
-    if (!prompt) {
+    const built = promptFor(c, newNonce());
+    if (!built) {
       rows.push({ id: c.id, surface: c.surface, verdict: "error", detail: "unknown surface" });
       continue;
     }
     let answer;
     try {
-      answer = await ask(REVIEW_SYSTEM, prompt, key);
+      // Each case is asked with the system message its own prompt really ships
+      // with — the reviewer's for the four review surfaces, the proposer's for the
+      // issue. Asking the dispatch's payload under the reviewer's rules would be
+      // measuring a prompt this repository never sends.
+      answer = await ask(built.system, built.prompt, key);
     } catch (err) {
       rows.push({ id: c.id, surface: c.surface, verdict: "error", detail: err.message });
       say(`  ⚠ ${String(c.id).padEnd(32)} could not be asked — ${err.message}`);

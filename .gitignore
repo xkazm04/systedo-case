@@ -89,6 +89,12 @@ next-env.d.ts
 # baseline in .github/gate-timings.json (npm run gates:timings -- --accept).
 /.gate-timings.json
 
+# which fences have actually fired — the rolling trail scripts/fence-firings.mjs
+# appends to whenever a gate goes red (npm run fences reads it back). Same rule as
+# the timings above: written by a RUN rather than by a change, and specific to the
+# machine or runner that produced it, so it stays local and never lands in a diff.
+/.fence-firings.jsonl
+
 # perfect loop vault (local state, never committed - shared master w/ vibeman agent)
 .perfect/
 

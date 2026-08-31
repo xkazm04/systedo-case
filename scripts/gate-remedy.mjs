@@ -31,6 +31,7 @@
  */
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { recordFiring } from "./fence-firings.mjs";
 
 /** The `check:ci` chain, in the order it runs.
  *
@@ -233,9 +234,25 @@ export function remedyFor(stage) {
  *  and a gate that collects its report for a job summary passes its own `write`
  *  so the remedy lands there too. Silent (and harmless) for an unknown stage: a
  *  gate must never fail to fail. */
-export function printRemedy(stage, write) {
+/**
+ * Print a stage's remedy, and record that the stage fired.
+ *
+ * @param {string} stage
+ * @param {(s?: string) => void} [write]
+ * @param {{record?: boolean}} [opts]  `record: false` when this is a LOOKUP rather
+ *   than a firing — `npm run gates -- --stage <name>` prints a remedy for a gate
+ *   that is perfectly green, and counting that would make the trail a record of
+ *   who read the table.
+ */
+export function printRemedy(stage, write, { record = true } = {}) {
   const entry = remedyFor(stage);
   if (!entry) return;
+  // Every gate already calls this on the way out when it goes red, which makes it
+  // the one place in the chain that knows a fence fired. Nothing kept that fact
+  // before, so "which of these rules has ever caught anything?" was unanswerable
+  // for everything except the rubric (scripts/fence-firings.mjs · npm run fences).
+  // Never throws and never changes the exit code.
+  if (record) recordFiring(entry.stage);
   const say = write ?? ((s = "") => console.error(s));
   say("");
   say(`  → what to do next (\`${entry.stage}\`):`);
@@ -264,7 +281,8 @@ if (invokedDirectly) {
       process.exit(1);
     }
     console.log(`${entry.stage} — ${entry.proves}`);
-    printRemedy(only, (s = "") => console.log(s));
+    // A lookup, not a firing — see printRemedy's `record` option.
+    printRemedy(only, (s = "") => console.log(s), { record: false });
     process.exit(0);
   }
 

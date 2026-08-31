@@ -155,6 +155,36 @@ jobs:
             cat harness-drill.md >> review-history.md
           fi
 
+      # THE SAME QUESTION, ASKED OF EVERY OTHER FENCE. Everything above answers
+      # "which rubric rules have actually fired?", and it can, because Part A emits
+      # check annotations that outlive their run. Nothing else here emitted anything
+      # at all — the `check:ci` chain, the ten SAST rules and the lint fences all
+      # block, and until the trail landed not one of them recorded ever having
+      # blocked anything. `.github/contract-ledger.json` says so in its own
+      # `$breaches` note: empty for every row, because filling one needed a pass
+      # somebody ran by hand.
+      #
+      # The gates now record when they go red (scripts/fence-firings.mjs), and this
+      # reads it back next to the exception list each fence carries and the date
+      # that list last moved. Reporting rung and exits 0 always: it reads a trail,
+      # it never judges a change.
+      #
+      # NOTE WHAT A RUNNER CAN SEE. The trail is per-machine, so what lands here is
+      # what THIS run recorded — which for a scheduled run is nothing. The durable
+      # half is the exception-list dates out of git, and the count grows as the
+      # weekly trail issue accumulates. The census says which of its numbers is
+      # which rather than implying a quiet fence is a dead one.
+      - name: Which fences have ever fired, and which exception lists moved
+        continue-on-error: true
+        run: |
+          node scripts/fence-census.mjs \
+            --out fence-census.md \
+            --summary "$GITHUB_STEP_SUMMARY"
+          if [ -s fence-census.md ]; then
+            printf '\n' >> review-history.md
+            cat fence-census.md >> review-history.md
+          fi
+
       - name: Keep the report as an artifact too
         if: always()
         continue-on-error: true

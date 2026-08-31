@@ -25,6 +25,7 @@
 import { appendFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { recordFiring } from "./fence-firings.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(ROOT, "src");
@@ -303,6 +304,16 @@ if (blocking.length) {
   }
   say("If a finding is a deliberate, understood exception, add it to");
   say(".github/security/sast-allowlist.json with a reason. Anything else is a fix.");
+
+  // Which RULE caught it, written down. "The security gate went red" is not the
+  // question anybody has: a rule that has never fired is dead weight in a blocking
+  // chain, one that fires constantly is either a real problem or a badly drawn
+  // line, and neither is visible from inside one red build. Ten rules here have
+  // been blocking for months with no record of what any of them caught
+  // (scripts/fence-firings.mjs · npm run fences).
+  for (const id of new Set(blocking.map((f) => f.rule.id))) {
+    recordFiring(id, { detail: `sast: ${blocking.filter((f) => f.rule.id === id).length} finding(s)` });
+  }
 } else {
   say(`✓ no findings.`);
 }

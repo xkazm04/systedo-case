@@ -57,13 +57,19 @@ export const HOOKS = {
   "prepare-commit-msg": `#!/usr/bin/env sh
 ${MANAGED_MARKER}
 #
-# Machine-readable authorship, without anyone remembering.
+# Machine-readable authorship AND provenance, without anyone remembering.
 #
 # ~97% of the commits here are agent-written and the log cannot say which, so a
 # commit made while an agent session is driving gets a \`Co-Authored-By:\` trailer
 # below a blank line. A PERSON'S commit gets none: the detection is
 # environment-based on purpose (scripts/commit-attribution.mjs), because claiming
 # an assistant wrote a human's commit is the same lie in the other direction.
+#
+# And "an assistant wrote it" is not the fact you want three weeks later, when
+# nearly every commit has that property. So the same pass writes WHICH LANE, out
+# of the environment the harness is already running in: \`Agent-Harness\` always,
+# and \`Agent-Model\` / \`Agent-Spec\` / \`Agent-Session\` / \`Agent-Lane\` when the
+# environment states them. Nothing is guessed — a field nobody stated is omitted.
 #
 # Runs for \`git commit -m\` too, which is how automation commits. Fails open — a
 # hook on every commit must never be the reason a commit cannot be made.
@@ -83,8 +89,10 @@ ${MANAGED_MARKER}
 # Bypass, and own it:  git commit --no-verify
 node scripts/commit-check.mjs "$1" || exit 1
 
-# The braces for that belt: prepare-commit-msg appends the authorship trailer,
-# and this refuses an agent-written commit that still carries none.
+# The braces for that belt: prepare-commit-msg appends the authorship trailer and
+# the harness that wrote it, and this refuses an agent-written commit carrying
+# neither. \`Agent-Model\` / \`Agent-Spec\` / \`Agent-Session\` stay best effort — a
+# fact the environment never stated cannot be produced by insisting on it.
 node scripts/commit-attribution.mjs --check "$1" || exit 1
 `,
 };

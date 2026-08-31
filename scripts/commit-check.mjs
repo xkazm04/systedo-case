@@ -30,7 +30,7 @@
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { GUIDANCE, checkSubject, subjectOf } from "./commit-subject.mjs";
-import { hasAttribution } from "./commit-attribution.mjs";
+import { harnessOf, hasAttribution } from "./commit-attribution.mjs";
 
 const argv = process.argv.slice(2);
 const arg = (name) => {
@@ -98,6 +98,26 @@ if (argv.includes("--range")) {
     console.log(
       "    Nearly every commit here is agent-written and the log cannot say which. `npm install` wires the" +
         " hook that adds it (npm run hooks:check) — commits made outside a wired checkout stay unattributed."
+    );
+  }
+
+  // And WHICH LANE — the question "an assistant wrote it" does not answer. Same
+  // reporting rung as attribution: this does not pass over history either, and it
+  // is the number that says whether the harness trailers are actually arriving.
+  const byHarness = new Map();
+  for (const e of entries) {
+    const h = harnessOf(e.body);
+    if (h) byHarness.set(h, (byHarness.get(h) ?? 0) + 1);
+  }
+  const named = [...byHarness.values()].reduce((a, b) => a + b, 0);
+  console.log(
+    `commit-check: ${named} of ${entries.length} name the lane that wrote them (\`Agent-Harness\`).` +
+      (byHarness.size ? `  ${[...byHarness].map(([h, n]) => `${h}: ${n}`).join(", ")}` : "")
+  );
+  if (named < entries.length) {
+    console.log(
+      "    A regression traced back to a commit here cannot be traced to the harness that produced it." +
+        " The hook adds it (npm run hooks:check); a lane that commits for itself should write it itself."
     );
   }
 

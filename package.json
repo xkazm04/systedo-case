@@ -38,6 +38,7 @@
     "agents:surface": "node scripts/agent-surface.mjs --check",
     "context:decay": "node scripts/context-decay.mjs",
     "context:decay:check": "node scripts/context-decay.mjs --check --base origin/master",
+    "fences": "node scripts/fence-census.mjs",
     "contract:ledger": "node scripts/contract-ledger.mjs",
     "contract:ledger:check": "node scripts/contract-ledger.mjs --check",
     "review:agent": "node scripts/agent-review.mjs",

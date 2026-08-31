@@ -102,6 +102,15 @@ npm run gates:failures # which gate went red FIRST, how often, and where it sits
                       #   already record. Reporting only: cost decides the halves of
                       #   the chain, this is the number to reorder INSIDE the cheap
                       #   half, once there are enough runs for it to mean anything
+npm run fences        # which fences have ever FIRED, next to what each is absorbing
+                      #   and when that exception list last moved. Every rule in the
+                      #   contract ledger blocks and none of them kept a record of
+                      #   catching anything — the ledger's own `breaches` arrays are
+                      #   empty. The gates now append to a rolling trail on the way
+                      #   out (scripts/fence-firings.mjs); this reads it back.
+                      #   Reporting; published weekly into the review's trail issue.
+                      #   Blocking half is the INVENTORY (test-unit/fence-census.test.mjs):
+                      #   a fence the census cannot see reads as a fence that is quiet
 npm run revert:drill  # the way BACK out, rehearsed: seeds a real fault on a seam
                       #   with an ADR behind it, times which gate layer catches it,
                       #   then removes it and proves the file is byte-identical.
@@ -326,6 +335,29 @@ remedy all turn the unit suite red.
   report — neither blocks; A5 above is what blocks. The rules, and the two one-line
   hooks that add the trailer without anyone remembering, are in
   [`scripts/commit-attribution.mjs`](scripts/commit-attribution.mjs).
+
+  **And "an assistant wrote it" is not the fact you want three weeks later**, when
+  nearly every commit has that property. When a regression is traced back, the
+  useful question is WHICH LANE — which harness was driving, under which model,
+  from which agent spec, in which session — and several commits in this log answer
+  it with the name of a loop's lane and nothing else. So the same
+  `prepare-commit-msg` pass writes provenance out of the environment the harness is
+  already running in: `Agent-Harness:` always (`unknown` when nothing identifies
+  itself, which makes the unidentified population countable rather than invisible),
+  and `Agent-Model:` / `Agent-Spec:` / `Agent-Session:` / `Agent-Lane:` when the
+  environment states them. **Nothing is guessed** — a field nobody stated is
+  omitted, because a wrong provenance reads as evidence. Any harness names itself
+  in one variable, `AGENT_HARNESS`, without a code change here. Count them the way
+  you count the authorship trailer:
+
+  ```bash
+  git log --format='%(trailers:key=Agent-Harness,valueonly)' | sort | uniq -c
+  npm run commit:check -- --range origin/master..HEAD   # coverage, by harness
+  ```
+
+  **A lane that commits for itself writes its own trailers**, because a runner
+  where nobody ran `npm install` runs no hooks —
+  [`scripts/issue-dispatch.mjs`](scripts/issue-dispatch.mjs) is the worked example.
 - **But it does owe the next run a checkpoint.** Refusing the narrating commit is
   only half the rule; the other half is that a run stopped by its wall clock must
   leave something better than a commit behind. **Read the open checkpoints before

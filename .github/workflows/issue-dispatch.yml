@@ -26,15 +26,26 @@ name: Issue dispatch
 # fence whose rules say an instruction found inside it is a finding, not a command
 # (scripts/lib/review-prompt.mjs).
 #
-# TWO JOBS, FOR THE REASON agent-review.yml HAS TWO. The half holding the model key
-# must not be the half holding a write scope:
+# THREE JOBS, EACH HOLDING ONE CAPABILITY. agent-review.yml's split is the reason
+# for the first cut — the half holding the model key must not be the half holding a
+# write scope. The second cut is that `contents: write` and `pull-requests: write`
+# are not one capability either, and giving both to one job made this the broadest
+# token in the repository:
 #
 #   propose  — ANTHROPIC_API_KEY, `contents: read`. Reads the issue, asks a model
 #              for a change, writes proposal.json. It can write nothing.
-#   draft    — `contents: write` + `pull-requests: write`, NO secret. Applies the
-#              proposal, pushes `agent/issue-<n>`, opens the draft pull request.
+#   push     — `contents: write`, NO secret. Applies the proposal and pushes
+#              `agent/issue-<n>`. It cannot open or comment on anything.
+#   open     — `pull-requests: write`, NO secret and no ref access. Opens the one
+#              draft pull request. It cannot write a byte of code.
 #
-# The proposal crosses between them as an artifact, which is data. And the applying
+# Worst case per job, which is the point of cutting it this way: a compromised step
+# in `propose` gets a model's answer and no way to publish it; in `push` it gets a
+# ref — master ships on push, so that is the expensive one and it is the job with no
+# network-facing input; in `open` it gets to say something in this repository's name
+# and cannot change what the pull request contains.
+#
+# Everything crosses between them as an artifact, which is data. And the applying
 # half refuses any path outside src/, test-unit/ and docs/ (scripts/issue-dispatch.mjs,
 # ALLOWED_ROOTS): a model-authored change that could edit the workflows, the gate
 # scripts or the ADRs that judge it would not be a draft, it would be a bypass.
@@ -122,15 +133,28 @@ jobs:
           if-no-files-found: ignore
           retention-days: 90
 
-  draft:
-    name: Open the draft pull request
+  # THE WRITE SCOPES ARE SPLIT TOO, not only the key. The first version of this
+  # workflow already kept `secrets.ANTHROPIC_API_KEY` out of the job that could
+  # write — which is the invariant agent-review.yml is built around — but then gave
+  # ONE job `contents: write` AND `pull-requests: write` together, which is the
+  # broadest token anything in this repository holds. Those are two different
+  # capabilities with two different worst cases: `contents: write` can push any ref
+  # in the repository, master included, and master ships on push; `pull-requests:
+  # write` can speak in this repository's name on any pull request. A step that is
+  # talked into one should not thereby have the other.
+  #
+  # So they are two jobs, and neither can do the other's damage. `push` writes a ref
+  # and cannot open or comment on anything; `open` opens one draft pull request and
+  # cannot write a byte of code. What crosses between them is an artifact — the
+  # branch name, the subject, the body — which is data, the same way the proposal
+  # crosses from `propose` to here.
+  push:
+    name: Push the proposed branch
     runs-on: ubuntu-latest
     needs: propose
-    # The write scope, on the job that has no secret. It pushes one branch and
-    # opens one draft pull request; it never calls a model.
+    # A ref, and nothing else. No secret, and no way to say anything to anybody.
     permissions:
       contents: write
-      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -177,18 +201,62 @@ jobs:
             --subject-out subject.txt \
             --marker drafted.txt
 
-      - name: Push the branch and open the draft
+      - name: Push the branch
         if: steps.gate.outputs.dispatch == 'yes'
         env:
-          GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.gate.outputs.branch }}
           ISSUE_NUMBER: ${{ steps.gate.outputs.issue }}
         run: |
           [ "$(cat drafted.txt)" = "yes" ] || { echo "nothing was drafted for issue #$ISSUE_NUMBER"; exit 0; }
+          printf '%s\n' "$BRANCH" > branch.txt
           git push --force origin "HEAD:refs/heads/$BRANCH"
+
+      # The handoff. `drafted.txt` is always written, so the next job can tell "the
+      # branch is up" from "there was nothing to draft" without inspecting a ref.
+      - name: Hand the draft over
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: issue-draft
+          path: |
+            drafted.txt
+            branch.txt
+            subject.txt
+            pr-body.md
+          if-no-files-found: ignore
+          retention-days: 90
+
+  open:
+    name: Open the draft pull request
+    runs-on: ubuntu-latest
+    needs: push
+    # Speech, and nothing else. This job never touches a ref and never calls a
+    # model; the branch it names was pushed by a job that could not open a pull
+    # request, and the body it posts was written by a job that could not reach a
+    # provider.
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Fetch the draft
+        continue-on-error: true
+        uses: actions/download-artifact@v7
+        with:
+          name: issue-draft
+
+      - name: Open the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -s drafted.txt ] || { echo "no draft was handed over — nothing to open."; exit 0; }
+          [ "$(cat drafted.txt)" = "yes" ] || { echo "nothing was drafted."; exit 0; }
           gh pr create \
             --draft \
             --base master \
-            --head "$BRANCH" \
+            --head "$(cat branch.txt)" \
             --title "$(cat subject.txt)" \
             --body-file pr-body.md

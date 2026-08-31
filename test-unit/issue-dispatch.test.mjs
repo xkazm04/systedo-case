@@ -25,7 +25,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -136,4 +136,50 @@ test("the model key and the write scope are never in the same job", () => {
         "which is data — that split is what keeps a model's answer from being a token's."
     );
   }
+});
+
+test("no job holds both `contents: write` and `pull-requests: write`", () => {
+  // The second cut, and the one this workflow was missing while every other
+  // workflow here stayed narrow. They are two capabilities with two different
+  // worst cases: `contents: write` can push any ref including master, and master
+  // ships on push; `pull-requests: write` can speak in this repository's name.
+  // Anything talked into one should not thereby have the other.
+  const text = readFileSync(WORKFLOW, "utf8");
+  const jobs = text.split(/\n  (?=[a-z][a-z0-9-]*:\n)/).slice(1);
+  const broad = [];
+  for (const job of jobs) {
+    const body = job
+      .split(/\r?\n/)
+      .filter((l) => !/^\s*#/.test(l))
+      .join("\n");
+    const name = /^\s*([a-z][a-z0-9-]*):/.exec(job)?.[1] ?? "(unnamed)";
+    if (/contents:\s*write/.test(body) && /pull-requests:\s*write/.test(body)) broad.push(name);
+  }
+  assert.deepEqual(
+    broad,
+    [],
+    `job(s) ${broad.join(", ")} hold both write scopes at once. Split the pushing half from the speaking ` +
+      "half and pass the branch name, the subject and the body between them as an artifact."
+  );
+});
+
+test("every workflow in the repository keeps the two write scopes in different jobs", () => {
+  // Stated once for the tree rather than once per file, so the next workflow an
+  // agent adds cannot quietly re-introduce the broadest token here by copying an
+  // older one.
+  const dir = join(ROOT, ".github", "workflows");
+  const offenders = [];
+  for (const file of readdirSync(dir).filter((f) => /\.ya?ml$/.test(f))) {
+    const text = readFileSync(join(dir, file), "utf8");
+    for (const job of text.split(/\n  (?=[a-z][a-z0-9-]*:\n)/).slice(1)) {
+      const body = job
+        .split(/\r?\n/)
+        .filter((l) => !/^\s*#/.test(l))
+        .join("\n");
+      if (/contents:\s*write/.test(body) && /pull-requests:\s*write/.test(body)) {
+        offenders.push(`${file}:${/^\s*([a-z][a-z0-9-]*):/.exec(job)?.[1] ?? "?"}`);
+      }
+    }
+  }
+  assert.deepEqual(offenders, [], `these jobs hold both write scopes: ${offenders.join(", ")}`);
 });
