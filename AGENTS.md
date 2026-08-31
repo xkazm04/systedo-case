@@ -96,6 +96,11 @@ npm run harness:drill # removes each conditional key ON PURPOSE and proves the
                       #   absence is announced (Part B of the review, the weekly
                       #   real-model prove). `harness:degradation:check` refuses a
                       #   new key-gated step that declares no visible degradation
+npm run issue:dispatch # the FRONT of the loop: a maintainer labels an issue
+                      #   `agent:draft` and .github/workflows/issue-dispatch.yml asks a
+                      #   model for a change, then opens a DRAFT pull request against the
+                      #   same gates as anyone else's. Proposals may only write src/,
+                      #   test-unit/ and docs/ — never a workflow, a gate script or an ADR
 npm run gates         # the chain above, with the EXACT NEXT COMMAND for each gate —
                       #   the same remedy each one prints when it goes red
                       #   (scripts/gate-remedy.mjs; `-- --stage <name>` for one)

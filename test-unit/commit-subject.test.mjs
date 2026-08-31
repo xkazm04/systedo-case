@@ -10,6 +10,7 @@
  *      fix: Agent session exceeded 20 min and was stopped
  *      fix: Read AGENTS.md (canonical), CLAUDE.md, docs/adr/0007
  *      fix: Done. Three of four items closed; two skipped with reasons
+ *      fix: Top priority
  *
  *  Every one of those is a real subject from this repository's history and every
  *  one of them fails here. The second half of the file is the other direction and
@@ -46,6 +47,10 @@ test("every narrating subject in this repository's history is refused", () => {
     "fix: Agent session exceeded 20 min and was stopped",
     "fix: Read AGENTS.md (canonical), CLAUDE.md, docs/adr/0007",
     "fix: Done. Three of four items closed; two skipped with reasons",
+    // The one none of the narration rules reached: twelve characters, two words,
+    // third person, no report vocabulary at all — and it names a queue position
+    // rather than a change.
+    "fix: Top priority",
   ];
   for (const subject of history) {
     assert.ok(
@@ -66,6 +71,47 @@ test("a subject that lists what the run READ is refused", () => {
 test("a subject that scores the run is refused", () => {
   assert.ok(idsFor("fix: closed three of four items, skipped the rest").includes("item-tally"));
   assert.ok(idsFor("chore: 2 of 6 findings fixed").includes("item-tally"));
+});
+
+test("a subject that names a queue position rather than a change is refused", () => {
+  // The escapee the length rules could never reach: every one of these is a
+  // well-formed conventional commit whose description is made entirely of where
+  // the work sat in somebody's ordering.
+  for (const subject of [
+    "fix: Top priority",
+    "chore: misc updates",
+    "fix: various fixes",
+    "refactor: general cleanup",
+    "docs: the remaining items",
+    "chore: final touches",
+    "fix: next steps",
+  ]) {
+    assert.ok(
+      idsFor(subject).includes("queue-position"),
+      `"${subject}" says which item a run got to, not what the tree now does differently.`
+    );
+  }
+});
+
+test("the queue-position rule is anchored, so its vocabulary stays usable", () => {
+  // Every word in RANK and FILLER belongs in real subjects. The rule fires only
+  // when the description is nothing BUT them — a rule that refused these would be
+  // a rule people learn to bypass with --no-verify.
+  for (const subject of [
+    "fix(queue): raise the priority of the retry queue",
+    "chore(deps): minor version bumps for six packages",
+    "fix(cron): clean up the digest run after a failed upload",
+    "feat(leady): add a follow-up reminder to the CRM row",
+    "refactor(store): move the tenant key into one builder",
+    "perf(app): cut the first paint's blocking work in half",
+  ]) {
+    assert.deepEqual(
+      checkSubject(subject),
+      [],
+      `"${subject}" describes a change and shares vocabulary with the queue-position rule. The anchor is what ` +
+        "keeps that rule narrow — if it fired here it would be refusing real work."
+    );
+  }
 });
 
 test("a semicolon is the same second sentence as a full stop", () => {

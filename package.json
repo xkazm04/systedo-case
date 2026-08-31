@@ -74,6 +74,7 @@
     "llm:budget": "node scripts/llm-budget.mjs",
     "llm:budget:check": "node scripts/llm-budget.mjs --check",
     "llm:quality:baseline": "node scripts/quality-gate.mjs --accept",
+    "issue:dispatch": "node scripts/issue-dispatch.mjs",
     "hooks:install": "node scripts/install-commit-hooks.mjs",
     "hooks:check": "node scripts/install-commit-hooks.mjs --check",
     "prepare": "husky && node scripts/install-commit-hooks.mjs"

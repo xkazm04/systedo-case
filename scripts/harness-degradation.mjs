@@ -114,6 +114,20 @@ export const CAPABILITIES = [
     marker: 'status: "skipped"',
   },
   {
+    id: "issue-dispatch",
+    name: "Issue → draft pull request (the front of the loop)",
+    needs: "ANTHROPIC_API_KEY",
+    workflow: ".github/workflows/issue-dispatch.yml",
+    absent:
+      "a labelled issue produces no draft, so the weekly pass goes back to starting from a description rather " +
+      "than a diff — and the label looks applied, the workflow looks green, and nothing says the proposal was " +
+      "never asked for.",
+    visible:
+      "a ::warning annotation on the run, a line in the job summary, and an `absent` row in harness-status.json, " +
+      "kept as a 90-day artifact next to the proposal that was not made.",
+    announces: true,
+  },
+  {
     id: "injection-drill",
     name: "Weekly prompt-injection refusal drill (the review's judgment half)",
     needs: "ANTHROPIC_API_KEY",

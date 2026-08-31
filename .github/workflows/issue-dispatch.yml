@@ -1,0 +1,194 @@
+name: Issue dispatch
+
+# A labelled issue becomes a DRAFT pull request.
+#
+# Why: everything AFTER a change here is automated — the rubric reads every diff,
+# thirteen gates refuse it, the log is audited, the harness announces its own
+# degradation. The front of the loop was not. A work item became a change only
+# when the maintainer opened an editor and described to an agent what an issue
+# already said. This closes that end: put `agent:draft` on an issue and the weekly
+# pass starts from a diff instead of a description.
+#
+# WHAT IT IS NOT. It decides nothing and merges nothing. The draft it opens meets
+# exactly the gates a human's change meets — Part A of the rubric on the same push
+# and pull request, the required checks in .github/required-checks.json, and
+# `npm run check:ci` before anything reaches master. That is the answer to "what
+# does a wrong proposal cost": one red build and one closed pull request, paid
+# before an afternoon goes into the description rather than after.
+#
+# THE TRIGGER IS A MAINTAINER'S DECISION. `issues: [labeled]` fires only when
+# somebody with triage rights applies a label — which is what makes it admissible
+# where `issue_comment` is not (rule P2, scripts/actions-pin.mjs: that one fires on
+# text anyone with a GitHub account can write). The issue's TEXT is still written
+# by anyone, so it is treated as untrusted throughout: read out of the payload file
+# by scripts/workflow-event.mjs (rules P5/P7/P9 — there is no `github.event.*` in
+# this file), handed on as a FILE, and put to the model inside a per-run nonce
+# fence whose rules say an instruction found inside it is a finding, not a command
+# (scripts/lib/review-prompt.mjs).
+#
+# TWO JOBS, FOR THE REASON agent-review.yml HAS TWO. The half holding the model key
+# must not be the half holding a write scope:
+#
+#   propose  — ANTHROPIC_API_KEY, `contents: read`. Reads the issue, asks a model
+#              for a change, writes proposal.json. It can write nothing.
+#   draft    — `contents: write` + `pull-requests: write`, NO secret. Applies the
+#              proposal, pushes `agent/issue-<n>`, opens the draft pull request.
+#
+# The proposal crosses between them as an artifact, which is data. And the applying
+# half refuses any path outside src/, test-unit/ and docs/ (scripts/issue-dispatch.mjs,
+# ALLOWED_ROOTS): a model-authored change that could edit the workflows, the gate
+# scripts or the ADRs that judge it would not be a draft, it would be a bypass.
+#
+# WHAT IT LEAVES BEHIND, so "which pull requests began as an agent proposal?" is
+# answerable in six months: the `agent/issue-<n>` branch name, a
+# `Generated-by: issue-dispatch (<model>)` trailer that scripts/commit-attribution.mjs
+# already counts, `Dispatched-from: #<n>` next to it, and proposal.json kept for 90
+# days.
+#
+# AND IT SAYS WHEN IT IS NOT RUNNING. Without ANTHROPIC_API_KEY this workflow does
+# not fail, it stops proposing — the exact failure mode scripts/harness-degradation.mjs
+# exists for. It is declared there as `issue-dispatch` and announces on both sides
+# of the key check, which `npm run harness:drill` proves by removing the key on
+# purpose (blocking, inside the unit suite).
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  propose:
+    name: Propose a change from the issue
+    runs-on: ubuntu-latest
+    # The key lives here and nothing else does. This job cannot write a ref, a
+    # comment or a file anybody will see.
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.14.0
+
+      # Is this the label we dispatch on? Decided from the payload on disk, and the
+      # label NAME is compared against a literal rather than emitted — only fixed
+      # words and an integer are ever written to `$GITHUB_OUTPUT`, so no text an
+      # outsider wrote can forge a second output line for a later step to trust.
+      - name: Is this the dispatch label?
+        id: gate
+        run: node scripts/issue-dispatch.mjs --gate --label agent:draft --out "$GITHUB_OUTPUT"
+
+      # The issue's title and body: free text anybody can write, so they go from the
+      # payload file straight to files and are never a shell word, an environment
+      # variable or a line of YAML.
+      - name: Read the issue as data
+        if: steps.gate.outputs.dispatch == 'yes'
+        run: |
+          node scripts/workflow-event.mjs --get issue.title --out issue-title.txt
+          node scripts/workflow-event.mjs --get issue.body --out issue-body.txt
+
+      - name: Ask for a change (or say that nobody is asking)
+        if: steps.gate.outputs.dispatch == 'yes'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ISSUE_NUMBER: ${{ steps.gate.outputs.issue }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            node scripts/harness-degradation.mjs --announce issue-dispatch --status absent --out harness-status.json --summary "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          node scripts/issue-dispatch.mjs --propose \
+            --number "$ISSUE_NUMBER" \
+            --title-file issue-title.txt \
+            --body-file issue-body.txt \
+            --out proposal.json
+          node scripts/harness-degradation.mjs --announce issue-dispatch --status ran --out harness-status.json --summary "$GITHUB_STEP_SUMMARY"
+
+      # The trail: what the model was asked for and what it answered, outliving the
+      # run by the same 90 days as the review's own artifacts.
+      - name: Keep the proposal
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: issue-proposal
+          path: |
+            proposal.json
+            harness-status.json
+          if-no-files-found: ignore
+          retention-days: 90
+
+  draft:
+    name: Open the draft pull request
+    runs-on: ubuntu-latest
+    needs: propose
+    # The write scope, on the job that has no secret. It pushes one branch and
+    # opens one draft pull request; it never calls a model.
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.14.0
+
+      # Re-derived rather than passed: a job-level `outputs:` mapping would need a
+      # `${{ … }}` outside an `env:` block, which rule P7 and
+      # test-unit/workflow-injection.test.mjs both forbid. Parsing the payload twice
+      # is cheaper than the exception.
+      - name: Is this the dispatch label?
+        id: gate
+        run: node scripts/issue-dispatch.mjs --gate --label agent:draft --out "$GITHUB_OUTPUT"
+
+      - name: Fetch the proposal
+        if: steps.gate.outputs.dispatch == 'yes'
+        continue-on-error: true
+        uses: actions/download-artifact@v7
+        with:
+          name: issue-proposal
+
+      # Writes the files, refuses any path outside the allowed roots, checks the
+      # model's commit subject against rubric A5's own rules (scripts/commit-subject.mjs)
+      # and commits by pathspec. `drafted.txt` says whether there is anything to
+      # push: a model that declined, a provider that was unreachable and a proposal
+      # that was entirely out of bounds are all normal outcomes of a dispatch, and a
+      # job that went red on them would teach the maintainer to ignore its colour.
+      - name: Apply the proposal
+        if: steps.gate.outputs.dispatch == 'yes'
+        env:
+          ISSUE_NUMBER: ${{ steps.gate.outputs.issue }}
+        run: |
+          printf 'no\n' > drafted.txt
+          [ -s proposal.json ] || exit 0
+          git config user.name "issue-dispatch"
+          git config user.email "issue-dispatch@users.noreply.github.com"
+          node scripts/issue-dispatch.mjs --apply \
+            --proposal proposal.json \
+            --number "$ISSUE_NUMBER" \
+            --pr-body pr-body.md \
+            --subject-out subject.txt \
+            --marker drafted.txt
+
+      - name: Push the branch and open the draft
+        if: steps.gate.outputs.dispatch == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.gate.outputs.branch }}
+          ISSUE_NUMBER: ${{ steps.gate.outputs.issue }}
+        run: |
+          [ "$(cat drafted.txt)" = "yes" ] || { echo "nothing was drafted for issue #$ISSUE_NUMBER"; exit 0; }
+          git push --force origin "HEAD:refs/heads/$BRANCH"
+          gh pr create \
+            --draft \
+            --base master \
+            --head "$BRANCH" \
+            --title "$(cat subject.txt)" \
+            --body-file pr-body.md

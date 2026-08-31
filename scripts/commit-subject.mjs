@@ -51,6 +51,22 @@
  *  the semicolon clause below are drawn around exactly those, deliberately narrow:
  *  a subject that merely CONTAINS one of those words ("read the token from the
  *  path") is a change and stays legal.
+ *
+ *  AND WHAT THE SECOND DRAFT STILL MISSED — the family that was audited out of this
+ *  log afterwards, and which every rule above lets through:
+ *
+ *      fix: Top priority
+ *
+ *  It narrates nothing. It is a well-formed conventional commit, one clause, third
+ *  person, no "Done", no tally, no list of documents — and it is made entirely of
+ *  the run's own WORK QUEUE. It says where the change sat in somebody's ordering,
+ *  which is a fact about the session that produced it and not a fact about the
+ *  tree. `queue-position` below is drawn around that: a rank word ("top", "next",
+ *  "misc", "various", "final") followed by a filler noun ("priority", "items",
+ *  "fixes", "cleanup"), ANCHORED to the whole description so that it fires on
+ *  "Top priority" and never on "raise the priority of the retry queue". The
+ *  existing length rules do not reach it — "Top priority" is twelve characters and
+ *  two words, and both minimums are met.
  */
 
 /** Conventional-commit types accepted here. */
@@ -76,6 +92,29 @@ const MIN_DESCRIPTION = 10;
 /** Subjects git writes itself, or that are addressed to a later rebase rather
  *  than to a reader. Rewriting them is not this rule's business. */
 const EXEMPT = [/^Merge\b/, /^Revert "/, /^(fixup|squash|amend)!/];
+
+/** The two halves of `queue-position` (below), spelled out here because the rule
+ *  is only safe while it is ANCHORED to the whole description, and that is easier
+ *  to see when the vocabulary is not buried inside the regex.
+ *
+ *  RANK is where a piece of work sat in a queue; FILLER is a noun that stands in
+ *  for the artefact instead of naming one. Neither is a problem on its own — both
+ *  lists are full of words that belong in real subjects ("fix the priority queue",
+ *  "cleanup after a failed upload"). A description made of NOTHING BUT them is the
+ *  one that tells the next reader only that a session got round to something. */
+const RANK =
+  "top|topmost|highest|high|medium|mid|low|lowest|first|second|third|next|final|last|remaining|leftover|" +
+  "other|another|further|additional|extra|more|some|few|misc|miscellaneous|various|several|assorted|" +
+  "general|overall|minor|small|quick|initial|main|primary|secondary|outstanding|pending";
+const FILLER =
+  "priority|priorities|item|items|thing|things|stuff|step|steps|task|tasks|point|points|fix|fixes|" +
+  "update|updates|change|changes|improvement|improvements|tweak|tweaks|cleanup|clean-up|polish|" +
+  "touches|touch-ups|work|bits|edit|edits|adjustment|adjustments|refinement|refinements|" +
+  "follow-up|follow-ups|followups|round|rounds|pass|passes|batch|batches";
+/** `^…$` is the whole point: the description must be rank words and a filler noun
+ *  and NOTHING else. "Top priority" matches; "raise the priority of the retry
+ *  queue" and "chore(deps): minor version bumps for six packages" do not. */
+const QUEUE_POSITION_RE = new RegExp(`^(?:the\\s+)?(?:(?:${RANK})\\s+)+(?:${FILLER})$`, "i");
 
 /** Each rule names the fix rather than the rule, because what an author reads is
  *  the message, at the moment the commit is refused. */
@@ -133,6 +172,17 @@ export const NARRATION_RULES = [
     say:
       "the subject scores the run rather than naming the change. How many items a run closed is the run's " +
       "bookkeeping; the log needs what the tree now does differently.",
+  },
+  {
+    // "Top priority" — a real subject from this log, and the one the narration
+    // rules above were all too specific to catch. Nothing about it describes a
+    // session in words; it describes one in SUBSTANCE, by naming the change's
+    // place in a queue rather than the change.
+    id: "queue-position",
+    re: QUEUE_POSITION_RE,
+    say:
+      "the subject names where the work sat in a queue, not what the change does. Which item a run reached " +
+      "first is the run's ordering; six months from now the log needs the artefact and what happened to it.",
   },
   {
     id: "placeholder",
