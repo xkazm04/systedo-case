@@ -129,6 +129,7 @@
 import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { printRemedy } from "./gate-remedy.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WF_DIR = join(ROOT, ".github", "workflows");
@@ -472,6 +473,7 @@ if (violations.length) {
   say("");
   say(`✗ ${violations.length} policy violation(s):`);
   for (const v of violations) say(`  • ${v}`);
+  printRemedy("actions:check", say);
 }
 
 if (SUMMARY_FILE) {

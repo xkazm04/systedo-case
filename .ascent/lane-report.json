@@ -2,51 +2,74 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "5336fe09-813f-40b4-befe-1ece1f165745",
+      "recommendationId": "4f96e40d-6e4f-445d-88a1-102efa2b9fdb",
+      "verdict": "skipped",
+      "reason": "Needs network: pinning a tag to a digest means asking GitHub what that tag points at now, and `npm run actions:pin -- --update` (which also flips STRICT/RATCHET so the pins are enforced) is already written and waiting for one networked run.",
+      "files": []
+    },
+    {
+      "recommendationId": "5bd76f46-b68a-425e-acf2-2b103cf2ea81",
+      "verdict": "skipped",
+      "reason": "The narrating subjects are already on master and cannot be reworded without git history rewriting; A5 blocks on every path the repository controls, and the uncovered path is an automation lane that commits in a hookless worktree, so I strengthened the guidance that lane's agent reads instead (a committed .husky/commit-msg was refused as a sensitive file).",
+      "files": ["scripts/commit-subject.mjs", "AGENTS.md"]
+    },
+    {
+      "recommendationId": "246a2565-fae5-4957-ad28-07b40c091e0f",
+      "verdict": "skipped",
+      "reason": "Needs a build run: a budget that fails has to be seeded from measured numbers (first-load JS per route, or a Playwright timing), and with no shell every threshold I could write would be either invented or vacuous.",
+      "files": []
+    },
+    {
+      "recommendationId": "bfd3775a-c661-4f10-ac6d-2bcec8e81da7",
       "verdict": "resolved",
-      "reason": "Every exception list (7 SAST allowlist rules + the 4 ESLint fences, 14 measured rows) now carries a ceiling with a reason and a removal condition in .github/contract-ledger.json, and the previously-unwired scripts/contract-ledger.mjs --check now enforces it as a blocking stage of check:ci — a list that grows past its ceiling, or a new fence with an uncapped list, fails the pre-push gate.",
+      "reason": "Added a weekly real-model prove of every registered operation against the configured provider, failing the run on drift and publishing a dated pass/fail trail to a GitHub issue; it stays on the reporting rung and a unit test fails if it is deleted, un-scheduled, or pulled into check:ci.",
       "files": [
-        "scripts/contract-ledger.mjs",
-        ".github/contract-ledger.json",
+        "scripts/llm-drift.mjs",
+        "scripts/llm-drift-history.mjs",
+        ".github/workflows/llm-drift.yml",
+        "test-unit/llm-drift-schedule.test.mjs",
         "package.json",
-        "test-unit/contract-ledger-ceiling.test.mjs",
-        "AGENTS.md"
+        "AGENTS.md",
+        "docs/task-index.md"
       ]
     },
     {
-      "recommendationId": "0acb1f0a-1f02-44b1-a991-a32b1b04a23f",
+      "recommendationId": "c322c208-2106-4957-8422-47f4fdb36a2b",
+      "verdict": "needs_human",
+      "reason": "Already covered in the tree: docs/deploy.md has a Rollback section and docs/runbooks/revert-drill.md is a full seeded-fault drill routed from docs/task-index.md; what is missing is a recorded row (a timed drill), which needs somebody to run deploys and git and is deliberately not promoted to a gate until two rows exist.",
+      "files": []
+    },
+    {
+      "recommendationId": "a792e852-9a55-4a46-9836-db68fb46989d",
       "verdict": "resolved",
-      "reason": "The narrating subjects were not being Ack'd around (Ack: only unblocks A3/A4) — they were landing on a path with no hooks, and one family passed the rule outright; scripts/commit-subject.mjs now refuses the consulted-documents list, the run tally and the semicolon-joined report clause, pinned by a new test-unit/commit-subject.test.mjs, so A5 refuses them in check:ci and in agent-review.yml. The commit-time half (a committed .husky/commit-msg) could not be added: .husky is a protected path in this session.",
-      "files": ["scripts/commit-subject.mjs", "test-unit/commit-subject.test.mjs"]
-    },
-    {
-      "recommendationId": "4f70f22c-09dd-4e27-8716-2484031c9917",
-      "verdict": "skipped",
-      "reason": "Needs network: all 23 refs are first-party actions on version tags and pinning them means asking GitHub what each tag points at right now (scripts/actions-pin.mjs --update, which also flips STRICT/RATCHET in the same pass); inventing a SHA breaks the workflow rather than pinning it.",
-      "files": []
-    },
-    {
-      "recommendationId": "6a454572-c5b0-460a-b7e5-363897e311ab",
-      "verdict": "skipped",
-      "reason": "The runbook already exists and says so itself — docs/runbooks/revert-drill.md, 'Status: never run', with the seeds, the stamps and the promotion rule for when it becomes a gate; what is missing is a RUN, which needs a shell and a deploy this session has neither of.",
-      "files": []
-    },
-    {
-      "recommendationId": "6c722ff5-35c1-402d-aa7b-2abb5fbfdc42",
-      "verdict": "skipped",
-      "reason": "Needs a test runner: a mutation score is produced by running the suite once per injected fault, and this session has no node_modules and no ability to execute anything — a harness written blind and never run is exactly the unverified artefact the brief refuses.",
-      "files": []
-    },
-    {
-      "recommendationId": "c455f380-43a7-4e9f-8452-53f5a322d998",
-      "verdict": "skipped",
-      "reason": "Needs signing/attestation infrastructure and git: making the run→commit link verifiable rather than declarative means attesting the commit the way CI attests artifacts, and the in-tree alternative (staging .agent/checkpoints/<session>.json into the same commit) cannot work under this repo's mandatory pathspec commits, which ignore index additions made by a hook.",
-      "files": []
+      "reason": "Every check:ci gate now prints the exact next command from one table (scripts/gate-remedy.mjs) on its own failure path, `npm run gates` shows the whole chain, the chain was reordered so eleven zero-dependency checks run before `next build`, and test-unit/gate-remedy.test.mjs fails when a stage has no entry, a remedy names a script that does not exist, or a gate stops printing its remedy.",
+      "files": [
+        "scripts/gate-remedy.mjs",
+        "test-unit/gate-remedy.test.mjs",
+        "package.json",
+        "scripts/adr-check.mjs",
+        "scripts/docs-parity.mjs",
+        "scripts/agent-surface.mjs",
+        "scripts/agent-checkpoint.mjs",
+        "scripts/actions-pin.mjs",
+        "scripts/merge-gate.mjs",
+        "scripts/contract-ledger.mjs",
+        "scripts/context-decay.mjs",
+        "scripts/llm-gate.mjs",
+        "scripts/quality-gate.mjs",
+        "scripts/llm-budget.mjs",
+        "scripts/generate-data.mjs",
+        "scripts/agent-review.mjs",
+        "AGENTS.md",
+        "CONTRIBUTING.md",
+        ".github/workflows/ci.yml",
+        "docs/task-index.md"
+      ]
     }
   ],
   "lessons": [
-    "This repository ships tooling faster than it wires it: scripts/contract-ledger.mjs and .github/contract-ledger.json landed with a $comment claiming they were 'blocking inside check:ci' while package.json defined no such script and nothing referenced the file. Before writing a new gate here, grep package.json and .husky for the one that already exists — the gap is usually the wiring, not the idea.",
-    "Autopilot lanes commit from a throwaway worktree with no node_modules and no .husky/_, so no git hook in this repo fires on the commits that most often break its rules. Any guardrail meant to reach agent-written commits has to hold over a RANGE at push time (rubric A5 / check:ci), not at commit time.",
-    "Gate rungs here are chosen by measurement (ADR-0007): a check goes on the blocking rung only if it passes on the tree the day it lands. A ratchet or ceiling set to today's count is the way to make an unbounded thing blocking immediately, and the repo prefers that over a new reporting-rung script nobody reads."
+    "This repository already answers most maturity gaps somewhere in the tree — docs/task-index.md routes task to document, and checking it first turns two of six items into 'already covered, here is the residual' instead of duplicate machinery.",
+    "Its own rung discipline (docs/adr/0007) forbids landing a check that does not pass today, so a gate needing a measured baseline (a perf budget, a drill-recency check) cannot honestly be added by a session with no shell — the honest output is a skip naming the one command a human must run.",
+    "Enforcement here is designed around the fact that automation lanes commit in throwaway worktrees where no git hook is installed: rules that must bite live in check:ci and in a workflow, never in a hook alone."
   ]
 }

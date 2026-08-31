@@ -46,18 +46,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # One command = the whole CI gate, runnable locally before pushing:
-      #   check (typecheck && lint && build) → seed drift guard → unit tests →
-      #   llm:gate:check (chokepoint coverage + contract goldens + the golden
-      #   provenance ledger) → llm:quality:check (the baked scorecard's floor on
-      #   the models we actually serve) → adr:check → docs:parity (the shared
-      #   claims in README.md and docs/README.cs.md still agree) → agents:surface →
+      # One command = the whole CI gate, runnable locally before pushing, and
+      #   ordered CHEAPEST FIRST so a red arrives before the build does:
+      #   adr:check → docs:parity (the shared claims in README.md and
+      #   docs/README.cs.md still agree) → agents:surface → checkpoint:check →
       #   actions:check (workflow token scope, action pinning, no expression
       #   spliced into a `run:` script) → merge-gate (every check that
       #   .github/required-checks.json says may stop a change still exists, still
-      #   runs on PRs, and can still fail) → review:agent:gate (Part A of the
-      #   rubric). All deterministic and key-free — zero model calls; the
-      #   real-model run stays on demand (npm run test:llm).
+      #   runs on PRs, and can still fail) → contract:ledger:check →
+      #   context:decay:check → review:agent:gate (Part A of the rubric) →
+      #   llm:gate:check (chokepoint coverage + contract goldens + the golden
+      #   provenance ledger) → llm:quality:check (the baked scorecard's floor on
+      #   the models we actually serve) → llm:budget:check → seed drift guard —
+      #   thirteen zero-dependency checks, seconds each — then the slow half:
+      #   check (typecheck && lint && build) → unit tests. All deterministic and
+      #   key-free — zero model calls; the real-model run is on demand
+      #   (npm run test:llm) and weekly (.github/workflows/llm-drift.yml).
+      #
+      #   Each stage prints the next command when it fails — one table, in
+      #   scripts/gate-remedy.mjs; `npm run gates` shows it before anything fires.
       #
       #   review:agent:gate is a no-op HERE and load-bearing on a developer's
       #   machine: this checkout is shallow, so `origin/master` is the pushed

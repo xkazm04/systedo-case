@@ -6,7 +6,9 @@
  *  locally as `npm run review:agent -- --base origin/master`. Exit non-zero fails
  *  the job; the report is written to the job summary either way.
  *
- *  It also runs as the LAST stage of `npm run check:ci`, via
+ *  It also runs as a stage of `npm run check:ci` — early, among the other
+ *  zero-dependency checks and before `next build`, so a subject or an `Ack:` that
+ *  has to be reworded is refused in seconds rather than after a build — via
  *  `npm run review:agent:gate` (this script with `--base origin/master`). That is
  *  not belt-and-braces, it is the only place the rubric can stop THIS repo's
  *  actual landing path. Master ships by direct push (docs/deploy.md § Delivery
@@ -55,6 +57,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkSubject } from "./commit-subject.mjs";
+import { printRemedy } from "./gate-remedy.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -456,4 +459,8 @@ if (JSON_FILE) {
   }
 }
 
-process.exit(blocking.length ? 1 : 0);
+if (blocking.length) {
+  printRemedy("review:agent:gate");
+  process.exit(1);
+}
+process.exit(0);

@@ -74,6 +74,7 @@
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { printRemedy } from "./gate-remedy.mjs";
 
 import { LLM_TOOLS } from "../test-llm/registry.mjs";
 
@@ -276,4 +277,7 @@ if (SUMMARY_FILE) {
   }
 }
 
-if (violations.length && CHECK) process.exit(1);
+if (violations.length && CHECK) {
+  printRemedy("llm:budget:check");
+  process.exit(1);
+}

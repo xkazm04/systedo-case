@@ -24,11 +24,13 @@
 import { spawnSync } from "node:child_process";
 import { findCallSites, checkChokepoint, checkByomOperations } from "../test-llm/callsites.mjs";
 import { LLM_TOOLS } from "../test-llm/registry.mjs";
+import { printRemedy } from "./gate-remedy.mjs";
 
 const args = new Set(process.argv.slice(2));
 
 function fail(msg) {
   console.error(`\n✗ LLM gate: ${msg}`);
+  printRemedy("llm:gate:check");
   process.exit(1);
 }
 

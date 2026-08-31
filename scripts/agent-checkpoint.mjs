@@ -56,6 +56,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { spawnSync } from "node:child_process";
 import { dirname, join, relative, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
+import { printRemedy } from "./gate-remedy.mjs";
 
 import {
   applyCommit,
@@ -202,6 +203,7 @@ if (MODE_CHECK) {
       "A checkpoint is written by the harness and read by the next session. One that no longer parses does not " +
         "announce itself — it just hands the next run nothing. Fix the file, or delete it and say so."
     );
+    printRemedy("checkpoint:check");
     process.exit(1);
   }
   console.log("");

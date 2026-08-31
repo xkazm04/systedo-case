@@ -51,6 +51,7 @@
 import { appendFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { printRemedy } from "./gate-remedy.mjs";
 import { checkDeclaredRuleset } from "./branch-protection.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -301,6 +302,7 @@ if (failures.length) {
   say("  A required check is the difference between a review and advice. If one of these");
   say("  genuinely should stop blocking, move it off the list in .github/required-checks.json");
   say("  with the reason — do not soften it in place and leave the list claiming otherwise.");
+  printRemedy("merge-gate", say);
 } else {
   say("");
   say(

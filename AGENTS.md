@@ -55,15 +55,24 @@ npm run dev           # real auth mode (needs Google OAuth + Firestore creds)
 npm run check         # typecheck + lint + build
 npm run test:unit     # node:test suites in test-unit/
 npm run test:e2e      # Playwright — also runs in CI (the key-free `e2e-smoke` job)
-npm run check:ci      # what CI runs: check + seed:check + test:unit + llm:gate:check
-                      #   + llm:quality:check + llm:budget:check + adr:check
-                      #   + docs:parity + agents:surface + checkpoint:check
-                      #   + context:decay:check
-                      #   + actions:check + merge-gate + contract:ledger:check
-                      #   + review:agent:gate
+npm run check:ci      # what CI runs, CHEAPEST FIRST: adr:check + docs:parity
+                      #   + agents:surface + checkpoint:check + actions:check
+                      #   + merge-gate + contract:ledger:check + context:decay:check
+                      #   + review:agent:gate + llm:gate:check + llm:quality:check
+                      #   + llm:budget:check + seed:check, THEN the slow half:
+                      #   check (typecheck/lint/build) + test:unit. The thirteen
+                      #   zero-dependency checks run before `next build`, so a wrong
+                      #   change is refused in seconds rather than after a build
+npm run gates         # the chain above, with the EXACT NEXT COMMAND for each gate —
+                      #   the same remedy each one prints when it goes red
+                      #   (scripts/gate-remedy.mjs; `-- --stage <name>` for one)
 npm run llm:gate      # LLM proof gate (llm:list shows call sites)
 npm run llm:budget    # what each LLM operation COSTS on the input side, vs its
                       #   recorded ceiling (test-llm/budget.json); :check blocks
+npm run llm:drift     # AMBER (spends money): every registered operation against
+                      #   the CONFIGURED provider — real answer, right tier, still
+                      #   valid. Runs weekly in CI (.github/workflows/llm-drift.yml)
+                      #   and publishes a dated pass/fail trail; never in check:ci
 npm run context:decay # cross-group imports the context map does not declare;
                       #   :check blocks a NEW crossing in the diff (--base <ref>)
 npm run sast          # repo security rules over src/ (blocking in CI)
@@ -91,6 +100,17 @@ count rises). Which is which, and why, is
 records are in [`docs/adr/`](docs/adr/README.md) — read the one for a seam before
 you change it.
 
+**And every gate tells you what to do next.** A finding names the rule and the
+file; what a reader meeting that gate for the first time needs on top of it is the
+next command, so each check prints its own entry from
+[`scripts/gate-remedy.mjs`](scripts/gate-remedy.mjs) on the way out — the command
+that regenerates the artefact, and the file where an exception is recorded when
+this change is the legitimate one. `npm run gates` prints the whole chain before
+it fires. The table is held to the chain by
+`test-unit/gate-remedy.test.mjs`: a stage added to `check:ci` with no entry, a
+remedy naming an npm script that does not exist, or a gate that stops printing its
+remedy all turn the unit suite red.
+
 ## Architecture in 10 lines
 
 1. Next.js 16 App Router + React 19; pages `src/app/`, components `src/components/`, logic `src/lib/`.
@@ -112,6 +132,13 @@ you change it.
   a chokepoint violation, or drifted contract goldens. Static-only since
   2026-08-05 — the hash-cached real-model re-prove was retired (too expensive
   long-term); prove on demand with `npm run test:llm` / `npm run llm:quality`.
+  **A static gate cannot see the model change its mind**, so the real-model prove
+  also runs weekly rather than only when someone thinks to run it:
+  `.github/workflows/llm-drift.yml` walks the whole registry against the
+  CONFIGURED provider (`npm run llm:drift`) and publishes a dated pass/fail trail
+  to a GitHub issue, so drift is dated instead of discovered. Reporting rung — it
+  needs a key and money, it is never in `check:ci`, and with no key configured it
+  records `skipped` rather than a green it did not earn.
   **Accepting a golden needs a reason**: `npm run llm:eval:update -- --reason
   "..."` refuses filler, writes `tool | from | to | reason` into
   `test-llm/golden/CHANGELOG.md`, and the gate fails when a golden's fingerprint
@@ -139,7 +166,7 @@ you change it.
   PR body; there is no flag that turns the rule off. Part B is a model applying
   the judgment half and posting a comment; it never blocks — and it runs in a
   separate job, because the half that holds `pull-requests: write` should not be
-  the half that decides the build. Part A also runs as the last stage of
+  the half that decides the build. Part A also runs as an early stage of
   `check:ci` (`npm run review:agent:gate`), so on this repo's real landing path —
   direct push to master, where a required status check never gets a chance — a
   blocking finding refuses the push instead of commenting on the release.
@@ -193,6 +220,17 @@ you change it.
   history with `npm run commit:check -- --range <range>`. There is no `Ack:`
   escape hatch, because nothing about a change makes a bad subject the right call.
   If a run produced no change, it does not owe the log a commit.
+
+  **If a lane commits for you, its subject is still yours.** The runs that keep
+  breaking this rule are the ones where an outer harness takes the FIRST LINE of
+  the agent's report and uses it as the commit subject — in a throwaway worktree
+  where no hook is installed, so nothing refuses it until the change is already
+  written. There is no repository-side fix for that; the fix is that the report's
+  first line is written as a subject. Copy the shape of
+  `chore(registry-map): regenerate with priorNotApplicable ranking hint` — the
+  artefact, and what happened to it, in one clause. Everything the report says
+  about the run belongs below a blank line, in the body, where no rule objects to
+  it. Check yours before you exit: `npm run commit:check -- --message "<subject>"`.
 - **But it does owe the next run a checkpoint.** Refusing the narrating commit is
   only half the rule; the other half is that a run stopped by its wall clock must
   leave something better than a commit behind. **Read the open checkpoints before

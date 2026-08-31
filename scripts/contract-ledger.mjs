@@ -77,6 +77,7 @@
 import { appendFileSync, existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { printRemedy } from "./gate-remedy.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -526,6 +527,7 @@ if (OUT_FILE) {
 }
 
 if (failures.length || discoveryErrors.length) {
+  printRemedy("contract:ledger:check");
   if (CHECK) process.exit(1);
   console.error("\n(reporting run — `--check` would have failed here.)");
 }

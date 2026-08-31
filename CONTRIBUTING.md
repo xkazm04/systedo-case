@@ -79,11 +79,18 @@ Run this before opening a PR. CI runs the same command; a red gate is not a
 review comment, it's a blocked merge.
 
 ```bash
-npm run check:ci   # typecheck + lint + build + seed:check + test:unit
-                   #   + llm:gate:check + llm:quality:check + adr:check + docs:parity
-                   #   + agents:surface + actions:check + merge-gate
-                   #   + contract:ledger:check + review:agent:gate
+npm run check:ci   # cheapest first: adr:check + docs:parity + agents:surface
+                   #   + checkpoint:check + actions:check + merge-gate
+                   #   + contract:ledger:check + context:decay:check
+                   #   + review:agent:gate + llm:gate:check + llm:quality:check
+                   #   + llm:budget:check + seed:check, then the slow half:
+                   #   typecheck + lint + build + test:unit
 ```
+
+Every one of them prints the **next command** when it fails — the command that
+regenerates the artefact, and the file where an exception is recorded when your
+change is the legitimate one. `npm run gates` prints that table for the whole
+chain before anything goes red.
 
 The pieces, if you need to run them individually:
 

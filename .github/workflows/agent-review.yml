@@ -62,7 +62,7 @@ name: Agent review
 # But a required status check only bites on a pull request, and this repo lands
 # changes by direct push to master (docs/deploy.md § Delivery contract) — on that
 # path this workflow's verdict arrives after Vercel has begun the deploy. So the
-# same Part A also runs as the last stage of `npm run check:ci`
+# same Part A also runs as one of the early stages of `npm run check:ci`
 # (`npm run review:agent:gate`), which `.husky/pre-push` runs before any push that
 # updates master: a blocking finding refuses the push. Both wirings are asserted
 # by test-unit/delivery-contract.test.mjs, so neither can be removed in silence.

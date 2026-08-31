@@ -67,6 +67,7 @@ import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { printRemedy } from "./gate-remedy.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const MAP_PATH = join(ROOT, "context-map.json");
@@ -257,6 +258,7 @@ if (CHECK) {
     say("");
     say(`✗ ${violations.length} undeclared boundary crossing(s) introduced by this change:`);
     for (const v of violations) say(`  • ${v}`);
+    printRemedy("context:decay:check", say);
     finish(1);
   }
   say("✓ no feature group started reaching into another one in this change.");

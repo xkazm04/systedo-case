@@ -1,0 +1,171 @@
+name: LLM drift
+
+# The real-model prove, on a schedule, with the verdicts kept where a trend is
+# readable.
+#
+# WHY. `check:ci` is static and key-free by decision: the hash-cached real-model
+# re-prove was retired 2026-08-05 because it cost too much to run per change (see
+# ci.yml). What is left proves everything committed data can prove — every call
+# site tagged and registered, no prompt or schema drifted from its golden, no
+# operation over its recorded cost ceiling. None of it can see the one input
+# nobody in this repository controls: the MODEL on the other side of the
+# chokepoint changing what it returns.
+#
+# That change arrives without a commit, so it arrives without a build. Under the
+# on-demand arrangement the first thing to notice was whoever next ran
+# `npm run test:llm` by hand, which in practice means an incident. Weekly is the
+# cadence that is cheap enough to keep (one pass over the registry, once) and
+# frequent enough to date the drift to a week rather than to a quarter.
+#
+# WHAT IT PROVES, and why it is not `npm run test:llm`. That suite proves the
+# DEVELOPMENT provider — the Claude CLI on the maintainer's subscription — and
+# asserts Claude model ids, so it cannot run on a runner at all. This proves
+# whichever provider the environment configures, which here (NODE_ENV=production
+# + GEMINI_API_KEY) is the provider real users are served by. Same chokepoint,
+# same registry, same contract: a real provider answered, on the tool's own tier,
+# and the result still passes the tool's validator. scripts/llm-drift.mjs.
+#
+# WITH NO KEY IT IS `skipped`, NOT GREEN. The wrapper serves its deterministic
+# demo when no provider is configured, which is a product property (AGENTS.md
+# § Green) — reporting that as drift would make the record permanently red, and a
+# record that is always red is a record nobody reads. The trail says `skipped`
+# and says why, which is the honest way for the gap to stay visible.
+#
+# REPORTING RUNG (docs/adr/0007-gate-rung-discipline.md) and permanently so: it
+# needs the network, a key and money, so it can never sit in `check:ci` or the
+# pre-push hook, and it is deliberately absent from .github/required-checks.json.
+# Its red is a signal to a human, not a blocked release.
+#
+# WHERE THE HISTORY LIVES. Not in the repository: master ships on push, so a
+# commit from a cron would be a release. One GitHub issue, rewritten each week
+# with this run's verdict and the conclusions of the runs before it, exactly as
+# agent-review-history.yml publishes the rubric review's trail. The previous
+# weeks are read back from the Actions API, so nothing has to be stored to be
+# remembered — which also means the prove step must be allowed to FAIL the job:
+# the run's own conclusion is the row in next week's table.
+#
+# No `github.event.*` appears in this file (rule P9, scripts/actions-pin.mjs) and
+# every `${{ … }}` is an `env:` binding (P5/P7), asserted by
+# test-unit/workflow-injection.test.mjs.
+on:
+  schedule:
+    # Wednesday, mid-week: away from Monday's triage (agent-review-history) and
+    # from the weekend passes (supply-chain 06:00, sast 07:00).
+    - cron: "0 6 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    name: Real-model prove (reporting)
+    runs-on: ubuntu-latest
+    # `actions: read` is what lets the report step list this workflow's previous
+    # runs. Nothing here can write to the repository, and the only secret is the
+    # provider key the prove needs.
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.14.0
+          cache: npm
+
+      # NODE_ENV stays off this step: `npm ci` under production skips the
+      # devDependencies the prove needs to run at all.
+      - name: Install dependencies
+        run: npm ci
+
+      # No `continue-on-error`. The job's conclusion IS the weekly verdict — it is
+      # what the table in next week's report reads back — so a drift has to land
+      # as a red run. The steps below carry `if: always()` instead, so the report
+      # is published on exactly the weeks it matters most.
+      #
+      # `NODE_ENV=production` selects the Gemini provider, i.e. the one production
+      # serves with. Without GEMINI_API_KEY the script writes a `skipped` verdict
+      # and exits 0 rather than reporting a missing key as model drift.
+      - name: Prove every registered operation against a real provider
+        env:
+          NODE_ENV: production
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: npm run llm:drift -- --out llm-drift.json
+
+      - name: Render the trail (this run, and the runs before it)
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/llm-drift-history.mjs \
+            --verdict llm-drift.json \
+            --runs 20 \
+            --out llm-drift.md \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the verdict as an artifact too
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: llm-drift
+          path: |
+            llm-drift.md
+            llm-drift.json
+          if-no-files-found: ignore
+          retention-days: 90
+
+  publish:
+    name: Publish the drift trail (reporting)
+    runs-on: ubuntu-latest
+    needs: prove
+    if: always()
+    # The only write scope in this workflow, on the only job that needs it, and
+    # narrower than the workflow default: it edits one issue. It does not check
+    # the repository out, so no repository code runs in the job holding the token.
+    permissions:
+      issues: write
+    steps:
+      - name: Fetch the report
+        continue-on-error: true
+        uses: actions/download-artifact@v7
+        with:
+          name: llm-drift
+
+      # One issue, rewritten each week: a stable URL that always shows the current
+      # picture, with every previous week kept in the issue's own edit history.
+      - name: Rewrite the trail issue
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TITLE: "LLM drift — the real-model prove"
+        run: |
+          if [ ! -s llm-drift.md ]; then
+            echo "No report was produced (see the \`prove\` job); leaving the issue as it is." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo
+            echo "---"
+            echo
+            echo "_Rewritten weekly by \`.github/workflows/llm-drift.yml\`._"
+            echo "_The prove: \`scripts/llm-drift.mjs\` · the registry it walks: \`test-llm/registry.mjs\`._"
+            echo "_Edit this issue and the next run overwrites you — reply in a comment instead._"
+          } >> llm-drift.md
+          number="$(gh issue list --state all --limit 100 --json number,title \
+            --jq '.[] | select(.title == env.TITLE) | .number' | head -n 1)"
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --body-file llm-drift.md
+            gh issue reopen "$number" >/dev/null 2>&1 || true
+            echo "Updated issue #$number." >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh issue create --title "$TITLE" --body-file llm-drift.md \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -51,6 +51,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { printRemedy } from "./gate-remedy.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ADR_DIR = join(ROOT, "docs", "adr");
@@ -198,6 +199,7 @@ if (failures.length) {
   console.error(`\n✗ ADR gate: ${failures.length} problem(s)\n`);
   for (const f of failures) console.error(`  • ${f}`);
   console.error("");
+  printRemedy("adr:check");
   process.exit(1);
 }
 

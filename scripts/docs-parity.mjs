@@ -35,6 +35,7 @@
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { printRemedy } from "./gate-remedy.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SPEC_PATH = join(ROOT, "docs", "parity.json");
@@ -172,6 +173,7 @@ if (failures.length) {
   say("  Do not delete a rule to make this green. The rule going red IS the drift being caught;");
   say("  a bilingual doc whose stale half nobody notices is how an agent gets a confident wrong");
   say("  answer about what this repository can do.");
+  printRemedy("docs:parity", say);
 } else {
   say("");
   say("✓ docs parity: every declared pair states its shared facts on both sides, with the same values.");

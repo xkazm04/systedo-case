@@ -45,6 +45,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync, appendFileSync } 
 import { spawnSync } from "node:child_process";
 import { dirname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { printRemedy } from "./gate-remedy.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const LOCK_PATH = join(ROOT, ".github", "agent-surface.lock.json");
@@ -361,9 +362,7 @@ if (failures.length) {
   say(`✗ ${failures.length} problem(s):`);
   for (const f of failures) say(`  • ${f}`);
   say("");
-  say("  A generated block that changed: read it, decide whether the guidance it now");
-  say("  gives agents is guidance you want, then accept it on purpose:");
-  say('    npm run agents:surface -- --accept "what changed and why it is fine"');
+  printRemedy("agents:surface", say);
 } else {
   say("");
   say("✓ agent surface: generated blocks match what was accepted, and the map's claims still hold.");

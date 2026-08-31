@@ -72,6 +72,8 @@ is a red build, not a dead link somebody finds later.
 | Opening a pull request as a human | [`CONTRIBUTING.md`](../CONTRIBUTING.md) | Setup, the gate, the conventions — the same rules `AGENTS.md` states, for a person |
 | Signing the contributor agreement | [`CLA.md`](../CLA.md), [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) | Why a CLA, and the behaviour expected in the tracker |
 | Writing the commit subject | [`scripts/commit-subject.mjs`](../scripts/commit-subject.mjs) | The rules themselves, with the reason each one exists. Audit history with `npm run commit:check -- --range <range>` |
+| A gate went red and you do not know what to run | [`scripts/gate-remedy.mjs`](../scripts/gate-remedy.mjs) | The next command for every stage of `check:ci`, in the order they run — `npm run gates`, or read it off the failure itself |
+| Proving the model still behaves, off a schedule | [`scripts/llm-drift.mjs`](../scripts/llm-drift.mjs) | The weekly real-model prove, what it asserts, and where its dated verdicts are published |
 | Reporting a vulnerability | [`SECURITY.md`](../SECURITY.md) | Never a public issue; what is in scope |
 | Getting past a security rule you believe is wrong | [`.github/security/sast-allowlist.json`](../.github/security/sast-allowlist.json) | The only exception mechanism — an entry with a written reason. There is no in-code opt-out |
 | Adding or changing a required check | [`docs/adr/0011-required-checks-are-enumerated-in-the-repo.md`](adr/0011-required-checks-are-enumerated-in-the-repo.md) | Why the list lives in the repo and is verified by a gate |

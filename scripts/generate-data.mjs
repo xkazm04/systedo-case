@@ -18,6 +18,7 @@
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { printRemedy } from "./gate-remedy.mjs";
 // Shared demo core — the same seeded PRNG as the sample campaigns and sample
 // keywords (one implementation instead of three copies).
 import { mulberry32, hashStr } from "../src/lib/demo/prng.mjs";
@@ -372,6 +373,7 @@ if (process.argv.includes("--check")) {
   // not drift — only actual content changes should fail the guard.
   if (current.replace(/\r\n/g, "\n") !== OUTPUT) {
     console.error("✗ src/data/performance.json is out of sync with generate-data.mjs. Run `npm run seed`.");
+    printRemedy("seed:check");
     process.exit(1);
   }
   console.log("✓ performance.json matches the generator.");

@@ -57,6 +57,7 @@
 import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { printRemedy } from "./gate-remedy.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCORES = join(ROOT, "src", "lib", "llm", "quality-scores.ts");
@@ -463,6 +464,7 @@ if (blocking.length) {
   say("");
   say("  These are not advisory. A serving model below the floor, or producing output");
   say("  its own validator rejects, is a product defect on a surface users read.");
+  printRemedy("llm:quality:check", say);
 } else {
   say("");
   say(
