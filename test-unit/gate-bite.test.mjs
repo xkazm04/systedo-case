@@ -292,7 +292,7 @@ test("merge-gate fails when a required check is softened so it cannot fail", () 
 
 test("llm:gate:check refuses an untagged chokepoint call site", () => {
   const dir = sandbox();
-  const module = [
+  const fixtureSource = [
     "// A gate-bite fixture: a wrapper call with no `// llm-tool:` tag and no registry",
     "// entry, i.e. an AI operation with no test behind it.",
     'import { generateStructured } from "@/lib/llm";',
@@ -302,7 +302,7 @@ test("llm:gate:check refuses an untagged chokepoint call site", () => {
     "}",
     "",
   ].join("\n");
-  const res = withEdits(dir, [{ file: "src/lib/gate-bite-fixture.ts", write: module }], () =>
+  const res = withEdits(dir, [{ file: "src/lib/gate-bite-fixture.ts", write: fixtureSource }], () =>
     runGate(dir, "llm-gate.mjs", ["--check"])
   );
   assert.equal(res.status, 1, "an untagged call site is an AI operation nothing proves — it must not pass.");
