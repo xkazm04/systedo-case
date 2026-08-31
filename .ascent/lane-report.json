@@ -2,44 +2,49 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "01bc3f59-c8d8-4d70-8da1-b4d6d1f8feaa",
+      "recommendationId": "1a471683-7c8a-4f02-bd93-46743b227ff6",
       "verdict": "skipped",
-      "reason": "Needs network: pinning means asking GitHub what each tag points at right now, and an invented SHA breaks a workflow rather than pinning it; the repository already ships the exact one-command path (`npm run actions:pin` resolves every tag to its digest, rewrites the seven workflows, and writes STRICT = true plus RATCHET.pinned = <count> back into scripts/actions-pin.mjs so both halves land in one diff), so there is nothing left to build offline — only a networked run to make.",
+      "reason": "Needs network: pinning means asking GitHub what each tag resolves to right now, and an invented SHA breaks a workflow rather than pinning it. The offline half is already built by an earlier lane — scripts/actions-pin.mjs (`npm run actions:pin`) resolves every tag to its digest, rewrites the workflows and writes the STRICT flag plus the ratchet back into itself so both halves land in one diff — so what is left is a single networked run, not code.",
       "files": []
     },
     {
-      "recommendationId": "3694672a-98b2-4fee-8c9d-168844798464",
+      "recommendationId": "70306ea3-bd95-447e-804d-15ba8017f207",
       "verdict": "skipped",
-      "reason": "Needs a typecheck run: putting `typecheck:strict` into check:ci means first knowing whether the tree passes it, and this session has no shell — promoting it blind is what ADR-0007 and tsconfig.strict.json's own header both forbid. What I could close offline I did: `typecheck:strict` appeared NOWHERE outside package.json and its own file (not AGENTS.md, not docs/task-index.md), so an agent following the documented loop could not meet it at all; it is now in AGENTS.md § Commands and routed from the task index, and test-unit/typecheck-strict.test.mjs (blocking, inside test:unit → check:ci → pre-push) fails when the script and config diverge, when the strict project stops measuring any flag the base project does not, when the config stops saying why it is not a gate, or when it IS added to check:ci while still claiming 'NOT A GATE'.",
+      "reason": "Already covered by mechanisms that exist and run: rubric A5 (scripts/commit-subject.mjs, called from scripts/agent-review.mjs) blocks a session-narrating subject, and it fires on this repository's real landing path — agent-review.yml's `mechanical` job resolves its base from the push payload's `.before` with fetch-depth: 0, and .husky/pre-push runs the same check via review:agent:gate. The subjects the scan saw are pre-rule history plus commits written by an OUTSIDE lane that commits in a throwaway worktree with no hooks and never pushes the branch to CI; nothing inside this repository can gate a commit made outside it, and rewriting history needs git, which this session does not have. Attribution is deliberately reporting-rung under ADR-0007. Editing anything here would be editing for the scanner.",
+      "files": []
+    },
+    {
+      "recommendationId": "6f435a14-d556-4792-8195-9ada42491712",
+      "verdict": "skipped",
+      "reason": "Already covered, and by exactly the mechanism the item asks for: .github/contract-ledger.json carries a `ceiling: { max, reason, comesOffWhen }` on every row whose measure is an exception list — the SAST allowlist rules and both halves of the ESLint seam fence — and `npm run contract:ledger:check` (blocking, inside check:ci) fails when a list grows past its ceiling OR when an exception list has no ceiling at all, which is the doubling-over-three-months case the item names. `comesOffWhen` is the retirement condition the item asks for, and test-unit/contract-ledger-ceiling.test.mjs runs the gate against a fixture whose list has outgrown its ceiling and requires it to be red. Nothing to add.",
+      "files": []
+    },
+    {
+      "recommendationId": "58a34fae-27fb-4f47-9a50-20ac7619bd73",
+      "verdict": "skipped",
+      "reason": "Needs a build: a bundle/page budget only fails on a regression once it records what the artifact weighs today, and `next build` is not runnable here (this session's shell refuses npm and node beyond --version). A ceiling I invented would either be decoration or a red build on arrival, which ADR-0007 forbids. Concretely for whoever picks it up: the accept-with-a-reason artefact pattern already exists next door (.github/gate-timings.json via `npm run gates:timings -- --accept --reason`), so the budget file should be minted the same way from a real `next build` and then read by a new stage in check:ci.",
+      "files": []
+    },
+    {
+      "recommendationId": "d3d931a3-5649-4739-95f8-8db7f590883d",
+      "verdict": "skipped",
+      "reason": "Needs a runner and network: mutation testing means a new dev dependency (Stryker) that cannot be installed offline, and a score that only exists after a run — and the baseline it would be measured against is `npm run test:unit`, which is itself red and unrunnable in this sandbox, so any mutation score minted today would be meaningless. Choosing a floor is also a judgement the item explicitly asks the operator for (which score would you refuse to ship below).",
+      "files": []
+    },
+    {
+      "recommendationId": "ec05497f-2bb0-4e12-8290-f5cdaaa8bf26",
+      "verdict": "resolved",
+      "reason": "docs/agent-index.md now carries a `Proved by` column naming, per spec, the file that would have to change for it to stay reachable, plus a section stating plainly that no golden exercises any of the four (they are prompts a human-started skill hands to a fresh model, so no fixture can assert the reply) — and test-unit/agent-index.test.mjs now enforces both halves: every row's cell must name a path that exists AND mentions the agent by name, and a second test recomputes reachability independently by scanning .claude/skills/ and scripts/ for each spec's dispatch name, so a spec nothing dispatches any more is a red build rather than a row that still looks alive. Blocking rung (all four are dispatched today), running inside test:unit → check:ci → .husky/pre-push.",
       "files": [
-        "AGENTS.md",
-        "docs/task-index.md",
-        "test-unit/typecheck-strict.test.mjs"
+        "docs/agent-index.md",
+        "test-unit/agent-index.test.mjs"
       ]
-    },
-    {
-      "recommendationId": "360bc883-6789-4e88-81f6-8ef57f56d596",
-      "verdict": "skipped",
-      "reason": "Needs a run to mint the numbers: every candidate budget (a route's p95, the dashboard's LCP, the cost of the gate chain) has to record today's measurement before it can fail on a regression, and a ceiling I invented would be decoration. Two concrete findings for whoever picks this up: the accept-with-a-reason artefact already exists (.github/gate-timings.json, written by `npm run check:ci:timed` then `npm run gates:timings -- --accept --reason \"…\"`) but has NEVER been recorded, so `gates:timings --check` returns 0 with 'No gate timings recorded yet'; and even once recorded, orderingProblems() in scripts/gate-timings.mjs only judges cheapest-first ORDER — no stage has a duration ceiling, so a gate that doubles in cost stays green.",
-      "files": []
-    },
-    {
-      "recommendationId": "cf25be2f-3840-4e49-865c-8d66f60be909",
-      "verdict": "needs_human",
-      "reason": "A repo-local flag layer (deterministic bucketing on the tenant key, a committed ledger of what is behind a flag and when it came off, a unit test holding the ledger true) is buildable with no dependency and is the right shape under ADR-0008 — but it only counts as staged exposure if it is WIRED, and every seam the item names (the LLM chokepoint, billing/metering, the Sklik write guard) is a CODEOWNERS law file that AGENTS.md § Red puts off-limits to an unattended run; wiring it anywhere else makes it a stub. With no shell I also cannot typecheck, build or test a new src/lib module, and landing unverified code into a repository whose test:unit baseline is already red would be indistinguishable from the failure that is there. The decision left is the operator's: name the first cohorted seam and whether Vercel-side canarying or an in-app percentage flag is the mechanism.",
-      "files": []
-    },
-    {
-      "recommendationId": "9e9917f5-1108-4428-8094-59d457e45bd3",
-      "verdict": "skipped",
-      "reason": "Needs git and a hook path outside this repository: the rules already exist (scripts/commit-attribution.mjs defines the trailer, `npm run commit:check --range` prints coverage, `npm run review:agent` lists unattributed commits) and the reason they are not honoured is mechanical — the Ascent lane commits in a linked worktree with no `.husky/_`, so git runs no hook whatever core.hooksPath says, and `.husky/` is a permission-gated path for these sessions. Making it blocking additionally needs today's coverage over history, which needs git; a richer trailer (agent, model, harness version) is worth writing only once something actually writes it.",
-      "files": []
     }
   ],
   "lessons": [
-    "Eight consecutive lanes on this repository have been told to repair `npm run test:unit` FIRST, and not one of them could run it: the lane sandbox refuses `npm` and `node` outright (only read-only shell verbs like ls/cat/grep are allowed) and the priority block says 'read the output below' while including no output. The repair is not converging because nobody has ever seen the failure — the fix is on the harness side (attach the failing output, or grant the one command), not in the tree.",
-    "This worktree's node_modules is a SYMLINK to the main checkout (C:/Users/kazda/kiro/systedo-case/node_modules), which the lane sandbox actively blocks reading. If the lane runs the suite under the same sandbox, every bare-specifier import resolves outside the permitted directory — an environment-level failure no source change can fix, and one that would look identical on every lane. Worth ruling out before another agent-hours are spent bisecting 472 test files.",
-    "When an item's honest close needs a measurement (a tsc run, a p95, a digest), say so and close the DISCOVERABILITY half instead: this repository's own idiom is an index plus a unit test that goes red when the artefact and the routing drift (docs-task-index.test.mjs, agent-index.test.mjs), and it transfers to 'why is this command not a gate?' without inventing a baseline.",
-    "Every seam worth putting behind a staged rollout in this repository is a CODEOWNERS law file that AGENTS.md § Red forbids an unattended run from touching. Flag infrastructure is therefore not an agent-closable item here however small the code is — the wiring decision has to come from the operator first, or the agent ships a library nothing calls."
+    "Attempt 9 at repairing `npm run test:unit` and still nobody has SEEN the failure. This lane proved the two facts that explain it, with the sandbox's own error messages: `node --version` is allowed but `node -e` and `npm run test:unit` are refused outright, and `ls node_modules/next/package.json` is blocked because this worktree's node_modules is a symlink to C:/Users/kazda/kiro/systedo-case/node_modules, outside the permitted directory. If the harness runs the suite under those same constraints, every one of the 465 files fails at bare-specifier resolution — a whole-suite, environment-level red that is identical on every lane and that no source change can fix. That is a one-command question for a human (run the suite in the MAIN checkout and paste the output), and until someone answers it, dispatching the repair again burns a lane.",
+    "A priority block that says 'read the output below' and includes no output cannot be worked. Attaching the first 50 lines of the failure would have been worth more than eight agent sessions.",
+    "Three of this cycle's six items were already closed by mechanisms this repository documents in AGENTS.md (rubric A5 for commit subjects; contract-ledger ceilings for every exception list; scripts/actions-pin.mjs for SHA pinning). Reading AGENTS.md end to end before touching anything is not politeness here — it is what stops a lane re-implementing a gate that already blocks.",
+    "When a gap is about proof rather than about behaviour, this repository's idiom is: an index stating the claim per row, plus a unit test that RECOMPUTES the claim from the tree so the index cannot be kept true by editing the index (docs-task-index.test.mjs, agent-index.test.mjs). It transfers cleanly to 'which specs are actually exercised?' and it works offline."
   ]
 }

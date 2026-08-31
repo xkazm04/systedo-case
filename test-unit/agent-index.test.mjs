@@ -111,6 +111,122 @@ test("a spec's declared name is the name it is dispatched under", () => {
   }
 });
 
+// --- which specs are actually reached ----------------------------------------
+//
+//  The three properties above keep the index complete. They say nothing about
+//  whether any of the specs is still USED, and that is the failure this pair
+//  closes: a spec whose dispatch site was deleted keeps its row, keeps its
+//  frontmatter, keeps its name — and is indistinguishable from one carrying real
+//  traffic. Goldens answer the same question for the LLM chokepoint; nothing
+//  answered it one layer up.
+//
+//  There is no fixture that can execute a subagent, so "proved" here is the
+//  weaker property that is genuinely checkable: something in the tree still
+//  dispatches it. The index states WHERE per agent (the `Proved by` column) and
+//  the second test recomputes it from the tree, so the column cannot be kept true
+//  by editing the column.
+//
+//  Rung: blocking (ADR-0007 — all four are dispatched today, so red is a
+//  regression). Pure: reads files, runs nothing.
+
+/** Table rows by agent name → their cells. No cell in this table contains a `|`. */
+function rows() {
+  const out = new Map();
+  for (const raw of index.split(/\r?\n/)) {
+    const line = raw.trim();
+    const m = /^\|\s*`([a-z0-9-]+)`\s*\|/.exec(line);
+    if (!m) continue;
+    out.set(
+      m[1],
+      line
+        .replace(/^\|/, "")
+        .replace(/\|$/, "")
+        .split("|")
+        .map((c) => c.trim())
+    );
+  }
+  return out;
+}
+
+/** Where a dispatch can live. `.claude/agents/` and `docs/` are excluded on
+ *  purpose: a spec mentioning itself, and an index mentioning a spec, are exactly
+ *  the two references a dead agent still has. */
+const DISPATCH_ROOTS = [".claude/skills", "scripts", "test-unit", "test-llm"];
+const TEXTUAL = /\.(md|mjs|cjs|js|ts|tsx|json|ya?ml|txt|sh)$/i;
+
+function textFilesUnder(rel, acc = []) {
+  let entries;
+  try {
+    entries = readdirSync(join(ROOT, rel), { withFileTypes: true });
+  } catch {
+    return acc; // a root that does not exist here contributes nothing
+  }
+  for (const e of entries) {
+    if (e.name === "node_modules" || e.name.startsWith(".git")) continue;
+    // A shared skill is a LINK into the AI registry (AGENTS.md § AI registry);
+    // its target is outside this tree and is not this repository's to assert on.
+    if (e.isSymbolicLink()) continue;
+    const child = `${rel}/${e.name}`;
+    if (e.isDirectory()) textFilesUnder(child, acc);
+    else if (e.isFile() && TEXTUAL.test(e.name)) acc.push(child);
+  }
+  return acc;
+}
+
+test("every row says what would have to change for its agent to stay reachable", () => {
+  const table = rows();
+  for (const s of specs()) {
+    const cells = table.get(s.name);
+    assert.ok(cells, `docs/agent-index.md has no table row for \`${s.name}\`.`);
+    const proof = cells[4];
+    assert.ok(
+      proof,
+      `The row for \`${s.name}\` has no \`Proved by\` cell. Name the file that dispatches it (or the fixture that ` +
+        "exercises it) — a spec with no answer to that is a document, and this index cannot tell you which."
+    );
+    const paths = [...proof.matchAll(/`([^`]*\/[^`]*)`/g)].map((m) => m[1]);
+    assert.ok(
+      paths.length > 0,
+      `The \`Proved by\` cell for \`${s.name}\` names no file path in backticks: "${proof}". It has to point at ` +
+        "something a reader can open."
+    );
+    for (const p of paths) {
+      assert.ok(existsSync(join(ROOT, p)), `docs/agent-index.md says \`${s.name}\` is proved by ${p}, which does not exist.`);
+      assert.ok(
+        readFileSync(join(ROOT, p), "utf8").includes(s.name),
+        `docs/agent-index.md says \`${s.name}\` is proved by ${p}, but that file never mentions it. The link is ` +
+          "decorative — point at the file that actually dispatches or exercises the agent."
+      );
+    }
+  }
+});
+
+test("no agent spec has quietly stopped being dispatched", () => {
+  // Recomputed from the tree rather than read out of the table above, so the
+  // index going stale and the agent going dead are two different red builds.
+  const corpus = DISPATCH_ROOTS.flatMap((r) => textFilesUnder(r));
+  assert.ok(corpus.length > 0, `none of ${DISPATCH_ROOTS.join(", ")} could be read — the scan would pass vacuously.`);
+  const pending = new Set(specs().map((s) => s.name));
+  for (const f of corpus) {
+    if (pending.size === 0) break;
+    let text;
+    try {
+      text = readFileSync(join(ROOT, f), "utf8");
+    } catch {
+      continue;
+    }
+    for (const name of [...pending]) if (text.includes(name)) pending.delete(name);
+  }
+  const orphans = [...pending];
+  assert.deepEqual(
+    orphans,
+    [],
+    `Nothing under ${DISPATCH_ROOTS.join(", ")} names ${orphans.join(", ")} any more, so the spec is unreachable: ` +
+      "whatever used to hand it work no longer does. Either restore the dispatch site, or delete the spec and its " +
+      "row — a prompt nobody sends looks identical to one under load, which is the state this test exists to end."
+  );
+});
+
 test("the task index sends a reader to the agent index", () => {
   // Same reason docs-task-index.test.mjs asserts the entry points link to it: an
   // index nobody is pointed at is just another document to guess between.
