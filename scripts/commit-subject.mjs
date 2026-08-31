@@ -11,6 +11,16 @@
  *                                 single message, for auditing and for a local
  *                                 commit-msg hook where one is installed.
  *
+ *  A5 IS THE ONE THAT BITES, and it bites late on purpose: a hook binds only the
+ *  checkout that installed it, and the commits that keep failing this rule are
+ *  written by automation lanes in throwaway worktrees that never ran `npm
+ *  install`. So the rule has to hold over a RANGE — every commit between
+ *  `origin/master` and HEAD — at the moment those commits try to reach master.
+ *  That is `npm run check:ci` (`.husky/pre-push`, before the push that IS the
+ *  release) and `.github/workflows/agent-review.yml` on every push and pull
+ *  request. Which means the rules below are the whole enforcement: a family they
+ *  do not name is a family that lands.
+ *
  *  WHY CONTENT AND NOT SHAPE. The conventional-commit shape is already followed on
  *  100% of the commits here, so a shape-only rule would never fire. What has
  *  actually gone wrong is subjects that describe the SESSION rather than the
@@ -24,6 +34,23 @@
  *  second is not a change at all, it is a loop event that got committed because
  *  the loop commits on exit. With ~97% of commits agent-written and the log as the
  *  main artifact a future agent bisects, that is a real cost, paid later.
+ *
+ *  WHAT THE FIRST DRAFT OF THESE RULES MISSED. The families above are refused, and
+ *  the log kept filling with the same shape anyway, because an automation lane
+ *  writes a commit subject by taking the first line of the run's REPORT. That line
+ *  is not always "Done." — it is also:
+ *
+ *      fix: Read AGENTS.md (canonical), CLAUDE.md, docs/adr/0007
+ *      fix: Done. Three of four items closed; two skipped with reasons
+ *
+ *  The first names only documents the run consulted (reading is not a change, and
+ *  a subject that lists three of them names no artefact the commit touched); the
+ *  second scores the run and then joins a second clause with a semicolon, which is
+ *  the same "second sentence" the shape rules already refuse with a full stop. Both
+ *  are in this repository's recent history. `consulted-documents`, `item-tally` and
+ *  the semicolon clause below are drawn around exactly those, deliberately narrow:
+ *  a subject that merely CONTAINS one of those words ("read the token from the
+ *  path") is a change and stays legal.
  */
 
 /** Conventional-commit types accepted here. */
@@ -86,6 +113,26 @@ export const NARRATION_RULES = [
     id: "elapsed-time",
     re: /\bexceeded\s+\d+\s*(m|min|mins|minute|minutes|s|sec|secs|hour|hours)\b/i,
     say: "the subject reports elapsed time, which says nothing about what the tree now does differently.",
+  },
+  {
+    // "Read AGENTS.md (canonical), CLAUDE.md, docs/adr/0007" — an observation verb
+    // followed by a LIST. The comma is what makes this narrow enough to be a rule:
+    // "read the feed token from the path" describes a change and has none.
+    id: "consulted-documents",
+    re: /^(re-?read|read|reviewed?|reviewing|reading|opened|consulted|inspected|skimmed|explored)\b[^,]*,/i,
+    say:
+      "the subject lists what the run READ, not what the change does. Consulting a document changes nothing — " +
+      "name the artefact the commit touched.",
+  },
+  {
+    // "Three of four items closed; two skipped with reasons" — the run's own
+    // scoreboard. Anchored to a tally IMMEDIATELY followed by the thing being
+    // tallied, so "cut 3 of 4 duplicate queries" is untouched.
+    id: "item-tally",
+    re: /\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+of\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b[^,;]{0,20}\b(items?|tasks?|findings?|issues?|recommendations?|checks?|todos?)\b/i,
+    say:
+      "the subject scores the run rather than naming the change. How many items a run closed is the run's " +
+      "bookkeeping; the log needs what the tree now does differently.",
   },
   {
     id: "placeholder",
@@ -155,6 +202,15 @@ export function checkSubject(subject) {
       "the description runs to a second sentence. A subject is one clause; put the rest in the body."
     );
   }
+  // The same fault with different punctuation. A report line reaches for a
+  // semicolon exactly where a subject would have stopped ("…items closed; two
+  // skipped with reasons"), and the full-stop rule above never sees it.
+  if (/;\s+\S/.test(text)) {
+    problems.push(
+      "the description joins a second clause with a semicolon. A subject is one clause — the half after the " +
+        "semicolon belongs in the body, below a blank line."
+    );
+  }
 
   for (const rule of NARRATION_RULES) {
     if (rule.re.test(text)) problems.push(`${rule.say} [${rule.id}]`);
@@ -174,4 +230,12 @@ export const GUIDANCE = [
   "",
   "What the run did, how long it took and how it ended are the run's business. A session that",
   "produced no change does not owe the log a commit.",
+  "",
+  "AND IF THE RUN WAS STOPPED MID-TASK, the record already has a place to go, and it is not",
+  "a `fix:` commit and not a `wip:` prefix — it is the checkpoint the next run reads first:",
+  "",
+  "    npm run checkpoint -- --next \"the very next step\"     # .agent/checkpoints/<session>.json",
+  "",
+  "If the stopped run also changed the tree, commit the change under a subject that names it.",
+  "The two are separate facts and only one of them belongs in the log.",
 ];

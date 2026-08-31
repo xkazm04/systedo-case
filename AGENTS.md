@@ -59,7 +59,8 @@ npm run check:ci      # what CI runs: check + seed:check + test:unit + llm:gate:
                       #   + llm:quality:check + llm:budget:check + adr:check
                       #   + docs:parity + agents:surface + checkpoint:check
                       #   + context:decay:check
-                      #   + actions:check + merge-gate + review:agent:gate
+                      #   + actions:check + merge-gate + contract:ledger:check
+                      #   + review:agent:gate
 npm run llm:gate      # LLM proof gate (llm:list shows call sites)
 npm run llm:budget    # what each LLM operation COSTS on the input side, vs its
                       #   recorded ceiling (test-llm/budget.json); :check blocks
@@ -69,6 +70,9 @@ npm run sast          # repo security rules over src/ (blocking in CI)
 npm run actions:check # workflow token scope, action pinning, no ${{ }} in a run: script
 npm run merge-gate    # the required checks named in .github/required-checks.json
                       #   still exist, still run on PRs, and can still fail
+npm run contract:ledger # every rule in the contract, what enforces it, and what it
+                      #   is absorbing; :check blocks when an EXCEPTION LIST grows
+                      #   past its ceiling (.github/contract-ledger.json)
 npm run protection:verify # does GitHub actually enforce them? (needs `gh`; reporting)
 npm run review:agent  # rubric review of a diff (--base <ref>); what CI runs on a PR
 npm run docs:parity   # bilingual doc pairs still state their shared facts (blocking)
@@ -164,6 +168,20 @@ you change it.
   seam, never an `eslint-disable`. There is deliberately no Prettier or Biome
   (ADR-0008): style is not reviewed here, so do not reformat files you are not
   otherwise changing.
+- **And their exception lists have a ceiling.** Those fences are drawn narrow —
+  each names modules that exist, with a list short enough to read — and so is
+  `.github/security/sast-allowlist.json`. That is the right shape and it is one
+  entry away from the wrong one: a list that grows a line per inconvenient diff
+  erodes its fence without a build ever going red. So every exception list is
+  counted in `.github/contract-ledger.json` with a `ceiling` — what it holds
+  today, why those entries are defensible, and the condition under which they
+  come off — and `npm run contract:ledger:check` (blocking, inside `check:ci`)
+  fails when a list grows past it, or when an exception list has no ceiling at
+  all. **Adding an exception is therefore a two-line diff**: the entry, and the
+  ceiling that pays for it, next to each other where a reviewer reads both. That
+  is allowed and sometimes right; adding the entry alone is not. Proven by
+  `test-unit/contract-ledger-ceiling.test.mjs`, which runs the gate against a
+  fixture whose list has outgrown its ceiling and requires it to be red.
 - **Pathspec commits only** (shared checkout, concurrent agents):
   `git add <paths>` then `git commit <same paths>`. Never `-A`, never a bare
   `git commit`, never stash or reset work that is not yours.
@@ -270,8 +288,9 @@ ago.**
   message what you proved and against which model.
 - Accepting a golden (`npm run llm:eval:update -- --reason "…"`), accepting a
   regenerated instruction block (`npm run agents:surface -- --accept "…"`),
-  adding a `.github/security/sast-allowlist.json` entry, raising any ratchet
-  baseline. Each is legitimate sometimes and each is what an agent under time
+  adding a `.github/security/sast-allowlist.json` entry **and raising its ceiling
+  in `.github/contract-ledger.json`, which is now the only way the entry passes
+  `check:ci`**, raising any ratchet baseline. Each is legitimate sometimes and each is what an agent under time
   pressure reaches for — the rubric's B3 exists to ask, every time, whether the
   finding was fixed or absorbed. Never raise a ratchet you could have lowered.
 - Adding a runtime dependency or deleting a test: allowed, with an `Ack:` line

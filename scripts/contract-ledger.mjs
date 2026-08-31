@@ -22,14 +22,39 @@
  *        line in the ledger, or it lands invisible);
  *      • every row that claims a discovered rule still resolves to one (a renamed
  *        or deleted rule cannot leave a row behind claiming to cover it);
- *      • every hand-written row's `probe` still appears in the file it names.
+ *      • every hand-written row's `probe` still appears in the file it names;
+ *      • every EXCEPTION LIST has a ceiling, and is under it (see below).
  *
- *    REPORTING — the numbers. Absorbed debt (allowlist entries, ratchet baselines,
- *      files already over a limit) is MEASURED live from the same files the gates
- *      read, so it cannot be stale. Recorded breaches come from `--record`, which
- *      takes the JSON an agent-review run writes (`scripts/agent-review.mjs
- *      --json`). Neither ever fails the build: a count is a question for the weekly
- *      triage, not a verdict on the change in front of it.
+ *    REPORTING — the rest of the numbers. Absorbed debt (ratchet baselines, files
+ *      already over a limit) is MEASURED live from the same files the gates read,
+ *      so it cannot be stale. Recorded breaches come from `--record`, which takes
+ *      the JSON an agent-review run writes (`scripts/agent-review.mjs --json`).
+ *      Neither fails the build: a count is a question for the weekly triage, not a
+ *      verdict on the change in front of it.
+ *
+ *  THE CEILING, AND WHY IT IS THE ONE NUMBER THAT BLOCKS. Two of this repository's
+ *  fences are drawn narrow on purpose — the ESLint seams name the modules that
+ *  exist, and `.github/security/sast-allowlist.json` names the files a security
+ *  rule fires on and is right about anyway. Both are the correct shape, and both
+ *  are one entry away from being the wrong one: an exception list that can grow by
+ *  a line per inconvenient diff erodes its fence without ever turning a build red,
+ *  and an agent under time pressure adds an entry as readily as it fixes a cause
+ *  (AGENTS.md § amber). Nothing measured the growth, so nothing could refuse it.
+ *
+ *  So a row that measures an exception list carries a `ceiling`:
+ *
+ *      "ceiling": { "max": 5, "reason": "…", "comesOffWhen": "…" }
+ *
+ *  `max` is what the list holds TODAY, so the gate is green on arrival (ADR-0007)
+ *  and red the moment a list grows. `reason` is why the entries are collectively
+ *  defensible; `comesOffWhen` is the condition under which they stop being needed,
+ *  which is the field an exemption list normally never has and the reason they
+ *  become permanent. Required on every allowlist/exemption row, so a NEW fence
+ *  cannot land with an uncapped exception list.
+ *
+ *  Raising a ceiling is allowed and is the point: it is one line in a reviewed
+ *  diff, next to the entry it pays for, with a sentence saying why. What is no
+ *  longer possible is adding the entry and nothing else.
  *
  *  WHAT TO DO WITH IT. Two lists at the bottom of the report:
  *    • a FENCE that has never fired and absorbs nothing — ask whether the sentence
@@ -42,7 +67,11 @@
  *  Usage:
  *    node scripts/contract-ledger.mjs                  # print the ledger
  *    node scripts/contract-ledger.mjs --check          # + fail on a parity break
+ *                                                      #   or an exception list
+ *                                                      #   over its ceiling
  *    node scripts/contract-ledger.mjs --record FILE    # fold in a review's --json
+ *    node scripts/contract-ledger.mjs --ledger FILE    # read a different ledger
+ *                                                      #   (test-unit uses it)
  *    node scripts/contract-ledger.mjs --summary FILE --out FILE
  */
 import { appendFileSync, existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -50,7 +79,6 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const LEDGER = join(ROOT, ".github", "contract-ledger.json");
 
 const argv = process.argv.slice(2);
 const arg = (name) => {
@@ -61,6 +89,10 @@ const CHECK = argv.includes("--check");
 const RECORD_FILE = arg("--record");
 const SUMMARY_FILE = arg("--summary");
 const OUT_FILE = arg("--out");
+/** The ledger this run reads. Overridable so a test can point the REAL rules at a
+ *  fixture and prove the ceiling actually refuses a grown list — a gate nobody has
+ *  seen fail is a gate nobody knows is wired. */
+const LEDGER = arg("--ledger") ?? join(ROOT, ".github", "contract-ledger.json");
 
 const read = (rel) => (existsSync(join(ROOT, rel)) ? readFileSync(join(ROOT, rel), "utf8") : null);
 
@@ -250,6 +282,32 @@ function measure(spec) {
       const entries = JSON.parse(text)[spec.rule] ?? {};
       return { count: Object.keys(entries).length, unit: "allowlisted exception(s)", detail: Object.keys(entries) };
     }
+    /** The other exception list, and the one nothing was counting: the names a
+     *  LINT fence waves through. Read out of the named config block in
+     *  eslint.config.mjs — every string in an `allowImportNames` array (a symbol
+     *  that crosses the fence) plus every rule the block switches `"off"` (a whole
+     *  directory that does not have to obey it). Text, not `import`: this script
+     *  is zero-dependency and offline (ADR-0008), and importing the config would
+     *  pull in eslint and eslint-config-next to count three strings. */
+    case "exemptions": {
+      const text = read(spec.file);
+      if (text === null) return null;
+      const opener = `name: "${spec.block}"`;
+      const start = text.indexOf(opener);
+      if (start === -1) return null;
+      const after = text.slice(start + opener.length);
+      const end = after.indexOf('name: "');
+      const body = end === -1 ? after : after.slice(0, end);
+      const allowed = [...body.matchAll(/allowImportNames:\s*\[([^\]]*)\]/g)].flatMap((m) =>
+        [...m[1].matchAll(/"([^"]+)"/g)].map((s) => `allowImportNames: ${s[1]}`)
+      );
+      const off = [...body.matchAll(/"([^"]+)":\s*"off"/g)].map((m) => `${m[1]}: off`);
+      return {
+        count: allowed.length + off.length,
+        unit: "exception(s) on the fence",
+        detail: [...allowed, ...off],
+      };
+    }
     /** A ratchet baseline IS a count of findings that were absorbed rather than
      *  fixed — the honest number for "how often is this rule broken". */
     case "ratchet": {
@@ -299,6 +357,69 @@ for (const row of rows) {
   }
 }
 
+// --- 5b. the ceiling on an exception list -------------------------------------
+//
+// Blocking, and the only measured number here that is. See the header: a fence
+// whose exception list can grow by one entry per inconvenient diff is a fence
+// that erodes without a build ever going red. Two invariants:
+//
+//   • a row that measures an exception list MUST carry a ceiling, with a reason
+//     and — once there is anything to come off — the condition under which it
+//     does. That is what stops a new fence landing with an uncapped list.
+//   • no measured count may exceed its row's ceiling. Growing a list is then a
+//     two-line diff (the entry, and the ceiling that pays for it), which is
+//     exactly the conversation the entry deserves.
+//
+// A count that could not be measured is never a failure — a broken counter must
+// not be able to stop a change.
+
+/** Measures whose whole content is "exceptions somebody accepted". */
+const EXCEPTION_KINDS = new Set(["allowlist", "exemptions"]);
+
+for (const row of rows) {
+  const kind = row.measure?.kind;
+  const ceiling = row.ceiling;
+
+  if (EXCEPTION_KINDS.has(kind) && !ceiling) {
+    failures.push(
+      `${row.id}: measures an exception list and declares no \`ceiling\`. An exception list with no ceiling ` +
+        "grows one entry at a time and never turns a build red — add " +
+        '`"ceiling": { "max": <today\'s count>, "reason": "…", "comesOffWhen": "…" }`.'
+    );
+    continue;
+  }
+  if (!ceiling) continue;
+
+  if (typeof ceiling.max !== "number" || !Number.isInteger(ceiling.max) || ceiling.max < 0) {
+    failures.push(`${row.id}: \`ceiling.max\` must be a non-negative integer — it is what the list holds today.`);
+    continue;
+  }
+  if (!String(ceiling.reason ?? "").trim()) {
+    failures.push(
+      `${row.id}: the ceiling has no \`reason\`. A number with no sentence is a limit nobody can argue with, ` +
+        "which is how it gets raised."
+    );
+  }
+  if (ceiling.max > 0 && !String(ceiling.comesOffWhen ?? "").trim()) {
+    failures.push(
+      `${row.id}: the ceiling allows ${ceiling.max} exception(s) and records no \`comesOffWhen\`. An exemption ` +
+        "with no removal condition is permanent by default — say what would make these unnecessary."
+    );
+  }
+
+  const m = measured.get(row.id);
+  if (!m || m.count === null || m.count === undefined) continue; // unmeasurable: reported, never blocking
+  if (m.count > ceiling.max) {
+    const added = (m.detail ?? []).slice(0, 10);
+    failures.push(
+      `${row.id}: ${m.count} ${m.unit}, over the ceiling of ${ceiling.max}. ` +
+        (added.length ? `Now: ${added.join(", ")}. ` : "") +
+        "Either fix the cause the new entry was papering over, or raise the ceiling in the same commit with " +
+        "the reason — the point of this gate is that the second one is a line a reviewer sees."
+    );
+  }
+}
+
 // --- 6. report ----------------------------------------------------------------
 
 const out = [];
@@ -319,8 +440,8 @@ say(
     `${rows.reduce((n, r) => n + breachCount(r), 0)} recorded breach(es)`
 );
 say("");
-say("| Rule | Enforced by | Absorbing now | Breaches recorded | Last |");
-say("| --- | --- | ---: | ---: | --- |");
+say("| Rule | Enforced by | Absorbing now | Ceiling | Breaches recorded | Last |");
+say("| --- | --- | ---: | ---: | ---: | --- |");
 
 const sorted = [...rows].sort((a, b) => {
   const score = (r) => breachCount(r) * 100 + (measured.get(r.id)?.count ?? 0);
@@ -329,9 +450,10 @@ const sorted = [...rows].sort((a, b) => {
 for (const row of sorted) {
   const m = measured.get(row.id);
   const absorbing = m ? (m.count === null ? m.unit : `${m.count} ${m.unit}`) : row.surface === "prose" ? "—" : "0";
+  const ceiling = typeof row.ceiling?.max === "number" ? String(row.ceiling.max) : "—";
   say(
     `| \`${row.id}\` | ${row.enforcedBy ?? (row.source ? DISCOVERY[row.source].file : "nothing — prose")} | ` +
-      `${absorbing} | ${breachCount(row)} | ${lastBreach(row) ?? "—"} |`
+      `${absorbing} | ${ceiling} | ${breachCount(row)} | ${lastBreach(row) ?? "—"} |`
   );
 }
 say("");
@@ -381,9 +503,11 @@ if (failures.length) {
 }
 
 say(
-  "_Absorbing now_ is measured live from the same files the gates read (allowlists, ratchet baselines, the " +
-    "population already over a limit). _Breaches recorded_ come from `--record`, fed the JSON a rubric review " +
-    "writes. Neither number fails a build; the parity check above does."
+  "_Absorbing now_ is measured live from the same files the gates read (allowlists, lint-fence exception " +
+    "lists, ratchet baselines, the population already over a limit). _Ceiling_ is what that number may not " +
+    "exceed without a reviewed diff raising it, and it is the one measured number that DOES fail the build — " +
+    "see the ceiling section in scripts/contract-ledger.mjs. _Breaches recorded_ come from `--record`, fed the " +
+    "JSON a rubric review writes, and never fail anything; the parity check above does."
 );
 
 if (SUMMARY_FILE) {

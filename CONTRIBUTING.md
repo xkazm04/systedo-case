@@ -81,7 +81,8 @@ review comment, it's a blocked merge.
 ```bash
 npm run check:ci   # typecheck + lint + build + seed:check + test:unit
                    #   + llm:gate:check + llm:quality:check + adr:check + docs:parity
-                   #   + agents:surface + actions:check + merge-gate + review:agent:gate
+                   #   + agents:surface + actions:check + merge-gate
+                   #   + contract:ledger:check + review:agent:gate
 ```
 
 The pieces, if you need to run them individually:
@@ -96,8 +97,19 @@ npm run sast         # repo security rules over src/ (its own CI workflow)
 npm run review:agent # the rubric review your PR will get (--base origin/master)
 npm run docs:parity  # README.md and docs/README.cs.md still agree on shared facts
 npm run commit:check # commit-subject rules (rubric A5) over a range or a message
+npm run contract:ledger # every rule, what enforces it, what it is absorbing
 npm run test:e2e     # Playwright — NOT in CI, run it when you touch a flow
 ```
+
+**Adding an exception to a fence is a two-line diff.** The ESLint seams and
+`.github/security/sast-allowlist.json` are deliberately narrow, and each exception
+they hold is counted in [`.github/contract-ledger.json`](.github/contract-ledger.json)
+against a `ceiling` — what the list holds today, why those entries are defensible,
+and what would make them unnecessary. `npm run contract:ledger:check` (blocking,
+inside `check:ci`) fails when a list grows past its ceiling. So the entry and the
+raised ceiling land together, next to each other, where a reviewer reads both.
+Fixing the cause is still the better move; absorbing it is a choice you make in
+writing.
 
 **Your commit subject is checked too.** Rubric A5 refuses a subject that narrates
 the session instead of naming the change — `fix: Done. Here's what I found and

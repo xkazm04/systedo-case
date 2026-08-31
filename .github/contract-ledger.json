@@ -1,5 +1,7 @@
 {
-  "$comment": "One row per rule in this repository's contract: what enforces it, what it is currently absorbing, and every breach recorded against it. Kept honest by scripts/contract-ledger.mjs (`npm run contract:ledger:check`, blocking inside check:ci): a rule defined in the sources with no row here fails, and a row claiming a rule that no longer exists fails. The numbers are reporting-rung — they inform what AGENTS.md should say next, they never fail a build. Breaches are appended by `--record`, fed the JSON a rubric review writes.",
+  "$comment": "One row per rule in this repository's contract: what enforces it, what it is currently absorbing, and every breach recorded against it. Kept honest by scripts/contract-ledger.mjs (`npm run contract:ledger:check`, blocking inside check:ci): a rule defined in the sources with no row here fails, and a row claiming a rule that no longer exists fails. Most of the numbers are reporting-rung — they inform what AGENTS.md should say next, they never fail a build. The exception is `ceiling`, below. Breaches are appended by `--record`, fed the JSON a rubric review writes.",
+
+  "$ceiling": "A row that measures an EXCEPTION LIST (a SAST allowlist, the names a lint fence waves through) carries `ceiling: { max, reason, comesOffWhen }`, and `--check` fails when the list grows past `max`. Why: both lists are the right shape — narrow, each entry read and accepted — and both are one entry away from being the wrong one, because an exception list that grows a line per inconvenient diff erodes its fence without a build ever going red. `max` is what the list holds today, so this is green on arrival (ADR-0007). `comesOffWhen` is the field an exemption list normally never has, and the reason exemptions become permanent. Raising a ceiling is fine and is the point: it is one reviewed line next to the entry it pays for.",
 
   "schema": 1,
   "seededOn": "2026-08-30",
@@ -67,6 +69,10 @@
       "guidance": "ADR-0001",
       "why": "a caller that reaches for a driver has picked a backend and skipped the tenant key",
       "measure": { "kind": "allowlist", "rule": "raw-engine-outside-seam" },
+      "ceiling": {
+        "max": 0,
+        "reason": "Nothing has ever been allowlisted against the store seam: every caller reaches data through a store in src/lib, which is where the tenant key is applied. A ceiling of 0 records that, and makes the first exception a diff somebody argues about rather than a line somebody adds."
+      },
       "breaches": []
     },
     {
@@ -77,6 +83,11 @@
       "guidance": "ADR-0002",
       "why": "a route that establishes no caller identity mints a phantom tenant instead of failing",
       "measure": { "kind": "allowlist", "rule": "route-auth" },
+      "ceiling": {
+        "max": 5,
+        "reason": "Five anonymous routes, and each one's caller genuinely cannot sign in: a merchant-feed robot, a webhook from Meta or a mail forwarder, a signed-out visitor on the marketing site, a scan claimed before the sign-in redirect. None is unguarded — each is behind an unguessable 128-bit token in the path, an HMAC over the raw body, or a durable per-IP daily cap, and none spends AI units.",
+        "comesOffWhen": "An entry comes off when its caller gains a real identity: feed/[token] and twin/inbound/[token] when a machine caller can authenticate as the project rather than by holding a URL; images/upload-ref and sken/claim if the marketing site stops serving the signed-out flow they exist for. A sixth entry is not a variation on these — it is a product decision about anonymity, and it belongs in the diff that raises this number."
+      },
       "breaches": []
     },
     {
@@ -87,6 +98,10 @@
       "guidance": "AGENTS.md § Security rules are a gate",
       "why": "a server env var read in a client module ships to the browser",
       "measure": { "kind": "allowlist", "rule": "client-env" },
+      "ceiling": {
+        "max": 0,
+        "reason": "No client module has ever needed a server env var: the shape that works is a server component reading it and passing a value down, and that shape has always been available. A ceiling of 0 keeps 'just this once' from being a one-line edit — the failure mode here is a secret shipped to a browser, which no reason survives."
+      },
       "breaches": []
     },
     {
@@ -97,6 +112,10 @@
       "guidance": "AGENTS.md § Security rules are a gate",
       "why": "dynamic code execution in a process holding live advertiser credentials",
       "measure": { "kind": "allowlist", "rule": "eval-sink" },
+      "ceiling": {
+        "max": 0,
+        "reason": "Dynamic code execution has never been needed in a process that holds live advertiser credentials, and a model's output is the input most likely to reach one. A ceiling of 0 is the whole rule."
+      },
       "breaches": []
     },
     {
@@ -107,6 +126,11 @@
       "guidance": "AGENTS.md § Security rules are a gate",
       "why": "SQL built by interpolation; the two exceptions are table NAMES, which cannot be bound",
       "measure": { "kind": "allowlist", "rule": "sql-template-interpolation" },
+      "ceiling": {
+        "max": 2,
+        "reason": "Two statements interpolate a table NAME, which SQLite cannot bind as a parameter — a PRAGMA in src/lib/db.ts and a three-table sweep in the leads local store. In both, the name comes from a literal array written inline in the same file and every caller-supplied value in the statement is bound.",
+        "comesOffWhen": "When neither call site needs a dynamic table name — the PRAGMA when the schema check is generated per table, the sweep when leads live in one table. Any third entry is a different claim: it would be the first one where the interpolated value is not a literal from the same file."
+      },
       "breaches": []
     },
     {
@@ -117,6 +141,10 @@
       "guidance": "AGENTS.md § Red — printing a secret",
       "why": "a credential-shaped identifier passed to console survives in the platform's log retention",
       "measure": { "kind": "allowlist", "rule": "secret-in-log" },
+      "ceiling": {
+        "max": 0,
+        "reason": "Nothing credential-shaped has ever had to reach console. Vercel's log retention outlives the incident, so an allowlisted entry here is a secret with a retention policy attached — the fix is always to log the identifier's shape rather than its value."
+      },
       "breaches": []
     },
     {
@@ -127,6 +155,11 @@
       "guidance": "BYOM design",
       "why": "a route importing the decrypted BYOM key can return it by accident",
       "measure": { "kind": "allowlist", "rule": "plaintext-key-in-route" },
+      "ceiling": {
+        "max": 1,
+        "reason": "One route legitimately holds a decrypted BYOM key: 'test connection' has to call the vendor with it. It is behind requireByomUser and a per-user probe floor, and the key never reaches the response.",
+        "comesOffWhen": "When validation moves behind a lib-side seam that takes the user and returns a verdict, so no module under src/app/api imports the decrypted key at all. A second route needing the plaintext key is the signal to do that, not to add a line here."
+      },
       "breaches": []
     },
     {
@@ -137,6 +170,10 @@
       "guidance": "SECURITY.md",
       "why": "TLS verification disabled anywhere in a process that talks to ad platforms",
       "measure": { "kind": "allowlist", "rule": "insecure-transport" },
+      "ceiling": {
+        "max": 0,
+        "reason": "TLS verification has never been switched off anywhere in this process, and the processes that talk to Google Ads and Sklik are the ones where it would matter most. A local certificate problem is a local problem — it does not earn an entry that ships."
+      },
       "breaches": []
     },
     {
@@ -147,6 +184,10 @@
       "guidance": "SECURITY.md",
       "why": "a secret-shaped value behind NEXT_PUBLIC_ is a published secret",
       "measure": { "kind": "allowlist", "rule": "public-env-secret" },
+      "ceiling": {
+        "max": 0,
+        "reason": "No secret-shaped value has ever been put behind NEXT_PUBLIC_. There is no reason that makes a published secret acceptable, so this ceiling has nothing to trade against — an entry here means the variable was misnamed or the value should not be in the browser."
+      },
       "breaches": []
     },
     {
@@ -157,6 +198,10 @@
       "guidance": "SECURITY.md",
       "why": "a key-derived cipher with no explicit IV",
       "measure": { "kind": "allowlist", "rule": "deprecated-cipher" },
+      "ceiling": {
+        "max": 0,
+        "reason": "The one thing encrypted here is a user's BYOM key, and it uses an explicit IV. A key-derived cipher with no IV is never the smaller change — it is a rewrite of stored data waiting to happen, so 0 is the only number that keeps that decision out of a hurried diff."
+      },
       "breaches": []
     },
 
@@ -167,6 +212,12 @@
       "enforcedBy": "eslint.config.mjs (blocking via npm run lint)",
       "guidance": "ADR-0003 + ADR-0001",
       "why": "the LLM chokepoint and the store seam, refused in the editor rather than in a diff",
+      "measure": { "kind": "exemptions", "file": "eslint.config.mjs", "block": "adamant/seams" },
+      "ceiling": {
+        "max": 3,
+        "reason": "Three names cross this fence, and they are the same name three times: `geminiAvailable`, `claudeAvailable`, `codexAvailable`. Each is a boolean about whether a provider is CONFIGURED — it cannot be used to make a call, which is the thing the fence exists to route through generateStructured().",
+        "comesOffWhen": "When the three probes are re-exported from src/lib/llm/index.ts. Callers would then import the entry point like everyone else and the fence would need no exception list at all. A fourth entry is not another probe — it would be the first symbol that lets a caller do something with a provider, and that is the fence failing, not the list growing."
+      },
       "breaches": []
     },
     {
@@ -176,6 +227,12 @@
       "enforcedBy": "eslint.config.mjs (blocking via npm run lint)",
       "guidance": "ADR-0003",
       "why": "src/lib owns the drivers, so it relaxes the store half — and keeps the chokepoint half",
+      "measure": { "kind": "exemptions", "file": "eslint.config.mjs", "block": "adamant/seams-lib" },
+      "ceiling": {
+        "max": 3,
+        "reason": "The same three availability probes as `adamant/seams`, restated because ESLint merges `no-restricted-imports` by rule id: a narrower block REPLACES the wider one's options rather than adding to them, so the exception list has to be written twice or the chokepoint half is silently dropped for src/lib.",
+        "comesOffWhen": "Together with the copy in `adamant/seams` — re-export the probes from src/lib/llm/index.ts and both lists go to zero. Until then the two counts must move together; one of them growing alone means the fences have drifted apart."
+      },
       "breaches": []
     },
     {
@@ -185,6 +242,12 @@
       "enforcedBy": "eslint.config.mjs (the exception the fence is built around)",
       "guidance": "ADR-0003",
       "why": "src/lib/llm is allowed to be the exception it enforces on everyone else",
+      "measure": { "kind": "exemptions", "file": "eslint.config.mjs", "block": "adamant/seams-llm-chokepoint" },
+      "ceiling": {
+        "max": 1,
+        "reason": "One waiver: `no-restricted-imports` is off inside src/lib/llm/**, because that directory is the chokepoint — it is where the clients are constructed and the provider order, BYOM keys, demo fallback, metering and telemetry live. A fence has to exempt its own implementation or it cannot be implemented.",
+        "comesOffWhen": "It does not; this one IS the fence's definition. The ceiling is here so a SECOND directory cannot join it quietly — the whole value of a chokepoint is that there is exactly one place the rule does not apply."
+      },
       "breaches": []
     },
     {
@@ -194,6 +257,11 @@
       "enforcedBy": "eslint.config.mjs (blocking via npm run lint)",
       "guidance": "AGENTS.md § Architecture, Cache Components",
       "why": "the editor-time half of A2",
+      "measure": { "kind": "exemptions", "file": "eslint.config.mjs", "block": "adamant/route-segment-config" },
+      "ceiling": {
+        "max": 0,
+        "reason": "This fence has no exception list and never needed one: the shape that works under cacheComponents is a <Suspense> boundary around the dynamic read, which is available on every route. `maxDuration` and `preferredRegion` are not exemptions — they were never restricted, because they are Vercel function settings rather than caching opt-outs."
+      },
       "breaches": []
     },
 

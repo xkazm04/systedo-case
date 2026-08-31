@@ -115,7 +115,8 @@ Notes:
 
 - [ ] `npm run check:ci` green locally (typecheck + lint + build + seed check +
       unit + llm gates + adr:check + agents:surface + actions:check +
-      merge-gate + review:agent:gate). `.husky/pre-push` runs this for you on any
+      merge-gate + contract:ledger:check + review:agent:gate).
+      `.husky/pre-push` runs this for you on any
       push to `master` — see the Delivery contract below.
 - [ ] **`DEV_AUTH` and `LOCAL_DB` are UNSET in the Vercel environment.** They
       are ignored in production by code, but an unset variable is the only
