@@ -4,52 +4,48 @@
     {
       "recommendationId": "90a0bd14-7ab8-410e-b0cf-f557b1866d7f",
       "verdict": "skipped",
-      "reason": "Pinning needs the network: `npm run actions:pin` resolves each tag through the GitHub API and, in the same pass, writes STRICT = true and RATCHET.pinned back into scripts/actions-pin.mjs — an offline session cannot invent a real digest, and Dependabot already covers the github-actions ecosystem, so nothing else is missing.",
+      "reason": "Needs network: pinning requires resolving each tag to its commit SHA via the GitHub API, and scripts/actions-pin.mjs --update (which also flips STRICT and raises the P6 ratchet in the same pass) cannot run without it; Dependabot's github-actions ecosystem is already configured to keep pins fresh.",
       "files": []
     },
     {
       "recommendationId": "360cdc5b-2a50-4e13-ab53-8404f438807b",
       "verdict": "resolved",
-      "reason": "scripts/gate-timings.mjs runs the check:ci chain (parsed from the same package.json entry) with a clock on each stage, records every duration, publishes the per-stage table plus each stage's share into the CI job summary and a 90-day artifact, and fails when the measurement contradicts the cheapest-first order or a \"seconds\" label; ci.yml now invokes it instead of the untimed chain.",
+      "reason": "Already closed by scripts/gate-timings.mjs: CI runs `npm run check:ci:timed` (ci.yml) instead of check:ci, which times every stage parsed out of the one declared chain, writes them to .gate-timings.json and the job summary, and fails when a seconds-gate runs after a slow one or when a stage labelled \"seconds\" in scripts/gate-remedy.mjs measures slower than that.",
       "files": [
         "scripts/gate-timings.mjs",
-        "test-unit/gate-timings.test.mjs",
         ".github/workflows/ci.yml",
-        ".github/required-checks.json",
-        "package.json",
-        ".gitignore",
-        "AGENTS.md"
+        "package.json"
       ]
     },
     {
       "recommendationId": "4e8ad784-7be5-49b9-ab57-75f6d6aeada0",
       "verdict": "resolved",
-      "reason": "scripts/harness-degradation.mjs declares every key-gated capability, agent-review.yml now announces on BOTH sides of its keyless branch (::warning annotation + job summary + a harness-status.json artifact kept 90 days), `--drill` removes each key on purpose and asserts all three signals appear (blocking via test-unit/harness-degradation.test.mjs inside check:ci, and published weekly with the live key state into the review's trail issue), and `--check` fails on any workflow reaching for a secrets.* name no capability declares.",
+      "reason": "Already closed by scripts/harness-degradation.mjs: agent-review.yml calls --announce on BOTH sides of its keyless branch (::warning + job-summary line + a row in harness-status.json kept 90 days), the weekly history job runs --drill, and test-unit/harness-degradation.test.mjs executes --drill and --check inside test:unit so the drill is blocking rather than remembered.",
       "files": [
         "scripts/harness-degradation.mjs",
-        "test-unit/harness-degradation.test.mjs",
         ".github/workflows/agent-review.yml",
         ".github/workflows/agent-review-history.yml",
-        "package.json",
-        "AGENTS.md"
+        "test-unit/harness-degradation.test.mjs"
       ]
     },
     {
       "recommendationId": "2f6ae058-b20f-4486-a74d-559ac3393acd",
       "verdict": "skipped",
-      "reason": "A mutation score cannot be produced without executing the suite, and this session has no test runner: any floor I wrote would be a guessed number in a blocking gate. The decision it needs from a human is also a real one — ADR-0008 keeps repo tooling on Node built-ins, so Stryker would be a new dev dependency needing an `Ack:`, versus a repo-local mutator over src/lib/llm/ and the store seam.",
-      "files": []
+      "reason": "Needs a test runner: a mutation score is a measurement, and this session can read and write files but cannot execute node (only `node -v` is permitted), so no harness could be run once, no score observed, and no honest failing floor set; added test-unit/cron-auth.test.mjs for the untested cron guard, which is the seam that most needed it, but the item's gap (a measured score with a threshold that fails) is still open.",
+      "files": [
+        "test-unit/cron-auth.test.mjs"
+      ]
     },
     {
       "recommendationId": "2fb876c3-fa69-424f-9a27-552d45ffe5e9",
       "verdict": "skipped",
-      "reason": "The artefact this asks for is a REHEARSED rollback with its timing and outcome, which needs the deployed Vercel project, the provider tokens and a `git push` — all three are red in AGENTS.md § What you may do unattended and none of them exist in this session; a runbook written without running it is the documentation the item explicitly does not count.",
+      "reason": "Needs deploy access: the artefact asked for is a REHEARSED rollback with its timing and outcome, which requires a Vercel deployment, a real previous commit to roll back to and provider state to inspect; a runbook written offline would be documentation saying it should be done, not a drill record.",
       "files": []
     }
   ],
   "lessons": [
-    "This repository already has the mechanism for almost everything an Ascent gap names — the gap is usually that the mechanism rests on a hand-written claim (a `cost: \"seconds\"` label, a step that is skipped rather than announced) that nothing ever measures. Look for the unmeasured claim before adding a tool.",
-    "Adding a stage to `npm run check:ci` here is expensive: gate-remedy.mjs's CHAIN, its unit test, the prose counts in AGENTS.md/ci.yml and docs/parity.json all encode the chain. A new invariant is cheaper and just as blocking when it enters through `test:unit`, which is already in the chain.",
-    "A `continue-on-error: true` step inside a job named in .github/required-checks.json must also be listed in that entry's `softenedSteps`, or `npm run merge-gate` fails the build — evidence-keeping steps (artifact uploads) are the usual reason to add one."
+    "This repository already answers most maturity gaps with an executable gate rather than prose, so verify before building: check package.json's script list and .github/workflows first — `check:ci:timed`, `harness:drill` and `actions:pin` existed before the items that asked for them, and the honest work was confirming they operate, not re-adding them.",
+    "A gate here is only real when something runs it: harness:degradation:check is absent from the check:ci chain and is nonetheless blocking, because test-unit/harness-degradation.test.mjs shells out to --check and --drill inside test:unit. Grep for the script name across tests as well as workflows before calling a capability unenforced.",
+    "Autopilot sessions in this repo get file access but no command execution, so any item whose artefact is a MEASUREMENT (mutation score, gate timing baseline, rollback drill, an action digest) is structurally unclosable here and should be skipped with the exact command a human should run."
   ]
 }
