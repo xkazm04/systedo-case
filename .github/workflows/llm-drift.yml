@@ -96,6 +96,36 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: npm run llm:drift -- --out llm-drift.json
 
+      # The other direction, on the same rung and the same schedule. `check:ci`
+      # proves that untrusted repository text — commit messages, a PR body, Part A's
+      # report, the diff — reaches Part B of the review only inside a nonce-keyed
+      # fence (test-unit/prompt-injection.test.mjs). Containment is committed data,
+      # so it is provable for free. Whether the MODEL honours the fence is not: it
+      # is a fact about the model on the day it ran, which is exactly the class of
+      # thing this workflow exists to date rather than discover.
+      #
+      # `continue-on-error` because the `prove` job's conclusion is the weekly drift
+      # verdict and must keep meaning that; this drill's own verdict travels in
+      # injection-drill.json and in the trail below. With no key it records
+      # `skipped` rather than a green it did not earn, and announces the
+      # degradation the way every other key-gated step here does
+      # (scripts/harness-degradation.mjs).
+      - name: Prompt-injection refusal drill (real model, reporting)
+        if: always()
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            node scripts/harness-degradation.mjs --announce injection-drill --status absent \
+              --out harness-status.json --summary "$GITHUB_STEP_SUMMARY"
+            node scripts/injection-drill.mjs --live --out injection-drill.json --summary "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          node scripts/injection-drill.mjs --live --out injection-drill.json --summary "$GITHUB_STEP_SUMMARY"
+          node scripts/harness-degradation.mjs --announce injection-drill --status ran \
+            --out harness-status.json --summary "$GITHUB_STEP_SUMMARY"
+
       - name: Render the trail (this run, and the runs before it)
         if: always()
         continue-on-error: true
@@ -117,6 +147,8 @@ jobs:
           path: |
             llm-drift.md
             llm-drift.json
+            injection-drill.json
+            harness-status.json
           if-no-files-found: ignore
           retention-days: 90
 

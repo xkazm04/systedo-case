@@ -8,7 +8,9 @@
  *  rules pointed at something else:
  *
  *    • auditing history that already exists (`--range`), which is how you find out
- *      whether the rule is drawn where the log actually goes wrong;
+ *      whether the rule is drawn where the log actually goes wrong, and which also
+ *      reports ATTRIBUTION coverage — how many of those commits say, in a form git
+ *      can count, that an agent wrote them (scripts/commit-attribution.mjs);
  *    • a local `commit-msg` hook, where one is installed — the one moment a subject
  *      is still free to change without rewriting history.
  *
@@ -17,14 +19,16 @@
  *    node scripts/commit-check.mjs .git/COMMIT_EDITMSG      # commit-msg hook mode
  *    node scripts/commit-check.mjs --message "feat(x): …"
  *
- *  To install the hook in your own checkout (husky owns .husky/, so this is a
- *  one-liner rather than a committed file):
+ *  To install the hooks in your own checkout (.husky/ is tracked, but these two are
+ *  not committed yet — see docs/deploy.md § Delivery contract):
  *
- *    printf '#!/usr/bin/env sh\nnode scripts/commit-check.mjs "$1"\n' > .husky/commit-msg
+ *    printf '#!/usr/bin/env sh\nnode scripts/commit-check.mjs "$1"\nnode scripts/commit-attribution.mjs --check "$1"\n' > .husky/commit-msg
+ *    printf '#!/usr/bin/env sh\nnode scripts/commit-attribution.mjs "$1" "$2"\n' > .husky/prepare-commit-msg
  */
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { GUIDANCE, checkSubject, subjectOf } from "./commit-subject.mjs";
+import { hasAttribution } from "./commit-attribution.mjs";
 
 const argv = process.argv.slice(2);
 const arg = (name) => {
@@ -48,23 +52,24 @@ function report(label, problems) {
 
 if (argv.includes("--range")) {
   const range = arg("--range") || "origin/master..HEAD";
-  // `%H %s`: a hash never contains a space, so the first one separates the two.
-  const res = spawnSync("git", ["log", "--no-merges", "--format=%H %s", range], { encoding: "utf8" });
+  // Unit-separated fields and a record separator, so a body containing newlines
+  // (which every body does) cannot be mistaken for the next commit.
+  const res = spawnSync("git", ["log", "--no-merges", "--format=%H%x1f%s%x1f%B%x1e", range], { encoding: "utf8" });
   if (res.error || res.status !== 0) {
     console.error(`commit-check: could not read \`git log ${range}\` — nothing to audit.`);
     process.exit(0);
   }
   const entries = res.stdout
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((l) => {
-      const at = l.indexOf(" ");
-      return at === -1 ? [l, ""] : [l.slice(0, at), l.slice(at + 1)];
+    .split("\x1e")
+    .map((r) => r.replace(/^\s+/, ""))
+    .filter((r) => r.includes("\x1f"))
+    .map((r) => {
+      const [sha, subject, body = ""] = r.split("\x1f");
+      return { sha, subject, body };
     });
 
   let bad = 0;
-  for (const [sha, subject] of entries) {
+  for (const { sha, subject } of entries) {
     const problems = checkSubject(subject);
     if (!problems.length) continue;
     bad += 1;
@@ -75,6 +80,25 @@ if (argv.includes("--range")) {
   console.log(
     `commit-check: ${entries.length - bad} of ${entries.length} subject(s) in ${range} describe the change.`
   );
+
+  // Attribution — the other half of "what does this log tell a future reader?".
+  // REPORTING rung (docs/adr/0007-gate-rung-discipline.md): it does not pass over
+  // this repository's history, so it prints and never decides the exit code. The
+  // subject rules above are what block.
+  const unattributed = entries.filter((e) => !hasAttribution(e.body));
+  console.log(
+    `commit-check: ${entries.length - unattributed.length} of ${entries.length} carry a machine-readable ` +
+      "authorship trailer (Co-Authored-By / Assisted-by / Generated-by)."
+  );
+  if (unattributed.length) {
+    for (const e of unattributed.slice(0, 15)) console.log(`    ? ${e.sha.slice(0, 8)}  ${e.subject}`);
+    if (unattributed.length > 15) console.log(`    … and ${unattributed.length - 15} more`);
+    console.log(
+      "    Nearly every commit here is agent-written and the log cannot say which. Install the one-line hook" +
+        " in scripts/commit-attribution.mjs to add it without anyone remembering."
+    );
+  }
+
   process.exit(bad ? 1 : 0);
 }
 

@@ -57,6 +57,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkSubject } from "./commit-subject.mjs";
+import { hasAttribution } from "./commit-attribution.mjs";
 import { printRemedy } from "./gate-remedy.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -302,6 +303,33 @@ if (deletedTests.length && !hasAck) {
 }
 
 // --- notes (reported, never blocking) ---------------------------------------
+
+// Attribution — reported, never blocking (ADR-0007: it does not pass over this
+// repository's history, so it prints). A5 above asks what a subject SAYS; this asks
+// whether the log can answer "how much of this was written unattended?" in a form
+// `git shortlog --group=trailer:co-authored-by` can count. Five of the last thirty
+// commits could. The fix is a hook, not a rewrite: scripts/commit-attribution.mjs.
+{
+  const log = git(["log", "--no-merges", "--format=%H%x1f%s%x1f%B%x1e", `${BASE}..HEAD`], { allowFail: true }) ?? "";
+  const unattributed = log
+    .split("\x1e")
+    .map((r) => r.replace(/^\s+/, ""))
+    .filter((r) => r.includes("\x1f"))
+    .map((r) => r.split("\x1f"))
+    .filter(([, , body = ""]) => !hasAttribution(body))
+    .map(([sha, subject]) => `${sha.slice(0, 8)} ${subject}`);
+  if (unattributed.length) {
+    notes.push({
+      title: `Commits with no machine-readable authorship trailer (${unattributed.length})`,
+      body: unattributed
+        .slice(0, 10)
+        .concat([
+          "→ `Co-Authored-By: <who> <email>` below a blank line makes the loop's footprint countable.",
+          "→ Add it automatically: see the hook one-liners at the top of scripts/commit-check.mjs.",
+        ]),
+    });
+  }
+}
 
 const lawTouched = changed.filter((f) => LAW_PATHS.some((p) => (p.endsWith("/") ? f.path.startsWith(p) : f.path === p)));
 if (lawTouched.length) {

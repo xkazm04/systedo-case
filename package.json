@@ -38,6 +38,8 @@
     "review:agent": "node scripts/agent-review.mjs",
     "review:agent:gate": "node scripts/agent-review.mjs --base origin/master",
     "review:agent:history": "node scripts/agent-review-history.mjs",
+    "injection:check": "node scripts/injection-drill.mjs --check",
+    "injection:drill": "node scripts/injection-drill.mjs",
     "sast": "node scripts/sast.mjs",
     "sast:inventory": "node scripts/sast.mjs --inventory",
     "actions:check": "node scripts/actions-pin.mjs",

@@ -113,6 +113,20 @@ export const CAPABILITIES = [
     recordedBy: "scripts/llm-drift.mjs",
     marker: 'status: "skipped"',
   },
+  {
+    id: "injection-drill",
+    name: "Weekly prompt-injection refusal drill (the review's judgment half)",
+    needs: "ANTHROPIC_API_KEY",
+    workflow: ".github/workflows/llm-drift.yml",
+    absent:
+      "no model is asked whether it still honours the fence around untrusted repository text, so the only thing " +
+      "standing between a commit message that gives the reviewer orders and a review that follows them is a " +
+      "containment proof about the prompt — which cannot see the model change its mind.",
+    visible:
+      "a ::warning annotation on the weekly run, a line in the job summary, an `absent` row in " +
+      "harness-status.json, and a `skipped` verdict in injection-drill.json — both kept as 90-day artifacts.",
+    announces: true,
+  },
 ];
 
 export const capabilityFor = (id) => CAPABILITIES.find((c) => c.id === id) ?? null;

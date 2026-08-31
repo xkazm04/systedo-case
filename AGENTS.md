@@ -267,6 +267,18 @@ remedy all turn the unit suite red.
   artefact, and what happened to it, in one clause. Everything the report says
   about the run belongs below a blank line, in the body, where no rule objects to
   it. Check yours before you exit: `npm run commit:check -- --message "<subject>"`.
+- **And the body says who wrote it, in a form git can count.** Nearly every commit
+  here is agent-written and five of the last thirty said so, which makes "how much
+  of this landed unattended, and by what?" answerable only by reading prose bodies
+  and guessing. So an agent's commit carries an authorship trailer below a blank
+  line — `Co-Authored-By: <who> <email>`, or `Assisted-by:` / `Generated-by:`. A
+  person's commit carries none; claiming an assistant wrote it is the same lie in
+  the other direction. Reporting rung (ADR-0007), because it does not pass over
+  this repository's history: `npm run commit:check -- --range <range>` prints
+  coverage and `npm run review:agent` lists a change's unattributed commits in its
+  report — neither blocks; A5 above is what blocks. The rules, and the two one-line
+  hooks that add the trailer without anyone remembering, are in
+  [`scripts/commit-attribution.mjs`](scripts/commit-attribution.mjs).
 - **But it does owe the next run a checkpoint.** Refusing the narrating commit is
   only half the rule; the other half is that a run stopped by its wall clock must
   leave something better than a commit behind. **Read the open checkpoints before
