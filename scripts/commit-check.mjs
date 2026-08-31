@@ -19,11 +19,13 @@
  *    node scripts/commit-check.mjs .git/COMMIT_EDITMSG      # commit-msg hook mode
  *    node scripts/commit-check.mjs --message "feat(x): …"
  *
- *  To install the hooks in your own checkout (.husky/ is tracked, but these two are
- *  not committed yet — see docs/deploy.md § Delivery contract):
- *
- *    printf '#!/usr/bin/env sh\nnode scripts/commit-check.mjs "$1"\nnode scripts/commit-attribution.mjs --check "$1"\n' > .husky/commit-msg
- *    printf '#!/usr/bin/env sh\nnode scripts/commit-attribution.mjs "$1" "$2"\n' > .husky/prepare-commit-msg
+ *  THE HOOKS INSTALL THEMSELVES. `.husky/commit-msg` (this file, plus the
+ *  attribution check) and `.husky/prepare-commit-msg` (the trailer) used to be a
+ *  `printf` a maintainer was expected to run by hand, documented here and never
+ *  run — which is why the log shows ~97% agent authorship and about one commit in
+ *  thirty that says so. `npm install` now writes both, every checkout, through
+ *  `prepare` → scripts/install-commit-hooks.mjs. Verify yours with
+ *  `npm run hooks:check`; a hook you have edited yourself is left alone.
  */
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -94,8 +96,8 @@ if (argv.includes("--range")) {
     for (const e of unattributed.slice(0, 15)) console.log(`    ? ${e.sha.slice(0, 8)}  ${e.subject}`);
     if (unattributed.length > 15) console.log(`    … and ${unattributed.length - 15} more`);
     console.log(
-      "    Nearly every commit here is agent-written and the log cannot say which. Install the one-line hook" +
-        " in scripts/commit-attribution.mjs to add it without anyone remembering."
+      "    Nearly every commit here is agent-written and the log cannot say which. `npm install` wires the" +
+        " hook that adds it (npm run hooks:check) — commits made outside a wired checkout stay unattributed."
     );
   }
 

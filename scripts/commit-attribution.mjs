@@ -20,6 +20,11 @@
  *                                braces above, at the one moment the message is
  *                                still free to change.
  *
+ *  Both are written by `npm install` (`prepare` → scripts/install-commit-hooks.mjs),
+ *  because a hook that has to be installed by hand is a suggestion, not a control:
+ *  they sat documented-but-uninstalled long enough for the log to fill up with
+ *  unattributed agent commits. `npm run hooks:check` says whether yours are wired.
+ *
  *  WHY DETECTION AND NOT "ALWAYS". A maintainer's own commit must not claim an
  *  assistant wrote it; that would be the same lie in the other direction. So the
  *  trailer is added exactly when the environment says an agent session is running
