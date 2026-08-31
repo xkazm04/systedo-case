@@ -45,7 +45,7 @@
  *    npm run llm:drift                       # prove, print a table
  *    npm run llm:drift -- --out verdict.json # …and write the machine-readable verdict
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import {
   generateStructured,
   isDevEnvironment,
@@ -82,10 +82,27 @@ const expectedModelFor = (tool) =>
       ? GEMINI_MODEL_FAST
       : GEMINI_MODEL;
 
+/** The pinned model surface (test-llm/model-pins.json), carried into the verdict.
+ *  This run is the only one in the repository that touches a real provider, so it
+ *  is the only place a dated record can say WHICH MODEL SURFACE was proved — the
+ *  fact neither the goldens nor the quality bake keep. Never fatal: a drift run
+ *  must not fail because a pin file would not parse. */
+function pinnedSurface() {
+  try {
+    const pins = JSON.parse(readFileSync(new URL("../test-llm/model-pins.json", import.meta.url), "utf8"));
+    return {
+      pinnedAt: pins.acceptance?.pinnedAt ?? null,
+      models: Object.fromEntries((pins.pins ?? []).map((p) => [p.path, p.tag])),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function write(verdict) {
   if (!OUT_FILE) return;
   try {
-    writeFileSync(OUT_FILE, JSON.stringify(verdict, null, 2) + "\n");
+    writeFileSync(OUT_FILE, JSON.stringify({ ...verdict, pins: pinnedSurface() }, null, 2) + "\n");
   } catch (err) {
     console.error(`(could not write ${OUT_FILE}: ${err.message})`);
   }
@@ -106,6 +123,17 @@ if (!dev && !process.env.GEMINI_API_KEY) {
 }
 
 console.log(`llm drift: proving ${LLM_TOOLS.length} operation(s) against ${provider}.`);
+{
+  const surface = pinnedSurface();
+  if (surface) {
+    console.log(
+      `           model surface pinned ${surface.pinnedAt ?? "never"} (test-llm/model-pins.json): ` +
+        Object.entries(surface.models)
+          .map(([path, tag]) => `${path}=${tag}`)
+          .join(", ")
+    );
+  }
+}
 console.log("");
 
 const tools = [];

@@ -58,8 +58,12 @@ export const FIRINGS_PATH = join(ROOT, ".fence-firings.jsonl");
  *  firing, and a caller that wants silence says so once. */
 export function recordingEnabled(env = process.env) {
   if (String(env.FENCE_FIRINGS ?? "").trim().toLowerCase() === "off") return false;
-  // node:test sets this in the test process, and a spawned gate inherits it.
+  // node:test sets NODE_TEST_CONTEXT in each test file's process, and a gate the
+  // test spawns inherits it. `npm_lifecycle_event` is the belt for that brace: npm
+  // sets it to the script name, so a suite run through `npm run test:unit` is
+  // recognised even if the test runner's own variable ever moves.
   if (String(env.NODE_TEST_CONTEXT ?? "").trim() !== "") return false;
+  if (/^test(:|$)/.test(String(env.npm_lifecycle_event ?? "").trim())) return false;
   return true;
 }
 

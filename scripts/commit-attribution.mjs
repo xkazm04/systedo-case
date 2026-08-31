@@ -138,9 +138,11 @@ const first = (env, keys) => {
 };
 
 /** Harnesses this file recognises without being told. `AGENT_HARNESS` is checked
- *  before any of them, so naming yourself always wins over being guessed at. */
+ *  before any of them, so naming yourself always wins over being guessed at — and
+ *  that variable, not this list, is how a new harness arrives. Deliberately short:
+ *  a detector for a harness nothing sets is dead weight in exactly the way
+ *  `npm run fences` exists to make visible. */
 export const HARNESSES = [
-  { id: "issue-dispatch", detect: (e) => first(e, ["ISSUE_DISPATCH_HARNESS"]) !== "" },
   { id: "claude-code", detect: (e) => first(e, ["CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_SESSION_ID"]) !== "" },
 ];
 

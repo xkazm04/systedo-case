@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "note": "The MODEL SURFACE the eval harness proves against, pinned. The goldens in test-llm/golden/ pin each tool's prompt, schema and shape; the quality bake pins how good the answers are; the budget file pins what a prompt costs. None of them record WHICH MODEL any of that was true of, so a model id can be bumped in src/lib/llm/models.ts and every one of those records silently starts describing a different model. This file is the missing half: the tags and CLI aliases this app serves through, and the reason each was last accepted. `npm run llm:models:check` fails when src/lib/llm/models.ts declares a model surface this file does not, and test-unit/llm-model-pin.test.mjs runs the same comparison on every build.",
+  "source": "src/lib/llm/models.ts",
+  "maxAgeDays": 120,
+  "pins": [
+    {
+      "path": "claude-cli.quality",
+      "provider": "claude — Claude Code CLI on the maintainer's subscription (development)",
+      "declaredBy": "CLAUDE_MODEL",
+      "tag": "claude-sonnet",
+      "aliasDeclaredBy": "CLAUDE_CLI_MODEL",
+      "alias": "sonnet"
+    },
+    {
+      "path": "claude-cli.fast",
+      "provider": "claude — Claude Code CLI, fast tier (development)",
+      "declaredBy": "CLAUDE_MODEL_FAST",
+      "tag": "claude-haiku",
+      "aliasDeclaredBy": "CLAUDE_CLI_MODEL_FAST",
+      "alias": "haiku"
+    },
+    {
+      "path": "gemini.quality",
+      "provider": "gemini — the Google GenAI API (production; what real users are served by)",
+      "declaredBy": "GEMINI_MODEL",
+      "tag": "gemini-3-flash-preview"
+    },
+    {
+      "path": "gemini.fast",
+      "provider": "gemini — flash-lite tier (production)",
+      "declaredBy": "GEMINI_MODEL_FAST",
+      "tag": "gemini-3-flash-lite-preview"
+    },
+    {
+      "path": "codex-cli",
+      "provider": "codex — the Codex CLI on the ChatGPT plan (development, keyless)",
+      "declaredBy": "CODEX_MODEL",
+      "tag": "codex"
+    }
+  ],
+  "excluded": [
+    {
+      "declaredBy": "CLAUDE_API_MODEL",
+      "why": "a BYOM default, not a model this app serves through. The user picks the model in settings and pays the provider directly, so the harness never proves it and pinning it here would record a claim nothing checks."
+    },
+    {
+      "declaredBy": "CLAUDE_API_MODEL_FAST",
+      "why": "the fast-tier half of the same BYOM default — same reason."
+    }
+  ],
+  "acceptance": {
+    "pinnedAt": "2026-08-31",
+    "reason": "First pin. Recorded from src/lib/llm/models.ts as it stands, so a model id can no longer move without a build going red. NOT a claim that anything was re-proved: no real-model run backs this entry, and `provenAt` stays null until one does.",
+    "provenAt": null,
+    "provenBy": null
+  },
+  "unpinnable": [
+    "A provider changing the model BEHIND a stable alias. `sonnet` and `gemini-3-flash-preview` are pointers; the thing they point at ships without a commit here, and no file in this repository can see that. The weekly `npm run llm:drift` (.github/workflows/llm-drift.yml) is what dates it — it re-proves every registered operation against the configured provider and publishes a pass/fail trail. This file makes the alias itself reviewable; it cannot make it immutable.",
+    "Model behaviour, as opposed to model identity. `npm run llm:quality` scores that, and its floor is `npm run llm:quality:check`."
+  ]
+}

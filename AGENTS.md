@@ -116,6 +116,15 @@ npm run revert:drill  # the way BACK out, rehearsed: seeds a real fault on a sea
                       #   then removes it and proves the file is byte-identical.
                       #   Reporting rung, weekly in CI (.github/workflows/revert-drill.yml);
                       #   the promote leg stays the operator's (docs/runbooks/revert-drill.md)
+npm run mutation:drill # the NEIGHBOURING question: not how long a fault survives,
+                      #   but whether the suite would notice a wrong answer at all.
+                      #   Applies each mutant in scripts/mutation-catalogue.mjs to a
+                      #   seam where wrong is a bill or a breach (cron auth, the spend
+                      #   ceiling, the Sklik write rails), runs only the tests that
+                      #   claim it, and scores the kills. Reporting, weekly next to the
+                      #   revert drill. Blocking half is the CATALOGUE
+                      #   (test-unit/mutation-census.test.mjs): an anchor that has
+                      #   drifted is a mutant that can never survive
 npm run harness:drill # removes each conditional key ON PURPOSE and proves the
                       #   absence is announced (Part B of the review, the weekly
                       #   real-model prove). `harness:degradation:check` refuses a
@@ -131,6 +140,12 @@ npm run gates         # the chain above, with the EXACT NEXT COMMAND for each ga
 npm run llm:gate      # LLM proof gate (llm:list shows call sites)
 npm run llm:budget    # what each LLM operation COSTS on the input side, vs its
                       #   recorded ceiling (test-llm/budget.json); :check blocks
+npm run llm:models    # WHICH MODEL every one of those records was accepted against
+                      #   (test-llm/model-pins.json), and how old the pin is. :check
+                      #   blocks when src/lib/llm/models.ts declares a model surface
+                      #   the pins do not; the same comparison runs on every build in
+                      #   test-unit/llm-model-pin.test.mjs. Re-pin on purpose:
+                      #   `npm run llm:models -- --accept --reason "…"`
 npm run llm:drift     # AMBER (spends money): every registered operation against
                       #   the CONFIGURED provider — real answer, right tier, still
                       #   valid. Runs weekly in CI (.github/workflows/llm-drift.yml)
@@ -224,6 +239,33 @@ remedy all turn the unit suite red.
   fails the build rather than filing an issue, because master ships on push — an
   issue would arrive after the expensive prompt was already serving.
   `test-unit/cost-and-boundary-gates.test.mjs` asserts the wiring.
+- **And every one of those records is about a MODEL that nothing named.** The
+  golden pins a prompt and a schema, the bake pins how good the answer was, the
+  budget pins what it costs — and none of them say which model that was true of,
+  so bumping `GEMINI_MODEL` to the next preview silently re-points the whole
+  corpus. The model surface the harness proves against is pinned in
+  `test-llm/model-pins.json`: the tags and CLI aliases from
+  `src/lib/llm/models.ts`, with the reason each was last accepted.
+  `test-unit/llm-model-pin.test.mjs` (blocking, inside `test:unit`) fails when the
+  source declares a model the pins do not, when a new provider constant arrives
+  neither pinned nor excluded, and — the half worth having — it runs the same
+  comparison against a known-bad source, so a check that has stopped detecting is
+  itself caught. Moving a model on purpose is two commands in one diff:
+  `npm run llm:drift`, then `npm run llm:models -- --accept --reason "…"`. What a
+  pin CANNOT do is see a provider change the model behind a stable alias; that is
+  what the weekly drift run dates, and the pin file says so in its own
+  `unpinnable` list rather than leaving a reader to assume otherwise.
+- **Coverage says how much code runs; a mutation drill says whether a wrong answer
+  would be caught.** There are 479 test files here and a healthy ratio, and neither
+  number can tell a test that pins behaviour from one that asserts something
+  vacuous. `npm run mutation:drill` applies each mutant in
+  `scripts/mutation-catalogue.mjs` — one line, type-checks, on a seam where wrong
+  is a bill or a breach — runs only the tests that claim that seam, and scores the
+  kills. A survivor is the finding, and the fix is the missing assertion, never a
+  weaker mutant. Reporting rung, weekly in CI next to the revert drill; what blocks
+  on every build is the catalogue's shape (`test-unit/mutation-census.test.mjs`),
+  because an anchor that has drifted is a mutant that can never survive and a score
+  that keeps printing anyway.
 - **Your diff gets reviewed before a human sees it.**
   `.github/workflows/agent-review.yml` runs the rubric in
   `.github/agent-review-rubric.md` on every push and PR. Part A is mechanical and
@@ -499,6 +541,8 @@ would notice afterwards.
 | `no-outbound-under-operator` — the operator presses send | — | **honour** |
 | `no-secret-movement` — never move a credential anywhere | `.husky/pre-commit` secret scan, `sast` | partial |
 | `codeowners-law-files` — do not touch one beyond the task | rubric B1 | partial |
+| `model-pin` — the model the harness proves against is pinned | `llm:models:check`, `test-unit/llm-model-pin.test.mjs` | partial |
+| `suite-sensitivity` — a wrong answer on a money seam is killed by a test | `test-unit/mutation-census.test.mjs`, `mutation:drill` | partial |
 
 `test-unit/constraint-map.test.mjs` holds this table and the JSON to each other,
 and both to the tree: a gate named here that `package.json` does not define, a

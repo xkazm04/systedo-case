@@ -239,9 +239,10 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
+      # Deliberately NO checkout. This job needs the branch name, the subject and
+      # the body, and it gets all three out of the artifact — so it never has the
+      # source tree in front of it at all, and `gh` is told which repository it is
+      # talking to instead of inferring it from a remote.
       - name: Fetch the draft
         continue-on-error: true
         uses: actions/download-artifact@v7
@@ -251,6 +252,7 @@ jobs:
       - name: Open the pull request
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           [ -s drafted.txt ] || { echo "no draft was handed over — nothing to open."; exit 0; }
           [ "$(cat drafted.txt)" = "yes" ] || { echo "nothing was drafted."; exit 0; }

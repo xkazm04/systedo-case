@@ -68,12 +68,14 @@ test("a fixture run is not a firing", () => {
   // Several tests run a gate against a deliberately red fixture to prove it CAN go
   // red. Those must not land in the trail as evidence about this tree.
   assert.equal(recordingEnabled({ NODE_TEST_CONTEXT: "test" }), false);
+  assert.equal(recordingEnabled({ npm_lifecycle_event: "test:unit" }), false);
   assert.equal(recordingEnabled({ FENCE_FIRINGS: "off" }), false);
   assert.equal(recordingEnabled({ FENCE_FIRINGS: "OFF" }), false);
   assert.equal(recordingEnabled({}), true);
-  // …and this test file is itself running under node:test, so the real recorder is
-  // a no-op here, which is the guard working rather than the test cheating.
-  assert.equal(recordFiring("sast"), false);
+  assert.equal(recordingEnabled({ npm_lifecycle_event: "check:ci" }), true, "a real gate run must still record.");
+  // …and this suite is itself running under one of those, so the real recorder is a
+  // no-op here — the guard working rather than the test cheating.
+  assert.equal(recordFiring("a-fixture-run"), false);
 });
 
 test("summarising counts CI and local separately", () => {
@@ -190,5 +192,5 @@ test("`npm run fences` exists and the weekly trail publishes it", () => {
 });
 
 test("the trail is git-ignored, for the reason the timings are", () => {
-  assert.match(read(".gitignore"), /^\/\.fence-firings\.jsonl$/m);
+  assert.match(read(".gitignore"), /^\/\.fence-firings\.jsonl\s*$/m);
 });

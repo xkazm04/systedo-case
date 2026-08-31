@@ -440,6 +440,28 @@
       ],
       "rung": "partial",
       "gapNote": "CODEOWNERS requests a review on a pull request. Master ships on push here, and the lane that pushes is the owner's — so on the real landing path the file's owner is the reader of their own diff."
+    },
+    {
+      "id": "model-pin",
+      "rule": "The model surface the LLM harness proves against is pinned, and moving it needs a written re-prove.",
+      "statedIn": { "file": "AGENTS.md", "quote": "The model surface the harness proves against is pinned in" },
+      "enforcement": [
+        { "kind": "gate", "name": "llm:models:check", "note": "src/lib/llm/models.ts vs test-llm/model-pins.json" },
+        { "kind": "test", "name": "test-unit/llm-model-pin.test.mjs", "note": "the same comparison on every build, plus known-bad sources so a check that stopped detecting is caught" }
+      ],
+      "rung": "partial",
+      "gapNote": "A model id that MOVES in the source is caught. A provider changing the model behind a stable alias (`sonnet`, a `-preview` tag) arrives with no commit here and no committed file can see it — the weekly `npm run llm:drift` is what dates that, and the pin file's `unpinnable` list says so."
+    },
+    {
+      "id": "suite-sensitivity",
+      "rule": "A wrong answer on a seam where wrong is a bill or a breach is killed by the tests that claim it.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Coverage says how much code runs; a mutation drill says whether a wrong answer would be caught" },
+      "enforcement": [
+        { "kind": "test", "name": "test-unit/mutation-census.test.mjs", "note": "the catalogue still applies to the tree: anchors match exactly once, named tests exist and import the seam" },
+        { "kind": "gate", "name": "mutation:drill", "note": "applies each mutant and scores the kills; weekly in .github/workflows/revert-drill.yml" }
+      ],
+      "rung": "partial",
+      "gapNote": "Only the catalogue's shape blocks. The measurement itself runs weekly and off the landing path, it covers three modules rather than the tree, and a property with no observable behaviour — a constant-time compare replaced by `===` — cannot be mutated into a test failure at all."
     }
   ]
 }

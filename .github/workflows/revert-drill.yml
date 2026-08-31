@@ -82,6 +82,21 @@ jobs:
             --report revert-drill.md \
             --summary "$GITHUB_STEP_SUMMARY"
 
+      # The NEIGHBOURING question, in the same job because it needs nothing the
+      # revert drill does not already have: not "how long does a seeded fault
+      # survive the gate layers" but "would the tests notice a wrong answer at
+      # all". Each mutant in scripts/mutation-catalogue.mjs is applied to a seam
+      # where a wrong answer is a bill or a breach, only the tests that claim that
+      # seam are run, and the score is how many the suite killed. Red means a
+      # survivor — a wrong answer the suite calls green — or a catalogue that no
+      # longer applies. Reporting rung, like the drill above.
+      - name: Run the mutation drill
+        run: |
+          node scripts/mutation-drill.mjs \
+            --out mutation-drill.json \
+            --report mutation-drill.md \
+            --summary "$GITHUB_STEP_SUMMARY"
+
       # `if: always()` because the run a reader most wants to see is the one that
       # went red.
       - name: Keep the verdict
@@ -93,6 +108,8 @@ jobs:
           path: |
             revert-drill.md
             revert-drill.json
+            mutation-drill.md
+            mutation-drill.json
           if-no-files-found: ignore
           retention-days: 90
 
@@ -127,12 +144,16 @@ jobs:
               >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          if [ -s mutation-drill.md ]; then
+            { echo; cat mutation-drill.md; } >> revert-drill.md
+          fi
           {
             echo
             echo "---"
             echo
             echo "_Rewritten by \`.github/workflows/revert-drill.yml\` every Thursday and on demand._"
             echo "_The drill: \`scripts/revert-drill.mjs\` · the runbook it rehearses: \`docs/runbooks/revert-drill.md\`._"
+            echo "_The mutation drill below it: \`scripts/mutation-drill.mjs\` · its catalogue: \`scripts/mutation-catalogue.mjs\`._"
             echo "_The promote leg is the operator's: \`docs/deploy.md\` § Deploy + rollback._"
             echo "_Edit this issue and the next run overwrites you — reply in a comment instead._"
           } >> revert-drill.md
