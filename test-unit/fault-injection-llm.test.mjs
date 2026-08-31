@@ -35,6 +35,14 @@ import assert from "node:assert/strict";
 
 const { LlmCallError, ByomUserError } = await import("@/lib/llm/errors");
 
+// `./claude` is faked below for its ADAPTER surface (availability + run) — but the same module also
+// exports `extractJson`, a pure parser that `byom/adapters.ts` imports and that this test does not
+// fake, because it is not part of the seam a fault enters through. A `namedExports` map is the WHOLE
+// surface of the replacement, so omitting it made `adapters.ts` fail to LINK ("does not provide an
+// export named 'extractJson'") and the file died before a single scenario ran. Capture the genuine
+// helper first — importing it here, ahead of `mock.module`, binds the real implementation.
+const { extractJson } = await import("@/lib/llm/claude");
+
 // ── the injectable providers ─────────────────────────────────────────────────
 //
 // Each provider is driven by a QUEUE of behaviours: an Error is thrown, anything
@@ -59,6 +67,7 @@ mock.module("@/lib/llm/claude", {
   namedExports: {
     claudeAvailable: () => configured.has("claude"),
     runClaude: async () => ({ value: next("claude"), rung: "direct" }),
+    extractJson,
   },
 });
 mock.module("@/lib/llm/codex", {
