@@ -83,6 +83,12 @@ next-env.d.ts
 # LLM quality-matrix reports — timestamped benchmark artifacts (npm run llm:quality).
 /test-llm/quality/reports/
 
+# per-gate timings — the rolling measurement scripts/gate-timings.mjs appends to on
+# every `npm run check:ci:timed`. Machine- and load-specific, and written by a run
+# rather than by a change, so it stays local; the COMMITTED artefact is the accepted
+# baseline in .github/gate-timings.json (npm run gates:timings -- --accept).
+/.gate-timings.json
+
 # perfect loop vault (local state, never committed - shared master w/ vibeman agent)
 .perfect/
 

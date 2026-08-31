@@ -73,8 +73,39 @@ jobs:
       #   check:ci at all is .husky/pre-push — master ships on push, and that hook
       #   is the only place the rubric can refuse a release rather than comment on
       #   one. See docs/deploy.md § Delivery contract.
-      - name: Full CI gate (npm run check:ci)
-        run: npm run check:ci
+      #
+      #   AND IT IS TIMED. `check:ci:timed` runs that same chain — the stages are
+      #   parsed out of the same `check:ci` entry, so there is still one place the
+      #   chain is declared — with a clock on each stage. It stops at the first red
+      #   one exactly as `&&` does, prints a per-stage table (with each stage's
+      #   share of the total) into this job's summary, and then fails when the
+      #   chain has stopped being cheapest-first BY MEASUREMENT: a gate that
+      #   finishes in seconds may not run behind one that does not, and a stage the
+      #   remedy table calls "seconds" may not measure slower than that. The order
+      #   was justified by hand-written `cost:` labels that nothing ever held to a
+      #   clock — this is the clock. scripts/gate-timings.mjs.
+      - name: Full CI gate, timed (npm run check:ci:timed)
+        run: npm run check:ci:timed -- --summary "$GITHUB_STEP_SUMMARY"
+
+      # The measurement outlives the run. "How long is the gate, and which stage
+      # dominates it?" is a question about a trend, and a job summary expires with
+      # its run. `if: always()` because the timings of a RED run are the ones that
+      # answer "why did it take four minutes to tell me?".
+      #
+      # `continue-on-error` here is evidence-keeping, not a softened gate: the
+      # verdict was decided by the step above, and an artifact service hiccup must
+      # not turn a required check red. Declared as such in
+      # .github/required-checks.json § softenedSteps, which is the only way
+      # `npm run merge-gate` lets a required job hold one.
+      - name: Keep the per-gate timings
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: gate-timings
+          path: .gate-timings.json
+          if-no-files-found: ignore
+          retention-days: 90
 
       # i18n audit — REPORTING rung, deliberately non-blocking.
       #

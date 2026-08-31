@@ -63,6 +63,17 @@ npm run check:ci      # what CI runs, CHEAPEST FIRST: adr:check + docs:parity
                       #   check (typecheck/lint/build) + test:unit. The thirteen
                       #   zero-dependency checks run before `next build`, so a wrong
                       #   change is refused in seconds rather than after a build
+npm run check:ci:timed # the SAME chain, with a clock on each stage — this is what
+                      #   CI runs. Per-gate durations + each stage's share of the
+                      #   total into the job summary and .gate-timings.json, and a
+                      #   RED when the chain stops being cheapest-first by
+                      #   MEASUREMENT rather than by its hand-written labels
+npm run gates:timings # what has been measured, against the recorded baseline;
+                      #   `-- --accept --reason "…"` writes .github/gate-timings.json
+npm run harness:drill # removes each conditional key ON PURPOSE and proves the
+                      #   absence is announced (Part B of the review, the weekly
+                      #   real-model prove). `harness:degradation:check` refuses a
+                      #   new key-gated step that declares no visible degradation
 npm run gates         # the chain above, with the EXACT NEXT COMMAND for each gate —
                       #   the same remedy each one prints when it goes red
                       #   (scripts/gate-remedy.mjs; `-- --stage <name>` for one)
@@ -171,6 +182,31 @@ remedy all turn the unit suite red.
   direct push to master, where a required status check never gets a chance — a
   blocking finding refuses the push instead of commenting on the release.
   `test-unit/delivery-contract.test.mjs` asserts both wirings.
+- **A half of the harness that stops RUNNING has to say so.** Part B of that review
+  runs only when `ANTHROPIC_API_KEY` is configured, and the real-model prove is
+  weekly and needs a provider key — so neither fails when a key lapses, they stop
+  being there, and a build that went green with half the review absent looks
+  exactly like a clean one. `scripts/harness-degradation.mjs` declares every
+  key-gated capability with what its absence costs and how that absence is meant to
+  be seen; `agent-review.yml` calls `--announce` on BOTH sides of its keyless
+  branch (a `::warning` annotation, a job-summary line, and a row in
+  `harness-status.json` kept for 90 days). `npm run harness:drill` removes each key
+  on purpose and asserts all three actually appear — blocking through
+  `test-unit/harness-degradation.test.mjs`, and again weekly in the review's trail
+  issue, where the live answer ("is the key configured today?") is published with a
+  date on it. `harness:degradation:check` fails on a workflow reaching for a
+  `secrets.` name no capability declares, so the next key-gated step cannot inherit
+  the same silence.
+- **And the chain is ordered by a clock, not by a claim.** `npm run check:ci:timed`
+  is what CI runs: the same stages, parsed out of the same `check:ci` entry, with
+  each one timed. It fails when a gate that finishes in seconds sits behind one
+  that does not, or when a stage `scripts/gate-remedy.mjs` calls `"seconds"`
+  measures slower than that — the labels are what justify the cheapest-first order,
+  and nothing used to hold them to a measurement. Durations land in
+  `.gate-timings.json` (git-ignored, rolling) and in the job summary; the committed
+  baseline is `.github/gate-timings.json`, accepted on purpose with
+  `npm run gates:timings -- --accept --reason "…"`. Before adding a gate, run
+  `npm run gates:timings` and know what the loop already costs.
 - **What may stop a change is written down.** `.github/required-checks.json`
   enumerates the checks that must be green — including the rubric review — each
   with the reason it earns a red build. `npm run merge-gate` (blocking, inside

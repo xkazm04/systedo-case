@@ -39,7 +39,7 @@
       "workflow": "ci.yml",
       "job": "check",
       "why": "`npm run check:ci` — the single command that reproduces the gate locally. Typecheck is also the i18n parity check, so a locale column added on one side only dies here.",
-      "softenedSteps": ["i18n audit (reporting rung, ratcheted)"]
+      "softenedSteps": ["i18n audit (reporting rung, ratcheted)", "Keep the per-gate timings"]
     },
     {
       "check": "E2E smoke (Playwright, key-free)",

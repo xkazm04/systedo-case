@@ -316,6 +316,21 @@ jobs:
       # is a review a maintainer has to go digging for, and the keyless case (a
       # fork, a clone, a repository whose key has lapsed) is exactly when nobody
       # goes digging. `|| true` because this job never fails a build.
+      #
+      # AND THE ABSENCE IS ANNOUNCED, on both branches. A comment on a pull request
+      # is only read where there is a pull request; on this repository changes land
+      # by direct push to master, so the keyless case used to be one line in a job
+      # summary nobody opens — the harness could run at half strength for months of
+      # green builds. `scripts/harness-degradation.mjs --announce` emits a
+      # `::warning` check annotation (attached to the commit, rendered on the diff),
+      # writes the job summary line, and records the verdict in harness-status.json,
+      # which the step below keeps for 90 days and the weekly history workflow reads
+      # back into the published trail. The same script's `--drill` removes the key
+      # ON PURPOSE and asserts all three appear; it runs in `npm run test:unit`, so
+      # this alarm is proven on every gate rather than assumed.
+      #
+      # (The tree is at the BASE revision here, as it is for the reviewer itself, so
+      # on the very first run after this step lands the base has no such script yet.)
       - name: Judgment review (Part B)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -325,8 +340,7 @@ jobs:
           PR_NUMBER: ${{ steps.base.outputs.pr }}
         run: |
           if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "ANTHROPIC_API_KEY is not configured for this repository — Part B skipped." \
-              >> "$GITHUB_STEP_SUMMARY"
+            node scripts/harness-degradation.mjs --announce judgment-review --status absent --out harness-status.json --summary "$GITHUB_STEP_SUMMARY"
             if [ -n "$PR_NUMBER" ] && [ -s mechanical.md ]; then
               gh pr comment "$PR_NUMBER" --body-file mechanical.md || true
             fi
@@ -340,3 +354,17 @@ jobs:
             set -- "$@" --pr "$PR_NUMBER"
           fi
           node scripts/agent-review-llm.mjs "$@"
+          node scripts/harness-degradation.mjs --announce judgment-review --status ran --out harness-status.json --summary "$GITHUB_STEP_SUMMARY"
+
+      # The verdict outlives the run: which strength the harness ran at, on which
+      # commit, in the same 90-day window as Part A's report. `if: always()` so the
+      # `absent` row survives a red reviewer, which is when it matters.
+      - name: Keep the harness verdict (which strength this run reviewed at)
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: harness-status
+          path: harness-status.json
+          if-no-files-found: ignore
+          retention-days: 90

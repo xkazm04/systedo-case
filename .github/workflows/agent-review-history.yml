@@ -129,6 +129,32 @@ jobs:
             cat protection.md >> review-history.md
           fi
 
+      # And the question the aggregate above cannot answer: did the review run at
+      # FULL strength, or at half? Part B is conditional on ANTHROPIC_API_KEY and
+      # the real-model prove on a provider key, so both stop RUNNING rather than
+      # failing when a key lapses — and a build that goes green because half the
+      # harness was absent looks exactly like a build that was clean.
+      #
+      # Two things land in the trail, weekly and dated: the DRILL (the keys are
+      # removed on purpose and the announcement is watched for — proof the alarm
+      # works, same as the drill that runs in `npm run test:unit`), and the LIVE
+      # state (whether each key is configured today). The live half is read from
+      # `secrets.X != ''` — a boolean, never the secret: this job runs scripts out
+      # of the checkout, so it is deliberately not a job that holds a key.
+      - name: Drill the harness's conditional halves, and say which are configured
+        continue-on-error: true
+        env:
+          HAS_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          HAS_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY != '' }}
+        run: |
+          node scripts/harness-degradation.mjs --drill \
+            --out harness-drill.md \
+            --summary "$GITHUB_STEP_SUMMARY"
+          if [ -s harness-drill.md ]; then
+            printf '\n' >> review-history.md
+            cat harness-drill.md >> review-history.md
+          fi
+
       - name: Keep the report as an artifact too
         if: always()
         continue-on-error: true

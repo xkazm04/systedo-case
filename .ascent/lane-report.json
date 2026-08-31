@@ -2,74 +2,54 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "4f96e40d-6e4f-445d-88a1-102efa2b9fdb",
+      "recommendationId": "90a0bd14-7ab8-410e-b0cf-f557b1866d7f",
       "verdict": "skipped",
-      "reason": "Needs network: pinning a tag to a digest means asking GitHub what that tag points at now, and `npm run actions:pin -- --update` (which also flips STRICT/RATCHET so the pins are enforced) is already written and waiting for one networked run.",
+      "reason": "Pinning needs the network: `npm run actions:pin` resolves each tag through the GitHub API and, in the same pass, writes STRICT = true and RATCHET.pinned back into scripts/actions-pin.mjs — an offline session cannot invent a real digest, and Dependabot already covers the github-actions ecosystem, so nothing else is missing.",
       "files": []
     },
     {
-      "recommendationId": "5bd76f46-b68a-425e-acf2-2b103cf2ea81",
-      "verdict": "skipped",
-      "reason": "The narrating subjects are already on master and cannot be reworded without git history rewriting; A5 blocks on every path the repository controls, and the uncovered path is an automation lane that commits in a hookless worktree, so I strengthened the guidance that lane's agent reads instead (a committed .husky/commit-msg was refused as a sensitive file).",
-      "files": ["scripts/commit-subject.mjs", "AGENTS.md"]
-    },
-    {
-      "recommendationId": "246a2565-fae5-4957-ad28-07b40c091e0f",
-      "verdict": "skipped",
-      "reason": "Needs a build run: a budget that fails has to be seeded from measured numbers (first-load JS per route, or a Playwright timing), and with no shell every threshold I could write would be either invented or vacuous.",
-      "files": []
-    },
-    {
-      "recommendationId": "bfd3775a-c661-4f10-ac6d-2bcec8e81da7",
+      "recommendationId": "360cdc5b-2a50-4e13-ab53-8404f438807b",
       "verdict": "resolved",
-      "reason": "Added a weekly real-model prove of every registered operation against the configured provider, failing the run on drift and publishing a dated pass/fail trail to a GitHub issue; it stays on the reporting rung and a unit test fails if it is deleted, un-scheduled, or pulled into check:ci.",
+      "reason": "scripts/gate-timings.mjs runs the check:ci chain (parsed from the same package.json entry) with a clock on each stage, records every duration, publishes the per-stage table plus each stage's share into the CI job summary and a 90-day artifact, and fails when the measurement contradicts the cheapest-first order or a \"seconds\" label; ci.yml now invokes it instead of the untimed chain.",
       "files": [
-        "scripts/llm-drift.mjs",
-        "scripts/llm-drift-history.mjs",
-        ".github/workflows/llm-drift.yml",
-        "test-unit/llm-drift-schedule.test.mjs",
-        "package.json",
-        "AGENTS.md",
-        "docs/task-index.md"
-      ]
-    },
-    {
-      "recommendationId": "c322c208-2106-4957-8422-47f4fdb36a2b",
-      "verdict": "needs_human",
-      "reason": "Already covered in the tree: docs/deploy.md has a Rollback section and docs/runbooks/revert-drill.md is a full seeded-fault drill routed from docs/task-index.md; what is missing is a recorded row (a timed drill), which needs somebody to run deploys and git and is deliberately not promoted to a gate until two rows exist.",
-      "files": []
-    },
-    {
-      "recommendationId": "a792e852-9a55-4a46-9836-db68fb46989d",
-      "verdict": "resolved",
-      "reason": "Every check:ci gate now prints the exact next command from one table (scripts/gate-remedy.mjs) on its own failure path, `npm run gates` shows the whole chain, the chain was reordered so eleven zero-dependency checks run before `next build`, and test-unit/gate-remedy.test.mjs fails when a stage has no entry, a remedy names a script that does not exist, or a gate stops printing its remedy.",
-      "files": [
-        "scripts/gate-remedy.mjs",
-        "test-unit/gate-remedy.test.mjs",
-        "package.json",
-        "scripts/adr-check.mjs",
-        "scripts/docs-parity.mjs",
-        "scripts/agent-surface.mjs",
-        "scripts/agent-checkpoint.mjs",
-        "scripts/actions-pin.mjs",
-        "scripts/merge-gate.mjs",
-        "scripts/contract-ledger.mjs",
-        "scripts/context-decay.mjs",
-        "scripts/llm-gate.mjs",
-        "scripts/quality-gate.mjs",
-        "scripts/llm-budget.mjs",
-        "scripts/generate-data.mjs",
-        "scripts/agent-review.mjs",
-        "AGENTS.md",
-        "CONTRIBUTING.md",
+        "scripts/gate-timings.mjs",
+        "test-unit/gate-timings.test.mjs",
         ".github/workflows/ci.yml",
-        "docs/task-index.md"
+        ".github/required-checks.json",
+        "package.json",
+        ".gitignore",
+        "AGENTS.md"
       ]
+    },
+    {
+      "recommendationId": "4e8ad784-7be5-49b9-ab57-75f6d6aeada0",
+      "verdict": "resolved",
+      "reason": "scripts/harness-degradation.mjs declares every key-gated capability, agent-review.yml now announces on BOTH sides of its keyless branch (::warning annotation + job summary + a harness-status.json artifact kept 90 days), `--drill` removes each key on purpose and asserts all three signals appear (blocking via test-unit/harness-degradation.test.mjs inside check:ci, and published weekly with the live key state into the review's trail issue), and `--check` fails on any workflow reaching for a secrets.* name no capability declares.",
+      "files": [
+        "scripts/harness-degradation.mjs",
+        "test-unit/harness-degradation.test.mjs",
+        ".github/workflows/agent-review.yml",
+        ".github/workflows/agent-review-history.yml",
+        "package.json",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "recommendationId": "2f6ae058-b20f-4486-a74d-559ac3393acd",
+      "verdict": "skipped",
+      "reason": "A mutation score cannot be produced without executing the suite, and this session has no test runner: any floor I wrote would be a guessed number in a blocking gate. The decision it needs from a human is also a real one — ADR-0008 keeps repo tooling on Node built-ins, so Stryker would be a new dev dependency needing an `Ack:`, versus a repo-local mutator over src/lib/llm/ and the store seam.",
+      "files": []
+    },
+    {
+      "recommendationId": "2fb876c3-fa69-424f-9a27-552d45ffe5e9",
+      "verdict": "skipped",
+      "reason": "The artefact this asks for is a REHEARSED rollback with its timing and outcome, which needs the deployed Vercel project, the provider tokens and a `git push` — all three are red in AGENTS.md § What you may do unattended and none of them exist in this session; a runbook written without running it is the documentation the item explicitly does not count.",
+      "files": []
     }
   ],
   "lessons": [
-    "This repository already answers most maturity gaps somewhere in the tree — docs/task-index.md routes task to document, and checking it first turns two of six items into 'already covered, here is the residual' instead of duplicate machinery.",
-    "Its own rung discipline (docs/adr/0007) forbids landing a check that does not pass today, so a gate needing a measured baseline (a perf budget, a drill-recency check) cannot honestly be added by a session with no shell — the honest output is a skip naming the one command a human must run.",
-    "Enforcement here is designed around the fact that automation lanes commit in throwaway worktrees where no git hook is installed: rules that must bite live in check:ci and in a workflow, never in a hook alone."
+    "This repository already has the mechanism for almost everything an Ascent gap names — the gap is usually that the mechanism rests on a hand-written claim (a `cost: \"seconds\"` label, a step that is skipped rather than announced) that nothing ever measures. Look for the unmeasured claim before adding a tool.",
+    "Adding a stage to `npm run check:ci` here is expensive: gate-remedy.mjs's CHAIN, its unit test, the prose counts in AGENTS.md/ci.yml and docs/parity.json all encode the chain. A new invariant is cheaper and just as blocking when it enters through `test:unit`, which is already in the chain.",
+    "A `continue-on-error: true` step inside a job named in .github/required-checks.json must also be listed in that entry's `softenedSteps`, or `npm run merge-gate` fails the build — evidence-keeping steps (artifact uploads) are the usual reason to add one."
   ]
 }
