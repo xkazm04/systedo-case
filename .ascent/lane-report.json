@@ -2,49 +2,44 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "8831cf8e-df69-4a62-8c90-d3ba2f2b280e",
+      "recommendationId": "f3e7ab26-f330-464c-bd09-e39b163aafb2",
       "verdict": "skipped",
-      "reason": "Pinning a tag to a commit SHA means asking GitHub what that tag points at right now and this session has no network; the repository already ships the one-command close (`npm run actions:pin`, which resolves every ref AND writes STRICT=true + RATCHET.pinned back into scripts/actions-pin.mjs in the same pass), so there is nothing useful to add offline and inventing SHAs would break the workflows rather than pin them.",
+      "reason": "Pinning a tag needs GitHub's API to say what the tag points at, and this session has no network; the repo already ships the one-command close (`npm run actions:pin`, which also flips STRICT and raises the ratchet in the same pass), so there is nothing to add offline but a fabricated SHA.",
       "files": []
     },
     {
-      "recommendationId": "02094421-ab0c-4b12-b4d4-6798d0995b34",
-      "verdict": "skipped",
-      "reason": "A budget that fails a build needs a recorded ceiling, and every candidate number (route First Load JS from .next/app-build-manifest.json, a Lighthouse score, a bundle byte count) requires running `next build` or the app — this session cannot execute anything, so any budget file I wrote would carry invented ceilings and would be a gate that is green by exemption, which is the exact shape this repository already calls out in scripts/actions-pin.mjs.",
-      "files": []
-    },
-    {
-      "recommendationId": "db4a7ded-e9f1-40cd-a29c-07ec390592dd",
+      "recommendationId": "d5ffe636-7e5e-41fa-a01b-9fd1b875ba68",
       "verdict": "resolved",
-      "reason": "A maintainer labelling an issue `agent:draft` now fires .github/workflows/issue-dispatch.yml, which asks a model for a change and opens a DRAFT pull request against the existing gates; the proposal may only write src/, test-unit/ and docs/, the model key and the write scope are in separate jobs, and the dispatch announces its own absence when ANTHROPIC_API_KEY lapses.",
+      "reason": "`npm run agents:surface` now reads the generated regions instead of only hashing them: an instruction-shaped line that is not in the accepted lock content fails the gate, and `--accept` refuses to pin a newly arrived one without `--accept-instructions`.",
       "files": [
-        ".github/workflows/issue-dispatch.yml",
-        "scripts/issue-dispatch.mjs",
-        "scripts/harness-degradation.mjs",
-        "test-unit/issue-dispatch.test.mjs",
-        "package.json",
+        "scripts/lib/generated-instructions.mjs",
+        "scripts/agent-surface.mjs",
+        "test-unit/agent-surface-instructions.test.mjs",
+        "docs/adr/0012-generated-regions-are-data.md",
+        "docs/adr/README.md",
+        "docs/task-index.md",
+        "docs/adr/0009-free-channels-lead-the-onboarding-checklist.md",
+        ".github/contract-ledger.json",
+        "scripts/gate-remedy.mjs",
+        "test-unit/gate-bite.test.mjs",
         "AGENTS.md"
       ]
     },
     {
-      "recommendationId": "796871dd-1c85-441e-b385-12aaa6c438a1",
+      "recommendationId": "79e97f9f-bc84-412c-82da-857835ae33f8",
       "verdict": "skipped",
-      "reason": "Mutation testing is a measurement — the deliverable is a survivor list for the chokepoint modules and a threshold derived from it — and it requires running the 475-file unit suite once per mutant; this session has no shell, so I could ship a harness but not a single measured survivor, and a mutation gate with no baseline measures nothing.",
+      "reason": "A surviving-mutant ceiling is a measurement, and this session has no test runner, no package manager and no network; note that the gate scripts already have a known-bad-fixture suite (test-unit/gate-bite.test.mjs) and the chokepoint has fault injection (test-unit/fault-injection-llm.test.mjs), so the honest remaining gap is mutation evidence over the store seams.",
       "files": []
     },
     {
-      "recommendationId": "9e452ecd-6dcd-4d11-a692-a8364704a0c1",
-      "verdict": "resolved",
-      "reason": "`fix: Top priority` passed every rule in scripts/commit-subject.mjs — twelve characters, two words, conventional shape, no narration vocabulary — so rubric A5 had nothing to block it with; the new `queue-position` rule refuses a description made entirely of a rank word plus a filler noun, anchored to the whole description so the vocabulary stays usable in real subjects.",
-      "files": [
-        "scripts/commit-subject.mjs",
-        "test-unit/commit-subject.test.mjs"
-      ]
+      "recommendationId": "940d124e-1096-4846-911c-3ef4b31c3db0",
+      "verdict": "skipped",
+      "reason": "The ordering has to be derived from red-build history, and none exists offline — `.gate-timings.json` is git-ignored and absent in a fresh worktree and there is no committed `.github/gate-timings.json`; added `npm run gates:failures`, which reads the `failedAt` the timed runs already record, so the maintainer can produce the ranking in one run.",
+      "files": ["scripts/gate-timings.mjs", "package.json", "AGENTS.md"]
     }
   ],
   "lessons": [
-    "This repository enforces its workflow-security rules from BOTH sides: scripts/actions-pin.mjs is the gate and test-unit/workflow-injection.test.mjs independently re-asserts the same invariants, and one of them (`every ${{ … }} must sit inside an env: block`) rules out job-level `outputs:` entirely — cross-job values have to be re-derived from $GITHUB_EVENT_PATH in each job rather than passed. Read those two files before adding any workflow here.",
-    "Any new key-gated workflow step must be declared in scripts/harness-degradation.mjs CAPABILITIES and must call `--announce <id>` on both branches of its `if [ -z \"$KEY\" ]`; `harness:degradation:check` goes red on a `secrets.NAME` no capability declares, and the drill inside the unit suite proves the announcement actually appears.",
-    "When a rule exists and the thing it targets is still in the history, check first whether the rule actually MATCHES the escaped example before adding enforcement paths — here the gate ran everywhere it needed to (pre-push, every push, every PR) and the only gap was the rule's own vocabulary."
+    "In this repository a new check must be blocking-by-construction or ratcheted — never blocking-on-a-guess. With no way to run the gate, the safe shape is to derive the baseline from an artefact already committed (here: the accepted lock content), so the rule is provably green on today's tree whatever the classifier's exact matching turns out to be.",
+    "Adding an ADR here has a side effect worth planning for: `scripts/adr-check.mjs` settles a record once three higher-numbered ones exist, so ADR-0012 made ADR-0009's `## Consequences observed` section due in the same commit."
   ]
 }

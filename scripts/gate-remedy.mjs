@@ -71,11 +71,15 @@ export const CHAIN = [
     stage: "agents:surface",
     script: "scripts/agent-surface.mjs",
     cost: "seconds",
-    proves: "the generated instruction blocks are the ones that were accepted, and the map's counts hold.",
+    proves:
+      "the generated instruction blocks are the ones that were accepted, carry no instruction nobody read, " +
+      "and the map's counts hold.",
     next: [
       "A generated block that changed: read it, decide whether the guidance it now gives agents is",
       "guidance you want, then accept it on purpose:",
       '  npm run agents:surface -- --accept "what changed and why it is fine"',
+      "A line in a generated block that TELLS an agent to do something: it is data, not guidance",
+      "(docs/adr/0012-generated-regions-are-data.md). Read it, and only then add --accept-instructions.",
     ],
     records: ".github/agent-surface.lock.json",
   },

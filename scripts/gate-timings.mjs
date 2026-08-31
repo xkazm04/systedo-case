@@ -46,6 +46,7 @@
  *  Usage:
  *    node scripts/gate-timings.mjs [--summary FILE]   # run the chain, timed
  *    node scripts/gate-timings.mjs --report           # what has been measured
+ *    node scripts/gate-timings.mjs --failures         # which gate goes red FIRST, and where it sits
  *    node scripts/gate-timings.mjs --check            # ordering, against the baseline
  *    node scripts/gate-timings.mjs --accept --reason "…"
  */
@@ -128,6 +129,30 @@ export function mediansFrom(log) {
   return out;
 }
 
+/** How often each stage was the FIRST one to go red, over the runs in the log.
+ *
+ *  The chain is ordered by what a stage COSTS, which is the right primary key: a
+ *  wrong change should be refused before `next build`. Cost does not settle the
+ *  order INSIDE the cheap half, and there the useful key is different — a
+ *  contributor's first red build is whichever gate they trip first, and thirteen
+ *  seconds-long gates all claim that slot equally. `failedAt` is already recorded
+ *  on every timed run; nothing had ever read it back. This is that read.
+ *
+ *  Reporting only, and deliberately: with a handful of local runs the ranking is
+ *  noise, and a gate that reorders the chain from noise would be worse than the
+ *  hand-written order it replaced. Run it, look at the ranking, move a gate on
+ *  purpose. */
+export function failureCountsFrom(log) {
+  const counts = new Map();
+  let total = 0;
+  for (const run of log?.runs ?? []) {
+    if (!run.failedAt) continue;
+    counts.set(run.failedAt, (counts.get(run.failedAt) ?? 0) + 1);
+    total++;
+  }
+  return { counts: Object.fromEntries(counts), red: total, runs: (log?.runs ?? []).length };
+}
+
 const readJson = (path) => {
   try {
     return existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : null;
@@ -152,6 +177,7 @@ const flag = (name) => {
   return i !== -1 && i + 1 < argv.length ? argv[i + 1] : null;
 };
 const REPORT = argv.includes("--report");
+const FAILURES = argv.includes("--failures");
 const CHECK = argv.includes("--check");
 const ACCEPT = argv.includes("--accept");
 const SUMMARY = flag("--summary");
@@ -350,6 +376,44 @@ function check() {
   return 0;
 }
 
+function failures() {
+  const log = readJson(LOG);
+  const { counts, red, runs } = failureCountsFrom(log);
+
+  say(`First-failure ranking — ${red} red run(s) of ${runs} recorded in .gate-timings.json`);
+  say("");
+  if (!red) {
+    say("  Nothing has gone red on this machine yet, so there is no ranking to read.");
+    say("  The log only fills from `npm run check:ci:timed` (what CI runs), and it keeps the last 20 runs.");
+    flushSummary();
+    return 0;
+  }
+
+  const width = Math.max(...STAGES.map((s) => s.length), 12);
+  const ranked = STAGES.map((stage, position) => ({ stage, position, hits: counts[stage] ?? 0 })).sort(
+    (a, b) => b.hits - a.hits || a.position - b.position
+  );
+  for (const row of ranked) {
+    if (!row.hits) continue;
+    const share = Math.round((row.hits / red) * 100);
+    say(
+      `  ${row.stage.padEnd(width)}  ${String(row.hits).padStart(3)} red  ${String(share).padStart(3)}%  ` +
+        `runs ${row.position + 1} of ${STAGES.length}`
+    );
+  }
+
+  const worst = ranked[0];
+  say("");
+  say(
+    `  The gate a change here trips first is \`${worst.stage}\`, and it runs ${worst.position + 1} of ` +
+      `${STAGES.length}. Everything before it is what a contributor waits through to be told.`
+  );
+  say("  Cost decides the halves of this chain; inside the cheap half, this is the number to move a gate on.");
+  say("  Nothing is enforced from these counts — a ranking from a handful of runs is noise.");
+  flushSummary();
+  return 0;
+}
+
 function accept() {
   const log = readJson(LOG);
   const medians = mediansFrom(log ?? { runs: [] });
@@ -404,6 +468,7 @@ const invokedDirectly = process.argv[1] && resolve(process.argv[1]) === resolve(
 if (invokedDirectly) {
   let code = 0;
   if (ACCEPT) code = accept();
+  else if (FAILURES) code = failures();
   else if (CHECK) code = check();
   else if (REPORT) code = report();
   else code = runChain();

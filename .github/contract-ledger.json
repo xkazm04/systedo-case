@@ -321,6 +321,15 @@
       "breaches": []
     },
     {
+      "id": "generated regions are data",
+      "surface": "gate",
+      "enforcedBy": "scripts/agent-surface.mjs (blocking inside check:ci)",
+      "probe": { "file": "scripts/agent-surface.mjs", "contains": "--accept-instructions" },
+      "guidance": "ADR-0012",
+      "why": "an instruction a generator wrote must be read by a human before it becomes guidance an agent obeys",
+      "breaches": []
+    },
+    {
       "id": "adr hindsight",
       "surface": "gate",
       "enforcedBy": "scripts/adr-check.mjs (blocking inside check:ci)",

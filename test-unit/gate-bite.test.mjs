@@ -505,8 +505,10 @@ const COVERAGE = [
     exempt:
       "Its unmapped-file count comes from `git ls-files` over the tracked tree, so the smallest honest fixture " +
       "is a second checkout rather than a copied directory. Its lock half is proven from the other side by " +
-      "test-unit/docs-task-index.test.mjs (the manifest pointers must resolve). This is the weakest row here " +
-      "and it should get a fixture the next time the script is touched.",
+      "test-unit/docs-task-index.test.mjs (the manifest pointers must resolve), and its content half — an " +
+      "instruction-shaped line inside a generated region — is exercised directly against injected text in " +
+      "test-unit/agent-surface-instructions.test.mjs. This is the weakest row here and its ratchet half should " +
+      "get a fixture the next time the script is touched.",
   },
   { stage: "checkpoint:check", fixture: "checkpoint:check fails on a handoff that no longer parses" },
   {

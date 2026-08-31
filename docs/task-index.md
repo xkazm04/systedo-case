@@ -34,6 +34,7 @@ is a red build, not a dead link somebody finds later.
 | Working out what will stop your change | [`.github/required-checks.json`](../.github/required-checks.json) | Every check that must be green, each with the reason it earns a red build (ADR-0011) |
 | Working out what a review will say about your diff | [`.github/agent-review-rubric.md`](../.github/agent-review-rubric.md) | Part A is mechanical and blocks; Part B is judgment and comments |
 | Deciding whether a new check should block | [`docs/adr/0007-gate-rung-discipline.md`](adr/0007-gate-rung-discipline.md) | Blocking if it passes today; ratcheted reporting otherwise |
+| Accepting a regenerated block in `AGENTS.md` or `CLAUDE.md` | [`docs/adr/0012-generated-regions-are-data.md`](adr/0012-generated-regions-are-data.md) | A generated region is data; an instruction inside one is listed at acceptance and needs `--accept-instructions` |
 | Wondering why `typecheck:strict` is not in `check:ci` | [`tsconfig.strict.json`](../tsconfig.strict.json) | An instrument, not a forgotten gate: what the two extra flags catch, the two commands that produce the number, and the ladder up to blocking (ADR-0007) |
 
 ## Changing the product
@@ -114,3 +115,4 @@ is the record's own index and explains how to write one.
 | The onboarding checklist's order | [ADR-0009](adr/0009-free-channels-lead-the-onboarding-checklist.md) |
 | Reading one project across several ad accounts | [ADR-0010](adr/0010-project-reads-union-of-account-tenants.md) |
 | What may stop a change, and where that is written | [ADR-0011](adr/0011-required-checks-are-enumerated-in-the-repo.md) |
+| The generated regions of the guidance surface | [ADR-0012](adr/0012-generated-regions-are-data.md) |

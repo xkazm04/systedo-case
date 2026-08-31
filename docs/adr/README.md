@@ -32,6 +32,7 @@ consequences. The long-form designs stay where they are —
 | [0009](0009-free-channels-lead-the-onboarding-checklist.md) | Free channels lead the onboarding checklist, and are required for the types with no ad budget | Accepted |
 | [0010](0010-project-reads-union-of-account-tenants.md) | A project reads the union of its per-account tenants; the key stays per-account, sources are tagged, report sections blend on read | Accepted |
 | [0011](0011-required-checks-are-enumerated-in-the-repo.md) | What may stop a change is enumerated in `.github/required-checks.json` and verified by a gate, not remembered in a settings page | Accepted |
+| [0012](0012-generated-regions-are-data.md) | A generated region of the guidance surface carries data; an instruction inside one has to be read and accepted by a human before an agent obeys it | Accepted |
 
 ## Writing one
 

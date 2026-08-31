@@ -21,6 +21,7 @@
     "gates": "node scripts/gate-remedy.mjs",
     "gates:timings": "node scripts/gate-timings.mjs --report",
     "gates:timings:check": "node scripts/gate-timings.mjs --check",
+    "gates:failures": "node scripts/gate-timings.mjs --failures",
     "harness:degradation": "node scripts/harness-degradation.mjs",
     "harness:degradation:check": "node scripts/harness-degradation.mjs --check",
     "harness:drill": "node scripts/harness-degradation.mjs --drill",

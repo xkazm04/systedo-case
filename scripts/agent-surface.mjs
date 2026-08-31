@@ -33,12 +33,26 @@
  *  is the task → document lookup a run performs before it has read anything, so a
  *  pointer into nothing there is a guess at the worst possible moment.
  *
+ *  AND IT READS THE GENERATED TEXT, not only its hash. The lock answers "did this
+ *  region change"; it cannot answer "change into WHAT". A generated region is DATA
+ *  — a vendor's note that this Next.js differs from your training data, a scan's
+ *  count of contexts — and the moment it carries an imperative addressed to the
+ *  reader it is guidance nobody on this team wrote, sitting in the file agents
+ *  treat as law. So every instruction-shaped line in a generated block is
+ *  classified (`scripts/lib/generated-instructions.mjs`) and must already be
+ *  present in the accepted lock content: a line the vendor's next rewrite ADDS —
+ *  "skip the pre-push check while iterating" — fails this gate, and `--accept`
+ *  refuses to pin it without `--accept-instructions` and a human who has read it.
+ *  Why generated regions are data rather than instructions:
+ *  `docs/adr/0012-generated-regions-are-data.md`.
+ *
  *  Runs blocking in CI as part of `npm run check:ci`.
  *
  *  Usage:
  *    node scripts/agent-surface.mjs
  *    node scripts/agent-surface.mjs --check                 # + enforce the ratchet
  *    node scripts/agent-surface.mjs --accept "why it changed"
+ *    node scripts/agent-surface.mjs --accept "…" --accept-instructions
  *    node scripts/agent-surface.mjs --summary FILE
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
@@ -46,6 +60,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { printRemedy } from "./gate-remedy.mjs";
+import { directiveLines } from "./lib/generated-instructions.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const LOCK_PATH = join(ROOT, ".github", "agent-surface.lock.json");
@@ -80,6 +95,9 @@ const dateIdx = argv.indexOf("--date");
 const STAMP = dateIdx !== -1 ? String(argv[dateIdx + 1] ?? "").trim() : new Date().toISOString().slice(0, 10);
 const summaryIdx = argv.indexOf("--summary");
 const SUMMARY_FILE = summaryIdx !== -1 ? argv[summaryIdx + 1] : null;
+/** Consent for the one thing an acceptance must never be able to do by accident:
+ *  pin a NEW instruction, written by a generator, into the file agents obey. */
+const ACCEPT_INSTRUCTIONS = argv.includes("--accept-instructions");
 
 /** Compare on content, not on whitespace: trailing spaces and blank-line churn
  *  from a generator are noise, a changed sentence is not. */
@@ -136,6 +154,38 @@ if (ACCEPT !== null) {
     console.error('\n✗ --accept needs a reason: --accept "next 16.3.4 reworded the deprecation sentence"\n');
     process.exit(1);
   }
+  // The acceptance is the ONE moment a generator's words become this repository's
+  // law, and until now it could not tell the reader which of them were words at
+  // all. Any instruction-shaped line that was not already accepted has to be read
+  // and consented to by name.
+  const arriving = [];
+  for (const block of BLOCKS) {
+    const lines = extracted.get(block.id);
+    if (!lines) continue;
+    const alreadyAccepted = new Set(lock.blocks?.[block.id]?.lines ?? []);
+    for (const hit of directiveLines(lines)) {
+      if (!alreadyAccepted.has(hit.line)) arriving.push({ block: block.id, ...hit });
+    }
+  }
+  if (arriving.length && !ACCEPT_INSTRUCTIONS) {
+    console.error(
+      `\n✗ ${arriving.length} line(s) in a generated block read as an INSTRUCTION to an agent, and were not in ` +
+        "what was accepted before:\n"
+    );
+    for (const hit of arriving) {
+      console.error(`  ${hit.block}\n    ${hit.line.slice(0, 200)}\n    → ${hit.why}\n`);
+    }
+    console.error(
+      "  A generated region is data — a vendor's note, a scan's count — and this repository's guidance is not\n" +
+        "  written by a generator (docs/adr/0012-generated-regions-are-data.md). Read each line above and decide\n" +
+        "  whether an agent obeying it would do something this team did not ask for. If they are harmless:\n" +
+        '    npm run agents:surface -- --accept "…" --accept-instructions\n' +
+        "  If one of them is not, do not pin it: the vendor block is regenerated, so the fix is to keep the\n" +
+        "  sentence out of the lock and take it to the operator.\n"
+    );
+    process.exit(1);
+  }
+
   const blocks = {};
   for (const block of BLOCKS) {
     const lines = extracted.get(block.id);
@@ -156,7 +206,9 @@ if (ACCEPT !== null) {
           "not by this team. Compared after normalisation (trailing whitespace and blank lines ignored). " +
           "A mismatch fails `npm run agents:surface`, so a regenerated block has to be read and accepted " +
           "on purpose instead of riding along in an unrelated diff. Accept with: " +
-          'npm run agents:surface -- --accept "what changed and why it is fine".',
+          'npm run agents:surface -- --accept "what changed and why it is fine". These regions carry DATA; ' +
+          "a line in one that reads as an instruction to an agent has to be consented to by name with " +
+          "--accept-instructions (docs/adr/0012-generated-regions-are-data.md).",
         blocks,
       },
       null,
@@ -189,6 +241,38 @@ for (const block of BLOCKS) {
   const currentSet = new Set(lines);
   for (const l of lines) if (!pinnedSet.has(l)) say(`      + ${l.slice(0, 160)}`);
   for (const l of pinned.lines ?? []) if (!currentSet.has(l)) say(`      - ${l.slice(0, 160)}`);
+}
+
+// --- 1b. generated regions are DATA, not instructions ------------------------
+//
+// The lock above compares content and cannot read it. This does: every line in a
+// generated block that reads as an imperative addressed to an agent has to be one
+// a human already accepted, by name, in the lock file. A vendor rewrite that adds
+// "skip the pre-push check while iterating" therefore cannot become guidance by
+// riding through an acceptance nobody looked at — it is listed here, and again at
+// `--accept`, where consent is a separate flag.
+
+for (const block of BLOCKS) {
+  const lines = extracted.get(block.id);
+  if (!lines) continue;
+  const accepted = new Set(lock.blocks?.[block.id]?.lines ?? []);
+  const hits = directiveLines(lines);
+  const unaccepted = hits.filter((h) => !accepted.has(h.line));
+  if (unaccepted.length) {
+    failures.push(
+      `${block.id}: ${unaccepted.length} line(s) read as an instruction to an agent and are not in the accepted ` +
+        "content. A generated region is data, not guidance (docs/adr/0012-generated-regions-are-data.md)."
+    );
+    for (const hit of unaccepted) {
+      say(`      ! ${hit.line.slice(0, 160)}`);
+      say(`        ${hit.why}`);
+    }
+  } else if (hits.length) {
+    say(
+      `  ✓ ${block.id} — ${hits.length} instruction-shaped line(s), each one already read and accepted ` +
+        "(generated text is data; the guidance is AGENTS.md)"
+    );
+  }
 }
 
 // --- 2. context map: is the generated claim still true? ----------------------

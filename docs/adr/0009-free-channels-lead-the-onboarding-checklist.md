@@ -94,3 +94,25 @@ tempt a later edit into making optional steps stop counting.
   positioning presence at all (gaps C1/C2 — no mention on the home page, `/cena`,
   the LP variants, `PRODUCT.md`, and no public feature page while every other
   pillar has one). A tenant who never creates a project still cannot discover it.
+
+## Consequences observed
+
+_Read back 2026-08-31 against the tree, not against intentions._
+
+- **The default is still in force and still a default.** `src/lib/onboarding/steps.ts`
+  orders every type `scan → channels → …` and `REQUIRED_BY_TYPE` still names
+  `app` / `leadgen` / `content` and nobody else. It has survived several waves of
+  unrelated work, which is the only evidence a reversible default can produce on
+  its own. The operator has still not confirmed it, so the Status line is accurate
+  rather than stale.
+- **The discoverability gap it was written for is now closed on both sides.**
+  C1/C2 were left open here; a public feature page exists since
+  (`src/app/kanaly-zdarma/page.tsx`) and `PRODUCT.md` names the module. So the
+  tenant who never creates a project can now reach it too — through a change this
+  record did not ask for and did not block.
+- **What has NOT been measured is whether any of it changed behaviour.** This
+  repository carries no tenant telemetry, so "does a new `app` tenant open the
+  channel plan first" is unanswerable from here; the evidence remains the UAT
+  characters that produced finding K01. The honest position is that the cost of
+  the change was near zero and its benefit is still unverified — which is an
+  argument for leaving it, not for calling it settled.
