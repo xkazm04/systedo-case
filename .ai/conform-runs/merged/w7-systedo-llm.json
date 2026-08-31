@@ -1,0 +1,109 @@
+{
+  "worker": "w7-systedo-llm",
+  "evaluatedAt": "2026-08-31",
+  "pairs": [
+    {
+      "context": "de6396ef-7b54-4360-ad3b-6d9f3d4db536",
+      "subject": "public-claim-provenance",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evidence": "src/components/marketing/sken/SkenHero.tsx:17-19/26-28 labels AI-derived claims inline ('Konkurenty navrhuje, neověřuje.' / 'Competitors are suggested, not verified.') and states the scan's real limits; the claim→redeem flow (src/app/api/sken/claim/route.ts, redeem/route.ts) implements the 'keep your scan' promise as a real single-use mechanism, not unbacked copy. No numeric roadmap/counter claim exists in this context's files, so the fraction/build-gate techniques have nothing to test.",
+      "techniques": [
+        { "technique": "no-data-source-labelled-inline", "verdict": "conformant",
+          "evidence": "src/components/marketing/sken/SkenHero.tsx:19,28 — AI-suggested content explicitly labelled unverified at the claim site" },
+        { "technique": "promise-only-what-ships", "verdict": "conformant",
+          "evidence": "src/app/api/sken/redeem/route.ts:1-18 — the 'keep it after sign-in' promise is a working, single-use mechanism, never a stated intention" },
+        { "technique": "derived-numerator-authored-denominator", "verdict": "not-applicable",
+          "evidence": "no numeric fraction/counter appears anywhere in this context's files" }
+      ]
+    },
+    {
+      "context": "de6396ef-7b54-4360-ad3b-6d9f3d4db536",
+      "subject": "prompt-assembly",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evidence": "The onboarding scan's actual prompt assembler (system template, schema, normalize/demo) lives in src/lib/ai/tools/onboarding-scan.ts, outside this context's declared paths; onboarding-flow's own files (site-fetch.ts, seed.ts, progress.ts, types.ts) only prepare page text and post-scan data and build no prompt themselves."
+    },
+    {
+      "context": "de6396ef-7b54-4360-ad3b-6d9f3d4db536",
+      "subject": "test-harness",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evidence": "This context's declared paths contain no harness machinery (no suite config, fixtures, lane definitions); tests for this flow exist at test-unit/sken-*.test.mjs, but the harness that partitions/schedules them is project-wide, not owned by this context's source files."
+    },
+    {
+      "context": "de6396ef-7b54-4360-ad3b-6d9f3d4db536",
+      "subject": "mcp-tools",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evidence": "No MCP client/server/tool-schema appears anywhere in this context (verified by grep); 'tools' here means the internal src/lib/ai/tools/* functions, not the Model Context Protocol — a lexical match, as flagged."
+    },
+    {
+      "context": "d248872f-eefa-40f7-8757-50f220334ff7",
+      "subject": "usage-analytics",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evidence": "src/app/api/usage/route.ts + src/lib/usage.ts are billing/quota metering (daily AI-eval/sync caps by plan) per rate-limiting's domain, not product-surface usage analytics; the actual event/analytics pipeline (src/lib/analytics/track.ts) sits outside this context and isn't owned by any context in the current map — a real coverage hole, not this context's conformance."
+    },
+    {
+      "context": "d248872f-eefa-40f7-8757-50f220334ff7",
+      "subject": "agent-cli-transport",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evidence": "None of the six routes (auth, usage, health, alerts, activity, eval/telemetry) spawn a coding-agent CLI as an LLM transport — no child_process/spawn anywhere in this context; the map's own 'why' for this pair is generic words ('auth','api','health'), confirming a lexical match."
+    },
+    {
+      "context": "d248872f-eefa-40f7-8757-50f220334ff7",
+      "subject": "observability-telemetry",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evidence": "health/route.ts is an uptime/readiness probe (cron staleness, Firestore reachability) and eval/telemetry/route.ts is a read-only admin view over LLM call telemetry owned by src/lib/llm/telemetry.ts (context llm-core-providers); neither implements this golden path's log-architecture/rotation/crash-store machinery, which has no owning context anywhere in this map."
+    },
+    {
+      "context": "11708691-80f8-458d-a1fe-be426e381024",
+      "subject": "prompt-assembly",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evidence": "src/lib/llm/telemetry.ts:71-74 promptFingerprint(system,schema) digests exactly the standing-layer contract and deliberately excludes the per-call prompt payload; src/lib/llm/index.ts:106-115 withLanguage() appends the locale directive to the prompt (never system) explicitly to keep that fingerprint stable. Per-family section assembly (layered-composition, budgeting) is owned by src/lib/ai/tools/*, a different context, so those techniques don't apply here.",
+      "techniques": [
+        { "technique": "fingerprinting-and-cache-keys", "verdict": "conformant",
+          "evidence": "src/lib/llm/telemetry.ts:71-74 — sha256 of system+schema, per-call prompt excluded; drift detected via distinct-hash count in aggregateTelemetry" },
+        { "technique": "layered-composition", "verdict": "not-applicable",
+          "evidence": "section ownership/ordering lives in src/lib/ai/tools/*, outside this context; index.ts receives system/prompt as opaque already-assembled strings" }
+      ]
+    },
+    {
+      "context": "a0aeac62-4e06-4785-9eaa-211fad5e6821",
+      "subject": "structured-output",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evidence": "src/lib/llm/byom/schema.ts:73-75 toJsonSchema() derives the OpenAI/Anthropic strict JSON Schema from the SAME Google-Type schema used for native calls (one contract, two renderings, never hand-duplicated); byom/adapters.ts requests native schema-constrained decoding per vendor (json_schema/responseSchema/output_config) and falls back exactly once to a prompt-embedded schema, parsed through claude.ts's ordered extractJsonTraced ladder (direct parse -> fenced block -> stream-json envelope), each rung recorded.",
+      "techniques": [
+        { "technique": "extraction-strategies", "verdict": "conformant",
+          "evidence": "src/lib/llm/claude.ts:323-368 extractJsonTraced — ordered, cheap-first ladder with the firing rung returned" },
+        { "technique": "op-grammar-allowlisting", "verdict": "not-applicable",
+          "evidence": "no operation-list artifact is produced by BYOM adapters; output is a structured business/content object, not a dispatched action list" }
+      ]
+    },
+    {
+      "context": "a0aeac62-4e06-4785-9eaa-211fad5e6821",
+      "subject": "eval-harness",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evidence": "src/lib/llm/quality.ts:228-239 judgeVendor/isSelfJudged explicitly flags Anthropic-family model cells as self-judged by the Sonnet judge (own-family bias named, not hidden); QualityCell.judges (17-26) is read rather than assumed to be a median; measurementAgeDays/isMeasurementStale (156-175) surfaces a stale baked matrix in the UI instead of presenting it as current.",
+      "techniques": [
+        { "technique": "judge-stability", "verdict": "conformant",
+          "evidence": "src/lib/llm/quality.ts:228-239 — judgeVendor + isSelfJudged flag own-family bias per cell" },
+        { "technique": "measurement-revision", "verdict": "conformant",
+          "evidence": "src/lib/llm/quality.ts:152-175 — STALENESS_THRESHOLD_DAYS + isMeasurementStale surface baked-matrix age" }
+      ]
+    },
+    {
+      "context": "a0aeac62-4e06-4785-9eaa-211fad5e6821",
+      "subject": "agent-cli-transport",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evidence": "All six BYOM vendor adapters (byom/adapters.ts) call vendor REST APIs directly via fetch (openai/anthropic/gemini/openrouter/qwen/ollama); no coding-agent CLI is spawned anywhere in this context — that transport (runCli/claude.ts) lives in the llm-core-providers context instead."
+    }
+  ]
+}

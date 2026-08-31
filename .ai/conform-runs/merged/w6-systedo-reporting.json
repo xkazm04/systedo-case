@@ -1,0 +1,131 @@
+{
+  "worker": "w6-systedo-reporting",
+  "evaluatedAt": "2026-08-31",
+  "pairs": [
+    {
+      "context": "1a5002c9-4f0d-47e5-8d8c-c28d1d1282a2",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/app/app/[projectId]/mesicni-report/page.tsx:124 renders MonthlyReport with the recaps it read from the store, unchanged — the same component report-engine's recorded deviation cites (MonthlyReport.tsx:34,67: UI copy promises the AI 'must not invent' numbers) with no additional numeric-membership gate added at this layer, so the ungated narrative reaches every visit to this page too.",
+      "techniques": [
+        { "technique": "grounded-narrative-generation", "verdict": "deviation",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:34,67 (rendered from mesicni-report/page.tsx:124) — no numeric-membership check between validateRecap and the rendered narrative" }
+      ]
+    },
+    {
+      "context": "6447c3a5-56b9-4d99-bab2-abca37398c78",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evidence": "src/components/campaigns/SyncProvenance.tsx:184-303 discloses source, sync staleness, per-period coverage (with stale flagged) and live-to-sample degradation with a stored diagnostic reason, each next to the number it qualifies — a strong provenance-caveats realization; SharedReportsList.tsx:112-139 correctly surfaces expiry and revoke (the capability's reaper gap belongs to campaigns-reporting/shared-report.ts, judged separately).",
+      "techniques": [
+        { "technique": "provenance-caveats", "verdict": "conformant",
+          "evidence": "src/components/campaigns/SyncProvenance.tsx:184-303" }
+      ]
+    },
+    {
+      "context": "4669bc3a-19ce-46c3-ab23-79f5dcf6a2dd",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/components/app/modules/MonthlyReport.tsx is directly in this context's own path list, at the exact lines (34, 67) report-engine's recorded deviation cites for grounded-narrative-generation — this context owns the deviating file at first hand, not merely by inheriting a shared component from elsewhere.",
+      "techniques": [
+        { "technique": "grounded-narrative-generation", "verdict": "deviation",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:34,67 — UI promises no invented numbers; validateRecap (src/lib/ai/tools/monthly-recap.ts) checks field presence only" }
+      ]
+    },
+    {
+      "context": "38515be8-7ca3-4483-a506-d5f6a2e9d0ee",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/lib/campaigns/shared-report.ts:187 mints a random bearer token as the Firestore doc id with a frozen absolute expiresAt (line 175) and a working revoke (line 231-237) — but nothing ever deletes an expired-and-never-revoked grant row (this is the only file in the repo touching the `sharedReports` collection); the share table grows monotonically, exactly the technique's named smell of a missing reaper.",
+      "techniques": [
+        { "technique": "expiring-share-links", "verdict": "deviation",
+          "evidence": "src/lib/campaigns/shared-report.ts:187-237 — expiry + revocation exist, no named reaper for expired-but-unrevoked rows" }
+      ]
+    },
+    {
+      "context": "30d6eae3-83b6-4dbb-a433-7236b0de9cb3",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evidence": "lokalni/page.tsx, mapa/page.tsx and recenze/page.tsx render live, session-scoped in-app diagnosis and review panels (coverage gaps, review inbox) with no export, print or share affordance — none is the periodic document forwarded to a reader who cannot query the source that this golden path's precondition requires."
+    },
+    {
+      "context": "1327d703-2851-41c0-b5c9-e135c7998cd6",
+      "subject": "entity-lifecycle",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evidence": "finance-inputs is a per-project settings blob, not an independently lifecycled entity, so only the dependent-store half of this subject applies: clearFinanceInputs (finance-inputs/store.ts:23) is registered as a named reaper at src/lib/projects/delete-cascade.ts:82, and is independently caught with no bespoke registration by the schema-derived dependent-side orphan walk (src/lib/projects/orphan-walk.local.ts, which enumerates every table carrying a project_id column) — the same registry+ledger+sweep machinery the project's conformant projects-lifecycle context (54d3c914) already carries.",
+      "techniques": [
+        { "technique": "cascade-design", "verdict": "conformant",
+          "evidence": "finance-inputs/store.ts:23 clearFinanceInputs registered at delete-cascade.ts:82" },
+        { "technique": "orphan-reconciliation", "verdict": "conformant",
+          "evidence": "orphan-walk.local.ts enumerateSightings walks every project_id column automatically, including finance_inputs" },
+        { "technique": "blast-radius-computation", "verdict": "not-applicable",
+          "evidence": "finance-inputs has no independent, user-triggered delete of its own that would need a computed preview — it is only ever removed as part of whole-project deletion" },
+        { "technique": "archive-restore-semantics", "verdict": "not-applicable",
+          "evidence": "finance-inputs is a single upserted settings row with no archived/live state of its own to enumerate" }
+      ]
+    },
+    {
+      "context": "27a7f158-c8bc-4554-859d-b54fddb66b03",
+      "subject": "i18n",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "scripts/i18n-audit.mjs's completeness check runs in CI (i18n:audit:check) but with continue-on-error:true (.github/workflows/ci.yml:82) and is absent from check:ci (package.json:19), the actual blocking pre-push/CI gate — the repo's own comment on that step admits 40 coverage gaps / 42 leftover-source values ship today, which is the completeness-gates use_when case ('a green report over an untranslated locale') realized as an explicitly non-blocking one instead.",
+      "techniques": [
+        { "technique": "completeness-gates", "verdict": "deviation",
+          "evidence": ".github/workflows/ci.yml:82 continue-on-error:true; package.json:19 check:ci omits i18n:audit:check" },
+        { "technique": "catalog-architecture", "verdict": "conformant",
+          "evidence": "src/lib/i18n/interpolate.ts:22 TDict<K> = Record<SupportedLocale, Record<K,string>> types every colocated table's cs/en columns against one key set; docs/adr/0006-colocated-i18n-dictionaries.md" }
+      ]
+    },
+    {
+      "context": "c9509bbe-161c-4f71-adb1-7617b0ff9bec",
+      "subject": "demo-data-plane",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evidence": "Every demo surface checked discloses its sample-vs-live status inline rather than passing fabricated data off as real: src/app/kampane/page.tsx:14 ('...jinak běží přehled na ukázkových datech'), src/app/ai-asistent/page.tsx approach4Body ('Bez API klíče se vrátí deterministická ukázka v limitech, jasně označená') — a consistent fake-surface-honesty-contract label across the module rather than a one-off.",
+      "techniques": [
+        { "technique": "fake-surface-honesty-contract", "verdict": "conformant",
+          "evidence": "src/app/kampane/page.tsx:14; src/app/ai-asistent/page.tsx (approach4Title/approach4Body)" }
+      ]
+    },
+    {
+      "context": "de6396ef-7b54-4360-ad3b-6d9f3d4db536",
+      "subject": "wizard-flows",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evidence": "/sken (src/app/sken/page.tsx, src/lib/onboarding/*) is a single AI scan-then-apply action plus a cross-module derived-progress checklist (progress.ts computes each step's done live from other modules' own stores, never a duplicated wizard flag) — not a multi-step, branching form UI with per-step commit boundaries and draft state, which is this golden path's precondition; this looks like a vocabulary match ('onboarding'/'steps') rather than a structural one."
+    },
+    {
+      "context": "9f2d6aca-4aec-4964-b288-5592ef05add6",
+      "subject": "plan-entitlements",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evidence": "src/components/marketing/pricing/planRows.ts derives every plan name, price and daily limit shown on /cena from lib/plans.ts's PLAN_INFO/PLANS rather than typing numbers into the marketing copy (lines 129-147), enforced by test-unit/pricing-plan-rows.test.mjs — a clean price-book-authority + tier-model-single-source realization with no second copy of the numbers to drift.",
+      "techniques": [
+        { "technique": "price-book-authority", "verdict": "conformant",
+          "evidence": "src/components/marketing/pricing/planRows.ts:129-147" },
+        { "technique": "tier-model-single-source", "verdict": "conformant",
+          "evidence": "src/components/marketing/pricing/planRows.ts:23,131 iterates PLAN_INFO as the one plan order/name authority" }
+      ]
+    },
+    {
+      "context": "9f2d6aca-4aec-4964-b288-5592ef05add6",
+      "subject": "long-form-reading-surface",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evidence": "src/lib/article.ts:141-144 computes tableOfContents once from each block's own authored id (a single id source, no per-consumer re-derivation), and src/app/clanek/page.tsx:44-46 reads article/tableOfContents at module scope rather than recomputing per render — server-parsed-once-reused and anchor-id-single-assigner both hold at the layer this context's own paths cover; the interactive scroll-spy/focus-transfer behavior lives in src/components/article/*, outside this context's path list, so those techniques are unverified here rather than judged.",
+      "techniques": [
+        { "technique": "server-parsed-once-reused", "verdict": "conformant",
+          "evidence": "src/lib/article.ts:141-144; src/app/clanek/page.tsx:44-46" },
+        { "technique": "anchor-id-single-assigner", "verdict": "conformant",
+          "evidence": "src/lib/article.ts:16 heading id authored once on the block, read (not recomputed) by tableOfContents" }
+      ]
+    }
+  ]
+}

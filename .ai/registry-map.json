@@ -2283,7 +2283,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/components/campaigns/SyncProvenance.tsx:184-303 discloses source, sync staleness, per-period coverage (with stale flagged) and live-to-sample degradation with a stored diagnostic reason, each next to the number it qualifies — a strong provenance-caveats realization; SharedReportsList.tsx:112-139 correctly surfaces expiry and revoke (the capability's reaper gap belongs to campaigns-reporting/shared-report.ts, judged separately).",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "hash-pinned-translation-pipeline",
@@ -2769,7 +2772,10 @@
           ],
           "grounding": "use_when",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/campaigns/shared-report.ts:187 mints a random bearer token as the Firestore doc id with a frozen absolute expiresAt (line 175) and a working revoke (line 231-237) — but nothing ever deletes an expired-and-never-revoked grant row (this is the only file in the repo touching the `sharedReports` collection); the share table grows monotonically, exactly the technique's named smell of a missing reaper.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "error-handling",
@@ -4597,7 +4603,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "scripts/i18n-audit.mjs's completeness check runs in CI (i18n:audit:check) but with continue-on-error:true (.github/workflows/ci.yml:82) and is absent from check:ci (package.json:19), the actual blocking pre-push/CI gate — the repo's own comment on that step admits 40 coverage gaps / 42 leftover-source values ship today, which is the completeness-gates use_when case ('a green report over an untranslated locale') realized as an explicitly non-blocking one instead.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         }
       ],
       "governance": "governed"
@@ -5046,7 +5055,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/lib/llm/byom/schema.ts:73-75 toJsonSchema() derives the OpenAI/Anthropic strict JSON Schema from the SAME Google-Type schema used for native calls (one contract, two renderings, never hand-duplicated); byom/adapters.ts requests native schema-constrained decoding per vendor (json_schema/responseSchema/output_config) and falls back exactly once to a prompt-embedded schema, parsed through claude.ts's ordered extractJsonTraced ladder (direct parse -> fenced block -> stream-json envelope), each rung recorded.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "eval-harness",
@@ -5059,7 +5071,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/lib/llm/quality.ts:228-239 judgeVendor/isSelfJudged explicitly flags Anthropic-family model cells as self-judged by the Sonnet judge (own-family bias named, not hidden); QualityCell.judges (17-26) is read rather than assumed to be a median; measurementAgeDays/isMeasurementStale (156-175) surfaces a stale baked matrix in the UI instead of presenting it as current.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "agent-cli-transport",
@@ -5072,7 +5087,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "All six BYOM vendor adapters (byom/adapters.ts) call vendor REST APIs directly via fetch (openai/anthropic/gemini/openrouter/qwen/ollama); no coding-agent CLI is spawned anywhere in this context — that transport (runCli/claude.ts) lives in the llm-core-providers context instead.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "concurrency-guards",
@@ -5149,7 +5167,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/lib/llm/telemetry.ts:71-74 promptFingerprint(system,schema) digests exactly the standing-layer contract and deliberately excludes the per-call prompt payload; src/lib/llm/index.ts:106-115 withLanguage() appends the locale directive to the prompt (never system) explicitly to keep that fingerprint stable. Per-family section assembly (layered-composition, budgeting) is owned by src/lib/ai/tools/*, a different context, so those techniques don't apply here.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "error-handling",
@@ -5489,7 +5510,10 @@
           ],
           "grounding": "use_when",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "lokalni/page.tsx, mapa/page.tsx and recenze/page.tsx render live, session-scoped in-app diagnosis and review panels (coverage gaps, review inbox) with no export, print or share affordance — none is the periodic document forwarded to a reader who cannot query the source that this golden path's precondition requires.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "multi-project",
@@ -5943,7 +5967,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/components/marketing/pricing/planRows.ts derives every plan name, price and daily limit shown on /cena from lib/plans.ts's PLAN_INFO/PLANS rather than typing numbers into the marketing copy (lines 129-147), enforced by test-unit/pricing-plan-rows.test.mjs — a clean price-book-authority + tier-model-single-source realization with no second copy of the numbers to drift.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "long-form-reading-surface",
@@ -5956,7 +5983,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/lib/article.ts:141-144 computes tableOfContents once from each block's own authored id (a single id source, no per-consumer re-derivation), and src/app/clanek/page.tsx:44-46 reads article/tableOfContents at module scope rather than recomputing per render — server-parsed-once-reused and anchor-id-single-assigner both hold at the layer this context's own paths cover; the interactive scroll-spy/focus-transfer behavior lives in src/components/article/*, outside this context's path list, so those techniques are unverified here rather than judged.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         }
       ],
       "governance": "governed"
@@ -6158,7 +6188,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "/sken (src/app/sken/page.tsx, src/lib/onboarding/*) is a single AI scan-then-apply action plus a cross-module derived-progress checklist (progress.ts computes each step's done live from other modules' own stores, never a duplicated wizard flag) — not a multi-step, branching form UI with per-step commit boundaries and draft state, which is this golden path's precondition; this looks like a vocabulary match ('onboarding'/'steps') rather than a structural one.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "public-claim-provenance",
@@ -6171,7 +6204,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/components/marketing/sken/SkenHero.tsx:17-19/26-28 labels AI-derived claims inline ('Konkurenty navrhuje, neověřuje.' / 'Competitors are suggested, not verified.') and states the scan's real limits; the claim→redeem flow (src/app/api/sken/claim/route.ts, redeem/route.ts) implements the 'keep your scan' promise as a real single-use mechanism, not unbacked copy. No numeric roadmap/counter claim exists in this context's files, so the fraction/build-gate techniques have nothing to test.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "prompt-assembly",
@@ -6184,7 +6220,10 @@
           ],
           "grounding": "use_when",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "The onboarding scan's actual prompt assembler (system template, schema, normalize/demo) lives in src/lib/ai/tools/onboarding-scan.ts, outside this context's declared paths; onboarding-flow's own files (site-fetch.ts, seed.ts, progress.ts, types.ts) only prepare page text and post-scan data and build no prompt themselves.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "test-harness",
@@ -6197,7 +6236,10 @@
           ],
           "grounding": "use_when",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "This context's declared paths contain no harness machinery (no suite config, fixtures, lane definitions); tests for this flow exist at test-unit/sken-*.test.mjs, but the harness that partitions/schedules them is project-wide, not owned by this context's source files.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "mcp-tools",
@@ -6210,7 +6252,10 @@
           ],
           "grounding": "use_when",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "No MCP client/server/tool-schema appears anywhere in this context (verified by grep); 'tools' here means the internal src/lib/ai/tools/* functions, not the Model Context Protocol — a lexical match, as flagged.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         }
       ],
       "governance": "governed"
@@ -6700,7 +6745,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/app/api/usage/route.ts + src/lib/usage.ts are billing/quota metering (daily AI-eval/sync caps by plan) per rate-limiting's domain, not product-surface usage analytics; the actual event/analytics pipeline (src/lib/analytics/track.ts) sits outside this context and isn't owned by any context in the current map — a real coverage hole, not this context's conformance.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "agent-cli-transport",
@@ -6713,7 +6761,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "None of the six routes (auth, usage, health, alerts, activity, eval/telemetry) spawn a coding-agent CLI as an LLM transport — no child_process/spawn anywhere in this context; the map's own 'why' for this pair is generic words ('auth','api','health'), confirming a lexical match.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "observability-telemetry",
@@ -6726,7 +6777,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "health/route.ts is an uptime/readiness probe (cron staleness, Firestore reachability) and eval/telemetry/route.ts is a read-only admin view over LLM call telemetry owned by src/lib/llm/telemetry.ts (context llm-core-providers); neither implements this golden path's log-architecture/rotation/crash-store machinery, which has no owning context anywhere in this map.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "rate-limiting",
@@ -6786,7 +6840,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "Every demo surface checked discloses its sample-vs-live status inline rather than passing fabricated data off as real: src/app/kampane/page.tsx:14 ('...jinak běží přehled na ukázkových datech'), src/app/ai-asistent/page.tsx approach4Body ('Bez API klíče se vrátí deterministická ukázka v limitech, jasně označená') — a consistent fake-surface-honesty-contract label across the module rather than a one-off.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "embedded-preview",
@@ -6960,7 +7017,10 @@
           ],
           "grounding": "use_when",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "finance-inputs is a per-project settings blob, not an independently lifecycled entity, so only the dependent-store half of this subject applies: clearFinanceInputs (finance-inputs/store.ts:23) is registered as a named reaper at src/lib/projects/delete-cascade.ts:82, and is independently caught with no bespoke registration by the schema-derived dependent-side orphan walk (src/lib/projects/orphan-walk.local.ts, which enumerates every table carrying a project_id column) — the same registry+ledger+sweep machinery the project's conformant projects-lifecycle context (54d3c914) already carries.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "measurement-honesty",
@@ -7702,7 +7762,10 @@
           ],
           "grounding": "use_when",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/app/app/[projectId]/mesicni-report/page.tsx:124 renders MonthlyReport with the recaps it read from the store, unchanged — the same component report-engine's recorded deviation cites (MonthlyReport.tsx:34,67: UI copy promises the AI 'must not invent' numbers) with no additional numeric-membership gate added at this layer, so the ungated narrative reaches every visit to this page too.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "analytics-time-windows",
@@ -8486,7 +8549,10 @@
           ],
           "grounding": "use_when",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx is directly in this context's own path list, at the exact lines (34, 67) report-engine's recorded deviation cites for grounded-narrative-generation — this context owns the deviating file at first hand, not merely by inheriting a shared component from elsewhere.",
+          "evaluatedAt": "2026-08-31",
+          "evaluatedAgainst": "sha256:5215e21162717d59"
         },
         {
           "subject": "cost-metering",

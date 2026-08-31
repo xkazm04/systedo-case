@@ -1,0 +1,336 @@
+{
+  "schema": "conform-detail/1",
+  "pairs": {
+    "1a5002c9-4f0d-47e5-8d8c-c28d1d1282a2/executive-reporting": {
+      "context": "reporting-modules",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w6-systedo-reporting",
+      "techniques": [
+        {
+          "technique": "grounded-narrative-generation",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:34,67 (rendered from mesicni-report/page.tsx:124) — no numeric-membership check between validateRecap and the rendered narrative"
+        }
+      ]
+    },
+    "6447c3a5-56b9-4d99-bab2-abca37398c78/executive-reporting": {
+      "context": "campaign-reporting",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w6-systedo-reporting",
+      "techniques": [
+        {
+          "technique": "provenance-caveats",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/SyncProvenance.tsx:184-303"
+        }
+      ]
+    },
+    "4669bc3a-19ce-46c3-ab23-79f5dcf6a2dd/executive-reporting": {
+      "context": "spend-reporting",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w6-systedo-reporting",
+      "techniques": [
+        {
+          "technique": "grounded-narrative-generation",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:34,67 — UI promises no invented numbers; validateRecap (src/lib/ai/tools/monthly-recap.ts) checks field presence only"
+        }
+      ]
+    },
+    "38515be8-7ca3-4483-a506-d5f6a2e9d0ee/executive-reporting": {
+      "context": "campaigns-reporting",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w6-systedo-reporting",
+      "techniques": [
+        {
+          "technique": "expiring-share-links",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/shared-report.ts:187-237 — expiry + revocation exist, no named reaper for expired-but-unrevoked rows"
+        }
+      ]
+    },
+    "30d6eae3-83b6-4dbb-a433-7236b0de9cb3/executive-reporting": {
+      "context": "local-seo-modules",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w6-systedo-reporting",
+      "techniques": []
+    },
+    "1327d703-2851-41c0-b5c9-e135c7998cd6/entity-lifecycle": {
+      "context": "profit-finance",
+      "subject": "entity-lifecycle",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w6-systedo-reporting",
+      "techniques": [
+        {
+          "technique": "cascade-design",
+          "verdict": "conformant",
+          "evidence": "finance-inputs/store.ts:23 clearFinanceInputs registered at delete-cascade.ts:82"
+        },
+        {
+          "technique": "orphan-reconciliation",
+          "verdict": "conformant",
+          "evidence": "orphan-walk.local.ts enumerateSightings walks every project_id column automatically, including finance_inputs"
+        },
+        {
+          "technique": "blast-radius-computation",
+          "verdict": "not-applicable",
+          "evidence": "finance-inputs has no independent, user-triggered delete of its own that would need a computed preview — it is only ever removed as part of whole-project deletion"
+        },
+        {
+          "technique": "archive-restore-semantics",
+          "verdict": "not-applicable",
+          "evidence": "finance-inputs is a single upserted settings row with no archived/live state of its own to enumerate"
+        }
+      ]
+    },
+    "27a7f158-c8bc-4554-859d-b54fddb66b03/i18n": {
+      "context": "i18n-localization",
+      "subject": "i18n",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w6-systedo-reporting",
+      "techniques": [
+        {
+          "technique": "completeness-gates",
+          "verdict": "deviation",
+          "evidence": ".github/workflows/ci.yml:82 continue-on-error:true; package.json:19 check:ci omits i18n:audit:check"
+        },
+        {
+          "technique": "catalog-architecture",
+          "verdict": "conformant",
+          "evidence": "src/lib/i18n/interpolate.ts:22 TDict<K> = Record<SupportedLocale, Record<K,string>> types every colocated table's cs/en columns against one key set; docs/adr/0006-colocated-i18n-dictionaries.md"
+        }
+      ]
+    },
+    "c9509bbe-161c-4f71-adb1-7617b0ff9bec/demo-data-plane": {
+      "context": "product-demo-pages",
+      "subject": "demo-data-plane",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w6-systedo-reporting",
+      "techniques": [
+        {
+          "technique": "fake-surface-honesty-contract",
+          "verdict": "conformant",
+          "evidence": "src/app/kampane/page.tsx:14; src/app/ai-asistent/page.tsx (approach4Title/approach4Body)"
+        }
+      ]
+    },
+    "de6396ef-7b54-4360-ad3b-6d9f3d4db536/wizard-flows": {
+      "context": "onboarding-flow",
+      "subject": "wizard-flows",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w6-systedo-reporting",
+      "techniques": []
+    },
+    "9f2d6aca-4aec-4964-b288-5592ef05add6/plan-entitlements": {
+      "context": "marketing-content",
+      "subject": "plan-entitlements",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w6-systedo-reporting",
+      "techniques": [
+        {
+          "technique": "price-book-authority",
+          "verdict": "conformant",
+          "evidence": "src/components/marketing/pricing/planRows.ts:129-147"
+        },
+        {
+          "technique": "tier-model-single-source",
+          "verdict": "conformant",
+          "evidence": "src/components/marketing/pricing/planRows.ts:23,131 iterates PLAN_INFO as the one plan order/name authority"
+        }
+      ]
+    },
+    "9f2d6aca-4aec-4964-b288-5592ef05add6/long-form-reading-surface": {
+      "context": "marketing-content",
+      "subject": "long-form-reading-surface",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w6-systedo-reporting",
+      "techniques": [
+        {
+          "technique": "server-parsed-once-reused",
+          "verdict": "conformant",
+          "evidence": "src/lib/article.ts:141-144; src/app/clanek/page.tsx:44-46"
+        },
+        {
+          "technique": "anchor-id-single-assigner",
+          "verdict": "conformant",
+          "evidence": "src/lib/article.ts:16 heading id authored once on the block, read (not recomputed) by tableOfContents"
+        }
+      ]
+    },
+    "de6396ef-7b54-4360-ad3b-6d9f3d4db536/public-claim-provenance": {
+      "context": "onboarding-flow",
+      "subject": "public-claim-provenance",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w7-systedo-llm",
+      "techniques": [
+        {
+          "technique": "no-data-source-labelled-inline",
+          "verdict": "conformant",
+          "evidence": "src/components/marketing/sken/SkenHero.tsx:19,28 — AI-suggested content explicitly labelled unverified at the claim site"
+        },
+        {
+          "technique": "promise-only-what-ships",
+          "verdict": "conformant",
+          "evidence": "src/app/api/sken/redeem/route.ts:1-18 — the 'keep it after sign-in' promise is a working, single-use mechanism, never a stated intention"
+        },
+        {
+          "technique": "derived-numerator-authored-denominator",
+          "verdict": "not-applicable",
+          "evidence": "no numeric fraction/counter appears anywhere in this context's files"
+        }
+      ]
+    },
+    "de6396ef-7b54-4360-ad3b-6d9f3d4db536/prompt-assembly": {
+      "context": "onboarding-flow",
+      "subject": "prompt-assembly",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w7-systedo-llm",
+      "techniques": []
+    },
+    "de6396ef-7b54-4360-ad3b-6d9f3d4db536/test-harness": {
+      "context": "onboarding-flow",
+      "subject": "test-harness",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w7-systedo-llm",
+      "techniques": []
+    },
+    "de6396ef-7b54-4360-ad3b-6d9f3d4db536/mcp-tools": {
+      "context": "onboarding-flow",
+      "subject": "mcp-tools",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w7-systedo-llm",
+      "techniques": []
+    },
+    "d248872f-eefa-40f7-8757-50f220334ff7/usage-analytics": {
+      "context": "platform-ops-api",
+      "subject": "usage-analytics",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w7-systedo-llm",
+      "techniques": []
+    },
+    "d248872f-eefa-40f7-8757-50f220334ff7/agent-cli-transport": {
+      "context": "platform-ops-api",
+      "subject": "agent-cli-transport",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w7-systedo-llm",
+      "techniques": []
+    },
+    "d248872f-eefa-40f7-8757-50f220334ff7/observability-telemetry": {
+      "context": "platform-ops-api",
+      "subject": "observability-telemetry",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w7-systedo-llm",
+      "techniques": []
+    },
+    "11708691-80f8-458d-a1fe-be426e381024/prompt-assembly": {
+      "context": "llm-core-providers",
+      "subject": "prompt-assembly",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w7-systedo-llm",
+      "techniques": [
+        {
+          "technique": "fingerprinting-and-cache-keys",
+          "verdict": "conformant",
+          "evidence": "src/lib/llm/telemetry.ts:71-74 — sha256 of system+schema, per-call prompt excluded; drift detected via distinct-hash count in aggregateTelemetry"
+        },
+        {
+          "technique": "layered-composition",
+          "verdict": "not-applicable",
+          "evidence": "section ownership/ordering lives in src/lib/ai/tools/*, outside this context; index.ts receives system/prompt as opaque already-assembled strings"
+        }
+      ]
+    },
+    "a0aeac62-4e06-4785-9eaa-211fad5e6821/structured-output": {
+      "context": "llm-byom-keys",
+      "subject": "structured-output",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w7-systedo-llm",
+      "techniques": [
+        {
+          "technique": "extraction-strategies",
+          "verdict": "conformant",
+          "evidence": "src/lib/llm/claude.ts:323-368 extractJsonTraced — ordered, cheap-first ladder with the firing rung returned"
+        },
+        {
+          "technique": "op-grammar-allowlisting",
+          "verdict": "not-applicable",
+          "evidence": "no operation-list artifact is produced by BYOM adapters; output is a structured business/content object, not a dispatched action list"
+        }
+      ]
+    },
+    "a0aeac62-4e06-4785-9eaa-211fad5e6821/eval-harness": {
+      "context": "llm-byom-keys",
+      "subject": "eval-harness",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w7-systedo-llm",
+      "techniques": [
+        {
+          "technique": "judge-stability",
+          "verdict": "conformant",
+          "evidence": "src/lib/llm/quality.ts:228-239 — judgeVendor + isSelfJudged flag own-family bias per cell"
+        },
+        {
+          "technique": "measurement-revision",
+          "verdict": "conformant",
+          "evidence": "src/lib/llm/quality.ts:152-175 — STALENESS_THRESHOLD_DAYS + isMeasurementStale surface baked-matrix age"
+        }
+      ]
+    },
+    "a0aeac62-4e06-4785-9eaa-211fad5e6821/agent-cli-transport": {
+      "context": "llm-byom-keys",
+      "subject": "agent-cli-transport",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-08-31",
+      "worker": "w7-systedo-llm",
+      "techniques": []
+    }
+  }
+}
