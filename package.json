@@ -24,6 +24,8 @@
     "harness:degradation": "node scripts/harness-degradation.mjs",
     "harness:degradation:check": "node scripts/harness-degradation.mjs --check",
     "harness:drill": "node scripts/harness-degradation.mjs --drill",
+    "revert:drill": "node scripts/revert-drill.mjs",
+    "revert:drill:list": "node scripts/revert-drill.mjs --list",
     "doctor": "node scripts/doctor.mjs",
     "checkpoint": "node scripts/agent-checkpoint.mjs",
     "checkpoint:check": "node scripts/agent-checkpoint.mjs --check",

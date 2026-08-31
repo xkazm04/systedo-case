@@ -2,50 +2,58 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "90a0bd14-7ab8-410e-b0cf-f557b1866d7f",
-      "verdict": "skipped",
-      "reason": "Needs network: pinning requires resolving each tag to its commit SHA via the GitHub API, and scripts/actions-pin.mjs --update (which also flips STRICT and raises the P6 ratchet in the same pass) cannot run without it; Dependabot's github-actions ecosystem is already configured to keep pins fresh.",
+      "recommendationId": "84ba787e-e0a9-42d2-9144-c86479f95219",
+      "verdict": "resolved",
+      "reason": "The way back out is now rehearsed by a machine instead of by a runbook nobody ran: `npm run revert:drill` proves the tree is green, seeds a real one-line fault on a seam with an ADR behind it, times which gate layer catches it, then removes it and asserts the file is byte-for-byte what it was; .github/workflows/revert-drill.yml fires it every Thursday and on demand, goes red when a seed survives every layer or when an anchor has drifted, and publishes the dated row into a trail issue plus a 90-day artifact — and the runbook now also states what a promote does NOT take back (uploaded conversions, sent mail, Firestore docs in a new shape, crons that fired), which is the question that decides promote versus fix-forward.",
+      "files": [
+        "scripts/revert-drill.mjs",
+        ".github/workflows/revert-drill.yml",
+        "docs/runbooks/revert-drill.md",
+        "docs/deploy.md",
+        "package.json",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "recommendationId": "43efee7b-8f4d-4285-9f5b-f8c12f836080",
+      "verdict": "resolved",
+      "reason": "docs/agent-index.md states every spec in .claude/agents/ in the three facts a caller needs — what it is for, what it may assume about the tree and the handoff (including the two that are properties of the tree rather than the prompt: the finish reviewer has no browser, the applier must not touch git), and what it returns — routed from docs/task-index.md and AGENTS.md, and held true by test-unit/agent-index.test.mjs inside test:unit -> check:ci -> pre-push, so a spec that lands with no row, a row naming a spec that is gone, or a spec whose `name:` stops matching its filename is a red build.",
+      "files": [
+        "docs/agent-index.md",
+        "test-unit/agent-index.test.mjs",
+        "docs/task-index.md",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "recommendationId": "c7cc30ca-7329-47ea-997d-2d918b4c4489",
+      "verdict": "needs_human",
+      "reason": "The rule is complete and blocking on every path the repository controls (rubric A5 over origin/master..HEAD, in agent-review.yml and in check:ci/pre-push), and the narrating subjects still land because the Ascent lane commits in a linked worktree that has no `.husky/_` — husky's shim directory is untracked, so git runs NO hook here whatever core.hooksPath says, and a post-hoc gate cannot unwrite a subject; the two files scripts/commit-check.mjs documents as the fix (.husky/commit-msg, .husky/prepare-commit-msg) are refused to this session because .husky/ is a permission-gated path, and even committed they would not fire in a hookless worktree, so the decision left is the operator's: track husky's shims so lane commits run the hook at all.",
       "files": []
     },
     {
-      "recommendationId": "360cdc5b-2a50-4e13-ab53-8404f438807b",
-      "verdict": "resolved",
-      "reason": "Already closed by scripts/gate-timings.mjs: CI runs `npm run check:ci:timed` (ci.yml) instead of check:ci, which times every stage parsed out of the one declared chain, writes them to .gate-timings.json and the job summary, and fails when a seconds-gate runs after a slow one or when a stage labelled \"seconds\" in scripts/gate-remedy.mjs measures slower than that.",
-      "files": [
-        "scripts/gate-timings.mjs",
-        ".github/workflows/ci.yml",
-        "package.json"
-      ]
-    },
-    {
-      "recommendationId": "4e8ad784-7be5-49b9-ab57-75f6d6aeada0",
-      "verdict": "resolved",
-      "reason": "Already closed by scripts/harness-degradation.mjs: agent-review.yml calls --announce on BOTH sides of its keyless branch (::warning + job-summary line + a row in harness-status.json kept 90 days), the weekly history job runs --drill, and test-unit/harness-degradation.test.mjs executes --drill and --check inside test:unit so the drill is blocking rather than remembered.",
-      "files": [
-        "scripts/harness-degradation.mjs",
-        ".github/workflows/agent-review.yml",
-        ".github/workflows/agent-review-history.yml",
-        "test-unit/harness-degradation.test.mjs"
-      ]
-    },
-    {
-      "recommendationId": "2f6ae058-b20f-4486-a74d-559ac3393acd",
+      "recommendationId": "132b1405-3381-40ab-a8e8-2f0abe64ba91",
       "verdict": "skipped",
-      "reason": "Needs a test runner: a mutation score is a measurement, and this session can read and write files but cannot execute node (only `node -v` is permitted), so no harness could be run once, no score observed, and no honest failing floor set; added test-unit/cron-auth.test.mjs for the untested cron guard, which is the seam that most needed it, but the item's gap (a measured score with a threshold that fails) is still open.",
-      "files": [
-        "test-unit/cron-auth.test.mjs"
-      ]
+      "reason": "Needs network: pinning means asking GitHub what each tag points at right now, and the repository already ships that exact path — `npm run actions:pin` resolves every tag to its digest, rewrites the workflows, and writes STRICT = true and RATCHET.pinned back into scripts/actions-pin.mjs in the same pass, so both halves land in one diff; there is nothing left to build offline and an invented SHA would break the workflows rather than pin them.",
+      "files": []
     },
     {
-      "recommendationId": "2fb876c3-fa69-424f-9a27-552d45ffe5e9",
+      "recommendationId": "16ff9fc1-9799-41d3-8ad1-d73fa23c2134",
       "verdict": "skipped",
-      "reason": "Needs deploy access: the artefact asked for is a REHEARSED rollback with its timing and outcome, which requires a Vercel deployment, a real previous commit to roll back to and provider state to inspect; a runbook written offline would be documentation saying it should be done, not a drill record.",
+      "reason": "Needs a run to mint the baseline: a speed budget that fails on a regression has to record today's numbers first (a `next build` for route weight, a Playwright or Lighthouse pass for paint), and this session has no shell, no build and no test runner — a ceiling I invented would be decoration, and a gate wired into check:ci with no baseline would turn every build red.",
+      "files": []
+    },
+    {
+      "recommendationId": "ba550644-82e3-465c-ad69-4f3e4c8a481f",
+      "verdict": "skipped",
+      "reason": "Needs key provisioning: signing requires a key per lane and a git identity configured where the lane runs, both outside this repository and outside a session that cannot run git; a verifier committed now would report 0% coverage forever and would not make one commit verifiable, which is the gap the item names.",
       "files": []
     }
   ],
   "lessons": [
-    "This repository already answers most maturity gaps with an executable gate rather than prose, so verify before building: check package.json's script list and .github/workflows first — `check:ci:timed`, `harness:drill` and `actions:pin` existed before the items that asked for them, and the honest work was confirming they operate, not re-adding them.",
-    "A gate here is only real when something runs it: harness:degradation:check is absent from the check:ci chain and is nonetheless blocking, because test-unit/harness-degradation.test.mjs shells out to --check and --drill inside test:unit. Grep for the script name across tests as well as workflows before calling a capability unenforced.",
-    "Autopilot sessions in this repo get file access but no command execution, so any item whose artefact is a MEASUREMENT (mutation score, gate timing baseline, rollback drill, an action digest) is structurally unclosable here and should be skipped with the exact command a human should run."
+    "In this organization's Ascent lanes the worktree has no `.husky/_` (husky's shim directory is untracked), so git runs no hook there whatever the shared core.hooksPath says — that, and not a missing rule, is why commit-subject and attribution rules keep being bypassed by lane commits. Any fix that lives in a hook cannot be landed from a lane: `.husky/` and `.claude/` are permission-gated paths for these sessions.",
+    "When a session cannot execute anything, put new unattended checks in their own reporting-rung workflow rather than into the blocking chain: an untested script in `check:ci` risks a red build for everyone, while the same script on a weekly schedule can only fail its own job — which is also the rung ADR-0007 prescribes for a check that does not pass on the tree yet.",
+    "A drill that shells out to the project's own gates must set spawnSync `maxBuffer` explicitly: Node's 1 MB default truncates a large suite's output and exits the child non-zero, which a detection drill would faithfully report as the fault being caught. Prove the unseeded baseline is green first for the same reason.",
+    "This repository answers 'which document?' with docs/task-index.md and holds it true with a unit test; the same shape transfers cleanly to any other tacit choice a run makes at the start (here, which subagent) — an index plus a test that fails when an artefact lands without a row is cheaper and more durable than prose asking people to remember."
   ]
 }

@@ -69,11 +69,15 @@ function tempDir(prefix) {
 process.on("exit", () => {
   for (const dir of temps) {
     try {
-      // Drop the node_modules LINK first, with rmdir — which removes a junction
-      // and can never follow it. Only then is a recursive delete safe to point at
-      // a directory that once contained a link to this checkout's modules.
-      const link = join(dir, "node_modules");
-      if (existsSync(link)) rmdirSync(link);
+      // Drop the node_modules LINK first, with rmdir — which removes a Windows
+      // junction and can never follow it. On POSIX it is a symlink and `rm -r`
+      // unlinks it without descending, so a failure here is not a reason to skip
+      // the delete below.
+      try {
+        rmdirSync(join(dir, "node_modules"));
+      } catch {
+        /* not a junction, or already gone */
+      }
       rmSync(dir, { recursive: true, force: true });
     } catch {
       /* a temp directory that outlives the run is not worth failing over */

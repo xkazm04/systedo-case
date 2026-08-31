@@ -331,6 +331,21 @@ jobs:
       #
       # (The tree is at the BASE revision here, as it is for the reviewer itself, so
       # on the very first run after this step lands the base has no such script yet.)
+      # The pull request body, read out of the payload on disk (never as YAML, a
+      # shell word or an env var — rules P5/P7/P9). It runs AFTER the tree has been
+      # moved to the base revision, so the script executed here is the base's.
+      #
+      # This is the most attacker-controlled input the reviewer takes: git's refname
+      # rules constrain the others and constrain nothing here. It reaches the model
+      # inside its own nonce-keyed fence (scripts/lib/review-prompt.mjs), with the
+      # system prompt saying an instruction found in there is a finding rather than
+      # a command — rehearsed offline on every build by
+      # test-unit/prompt-injection.test.mjs and against a real model weekly by
+      # .github/workflows/llm-drift.yml.
+      - name: "Capture the PR body (untrusted text the reviewer reads as data)"
+        continue-on-error: true
+        run: node scripts/workflow-event.mjs --get pull_request.body --out pr-body.txt
+
       - name: Judgment review (Part B)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -349,6 +364,7 @@ jobs:
           set -- --base "$BASE_REF" \
                  --head "$HEAD_REF" \
                  --mechanical mechanical.md \
+                 --body-file pr-body.txt \
                  --summary "$GITHUB_STEP_SUMMARY"
           if [ -n "$PR_NUMBER" ]; then
             set -- "$@" --pr "$PR_NUMBER"

@@ -46,6 +46,14 @@ and a bilingual README pair; it is nominated in `.ai/manifest.yaml` under
 `guidance.taskIndex` and held true by `test-unit/docs-task-index.test.mjs`
 (a document that moves, or an ADR that lands with no route, is a red build).
 
+**And the same routing for the other thing a run picks at the start — a
+subagent** — is [`docs/agent-index.md`](docs/agent-index.md): every spec in
+`.claude/agents/` in the three facts a caller needs (what it is for, what it may
+assume about the tree and the handoff, what it returns), so choosing does not
+mean reading four operating contracts. Held true by
+`test-unit/agent-index.test.mjs` — a spec that lands with no row, or a row naming
+a spec that is gone, is a red build.
+
 ## Commands
 
 ```bash
@@ -70,6 +78,11 @@ npm run check:ci:timed # the SAME chain, with a clock on each stage — this is 
                       #   MEASUREMENT rather than by its hand-written labels
 npm run gates:timings # what has been measured, against the recorded baseline;
                       #   `-- --accept --reason "…"` writes .github/gate-timings.json
+npm run revert:drill  # the way BACK out, rehearsed: seeds a real fault on a seam
+                      #   with an ADR behind it, times which gate layer catches it,
+                      #   then removes it and proves the file is byte-identical.
+                      #   Reporting rung, weekly in CI (.github/workflows/revert-drill.yml);
+                      #   the promote leg stays the operator's (docs/runbooks/revert-drill.md)
 npm run harness:drill # removes each conditional key ON PURPOSE and proves the
                       #   absence is announced (Part B of the review, the weekly
                       #   real-model prove). `harness:degradation:check` refuses a

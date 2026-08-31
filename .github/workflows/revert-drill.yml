@@ -1,0 +1,148 @@
+name: Revert drill
+
+# The rehearsal of the way back OUT, on a schedule, with the verdicts kept where
+# a trend is readable.
+#
+# WHY. Vercel ships `master` on push, so the push is the release act
+# (docs/deploy.md § Delivery contract) and ~97% of the pushes are agent-written.
+# Every gate in this repository verifies a change on the way in. The way back was
+# a runbook — docs/runbooks/revert-drill.md — which said plainly on its own first
+# screen that it had never been run: rehearsing it meant a person choosing to
+# spend thirty minutes, and nobody ever did. A rehearsal nobody schedules is a
+# design document.
+#
+# So the two legs that need no production access run here, weekly and on demand:
+# a real fault is seeded on a seam with a decision record behind it, the gate
+# layers run in the order CI runs them until one goes red, and then the seed is
+# removed and the file compared byte-for-byte with what it was. The answers are a
+# layer, a number of seconds, and yes/no. `scripts/revert-drill.mjs`.
+#
+# WHAT IT DOES NOT DO. It never pushes and never promotes. Flipping the
+# production alias is a production action under the operator's name (AGENTS.md
+# § Red) and its steps stay in docs/deploy.md § Deploy + rollback. This proves
+# how long a bad change survives the gates and that taking it back out leaves the
+# tree where it was; it does not claim to have rolled a deployment back.
+#
+# REPORTING RUNG (docs/adr/0007-gate-rung-discipline.md) and permanently so: it
+# runs the unit suite twice over, so it can never sit in `check:ci` or the
+# pre-push hook, and it is deliberately absent from .github/required-checks.json.
+# Its red is a signal to a human — a seam nothing catches, or a seed whose anchor
+# has drifted — not a blocked release.
+#
+# WHERE THE HISTORY LIVES. Not in the repository: master ships on push, so a
+# commit from a cron would be a release. One GitHub issue, rewritten each week,
+# exactly as llm-drift.yml and agent-review-history.yml publish theirs — plus a
+# 90-day artifact, because the question "how fast were we in March?" is asked
+# well after a run's logs stop being convenient.
+#
+# No `github.event.*` appears in this file (rule P9, scripts/actions-pin.mjs), no
+# `${{ … }}` reaches a `run:` body (P5), and it holds no secret at all.
+on:
+  schedule:
+    # Thursday, early: clear of Monday's triage (agent-review-history), of
+    # Wednesday's real-model prove (llm-drift), and of the weekend supply-chain
+    # and sast passes.
+    - cron: "0 5 * * 4"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drill:
+    name: Seed a fault, time the catch, take it back out
+    runs-on: ubuntu-latest
+    # Nothing here writes anywhere and nothing here holds a secret: the drill is
+    # local to the runner's checkout from beginning to end.
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.14.0
+          cache: npm
+
+      # NODE_ENV stays off this step: `npm ci` under production skips the
+      # devDependencies the gate layers need to run at all.
+      - name: Install dependencies
+        run: npm ci
+
+      # No `continue-on-error`. The job's conclusion IS the weekly verdict: red
+      # means either that a seeded fault survived every layer (the finding worth
+      # having — that change would have shipped) or that a seed's anchor no longer
+      # matches, which means the seam moved and nothing is rehearsing it.
+      - name: Run the drill
+        run: |
+          node scripts/revert-drill.mjs \
+            --out revert-drill.json \
+            --report revert-drill.md \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      # `if: always()` because the run a reader most wants to see is the one that
+      # went red.
+      - name: Keep the verdict
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: revert-drill
+          path: |
+            revert-drill.md
+            revert-drill.json
+          if-no-files-found: ignore
+          retention-days: 90
+
+  publish:
+    name: Publish the drill trail (reporting)
+    runs-on: ubuntu-latest
+    needs: drill
+    if: always()
+    # The only write scope in this workflow, on the only job that needs it, and
+    # narrower than the workflow default: it edits one issue. It does not check
+    # the repository out, so no repository code runs in the job holding the token.
+    permissions:
+      issues: write
+    steps:
+      - name: Fetch the report
+        continue-on-error: true
+        uses: actions/download-artifact@v7
+        with:
+          name: revert-drill
+
+      # One issue, rewritten each run: a stable URL that always shows the current
+      # picture, with every previous week kept in the issue's own edit history.
+      - name: Rewrite the trail issue
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TITLE: "Revert drill — how long a bad change survives"
+        run: |
+          if [ ! -s revert-drill.md ]; then
+            echo "No report was produced (see the \`drill\` job); leaving the issue as it is." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo
+            echo "---"
+            echo
+            echo "_Rewritten by \`.github/workflows/revert-drill.yml\` every Thursday and on demand._"
+            echo "_The drill: \`scripts/revert-drill.mjs\` · the runbook it rehearses: \`docs/runbooks/revert-drill.md\`._"
+            echo "_The promote leg is the operator's: \`docs/deploy.md\` § Deploy + rollback._"
+            echo "_Edit this issue and the next run overwrites you — reply in a comment instead._"
+          } >> revert-drill.md
+          number="$(gh issue list --state all --limit 100 --json number,title \
+            --jq '.[] | select(.title == env.TITLE) | .number' | head -n 1)"
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --body-file revert-drill.md
+            gh issue reopen "$number" >/dev/null 2>&1 || true
+            echo "Updated issue #$number." >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh issue create --title "$TITLE" --body-file revert-drill.md \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi

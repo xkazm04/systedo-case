@@ -227,13 +227,21 @@ pressure — see [Deploy + rollback (Vercel)](#deploy--rollback-vercel) below
 for the exact steps (`vercel promote <deployment-url>` / dashboard promote).
 Fix forward in git afterwards.
 
-How long that actually takes is **not yet measured**, which is the untested half
-of this contract: everything above verifies a change on the way in, nothing
-rehearses getting one back out. [`runbooks/revert-drill.md`](runbooks/revert-drill.md)
-is the rehearsal — a seeded fault on one of the seams that matter, timed from
-"applied" to "tree clean again", with the detection layers ranked by when they
-fire and what each one cannot see. Its Results table is empty; the first row is
-owed. Note what the ranking already shows without a stopwatch: layers 4 and 5
+[`runbooks/revert-drill.md`](runbooks/revert-drill.md) is the rehearsal — a
+seeded fault on one of the seams that matter, timed from "applied" to "tree clean
+again", with the detection layers ranked by when they fire and what each one
+cannot see. **Its two machine legs now run themselves**: `npm run revert:drill`
+(`scripts/revert-drill.mjs`), fired weekly and on demand by
+[`.github/workflows/revert-drill.yml`](../.github/workflows/revert-drill.yml),
+which proves the tree is green, seeds the fault, records which layer caught it
+and after how long, then removes the seed and asserts the file is byte-for-byte
+what it was — and publishes the dated row into a trail issue. **The promote leg
+is still the operator's and still unmeasured**, so how long the live site stays
+wrong is the number this contract still owes. The runbook also now states what a
+promote does *not* take back (uploaded conversions, sent mail, Firestore
+documents written under a new shape, crons that fired in the window), which is
+the question to answer before choosing promote over fix-forward. Note what the
+detection ranking already shows without a stopwatch: layers 4 and 5
 (Sentry, cron alerts) are inert in this deployment because their env vars are
 absent (see the production env gap above), so a change that clears `check:ci`
 and then misbehaves at runtime is currently detected by somebody looking.

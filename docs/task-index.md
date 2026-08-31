@@ -30,6 +30,7 @@ is a red build, not a dead link somebody finds later.
 | Orienting before any change | [`AGENTS.md`](../AGENTS.md) | The commands, the seams, the conventions that bite, and what you may do unattended |
 | Finding which files a feature owns | [`context-map.json`](../context-map.json) | Every file's feature context; scope your edits to the relevant context's `file_paths`. An index, not an inventory |
 | Picking up a run that was stopped | [`.agent/README.md`](../.agent/README.md) | Why checkpoints exist, the two hook blocks that make them involuntary, and how to read one. Run `npm run checkpoint` before you start |
+| Choosing which subagent to hand a task to | [`docs/agent-index.md`](agent-index.md) | Every spec in `.claude/agents/` in three facts — what it is for, what it may assume about the tree and the handoff, and what it returns |
 | Working out what will stop your change | [`.github/required-checks.json`](../.github/required-checks.json) | Every check that must be green, each with the reason it earns a red build (ADR-0011) |
 | Working out what a review will say about your diff | [`.github/agent-review-rubric.md`](../.github/agent-review-rubric.md) | Part A is mechanical and blocks; Part B is judgment and comments |
 | Deciding whether a new check should block | [`docs/adr/0007-gate-rung-discipline.md`](adr/0007-gate-rung-discipline.md) | Blocking if it passes today; ratcheted reporting otherwise |
