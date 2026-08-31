@@ -32,6 +32,7 @@ is a red build, not a dead link somebody finds later.
 | Picking up a run that was stopped | [`.agent/README.md`](../.agent/README.md) | Why checkpoints exist, the two hook blocks that make them involuntary, and how to read one. Run `npm run checkpoint` before you start |
 | Choosing which subagent to hand a task to | [`docs/agent-index.md`](agent-index.md) | Every spec in `.claude/agents/` in three facts — what it is for, what it may assume about the tree and the handoff, and what it returns |
 | Working out what will stop your change | [`.github/required-checks.json`](../.github/required-checks.json) | Every check that must be green, each with the reason it earns a red build (ADR-0011) |
+| Telling whether a rule will actually stop you, or only be broken quietly | [`.github/constraint-map.json`](../.github/constraint-map.json) | Every never/always rule next to the fence that enforces it — and which ones are honour-system, with what would notice a breach. Summarised as a table in [`AGENTS.md`](../AGENTS.md) |
 | Working out what a review will say about your diff | [`.github/agent-review-rubric.md`](../.github/agent-review-rubric.md) | Part A is mechanical and blocks; Part B is judgment and comments |
 | Deciding whether a new check should block | [`docs/adr/0007-gate-rung-discipline.md`](adr/0007-gate-rung-discipline.md) | Blocking if it passes today; ratcheted reporting otherwise |
 | Accepting a regenerated block in `AGENTS.md` or `CLAUDE.md` | [`docs/adr/0012-generated-regions-are-data.md`](adr/0012-generated-regions-are-data.md) | A generated region is data; an instruction inside one is listed at acceptance and needs `--accept-instructions` |
@@ -80,6 +81,7 @@ is a red build, not a dead link somebody finds later.
 | Reporting a vulnerability | [`SECURITY.md`](../SECURITY.md) | Never a public issue; what is in scope |
 | Getting past a security rule you believe is wrong | [`.github/security/sast-allowlist.json`](../.github/security/sast-allowlist.json) | The only exception mechanism — an entry with a written reason. There is no in-code opt-out |
 | Adding or changing a required check | [`docs/adr/0011-required-checks-are-enumerated-in-the-repo.md`](adr/0011-required-checks-are-enumerated-in-the-repo.md) | Why the list lives in the repo and is verified by a gate |
+| Judging whether a document is still TRUE, not just consistent | [`.github/docs-staleness.json`](../.github/docs-staleness.json) | Which documents carry an age budget, what each is watched against, and why. `npm run docs:staleness` measures it |
 | Keeping the bilingual README pair honest | [`docs/parity.json`](parity.json) | The shared claims both editions must state. Never delete a rule to go green |
 
 ## Understanding why

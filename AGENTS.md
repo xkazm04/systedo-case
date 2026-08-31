@@ -138,6 +138,11 @@ npm run contract:ledger # every rule in the contract, what enforces it, and what
 npm run protection:verify # does GitHub actually enforce them? (needs `gh`; reporting)
 npm run review:agent  # rubric review of a diff (--base <ref>); what CI runs on a PR
 npm run docs:parity   # bilingual doc pairs still state their shared facts (blocking)
+npm run docs:staleness # what parity CANNOT see: a doc that is perfectly consistent
+                      #   and describes a seam that moved. Age measured in commits to
+                      #   the paths a doc names (.github/docs-staleness.json), not in
+                      #   days alone. REPORTING until the count is accepted once with
+                      #   `-- --accept --reason "…"`; the registry's shape blocks today
 npm run commit:check  # commit-subject rules (rubric A5): --range <range> | <msgfile>
 npm run checkpoint    # open checkpoints an interrupted run left — READ THIS FIRST;
                       #   -- --start/--next/--done/--close writes one (.agent/README.md)
@@ -348,6 +353,17 @@ remedy all turn the unit suite red.
   fails when a claim declared in `docs/parity.json` stops being stated on either
   side, or is stated with different values. Never delete a rule to go green: the
   rule firing IS the drift being caught.
+- **And parity is not freshness — a page can be consistent, routed to, spelled the
+  same in both languages, and describe a seam that moved six months ago.** Nothing
+  went red for that, so `.github/docs-staleness.json` gives the documents whose age
+  costs something a budget, and `npm run docs:staleness` measures it out of git: a
+  doc is stale when the paths it `watches` have moved SINCE the doc was last
+  touched, or when it passes its own `maxAgeDays`. Age in commits to the things a
+  doc names, not in calendar days — a runbook for a seam nobody has touched in a
+  year is not stale, it is finished. Reporting rung until the count is accepted
+  once (ADR-0007); what blocks today is the registry's shape
+  (`test-unit/docs-staleness.test.mjs`): an entry naming a document or a watched
+  path that has moved, or a runbook that lands with no budget at all.
 - **Components under 200 LOC preferred** — extract sub-components and data
   hooks instead of growing module files. Existing debt is catalogued in
   `docs/roadmap/component-debt.md`.
@@ -385,6 +401,80 @@ remedy all turn the unit suite red.
   `.github/security/sast-allowlist.json`; there is no in-code opt-out.
 - Deploy/env questions (required env names, rollback, crons, host rename):
   `docs/deploy.md`.
+
+## Which of these rules will actually stop you
+
+Everything above is prose, and prose does not fail. Some of it has a fence behind
+it — a lint rule, a gate, a test, a hook — and some of it holds only because the
+reader chose to obey it. **Those two read identically in a document, and the
+difference is the single most useful thing to know before you start.** So the map
+is written down, in [`.github/constraint-map.json`](.github/constraint-map.json),
+and summarised here.
+
+It is not a second [contract ledger](.github/contract-ledger.json): that file is
+keyed by the ENFORCEMENT — one row per rule a gate, a lint block or a SAST check
+defines, with the exception list it is absorbing and the ceiling that pays for it,
+answering *what is this fence letting through*. This one is keyed by the RULE as
+this document states it, and answers the question you have before you write
+anything: *if I get this wrong, will anything notice?* Where a rule is in both,
+the map carries the ledger's row id and a test refuses to let them disagree about
+whether anything runs.
+
+`rung` is the column that matters: **blocking** — something goes red on the
+machine that broke it; **reporting** — it is measured and printed, and fails only
+when a count rises ([ADR-0007](docs/adr/0007-gate-rung-discipline.md));
+**partial** — some breaches are caught and the map's `gapNote` says which are not;
+**honour** — nothing runs, and the `mitigation` field says what (if anything)
+would notice afterwards.
+
+| Rule | Enforced by | Rung |
+|---|---|---|
+| `llm-chokepoint` — every text call goes through `generateStructured()` | lint `adamant/seams` + `adamant/seams-lib`, `llm:gate:check` | blocking |
+| `llm-tool-tag` — every call site carries `// llm-tool: <id>` | `llm:gate:check`, `.husky/pre-commit` | blocking |
+| `golden-provenance` — accepting a golden needs a reason | `llm:gate:check` | blocking |
+| `llm-budget-ceiling` — an operation records what its input costs | `llm:budget:check` | blocking |
+| `llm-quality-floor` — the baked scorecard has a floor | `llm:quality:check` | blocking |
+| `untrusted-input-quarantine` — third-party text cannot steer a prompt | `test-unit/llm-adversarial.test.mjs`, `test-unit/prompt-injection.test.mjs` | blocking |
+| `store-seam` — routes and components go through a store, never a driver | lint `adamant/seams` | blocking |
+| `route-segment-config` — no segment-config opt-out under `src/app/` | lint `adamant/route-segment-config`, rubric A2 | blocking |
+| `component-loc` — a component may not pass 200 lines | rubric A1 | blocking |
+| `test-deletion-ack` — deleting a test needs an `Ack:` | rubric A3 | blocking |
+| `dependency-ack` — a runtime dependency needs an `Ack:` | rubric A4 | blocking |
+| `commit-subject` — the subject names the change, not the session | rubric A5, `scripts/commit-subject.mjs` | partial |
+| `authorship-trailer` — an agent's commit says so, in a form git can count | `commit:check`, rubric B1 | reporting |
+| `checkpoints` — read them first, open one for a long run | `checkpoint:check` | partial |
+| `pathspec-commits` — `git add <paths>`, never `-A`, never stash | — | **honour** |
+| `no-reformatting` — do not reformat a file you are not changing | — | **honour** |
+| `exception-ceilings` — an exception and its ceiling in the same diff | `contract:ledger:check` | blocking |
+| `ratchet-discipline` — never raise a baseline you could lower | rubric B3 | partial |
+| `no-gate-loosening` — fix the finding, do not soften the gate | rubric B3, `merge-gate` | partial |
+| `docs-parity` — the bilingual pair states the same claims | `docs:parity` | blocking |
+| `docs-staleness` — a doc is re-read when the code it describes moves | `docs:staleness:check`, `test-unit/docs-staleness.test.mjs` | reporting |
+| `i18n-colocated` — the type system is the parity check | `typecheck`, `i18n:audit:check` | blocking |
+| `context-scoping` — scope edits to the context's `file_paths` | — | **honour** |
+| `context-decay` — no new cross-group import without a `cross_refs` line | `context:decay:check` | blocking |
+| `security-rules` — caller identity, no server env in a client module, no interpolated SQL | `sast` | blocking |
+| `actions-policy` — token scope, triggers, no expression in a `run:` | `actions:check` | partial |
+| `required-checks` — a gate may not quietly become a comment | `merge-gate` | blocking |
+| `generated-regions` — a generated block is data, accepted deliberately | `agents:surface` | blocking |
+| `adr-for-seams` — read the record before changing the seam | `adr:check` | partial |
+| `gate-remedy` — every gate prints the next command | `test-unit/gate-remedy.test.mjs` | blocking |
+| `cheapest-first` — the chain is ordered by a clock, not by a claim | `gates:timings:check` | blocking |
+| `harness-degradation` — a capability that stops running says so | `harness:degradation:check` | blocking |
+| `seed-determinism` — the demo dataset regenerates identically | `seed:check` | blocking |
+| `no-push` — never push, and especially never to `master` | `.husky/pre-push` (verifies, does not prevent) | partial |
+| `no-live-ad-writes` — never arm or widen `SKLIK_WRITES_ENABLED` | `test-unit/campaigns-mutator.test.mjs` | partial |
+| `no-outbound-under-operator` — the operator presses send | — | **honour** |
+| `no-secret-movement` — never move a credential anywhere | `.husky/pre-commit` secret scan, `sast` | partial |
+| `codeowners-law-files` — do not touch one beyond the task | rubric B1 | partial |
+
+`test-unit/constraint-map.test.mjs` holds this table and the JSON to each other,
+and both to the tree: a gate named here that `package.json` does not define, a
+lint block `eslint.config.mjs` does not declare, a quote no longer in the file it
+is attributed to, a row here with no entry there — and, the property that stops
+the map rotting, **a stage added to `check:ci` with no rule attached to it** — all
+turn `npm run test:unit` red. Adding a rule to this file therefore means adding
+its row; adding a fence means saying which rule it fences.
 
 ## What you may do unattended
 

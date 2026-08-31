@@ -1,0 +1,445 @@
+{
+  "$comment": [
+    "Every never/always rule this repository states, next to the thing that ENFORCES it.",
+    "",
+    "WHY THIS FILE EXISTS. eslint.config.mjs already makes the argument: a fence that fails",
+    "is cheaper than a rule that has to be re-explained, because ~97% of the commits here are",
+    "written by an agent that re-derives the constraint from a document on every run. Three",
+    "constraints got fences. What was never written down is WHICH OF THE REST DID NOT — and",
+    "that is precisely the thing a new agent cannot infer from the tree. A rule with a gate",
+    "behind it and a rule that only works if somebody remembers read identically in prose.",
+    "",
+    "So this is the map, and `rung` is the field that matters:",
+    "",
+    "  blocking  something fails on a breach, on the machine that made it.",
+    "  reporting it is measured and printed; it fails only when a count rises (ADR-0007).",
+    "  partial   something catches SOME breaches of it; `gapNote` says which ones it misses.",
+    "  honour    nothing runs. It holds because a reader chose to obey it, and `mitigation`",
+    "            says what would notice afterwards — usually a review comment, sometimes",
+    "            nothing at all. These are the rows to read first; they are the rules where",
+    "            'I did not know' is a real answer.",
+    "",
+    "NOT A SECOND CONTRACT LEDGER. .github/contract-ledger.json is keyed by the ENFORCEMENT — one row",
+    "per rule a gate, a lint block or a SAST check defines, with the exception list it is absorbing and",
+    "the ceiling that pays for it. It answers 'what is this fence letting through'. This file is keyed",
+    "by the RULE as AGENTS.md states it, and answers the question a reader has before they write",
+    "anything: 'if I get this wrong, will anything notice?'. Where a rule appears in both, the entry",
+    "carries `ledgerId` and the two are held consistent — the map may not call a rule enforced while the",
+    "ledger records that nothing enforces it.",
+    "",
+    "HELD TRUE BY test-unit/constraint-map.test.mjs, inside `npm run test:unit` → `check:ci`",
+    "→ .husky/pre-push. It asserts that every `gate` names an npm script package.json really",
+    "defines, every `lint` names a config block eslint.config.mjs really declares, every",
+    "`test`/`hook` names a file that exists, every `review` names a rule the rubric really",
+    "has, every `quote` is really a sentence in the file it is attributed to, that the table",
+    "in AGENTS.md lists exactly these rows, and — the property that keeps the map from",
+    "rotting — that EVERY STAGE of `check:ci` appears here as somebody's enforcement. A gate",
+    "added to the chain with no rule attached to it turns the suite red.",
+    "",
+    "FIELDS.",
+    "  id          stable slug; the AGENTS.md table is keyed by it.",
+    "  rule        the constraint in one sentence, in the imperative the reader meets.",
+    "  statedIn    {file, quote} — where a reader finds it. `quote` is matched against the",
+    "              file with whitespace flattened, so line wrapping is not a trap.",
+    "  enforcement [{kind, name, note}] — kind ∈ gate | lint | test | hook | review | type |",
+    "              honour. `name` is the npm script / config block / file / rubric rule id.",
+    "  rung        blocking | reporting | partial | honour (see above).",
+    "  why         honour rows only: why there is no fence.",
+    "  mitigation  honour rows only: what would notice a breach, and when.",
+    "  gapNote     partial rows only: the breach the enforcement does not catch.",
+    "  ledgerId    the row in .github/contract-ledger.json that measures the same rule, when there is one."
+  ],
+  "version": 1,
+  "constraints": [
+    {
+      "id": "llm-chokepoint",
+      "ledgerId": "adamant/seams",
+      "rule": "Every LLM text call goes through generateStructured() in src/lib/llm/index.ts.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Every LLM text call goes through ONE chokepoint" },
+      "enforcement": [
+        { "kind": "lint", "name": "adamant/seams", "note": "no-restricted-imports on @google/genai and the provider adapters" },
+        { "kind": "lint", "name": "adamant/seams-lib", "note": "the same fence inside src/lib/, where the drivers are otherwise allowed" },
+        { "kind": "gate", "name": "llm:gate:check", "note": "a call outside the chokepoint is a chokepoint violation" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "llm-tool-tag",
+      "ledgerId": "llm-tool tag contract",
+      "rule": "Every generateStructured call site carries a `// llm-tool: <id>` comment with a registered test.",
+      "statedIn": { "file": "AGENTS.md", "quote": "every `generateStructured` call site must carry a `// llm-tool: <id>` comment" },
+      "enforcement": [
+        { "kind": "gate", "name": "llm:gate:check" },
+        { "kind": "hook", "name": ".husky/pre-commit", "note": "the same gate before the commit exists" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "golden-provenance",
+      "ledgerId": "golden provenance",
+      "rule": "Accepting a contract golden needs a written reason, recorded in the golden CHANGELOG.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Accepting a golden needs a reason" },
+      "enforcement": [
+        { "kind": "gate", "name": "llm:gate:check", "note": "a golden whose fingerprint is not the newest CHANGELOG row fails" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "llm-budget-ceiling",
+      "rule": "Every registered AI operation records what its input costs, and may not exceed the recorded ceiling.",
+      "statedIn": { "file": "AGENTS.md", "quote": "A prompt has a price, and it is recorded." },
+      "enforcement": [{ "kind": "gate", "name": "llm:budget:check" }],
+      "rung": "blocking"
+    },
+    {
+      "id": "llm-quality-floor",
+      "ledgerId": "quality floor + baseline",
+      "rule": "The baked quality scorecard may not fall below its floor.",
+      "statedIn": { "file": "AGENTS.md", "quote": "The baked scorecard has a floor too" },
+      "enforcement": [{ "kind": "gate", "name": "llm:quality:check" }],
+      "rung": "blocking"
+    },
+    {
+      "id": "untrusted-input-quarantine",
+      "rule": "Third-party text (ad-account fields, public reviews, inbound messages) is quarantined before it reaches a prompt.",
+      "statedIn": { "file": "test-llm/adversarial/corpus.json", "quote": "cannot steer the prompt it lands in" },
+      "enforcement": [
+        { "kind": "test", "name": "test-unit/llm-adversarial.test.mjs", "note": "every corpus payload placed in the real builder it would arrive through" },
+        { "kind": "test", "name": "test-unit/prompt-injection.test.mjs", "note": "the same discipline for the review harness's own prompt" },
+        { "kind": "gate", "name": "test:unit" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "store-seam",
+      "ledgerId": "adamant/seams",
+      "rule": "Routes and components reach data through a store in src/lib/, never through firebase-admin or node:sqlite.",
+      "statedIn": { "file": "AGENTS.md", "quote": "no `firebase-admin` or `node:sqlite` outside `src/lib/`" },
+      "enforcement": [
+        { "kind": "lint", "name": "adamant/seams" },
+        { "kind": "gate", "name": "check", "note": "`npm run lint` runs inside it" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "route-segment-config",
+      "ledgerId": "A2 route-segment-config",
+      "rule": "No `export const dynamic|runtime|revalidate|fetchCache|dynamicParams` under src/app/ — wrap the dynamic read in Suspense.",
+      "statedIn": { "file": "AGENTS.md", "quote": "route segment config" },
+      "enforcement": [
+        { "kind": "lint", "name": "adamant/route-segment-config" },
+        { "kind": "review", "name": "A2" },
+        { "kind": "gate", "name": "review:agent:gate" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "component-loc",
+      "ledgerId": "A1 component-growth",
+      "rule": "A component may not grow past 200 lines; extract sub-components and data hooks instead.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Components under 200 LOC preferred" },
+      "enforcement": [
+        { "kind": "review", "name": "A1" },
+        { "kind": "gate", "name": "review:agent:gate" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "test-deletion-ack",
+      "ledgerId": "A3 test-deletion",
+      "rule": "Deleting a test needs an `Ack:` sentence in the commit message or the PR body.",
+      "statedIn": { "file": ".github/agent-review-rubric.md", "quote": "Deleting a test needs a sentence" },
+      "enforcement": [
+        { "kind": "review", "name": "A3" },
+        { "kind": "gate", "name": "review:agent:gate" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "dependency-ack",
+      "ledgerId": "A4 new-dependency",
+      "rule": "Adding a runtime dependency needs an `Ack:` sentence (ADR-0008: built-ins and repo-local scripts first).",
+      "statedIn": { "file": ".github/agent-review-rubric.md", "quote": "Adding a runtime dependency needs a sentence" },
+      "enforcement": [
+        { "kind": "review", "name": "A4" },
+        { "kind": "gate", "name": "review:agent:gate" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "commit-subject",
+      "ledgerId": "A5 commit-subject",
+      "rule": "A commit subject is a conventional-commit header naming the change — never a narration of the run.",
+      "statedIn": { "file": "AGENTS.md", "quote": "A commit subject names the change, not the session." },
+      "enforcement": [
+        { "kind": "review", "name": "A5" },
+        { "kind": "gate", "name": "review:agent:gate" },
+        { "kind": "hook", "name": "scripts/commit-subject.mjs", "note": "installed as a commit-msg hook by `npm run hooks:install`" }
+      ],
+      "rung": "partial",
+      "gapNote": "An outer lane that commits in a throwaway worktree has no hook installed, and A5 fires only once the commit exists — which is why the rule is also addressed to the report's first line."
+    },
+    {
+      "id": "authorship-trailer",
+      "rule": "An agent's commit carries an authorship trailer; a person's commit carries none.",
+      "statedIn": { "file": "AGENTS.md", "quote": "And the body says who wrote it, in a form git can count." },
+      "enforcement": [
+        { "kind": "gate", "name": "commit:check", "note": "prints coverage; does not block (ADR-0007 — it does not pass over this history)" },
+        { "kind": "review", "name": "B1", "note": "`npm run review:agent` lists a change's unattributed commits" }
+      ],
+      "rung": "reporting"
+    },
+    {
+      "id": "checkpoints",
+      "rule": "Read the open checkpoints before starting, and open one for anything longer than a couple of steps.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Read the open checkpoints before you start" },
+      "enforcement": [
+        { "kind": "gate", "name": "checkpoint:check", "note": "fails when a checkpoint stops being readable" },
+        { "kind": "test", "name": "test-unit/agent-checkpoint.test.mjs" }
+      ],
+      "rung": "partial",
+      "gapNote": "The gate proves an existing checkpoint still parses. Nothing can fail because a run that should have opened one never did."
+    },
+    {
+      "id": "pathspec-commits",
+      "ledgerId": "pathspec commits only",
+      "rule": "Commit by pathspec — `git add <paths>` then `git commit <same paths>`. Never -A, never a bare commit, never stash or reset work that is not yours.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Pathspec commits only" },
+      "enforcement": [{ "kind": "honour" }],
+      "rung": "honour",
+      "why": "Nothing in a git hook can tell a legitimate `git add .` in a clean tree from one that swept up a concurrent agent's half-finished work — the difference is who else is working in the checkout, which the hook cannot see.",
+      "mitigation": "A concurrent agent notices when their work lands in somebody else's commit, usually after the push that shipped it. There is no earlier signal."
+    },
+    {
+      "id": "no-reformatting",
+      "rule": "Do not reformat files you are not otherwise changing; there is deliberately no Prettier or Biome (ADR-0008).",
+      "statedIn": { "file": "AGENTS.md", "quote": "There is deliberately no Prettier or Biome" },
+      "enforcement": [{ "kind": "honour" }],
+      "rung": "honour",
+      "why": "The absence of a formatter is the decision. A gate that measured whitespace churn would be the tool ADR-0008 declined, wearing a different hat.",
+      "mitigation": "A reviewer sees the diff size. Part B may raise it under B1 (does the change do what its message says, and only that)."
+    },
+    {
+      "id": "exception-ceilings",
+      "rule": "An exception list may only grow together with the ceiling that pays for it — the entry and the ceiling in the same diff.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Adding an exception is therefore a two-line diff" },
+      "enforcement": [
+        { "kind": "gate", "name": "contract:ledger:check" },
+        { "kind": "test", "name": "test-unit/contract-ledger-ceiling.test.mjs", "note": "runs the gate against a fixture that has outgrown its ceiling and requires a red" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "ratchet-discipline",
+      "ledgerId": "never raise a ratchet you could have lowered",
+      "rule": "Never raise a ratchet baseline you could have lowered; fix the finding rather than absorbing it.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Never raise a ratchet you could have lowered." },
+      "enforcement": [{ "kind": "review", "name": "B3" }],
+      "rung": "partial",
+      "gapNote": "Each ratchet enforces its own direction; nothing enforces the intent, and a baseline legitimately raised for a new AI tool looks exactly like an absorbed regression. B3 is the judgment half: it comments, it never blocks, and it needs a model key to run at all."
+    },
+    {
+      "id": "no-gate-loosening",
+      "rule": "Never loosen a gate to make your own change pass. Fix the finding, or bring the operator the reason it should not be a finding.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Loosening a gate to make your own change pass." },
+      "enforcement": [
+        { "kind": "review", "name": "B3" },
+        { "kind": "gate", "name": "merge-gate", "note": "catches the specific case of a required check being renamed, de-triggered, or made continue-on-error" }
+      ],
+      "rung": "partial",
+      "gapNote": "merge-gate defends the enumerated checks. Widening a lint exception list, relaxing an assertion or softening a threshold inside a gate is caught only by B3, which comments."
+    },
+    {
+      "id": "docs-parity",
+      "ledgerId": "docs parity",
+      "rule": "The bilingual pair states the same claims; never delete a parity rule to go green.",
+      "statedIn": { "file": "AGENTS.md", "quote": "The bilingual docs are held in step by a gate, not by care." },
+      "enforcement": [{ "kind": "gate", "name": "docs:parity" }],
+      "rung": "blocking"
+    },
+    {
+      "id": "docs-staleness",
+      "rule": "A governed document is re-read when the code it describes moves; age is measured, not assumed.",
+      "statedIn": { "file": ".github/docs-staleness.json", "quote": "parity is checked but age is not" },
+      "enforcement": [
+        { "kind": "gate", "name": "docs:staleness:check", "note": "reporting rung until a baseline is accepted (ADR-0007)" },
+        { "kind": "test", "name": "test-unit/docs-staleness.test.mjs", "note": "blocking: every governed doc is registered, and every registered path exists" }
+      ],
+      "rung": "reporting"
+    },
+    {
+      "id": "i18n-colocated",
+      "ledgerId": "i18n colocated dictionaries",
+      "rule": "Each component owns its `TDict`; a key added to one locale column and not the other is a typecheck failure. Do not invent a parity script.",
+      "statedIn": { "file": "AGENTS.md", "quote": "i18n parity is the type system" },
+      "enforcement": [
+        { "kind": "type", "name": "tsconfig.json" },
+        { "kind": "gate", "name": "check", "note": "`npm run typecheck` runs inside it" },
+        { "kind": "gate", "name": "i18n:audit:check", "note": "ratcheted: what typecheck cannot see (a cs value never written, tykání, strings outside a T table)" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "context-scoping",
+      "rule": "Read context-map.json at task start and scope edits to the relevant context's file_paths.",
+      "statedIn": { "file": "AGENTS.md", "quote": "scope edits to the relevant context's `file_paths`" },
+      "enforcement": [{ "kind": "honour" }],
+      "rung": "honour",
+      "why": "The map is an index, not an inventory — 159 tracked source files belong to no context — so a rule that failed an edit outside the named context would fail correct changes daily.",
+      "mitigation": "context:decay:check fails a NEW cross-group import, which is the consequence that costs something. An in-scope edit to the wrong context is caught by a reviewer or not at all."
+    },
+    {
+      "id": "context-decay",
+      "rule": "A change may not make a mapped file import a feature group it did not import before, unless the context declares the crossing in cross_refs.",
+      "statedIn": { "file": "AGENTS.md", "quote": "The map's group boundaries are a constraint on the diff" },
+      "enforcement": [{ "kind": "gate", "name": "context:decay:check" }],
+      "rung": "blocking"
+    },
+    {
+      "id": "security-rules",
+      "ledgerId": "route-auth",
+      "rule": "A new API route establishes caller identity; no client module reads a server env var; no SQL by interpolation. Exceptions carry a written reason in the allowlist.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Security rules are a gate, not a review note." },
+      "enforcement": [
+        { "kind": "gate", "name": "sast", "note": "blocking in CI (.github/workflows/sast.yml)" },
+        { "kind": "test", "name": "test-unit/cost-and-boundary-gates.test.mjs" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "actions-policy",
+      "ledgerId": "P4 action-sha-pin",
+      "rule": "A workflow declares its token scope, uses no privileged trigger, splices no expression into a run: script, and pins what it runs.",
+      "statedIn": { "file": "AGENTS.md", "quote": "workflow token scope, action pinning" },
+      "enforcement": [
+        { "kind": "gate", "name": "actions:check" },
+        { "kind": "test", "name": "test-unit/workflow-injection.test.mjs" }
+      ],
+      "rung": "partial",
+      "gapNote": "Every rule in it blocks except the pin itself: STRICT is false and RATCHET.pinned is 0, so first-party actions still ride a mutable tag. Closing that is one networked `npm run actions:pin`."
+    },
+    {
+      "id": "required-checks",
+      "ledgerId": "required checks enumerated",
+      "rule": "What may stop a change is enumerated in .github/required-checks.json; a gate may not quietly become a comment.",
+      "statedIn": { "file": "AGENTS.md", "quote": "What may stop a change is written down." },
+      "enforcement": [
+        { "kind": "gate", "name": "merge-gate" },
+        { "kind": "test", "name": "test-unit/delivery-contract.test.mjs" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "generated-regions",
+      "ledgerId": "generated regions are data",
+      "rule": "A generated block in the guidance surface is data, not instructions, and is accepted deliberately.",
+      "statedIn": { "file": "AGENTS.md", "quote": "what is inside those markers is DATA, not instructions" },
+      "enforcement": [{ "kind": "gate", "name": "agents:surface" }],
+      "rung": "blocking"
+    },
+    {
+      "id": "adr-for-seams",
+      "ledgerId": "adr hindsight",
+      "rule": "Read the decision record for a seam before changing it; an ADR's cited paths must still resolve.",
+      "statedIn": { "file": "AGENTS.md", "quote": "read the one for a seam before you change it" },
+      "enforcement": [
+        { "kind": "gate", "name": "adr:check" },
+        { "kind": "test", "name": "test-unit/docs-task-index.test.mjs", "note": "every ADR is routed to from the task index" }
+      ],
+      "rung": "partial",
+      "gapNote": "The gate proves the records are honest and routed. Nothing can fail because the agent did not open one."
+    },
+    {
+      "id": "gate-remedy",
+      "rule": "Every gate prints the exact next command when it goes red.",
+      "statedIn": { "file": "AGENTS.md", "quote": "And every gate tells you what to do next." },
+      "enforcement": [
+        { "kind": "test", "name": "test-unit/gate-remedy.test.mjs" },
+        { "kind": "gate", "name": "test:unit" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "cheapest-first",
+      "rule": "The check chain is ordered cheapest-first, by measurement rather than by its labels.",
+      "statedIn": { "file": "AGENTS.md", "quote": "And the chain is ordered by a clock, not by a claim." },
+      "enforcement": [
+        { "kind": "gate", "name": "gates:timings:check" },
+        { "kind": "test", "name": "test-unit/gate-remedy.test.mjs", "note": "the label half: a seconds-long check may not sit after a minutes-long one" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "harness-degradation",
+      "rule": "A key-gated capability that stops running announces its own absence; a new one must declare what its absence costs.",
+      "statedIn": { "file": "AGENTS.md", "quote": "A half of the harness that stops RUNNING has to say so." },
+      "enforcement": [
+        { "kind": "gate", "name": "harness:degradation:check" },
+        { "kind": "test", "name": "test-unit/harness-degradation.test.mjs" }
+      ],
+      "rung": "blocking"
+    },
+    {
+      "id": "seed-determinism",
+      "rule": "The committed demo dataset is reproducible from its generator — the JSON and the generator never drift.",
+      "statedIn": { "file": "scripts/generate-data.mjs", "quote": "the committed JSON and the generator never drift" },
+      "enforcement": [{ "kind": "gate", "name": "seed:check" }],
+      "rung": "blocking"
+    },
+    {
+      "id": "no-push",
+      "ledgerId": "red actions need the operator",
+      "rule": "Never push, and especially never to master — Vercel ships master on push, so the push is the release.",
+      "statedIn": { "file": "AGENTS.md", "quote": "and especially any push to `master`" },
+      "enforcement": [
+        { "kind": "hook", "name": ".husky/pre-push", "note": "a push to master runs the full blocking gate first" }
+      ],
+      "rung": "partial",
+      "gapNote": "The hook decides whether a push is VERIFIED, not whether an agent was allowed to make it — and SYSTEDO_SKIP_GATE=1 turns it off. Nothing prevents the push itself."
+    },
+    {
+      "id": "no-live-ad-writes",
+      "ledgerId": "red actions need the operator",
+      "rule": "Never arm or widen SKLIK_WRITES_ENABLED, and never run a write path against a real advertiser token to check.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Anything that spends an advertiser's budget or mutates a real ad account." },
+      "enforcement": [
+        { "kind": "test", "name": "test-unit/campaigns-mutator.test.mjs", "note": "the guard: writes stay simulated unless the value is exactly \"1\"" }
+      ],
+      "rung": "partial",
+      "gapNote": "The product guard is tested, so a widened guard fails. Setting the env var in a real deployment, or pointing the path at a live token, is outside anything this repository can observe."
+    },
+    {
+      "id": "no-outbound-under-operator",
+      "ledgerId": "red actions need the operator",
+      "rule": "Nothing leaves the machine under the operator's name — a post, mail through Resend, a conversion upload, contacting a person. Drafts go through the review gate; the operator presses send.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Anything that leaves the machine under the operator's name" },
+      "enforcement": [{ "kind": "honour" }],
+      "rung": "honour",
+      "why": "The product's whole purpose is to draft outbound communication, so the capability cannot be fenced off — only the decision to send can be, and that lives in the schranka review gate rather than in a check over the diff.",
+      "mitigation": "The draft/send split is a product property: a draft sits in schranka until a human acts on it. An agent that called a live send API directly would be caught by a reviewer, or by the recipient."
+    },
+    {
+      "id": "no-secret-movement",
+      "ledgerId": "secret-in-log",
+      "rule": "Never edit .env*, print a secret, or move a credential anywhere — including into a test fixture, a log line or a prompt.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Editing `.env*`, printing a secret, or moving a credential anywhere" },
+      "enforcement": [
+        { "kind": "hook", "name": ".husky/pre-commit", "note": "gitleaks when installed, scripts/secret-scan.mjs otherwise" },
+        { "kind": "gate", "name": "sast", "note": "a client module reading a server env var, a route importing the decrypted BYOM key" }
+      ],
+      "rung": "partial",
+      "gapNote": "A committed secret is caught. A secret printed into a log, a report or a prompt never reaches a commit, and nothing here sees it."
+    },
+    {
+      "id": "codeowners-law-files",
+      "ledgerId": "red actions need the operator",
+      "rule": "Do not touch a CODEOWNERS law file — billing, metering, the chokepoint, the guidance surface, workflows, security policy, the ADRs — beyond what the task asked for.",
+      "statedIn": { "file": "AGENTS.md", "quote": "Touching a CODEOWNERS law file" },
+      "enforcement": [
+        { "kind": "review", "name": "B1", "note": "does the change do what its message says, and only that" }
+      ],
+      "rung": "partial",
+      "gapNote": "CODEOWNERS requests a review on a pull request. Master ships on push here, and the lane that pushes is the owner's — so on the real landing path the file's owner is the reader of their own diff."
+    }
+  ]
+}

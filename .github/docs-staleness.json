@@ -1,0 +1,133 @@
+{
+  "$comment": [
+    "A staleness budget for the documents whose age costs something.",
+    "",
+    "WHY THIS FILE EXISTS. `npm run docs:parity` holds the bilingual pair in step, `npm run",
+    "adr:check` fails an ADR citing a path that has been renamed, and `test-unit/docs-task-index.test.mjs`",
+    "fails a route into a file that has moved. Every one of those checks INTERNAL consistency —",
+    "so parity is checked but age is not, and the failure mode they all leave open is a page",
+    "that is perfectly consistent, routed to correctly, spelled the same in both languages, and",
+    "describing a seam that moved six months ago. Nothing goes red for that, and on a repository",
+    "where an agent orients from documents before it reads code, a confidently wrong page is worse",
+    "than a missing one.",
+    "",
+    "WHAT IS MEASURED. For each entry, `npm run docs:staleness` asks git two questions: when was",
+    "the DOC last touched, and when was the newest commit to any path in `watches`. A doc is stale",
+    "when the code it describes has moved since the doc was last read (`overtakenBy`), or when the",
+    "doc itself has gone longer than `maxAgeDays` without anyone looking at it. Age is measured in",
+    "COMMITS TO THE THINGS THE DOC NAMES rather than in days alone, because a runbook for a seam",
+    "nobody has touched in a year is not stale — it is finished.",
+    "",
+    "RUNG (docs/adr/0007-gate-rung-discipline.md). `ratchet.stale` is null, which means nobody has",
+    "measured this yet, so `--check` REPORTS and exits 0. That is the honest rung for a check whose",
+    "baseline is unknown: ADR-0007 says a gate blocks only once it passes. One run closes it:",
+    "",
+    "    npm run docs:staleness                      # see the number",
+    "    npm run docs:staleness -- --accept --reason \"...\"   # pin it; the count may never rise",
+    "",
+    "After that a doc going stale fails `npm run docs:staleness:check`, and the way back is to read",
+    "the doc — not to raise the ratchet.",
+    "",
+    "WHAT IS BLOCKING TODAY: test-unit/docs-staleness.test.mjs, inside `npm run test:unit` inside",
+    "`check:ci`. It fails when an entry names a document or a watched path that does not exist, and",
+    "when a runbook lands in docs/runbooks/ with no budget — so the registry cannot quietly stop",
+    "covering the documents it was written for.",
+    "",
+    "NOT GOVERNED, ON PURPOSE: the ADRs themselves. A decision record describes the decision as it",
+    "was made; it ages into history rather than into error, and `npm run adr:check` already fails",
+    "one whose cited paths have moved. The scan reports (docs/harness/**) are dated artefacts of a",
+    "run and are the same case."
+  ],
+  "version": 1,
+  "ratchet": {
+    "stale": null,
+    "acceptedOn": null,
+    "reason": null
+  },
+  "docs": [
+    {
+      "doc": "README.md",
+      "watches": ["src/app", "package.json"],
+      "maxAgeDays": 180,
+      "why": "The first page anyone opens, and the source edition of the bilingual pair."
+    },
+    {
+      "doc": "docs/README.cs.md",
+      "watches": ["README.md"],
+      "maxAgeDays": 180,
+      "why": "Transcreated from README.md. docs:parity holds the declared claims; nothing holds the rest of the page."
+    },
+    {
+      "doc": "SETUP.md",
+      "watches": [".env.example"],
+      "maxAgeDays": 180,
+      "why": "The cloud-connected walkthrough. Already known to be partly stale — it predates the offline path, and the task index says so."
+    },
+    {
+      "doc": "CONTRIBUTING.md",
+      "watches": ["AGENTS.md"],
+      "maxAgeDays": 180,
+      "why": "It says the same things as AGENTS.md to a human. When AGENTS.md moves and this does not, a contributor is told the old rules."
+    },
+    {
+      "doc": "docs/task-index.md",
+      "watches": ["docs/adr", "AGENTS.md"],
+      "maxAgeDays": 120,
+      "why": "A routing table read at the start of a run. Its links are asserted; whether its ROUTES still describe the tree is not."
+    },
+    {
+      "doc": "docs/agent-index.md",
+      "watches": [".claude/agents"],
+      "maxAgeDays": 120,
+      "why": "The other start-of-run lookup — which subagent to hand a task to."
+    },
+    {
+      "doc": "docs/deploy.md",
+      "watches": ["vercel.json", ".env.example", "src/lib/cron-auth.ts", "src/app/api/cron"],
+      "maxAgeDays": 120,
+      "why": "The runbook for env names, crons and rollback. A wrong page here is read during an incident."
+    },
+    {
+      "doc": "docs/runbooks/revert-drill.md",
+      "watches": ["scripts/revert-drill.mjs", ".github/workflows/revert-drill.yml"],
+      "maxAgeDays": 120,
+      "why": "The way back out. A runbook that no longer matches its script is found out at the worst moment."
+    },
+    {
+      "doc": "docs/design-system.md",
+      "watches": ["src/components/ui.tsx", "src/app/globals.css"],
+      "maxAgeDays": 180,
+      "why": "Tokens and the shared primitives every new component inherits."
+    },
+    {
+      "doc": "docs/i18n/contract.md",
+      "watches": ["src/lib/i18n"],
+      "maxAgeDays": 180,
+      "why": "The colocated-dictionary contract. Which locale is the source has already flipped once."
+    },
+    {
+      "doc": "docs/testing/llm-quality-matrix.md",
+      "watches": ["scripts/quality-gate.mjs", "test-llm/quality"],
+      "maxAgeDays": 180,
+      "why": "Describes a benchmark that costs money to run; a stale description is an expensive wrong expectation."
+    },
+    {
+      "doc": "docs/leads/design.md",
+      "watches": ["src/lib/leads"],
+      "maxAgeDays": 180,
+      "why": "The lead entity layer's design record, and the layer is under active change."
+    },
+    {
+      "doc": "docs/open-source/self-hosting.md",
+      "watches": ["Dockerfile", "docs/adr/0004-self-hosted-third-deploy-mode.md"],
+      "maxAgeDays": 180,
+      "why": "Read by someone outside this repository, who cannot check it against the code."
+    },
+    {
+      "doc": ".agent/README.md",
+      "watches": ["scripts/agent-checkpoint.mjs"],
+      "maxAgeDays": 180,
+      "why": "How a stopped run hands off. Read by an agent that is already in trouble."
+    }
+  ]
+}
