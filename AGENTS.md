@@ -61,6 +61,15 @@ npm run dev:local     # DEV_AUTH=true LOCAL_DB=true next dev — fully offline /
 npm run seed:local    # once: dev user + sample projects into .data/systedo.db
 npm run dev           # real auth mode (needs Google OAuth + Firestore creds)
 npm run check         # typecheck + lint + build
+npm run typecheck:strict # the two strictness flags `strict: true` does NOT turn on
+                      #   (noUncheckedIndexedAccess + exactOptionalPropertyTypes).
+                      #   AN INSTRUMENT, NOT A GATE, and deliberately so: nothing in
+                      #   check:ci runs it because nobody has measured whether it
+                      #   passes yet, and ADR-0007 says a check blocks only once it
+                      #   does. Same category as `doctor` and `context:decay` — what
+                      #   it produces is the number a promotion decision needs.
+                      #   tsconfig.strict.json holds the reason and the ladder up;
+                      #   test-unit/typecheck-strict.test.mjs holds both to it
 npm run test:unit     # node:test suites in test-unit/
 npm run test:e2e      # Playwright — also runs in CI (the key-free `e2e-smoke` job)
 npm run check:ci      # what CI runs, CHEAPEST FIRST: adr:check + docs:parity

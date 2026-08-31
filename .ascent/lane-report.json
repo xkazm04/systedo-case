@@ -2,58 +2,44 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "84ba787e-e0a9-42d2-9144-c86479f95219",
-      "verdict": "resolved",
-      "reason": "The way back out is now rehearsed by a machine instead of by a runbook nobody ran: `npm run revert:drill` proves the tree is green, seeds a real one-line fault on a seam with an ADR behind it, times which gate layer catches it, then removes it and asserts the file is byte-for-byte what it was; .github/workflows/revert-drill.yml fires it every Thursday and on demand, goes red when a seed survives every layer or when an anchor has drifted, and publishes the dated row into a trail issue plus a 90-day artifact — and the runbook now also states what a promote does NOT take back (uploaded conversions, sent mail, Firestore docs in a new shape, crons that fired), which is the question that decides promote versus fix-forward.",
-      "files": [
-        "scripts/revert-drill.mjs",
-        ".github/workflows/revert-drill.yml",
-        "docs/runbooks/revert-drill.md",
-        "docs/deploy.md",
-        "package.json",
-        "AGENTS.md"
-      ]
+      "recommendationId": "01bc3f59-c8d8-4d70-8da1-b4d6d1f8feaa",
+      "verdict": "skipped",
+      "reason": "Needs network: pinning means asking GitHub what each tag points at right now, and an invented SHA breaks a workflow rather than pinning it; the repository already ships the exact one-command path (`npm run actions:pin` resolves every tag to its digest, rewrites the seven workflows, and writes STRICT = true plus RATCHET.pinned = <count> back into scripts/actions-pin.mjs so both halves land in one diff), so there is nothing left to build offline — only a networked run to make.",
+      "files": []
     },
     {
-      "recommendationId": "43efee7b-8f4d-4285-9f5b-f8c12f836080",
-      "verdict": "resolved",
-      "reason": "docs/agent-index.md states every spec in .claude/agents/ in the three facts a caller needs — what it is for, what it may assume about the tree and the handoff (including the two that are properties of the tree rather than the prompt: the finish reviewer has no browser, the applier must not touch git), and what it returns — routed from docs/task-index.md and AGENTS.md, and held true by test-unit/agent-index.test.mjs inside test:unit -> check:ci -> pre-push, so a spec that lands with no row, a row naming a spec that is gone, or a spec whose `name:` stops matching its filename is a red build.",
+      "recommendationId": "3694672a-98b2-4fee-8c9d-168844798464",
+      "verdict": "skipped",
+      "reason": "Needs a typecheck run: putting `typecheck:strict` into check:ci means first knowing whether the tree passes it, and this session has no shell — promoting it blind is what ADR-0007 and tsconfig.strict.json's own header both forbid. What I could close offline I did: `typecheck:strict` appeared NOWHERE outside package.json and its own file (not AGENTS.md, not docs/task-index.md), so an agent following the documented loop could not meet it at all; it is now in AGENTS.md § Commands and routed from the task index, and test-unit/typecheck-strict.test.mjs (blocking, inside test:unit → check:ci → pre-push) fails when the script and config diverge, when the strict project stops measuring any flag the base project does not, when the config stops saying why it is not a gate, or when it IS added to check:ci while still claiming 'NOT A GATE'.",
       "files": [
-        "docs/agent-index.md",
-        "test-unit/agent-index.test.mjs",
+        "AGENTS.md",
         "docs/task-index.md",
-        "AGENTS.md"
+        "test-unit/typecheck-strict.test.mjs"
       ]
     },
     {
-      "recommendationId": "c7cc30ca-7329-47ea-997d-2d918b4c4489",
+      "recommendationId": "360bc883-6789-4e88-81f6-8ef57f56d596",
+      "verdict": "skipped",
+      "reason": "Needs a run to mint the numbers: every candidate budget (a route's p95, the dashboard's LCP, the cost of the gate chain) has to record today's measurement before it can fail on a regression, and a ceiling I invented would be decoration. Two concrete findings for whoever picks this up: the accept-with-a-reason artefact already exists (.github/gate-timings.json, written by `npm run check:ci:timed` then `npm run gates:timings -- --accept --reason \"…\"`) but has NEVER been recorded, so `gates:timings --check` returns 0 with 'No gate timings recorded yet'; and even once recorded, orderingProblems() in scripts/gate-timings.mjs only judges cheapest-first ORDER — no stage has a duration ceiling, so a gate that doubles in cost stays green.",
+      "files": []
+    },
+    {
+      "recommendationId": "cf25be2f-3840-4e49-865c-8d66f60be909",
       "verdict": "needs_human",
-      "reason": "The rule is complete and blocking on every path the repository controls (rubric A5 over origin/master..HEAD, in agent-review.yml and in check:ci/pre-push), and the narrating subjects still land because the Ascent lane commits in a linked worktree that has no `.husky/_` — husky's shim directory is untracked, so git runs NO hook here whatever core.hooksPath says, and a post-hoc gate cannot unwrite a subject; the two files scripts/commit-check.mjs documents as the fix (.husky/commit-msg, .husky/prepare-commit-msg) are refused to this session because .husky/ is a permission-gated path, and even committed they would not fire in a hookless worktree, so the decision left is the operator's: track husky's shims so lane commits run the hook at all.",
+      "reason": "A repo-local flag layer (deterministic bucketing on the tenant key, a committed ledger of what is behind a flag and when it came off, a unit test holding the ledger true) is buildable with no dependency and is the right shape under ADR-0008 — but it only counts as staged exposure if it is WIRED, and every seam the item names (the LLM chokepoint, billing/metering, the Sklik write guard) is a CODEOWNERS law file that AGENTS.md § Red puts off-limits to an unattended run; wiring it anywhere else makes it a stub. With no shell I also cannot typecheck, build or test a new src/lib module, and landing unverified code into a repository whose test:unit baseline is already red would be indistinguishable from the failure that is there. The decision left is the operator's: name the first cohorted seam and whether Vercel-side canarying or an in-app percentage flag is the mechanism.",
       "files": []
     },
     {
-      "recommendationId": "132b1405-3381-40ab-a8e8-2f0abe64ba91",
+      "recommendationId": "9e9917f5-1108-4428-8094-59d457e45bd3",
       "verdict": "skipped",
-      "reason": "Needs network: pinning means asking GitHub what each tag points at right now, and the repository already ships that exact path — `npm run actions:pin` resolves every tag to its digest, rewrites the workflows, and writes STRICT = true and RATCHET.pinned back into scripts/actions-pin.mjs in the same pass, so both halves land in one diff; there is nothing left to build offline and an invented SHA would break the workflows rather than pin them.",
-      "files": []
-    },
-    {
-      "recommendationId": "16ff9fc1-9799-41d3-8ad1-d73fa23c2134",
-      "verdict": "skipped",
-      "reason": "Needs a run to mint the baseline: a speed budget that fails on a regression has to record today's numbers first (a `next build` for route weight, a Playwright or Lighthouse pass for paint), and this session has no shell, no build and no test runner — a ceiling I invented would be decoration, and a gate wired into check:ci with no baseline would turn every build red.",
-      "files": []
-    },
-    {
-      "recommendationId": "ba550644-82e3-465c-ad69-4f3e4c8a481f",
-      "verdict": "skipped",
-      "reason": "Needs key provisioning: signing requires a key per lane and a git identity configured where the lane runs, both outside this repository and outside a session that cannot run git; a verifier committed now would report 0% coverage forever and would not make one commit verifiable, which is the gap the item names.",
+      "reason": "Needs git and a hook path outside this repository: the rules already exist (scripts/commit-attribution.mjs defines the trailer, `npm run commit:check --range` prints coverage, `npm run review:agent` lists unattributed commits) and the reason they are not honoured is mechanical — the Ascent lane commits in a linked worktree with no `.husky/_`, so git runs no hook whatever core.hooksPath says, and `.husky/` is a permission-gated path for these sessions. Making it blocking additionally needs today's coverage over history, which needs git; a richer trailer (agent, model, harness version) is worth writing only once something actually writes it.",
       "files": []
     }
   ],
   "lessons": [
-    "In this organization's Ascent lanes the worktree has no `.husky/_` (husky's shim directory is untracked), so git runs no hook there whatever the shared core.hooksPath says — that, and not a missing rule, is why commit-subject and attribution rules keep being bypassed by lane commits. Any fix that lives in a hook cannot be landed from a lane: `.husky/` and `.claude/` are permission-gated paths for these sessions.",
-    "When a session cannot execute anything, put new unattended checks in their own reporting-rung workflow rather than into the blocking chain: an untested script in `check:ci` risks a red build for everyone, while the same script on a weekly schedule can only fail its own job — which is also the rung ADR-0007 prescribes for a check that does not pass on the tree yet.",
-    "A drill that shells out to the project's own gates must set spawnSync `maxBuffer` explicitly: Node's 1 MB default truncates a large suite's output and exits the child non-zero, which a detection drill would faithfully report as the fault being caught. Prove the unseeded baseline is green first for the same reason.",
-    "This repository answers 'which document?' with docs/task-index.md and holds it true with a unit test; the same shape transfers cleanly to any other tacit choice a run makes at the start (here, which subagent) — an index plus a test that fails when an artefact lands without a row is cheaper and more durable than prose asking people to remember."
+    "Eight consecutive lanes on this repository have been told to repair `npm run test:unit` FIRST, and not one of them could run it: the lane sandbox refuses `npm` and `node` outright (only read-only shell verbs like ls/cat/grep are allowed) and the priority block says 'read the output below' while including no output. The repair is not converging because nobody has ever seen the failure — the fix is on the harness side (attach the failing output, or grant the one command), not in the tree.",
+    "This worktree's node_modules is a SYMLINK to the main checkout (C:/Users/kazda/kiro/systedo-case/node_modules), which the lane sandbox actively blocks reading. If the lane runs the suite under the same sandbox, every bare-specifier import resolves outside the permitted directory — an environment-level failure no source change can fix, and one that would look identical on every lane. Worth ruling out before another agent-hours are spent bisecting 472 test files.",
+    "When an item's honest close needs a measurement (a tsc run, a p95, a digest), say so and close the DISCOVERABILITY half instead: this repository's own idiom is an index plus a unit test that goes red when the artefact and the routing drift (docs-task-index.test.mjs, agent-index.test.mjs), and it transfers to 'why is this command not a gate?' without inventing a baseline.",
+    "Every seam worth putting behind a staged rollout in this repository is a CODEOWNERS law file that AGENTS.md § Red forbids an unattended run from touching. Flag infrastructure is therefore not an agent-closable item here however small the code is — the wiring decision has to come from the operator first, or the agent ships a library nothing calls."
   ]
 }

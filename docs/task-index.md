@@ -34,6 +34,7 @@ is a red build, not a dead link somebody finds later.
 | Working out what will stop your change | [`.github/required-checks.json`](../.github/required-checks.json) | Every check that must be green, each with the reason it earns a red build (ADR-0011) |
 | Working out what a review will say about your diff | [`.github/agent-review-rubric.md`](../.github/agent-review-rubric.md) | Part A is mechanical and blocks; Part B is judgment and comments |
 | Deciding whether a new check should block | [`docs/adr/0007-gate-rung-discipline.md`](adr/0007-gate-rung-discipline.md) | Blocking if it passes today; ratcheted reporting otherwise |
+| Wondering why `typecheck:strict` is not in `check:ci` | [`tsconfig.strict.json`](../tsconfig.strict.json) | An instrument, not a forgotten gate: what the two extra flags catch, the two commands that produce the number, and the ladder up to blocking (ADR-0007) |
 
 ## Changing the product
 
