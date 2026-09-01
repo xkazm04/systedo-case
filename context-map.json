@@ -5465,10 +5465,14 @@
       "api_surface": null,
       "business_feature": "Twin AI Assistant Core",
       "category": "lib",
+      "$comment": "cross_refs 2026-09-01: ai-pipeline-limits — the cron dispatch generates replies under the durable global spend guard (durableGuard/refundGlobalSpend), the only lever that caps unattended AI spend; recaps-activity — a delivered reply emits an activity event; social-media-management — the per-week send cap counts weeks with the publishing cadence's weekStartIso on purpose, so \"N a week\" means the same week across the product.",
       "cross_refs": [
         "twin-store-voice",
         "ai-tools-content",
-        "speed-lead-lib"
+        "speed-lead-lib",
+        "ai-pipeline-limits",
+        "recaps-activity",
+        "social-media-management"
       ],
       "db_tables": [
         "twin_archive",
