@@ -29,6 +29,8 @@
     "revert:drill:list": "node scripts/revert-drill.mjs --list",
     "mutation:drill": "node scripts/mutation-drill.mjs",
     "mutation:drill:list": "node scripts/mutation-drill.mjs --list",
+    "flake:drill": "node scripts/flake-drill.mjs",
+    "flake:drill:list": "node scripts/flake-drill.mjs --list",
     "doctor": "node scripts/doctor.mjs",
     "checkpoint": "node scripts/agent-checkpoint.mjs",
     "checkpoint:check": "node scripts/agent-checkpoint.mjs --check",

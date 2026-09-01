@@ -106,10 +106,94 @@ test("a ceiling that allows exceptions must say what would take them away", () =
   );
 });
 
+// --- and the same for the numbers INSIDE the gates ----------------------------
+//
+// An exception list is not the only thing that decides what red means. A ratchet
+// baseline is a count of findings absorbed rather than fixed, and a threshold
+// (`FLOOR = 6.5`, `COMPONENT_LOC_LIMIT = 200`) is the number the gate compares
+// against — both are one digit in the file that enforces the rule, and editing
+// that digit is the cheapest way in this repository to turn a red gate green.
+// AGENTS.md said "never raise a ratchet you could have lowered" and nothing ran.
+//
+// The fixture trick is the same as above, and it has to be: mutating the PIN
+// under the real tree is arithmetically identical to mutating the number under a
+// fixed pin, and only one of the two can be done without editing a gate script.
+
+test("a ratchet baseline raised past its ceiling fails the build", () => {
+  // The tree's i18n coverage baseline is 38. Pretending the ceiling was 0 is the
+  // same arithmetic as an agent nudging the baseline up to make a red run green.
+  const path = fixture("ratchet-raised", (l) => {
+    rowOf(l, "i18n colocated dictionaries").ceiling.max = 0;
+  });
+  const res = run(path);
+  assert.equal(
+    res.status,
+    1,
+    "a raised ratchet baseline has to fail, or 'never raise a ratchet you could have lowered' is still prose."
+  );
+  const output = `${res.stdout}${res.stderr}`;
+  assert.match(output, /i18n colocated dictionaries/);
+  assert.match(output, /over the ceiling/);
+});
+
+test("a threshold lowered below its floor fails the build, and says the gate got easier", () => {
+  // The quality floor is 6.5 in scripts/quality-gate.mjs. Raising the pin to 9 is
+  // the same arithmetic as dropping the constant to 4 — which would make the
+  // quality gate green without a single answer improving.
+  const path = fixture("floor-dropped", (l) => {
+    rowOf(l, "quality floor threshold").floor.min = 9;
+  });
+  const res = run(path);
+  assert.equal(res.status, 1, "a softened threshold has to fail, or the floor is decoration.");
+  const output = `${res.stdout}${res.stderr}`;
+  assert.match(output, /quality floor threshold/);
+  assert.match(output, /BELOW the floor/);
+});
+
+test("a ratchet or threshold row with no pin at all fails too", () => {
+  // The case that matters for a NEW gate: it must not be possible to land one
+  // whose baseline or threshold nothing records.
+  for (const [name, id] of [
+    ["unpinned-ratchet", "unmapped-source ratchet"],
+    ["unpinned-threshold", "quality floor threshold"],
+  ]) {
+    const path = fixture(name, (l) => {
+      const row = rowOf(l, id);
+      delete row.ceiling;
+      delete row.floor;
+    });
+    const res = run(path);
+    assert.equal(res.status, 1, `${id}: an unpinned number must fail.`);
+    assert.match(`${res.stdout}${res.stderr}`, /neither a `ceiling` nor a `floor`/);
+  }
+});
+
+test("every ratchet baseline and gate threshold in the repository is pinned here", () => {
+  // The inventory half. A ceiling that only covers the knobs somebody remembered
+  // is the same silence one file further along.
+  const pinned = (ledger.rules ?? []).filter((r) => ["ratchet", "threshold"].includes(r.measure?.kind));
+  assert.ok(
+    pinned.length >= 9,
+    `only ${pinned.length} baseline(s)/threshold(s) are pinned. The gates hold more than that — scripts/` +
+      "i18n-audit.mjs, scripts/agent-surface.mjs, scripts/quality-gate.mjs, scripts/actions-pin.mjs and " +
+      "scripts/agent-review.mjs each carry at least one number that decides what red means."
+  );
+  for (const row of pinned) {
+    const pin = row.ceiling ?? row.floor;
+    assert.ok(pin, `${row.id}: a baseline or threshold with no pin.`);
+    assert.ok(
+      String(pin.reason ?? "").length > 40,
+      `${row.id}: the pin needs a reason, not a number — a number with no sentence is one nobody can argue with.`
+    );
+  }
+});
+
 // --- every exception list in the ledger is actually capped --------------------
 
 test("every row that measures an exception list carries a reasoned ceiling", () => {
-  const capped = (ledger.rules ?? []).filter((r) => ["allowlist", "exemptions"].includes(r.measure?.kind));
+  const capped = (ledger.rules ?? []).filter((r) =>
+    ["allowlist", "exemptions", "listLength"].includes(r.measure?.kind)
+  );
   assert.ok(capped.length >= 14, `expected the sast allowlists and the lint fences to be measured, got ${capped.length}.`);
   for (const row of capped) {
     assert.ok(row.ceiling, `${row.id}: an exception list with no ceiling.`);

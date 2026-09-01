@@ -89,6 +89,14 @@ next-env.d.ts
 # baseline in .github/gate-timings.json (npm run gates:timings -- --accept).
 /.gate-timings.json
 
+# flake-drill verdicts — written by a RUN of scripts/flake-drill.mjs, and specific
+# to the machine that produced them (a flake is partly a fact about the runner).
+# Same rule as the timings below: the COMMITTED artefact is the decision, in
+# .github/flaky-tests.json; the measurement stays local and is published weekly to
+# the trail issue by .github/workflows/flake-watch.yml.
+/flake-drill.json
+/flake-drill.md
+
 # which fences have actually fired — the rolling trail scripts/fence-firings.mjs
 # appends to whenever a gate goes red (npm run fences reads it back). Same rule as
 # the timings above: written by a RUN rather than by a change, and specific to the

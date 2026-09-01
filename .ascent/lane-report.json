@@ -2,45 +2,66 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "3284ec5c-e9ec-470e-93c0-5150fac7e7a1",
+      "recommendationId": "8d098c71-f3bd-41eb-988f-7a2d3d77a70a",
       "verdict": "skipped",
-      "reason": "Pinning a tag to a digest means asking GitHub what each tag points at right now and this session has no network; the two adjacent asks in the item are already done (dependabot.yml has a github-actions ecosystem entry, and every workflow declares top-level `contents: read` with write scopes split per job), and supply-chain.yml explicitly declares SBOM and signing out of scope, so the scan's premise about provenance assertion is stale.",
+      "reason": "Needs network: resolving 40 tags to commit SHAs requires the GitHub API, and the repo already ships the one-pass closer (`npm run actions:pin`, which rewrites the workflows AND flips STRICT/RATCHET); the broad-write half the item names was already split into three single-capability jobs in issue-dispatch.yml, so I recorded the pin's direction in the contract ledger and made `actions:pin` print the ledger line it now owes instead.",
+      "files": [
+        "scripts/actions-pin.mjs",
+        ".github/contract-ledger.json"
+      ]
+    },
+    {
+      "recommendationId": "faef05ea-2f44-4260-906f-840ff1060614",
+      "verdict": "resolved",
+      "reason": "Every ratchet baseline and gate threshold in the repository is now pinned in .github/contract-ledger.json with a `ceiling` or a `floor`, and `contract:ledger:check` (blocking inside check:ci, run by .husky/pre-push before the push that ships master) fails when a number crosses its pin or when a new baseline/threshold arrives unpinned.",
+      "files": [
+        "scripts/contract-ledger.mjs",
+        ".github/contract-ledger.json",
+        "test-unit/contract-ledger-ceiling.test.mjs",
+        ".github/constraint-map.json",
+        "scripts/gate-remedy.mjs",
+        "AGENTS.md",
+        "CONTRIBUTING.md"
+      ]
+    },
+    {
+      "recommendationId": "df4e9ebf-442f-476c-84d4-16d2f61d4709",
+      "verdict": "resolved",
+      "reason": "`npm run flake:drill` runs the unit suite N times with file concurrency varied between runs, parses each run's TAP down to individual test names and fails on any test whose outcome changed and is not on the quarantine register; it runs weekly in .github/workflows/flake-watch.yml and publishes a dated trail issue, and the register's shape plus its ceiling block on every build.",
+      "files": [
+        "scripts/flake-drill.mjs",
+        ".github/flaky-tests.json",
+        ".github/workflows/flake-watch.yml",
+        "test-unit/flake-census.test.mjs",
+        ".github/contract-ledger.json",
+        ".github/constraint-map.json",
+        "package.json",
+        ".gitignore",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "recommendationId": "d0f77120-77d4-4160-918e-b0e683ef42ab",
+      "verdict": "skipped",
+      "reason": "Already covered: .github/workflows/llm-drift.yml walks the WHOLE registry against the configured provider every Wednesday and publishes a dated pass/fail trail issue, so the item's premise (drift surfaces only when someone runs `npm run test:llm` by hand) is stale; the residual behaviour half (`npm run llm:quality`) cannot be scheduled because its judge is the Claude CLI on the maintainer's subscription, not a runner.",
       "files": []
     },
     {
-      "recommendationId": "092d9549-fff9-4bd8-9e48-e1db2feef99d",
+      "recommendationId": "fb4675b4-83ce-4be1-b0cd-6fbd7d834620",
       "verdict": "skipped",
-      "reason": "The trailer hook already exists and writes both authorship and provenance (scripts/commit-attribution.mjs, installed by `prepare`); the reason it misses is that lane worktrees where `npm install` never ran execute no hooks, and closing that needs git/shell (a committed hooks dir plus `git config core.hooksPath`) or a CI rule that cannot distinguish a human's commit from an agent's without the very trailer it is checking for.",
+      "reason": "Needs deployment credentials and network: a per-PR preview environment requires a Vercel token this worktree does not carry; the key-free Playwright lane already exercises the running app on every push and PR, so the real residual is that .husky/pre-push runs check:ci without test:e2e, and adding a ~6-minute stage to the operator's push is their cost decision, not mine.",
       "files": []
     },
     {
-      "recommendationId": "d7d8bc3c-e781-43d4-bb8a-aa8b10ef27fc",
+      "recommendationId": "d518b0a1-6817-45b1-874c-e7d6503e7efc",
       "verdict": "skipped",
-      "reason": "A non-increasing ceiling needs the current violation count, and only `tsc -p tsconfig.strict.json` can produce it; tsconfig.strict.json's own header states the rule 'what must not happen is a ratchet baseline invented without running it', and this session has no shell to run the compiler.",
-      "files": []
-    },
-    {
-      "recommendationId": "b9a4345b-dd09-4ffb-8677-ee616b280572",
-      "verdict": "skipped",
-      "reason": "Every shape of performance budget here (route First Load JS, navigation timing in the key-free Playwright job, store round-trips per render) needs one measured run to choose the threshold, and ADR-0007 makes a gate blocking only once it has been measured to pass; the Playwright job is also a required check, so a threshold guessed offline would block merges rather than catch regressions.",
-      "files": []
-    },
-    {
-      "recommendationId": "a82d98d9-7fac-4703-9101-cccce45730bb",
-      "verdict": "skipped",
-      "reason": "Already covered another way: .github/workflows/llm-drift.yml re-proves the whole registry against the configured provider every Wednesday and publishes a dated pass/fail trail (recording `skipped`, not green, with no key), and the proved-against model surface is pinned in test-llm/model-pins.json with a 120-day max age, enforced by `llm:models:check` and test-unit/llm-model-pin.test.mjs on every build.",
-      "files": []
-    },
-    {
-      "recommendationId": "f671da78-2028-4416-afb3-e986d7f0f621",
-      "verdict": "needs_human",
-      "reason": "Progressive delivery here means Vercel deployment configuration plus an abort criterion the operator owns; AGENTS.md puts anything touching the release path and the CODEOWNERS-protected workflow files in the red zone (stop and ask), and a flag layer nothing routes through would be a stub rather than a rollout.",
+      "reason": "Needs a runtime: there are 88 route handlers under src/app/api, and a contract for them has to be DERIVED and then verified against the source by a gate — hand-authoring 88 request/response schemas with no node, no typecheck and no test runner would produce a document nothing has checked, which is worse than the implementations it replaces.",
       "files": []
     }
   ],
   "lessons": [
-    "This repository encodes rung discipline (ADR-0007: a check blocks only once it has been measured to pass) and treats an invented ratchet baseline as a defect, so any Ascent item that asks for a numeric budget or ceiling is unresolvable in a session without a shell — the measurement, not the wiring, is the missing half.",
-    "Before reporting a gap here, check whether the repository already answers it under a different name: `.github/constraint-map.json` maps every stated rule to what enforces it and at which rung, and docs/task-index.md routes a task to the document that governs it. Several scan findings (SBOM/signing, broad write grants, unscheduled real-model proves) were already decided and documented against.",
-    "`.github/workflows/`, the ADRs and the agent instruction surface are CODEOWNERS law files that AGENTS.md places in the red zone; adding a new gate also means registering it in the constraint map, the contract ledger, the gate-remedy table and the fence census, each held by a unit test — so a 'small' new check is a multi-file change that cannot be validated without running `npm run test:unit`."
+    "This repository already keys its guardrails two ways — .github/contract-ledger.json by the ENFORCEMENT and .github/constraint-map.json by the RULE — and both are held to the tree by unit tests that fail on a claimed-but-absent fence. Adding a guardrail here means adding a row to both plus the AGENTS.md table in the same order; extending an existing mechanism is far cheaper and more honest than inventing a parallel one, and several rows carry a `verdict` field that already names the fence somebody meant to build.",
+    "Its exception-ceiling idea (an entry and the ceiling that pays for it in the same diff) generalises cleanly to any number that decides what red means — ratchet baselines, quality floors, LOC limits — which was the largest unfenced surface left: those are one digit inside the gate script itself, so editing one turns a gate green without a build ever going red.",
+    "An offline lane can safely extend gate/registry tooling here because the meta-tests (constraint-map, gate-remedy, gate-bite, fence-census) state their invariants explicitly enough to satisfy by reading; what an offline lane cannot do is anything that needs a value from the network (action SHAs, provider answers) or an artefact only a runtime can generate (an API contract, a lockfile, a baseline)."
   ]
 }

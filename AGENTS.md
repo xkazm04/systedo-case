@@ -125,6 +125,16 @@ npm run mutation:drill # the NEIGHBOURING question: not how long a fault survive
                       #   revert drill. Blocking half is the CATALOGUE
                       #   (test-unit/mutation-census.test.mjs): an anchor that has
                       #   drifted is a mutant that can never survive
+npm run flake:drill   # and the question BOTH of those assume away: does the suite
+                      #   give the same answer twice? Runs the unit suite N times
+                      #   (default 3) with file concurrency varied between them and
+                      #   reports every test whose outcome changed — or that ran in
+                      #   some runs and not others. Reporting, weekly
+                      #   (.github/workflows/flake-watch.yml); a flake that is not on
+                      #   the register in .github/flaky-tests.json fails it.
+                      #   `-- --list` shows what is quarantined. Blocking half is the
+                      #   REGISTER (test-unit/flake-census.test.mjs): an entry naming
+                      #   a test that is gone is a flake nobody is still tracking
 npm run harness:drill # removes each conditional key ON PURPOSE and proves the
                       #   absence is announced (Part B of the review, the weekly
                       #   real-model prove). `harness:degradation:check` refuses a
@@ -156,9 +166,12 @@ npm run sast          # repo security rules over src/ (blocking in CI)
 npm run actions:check # workflow token scope, action pinning, no ${{ }} in a run: script
 npm run merge-gate    # the required checks named in .github/required-checks.json
                       #   still exist, still run on PRs, and can still fail
-npm run contract:ledger # every rule in the contract, what enforces it, and what it
-                      #   is absorbing; :check blocks when an EXCEPTION LIST grows
-                      #   past its ceiling (.github/contract-ledger.json)
+npm run contract:ledger # every rule in the contract, what enforces it, what it is
+                      #   absorbing, and the PIN it may not cross; :check blocks
+                      #   when an exception list or a ratchet baseline grows past
+                      #   its ceiling, when a threshold a gate compares against
+                      #   drops below its floor, or when one of them carries no pin
+                      #   at all (.github/contract-ledger.json)
 npm run protection:verify # does GitHub actually enforce them? (needs `gh`; reporting)
 npm run review:agent  # rubric review of a diff (--base <ref>); what CI runs on a PR
 npm run docs:parity   # bilingual doc pairs still state their shared facts (blocking)
@@ -266,6 +279,26 @@ remedy all turn the unit suite red.
   on every build is the catalogue's shape (`test-unit/mutation-census.test.mjs`),
   because an anchor that has drifted is a mutant that can never survive and a score
   that keeps printing anyway.
+- **And both of those assume the suite gives the same answer twice.** Nothing here
+  had ever checked. **A gate that fails at random is not a gate for long**: `npm run
+  test:unit` is a blocking stage of `check:ci`, `check:ci` is what `.husky/pre-push`
+  runs before the push that ships master, and a suite that fails one run in twenty
+  teaches whoever is waiting to press the button again — after which a real red is
+  indistinguishable from the noise. Nothing goes red for that and nothing gets
+  softened; the fence just stops being read. `npm run flake:drill` runs the unit
+  suite N times with file concurrency varied between the runs, parses each run's TAP
+  down to individual test names, and reports every test whose outcome CHANGED, or
+  that ran in some runs and not others. It edits nothing — this drill has no restore
+  contract to get wrong, unlike the two above. Reporting rung, weekly in
+  `.github/workflows/flake-watch.yml`. **A flake has three honest answers and
+  re-running is not one**: fix it (the cause is nearly always a shared temp file,
+  the clock, or an assumption about the order node ran the files in), quarantine it
+  in `.github/flaky-tests.json` while it is being fixed — which is an exception list,
+  so its ceiling in `.github/contract-ledger.json` moves in the same diff — or delete
+  it with an `Ack:` if it was never asserting anything. The register is not a skip
+  list: nothing in it stops a test running or failing. What blocks on every build is
+  its shape (`test-unit/flake-census.test.mjs`), because an entry naming a test that
+  is gone is a flake nobody is tracking any more.
 - **Your diff gets reviewed before a human sees it.**
   `.github/workflows/agent-review.yml` runs the rubric in
   `.github/agent-review-rubric.md` on every push and PR. Part A is mechanical and
@@ -343,6 +376,24 @@ remedy all turn the unit suite red.
   is allowed and sometimes right; adding the entry alone is not. Proven by
   `test-unit/contract-ledger-ceiling.test.mjs`, which runs the gate against a
   fixture whose list has outgrown its ceiling and requires it to be red.
+- **And so does every number that decides what red means.** An exception list is
+  not the only way a gate gets softer. `RATCHET.coverage` in
+  `scripts/i18n-audit.mjs`, `RATCHET.unmapped` in `scripts/agent-surface.mjs`,
+  `FLOOR = 6.5` in `scripts/quality-gate.mjs`, `COMPONENT_LOC_LIMIT = 200` in
+  `scripts/agent-review.mjs` — each is one digit, sitting in the file that
+  enforces the rule, and editing it is the cheapest way in this repository to turn
+  a red gate green. Nothing went red for that: the ledger measured the baselines
+  and printed them, and rubric B3 asked about them in a comment that needs a model
+  key to be written at all. So the same ledger now **pins** them: a ratchet
+  baseline carries a `ceiling` (it counts findings absorbed rather than fixed, so
+  it may only fall), a threshold carries a `ceiling` or a `floor` depending on
+  which direction loosens it, and `contract:ledger:check` fails when a number
+  crosses its pin **or when a baseline or threshold has no pin at all** — so the
+  next gate cannot land with an unrecorded knob. Moving one is the same two-line
+  diff as an exception: the change, and the pin that pays for it, with the
+  sentence next to it. `npm run contract:ledger` prints every pin and what the
+  tree holds against it. The gate's own thresholds are in that table too, which is
+  the point — a fence that could exempt itself is not one.
 - **Pathspec commits only** (shared checkout, concurrent agents):
   `git add <paths>` then `git commit <same paths>`. Never `-A`, never a bare
   `git commit`, never stash or reset work that is not yours.
@@ -520,8 +571,8 @@ would notice afterwards.
 | `pathspec-commits` — `git add <paths>`, never `-A`, never stash | — | **honour** |
 | `no-reformatting` — do not reformat a file you are not changing | — | **honour** |
 | `exception-ceilings` — an exception and its ceiling in the same diff | `contract:ledger:check` | blocking |
-| `ratchet-discipline` — never raise a baseline you could lower | rubric B3 | partial |
-| `no-gate-loosening` — fix the finding, do not soften the gate | rubric B3, `merge-gate` | partial |
+| `ratchet-discipline` — never raise a baseline you could lower | `contract:ledger:check`, `test-unit/contract-ledger-ceiling.test.mjs`, rubric B3 | partial |
+| `no-gate-loosening` — fix the finding, do not soften the gate | `merge-gate`, `contract:ledger:check`, rubric B3 | partial |
 | `docs-parity` — the bilingual pair states the same claims | `docs:parity` | blocking |
 | `docs-staleness` — a doc is re-read when the code it describes moves | `docs:staleness:check`, `test-unit/docs-staleness.test.mjs` | reporting |
 | `i18n-colocated` — the type system is the parity check | `typecheck`, `i18n:audit:check` | blocking |
@@ -543,6 +594,7 @@ would notice afterwards.
 | `codeowners-law-files` — do not touch one beyond the task | rubric B1 | partial |
 | `model-pin` — the model the harness proves against is pinned | `llm:models:check`, `test-unit/llm-model-pin.test.mjs` | partial |
 | `suite-sensitivity` — a wrong answer on a money seam is killed by a test | `test-unit/mutation-census.test.mjs`, `mutation:drill` | partial |
+| `suite-determinism` — a gating test gives the same answer twice | `test-unit/flake-census.test.mjs`, `flake:drill`, `contract:ledger:check` | partial |
 
 `test-unit/constraint-map.test.mjs` holds this table and the JSON to each other,
 and both to the tree: a gate named here that `package.json` does not define, a

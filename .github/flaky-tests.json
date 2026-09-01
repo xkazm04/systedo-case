@@ -1,0 +1,14 @@
+{
+  "$comment": "The quarantine register for nondeterministic tests. `npm run flake:drill` runs the unit suite several times over, varying file concurrency between the runs, and reports every test whose outcome changed. A flake that is not listed here fails that drill; a flake that IS listed is one somebody has read, named and decided about. This is NOT a skip list — nothing here stops a test running, and nothing here stops it failing `npm run test:unit`. It is the record of which flakes are known and what is being done about them, so that 'just re-run it' has to become a sentence somebody writes rather than a habit nobody notices.",
+
+  "$whyItIsCapped": "The register's length is measured by .github/contract-ledger.json (rule `flaky-test quarantine`) against a ceiling, exactly like the SAST allowlist and the lint fences. An exception list that can grow a line per inconvenient week erodes the thing it is protecting without a build ever going red, and a list of tests nobody trusts is the most expensive one of those: `npm run test:unit` is a blocking stage of `check:ci`, which .husky/pre-push runs before the push that ships master.",
+
+  "$howToAddOne": "Three honest answers to a flake, and the register makes you pick one in writing. FIX is the usual one — the cause is almost always a shared temp file, the clock, or an assumption about the order node ran the files in. QUARANTINE records it while it is being fixed, and the ceiling in .github/contract-ledger.json must be raised in the SAME diff, so the growth is a line a reviewer reads. DELETE is right when the test was never asserting anything, and needs an `Ack:` line (rubric A3). Re-running until it is green is not on the list.",
+
+  "schema": 1,
+  "seededOn": "2026-09-01",
+
+  "$empty": "Empty, and that is a statement about this register's age rather than about the suite: nothing has ever measured whether these tests agree with themselves, so there is no history of flakes to seed it from. The first weekly run of .github/workflows/flake-watch.yml is what will say. An empty register with a ceiling of 0 means the FIRST flake found is a decision somebody makes on purpose.",
+
+  "quarantined": []
+}

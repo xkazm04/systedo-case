@@ -122,11 +122,15 @@ export const CHAIN = [
     stage: "contract:ledger:check",
     script: "scripts/contract-ledger.mjs",
     cost: "seconds",
-    proves: "no exception list has grown past the ceiling that pays for it.",
+    proves:
+      "no exception list, ratchet baseline or gate threshold has crossed the pin that pays for it — and none " +
+      "of them is unpinned.",
     next: [
-      "npm run contract:ledger     # what each list holds today, and against which ceiling",
+      "npm run contract:ledger     # what each list, baseline and threshold holds today, and its pin",
       "Adding an exception is a TWO-LINE diff: the entry, and its ceiling in .github/contract-ledger.json,",
       "next to each other where a reviewer reads both. Adding the entry alone is not allowed.",
+      "Raising a ratchet baseline, or lowering a number a gate compares against, is the same two-line diff:",
+      "the digit, and the `ceiling`/`floor` that pays for it. Never lower a pin to make your own change pass.",
     ],
     records: ".github/contract-ledger.json",
   },

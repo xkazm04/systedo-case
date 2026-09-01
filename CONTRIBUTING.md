@@ -118,6 +118,16 @@ raised ceiling land together, next to each other, where a reviewer reads both.
 Fixing the cause is still the better move; absorbing it is a choice you make in
 writing.
 
+**And so is moving a number a gate compares against.** The same ledger pins every
+ratchet baseline (`RATCHET.coverage` in `scripts/i18n-audit.mjs`,
+`RATCHET.unmapped` in `scripts/agent-surface.mjs`) and every threshold
+(`FLOOR = 6.5` in `scripts/quality-gate.mjs`, `COMPONENT_LOC_LIMIT = 200` in
+`scripts/agent-review.mjs`). Each of those is one digit in the file that enforces
+the rule, and editing it turns a red gate green without changing anything the
+product does — so the same check fails when a number crosses its pin, or when a
+new baseline or threshold arrives with no pin at all. Run
+`npm run contract:ledger` to see every pin and what the tree holds against it.
+
 **Your commit subject is checked too.** Rubric A5 refuses a subject that narrates
 the session instead of naming the change — `fix: Done. Here's what I found and
 changed` is a real entry in this log and would now be refused. Write

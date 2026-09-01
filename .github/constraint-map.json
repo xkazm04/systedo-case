@@ -234,9 +234,13 @@
       "ledgerId": "never raise a ratchet you could have lowered",
       "rule": "Never raise a ratchet baseline you could have lowered; fix the finding rather than absorbing it.",
       "statedIn": { "file": "AGENTS.md", "quote": "Never raise a ratchet you could have lowered." },
-      "enforcement": [{ "kind": "review", "name": "B3" }],
+      "enforcement": [
+        { "kind": "gate", "name": "contract:ledger:check", "note": "every ratchet baseline in the repository is pinned by a `ceiling` in .github/contract-ledger.json, so raising one in its own script is red until the ceiling moves in the same diff with the reason" },
+        { "kind": "test", "name": "test-unit/contract-ledger-ceiling.test.mjs", "note": "raises a baseline past its ceiling under the real tree and requires a red" },
+        { "kind": "review", "name": "B3" }
+      ],
       "rung": "partial",
-      "gapNote": "Each ratchet enforces its own direction; nothing enforces the intent, and a baseline legitimately raised for a new AI tool looks exactly like an absorbed regression. B3 is the judgment half: it comments, it never blocks, and it needs a model key to run at all."
+      "gapNote": "The MOVE is now blocked: a baseline nudged up in scripts/i18n-audit.mjs, scripts/agent-surface.mjs or scripts/quality-gate.mjs fails contract:ledger:check until the ceiling that pays for it moves too, which puts the raise and its written reason in the same diff. What no gate can decide is the rule's actual claim — whether the finding could have been FIXED instead. That stays with B3, which comments, never blocks, and needs a model key to run at all."
     },
     {
       "id": "no-gate-loosening",
@@ -244,10 +248,11 @@
       "statedIn": { "file": "AGENTS.md", "quote": "Loosening a gate to make your own change pass." },
       "enforcement": [
         { "kind": "review", "name": "B3" },
-        { "kind": "gate", "name": "merge-gate", "note": "catches the specific case of a required check being renamed, de-triggered, or made continue-on-error" }
+        { "kind": "gate", "name": "merge-gate", "note": "catches the specific case of a required check being renamed, de-triggered, or made continue-on-error" },
+        { "kind": "gate", "name": "contract:ledger:check", "note": "catches the numbers: every exception list has a ceiling, every ratchet baseline has a ceiling, and every threshold a gate compares against (FLOOR = 6.5, COMPONENT_LOC_LIMIT = 200, the SHA-pin count) has a ceiling or a floor" }
       ],
       "rung": "partial",
-      "gapNote": "merge-gate defends the enumerated checks. Widening a lint exception list, relaxing an assertion or softening a threshold inside a gate is caught only by B3, which comments."
+      "gapNote": "Three of the four ways to soften a gate now go red: renaming or de-triggering a required check (merge-gate), widening an exception list, and editing the number a gate compares against (contract:ledger:check). The fourth — relaxing an assertion inside a gate script or a test, so the rule still runs and stops catching things — is caught only by B3, which comments. `npm run mutation:drill` is the nearest measurement of it, and it is weekly and reporting-rung."
     },
     {
       "id": "docs-parity",
@@ -462,6 +467,19 @@
       ],
       "rung": "partial",
       "gapNote": "Only the catalogue's shape blocks. The measurement itself runs weekly and off the landing path, it covers three modules rather than the tree, and a property with no observable behaviour — a constant-time compare replaced by `===` — cannot be mutated into a test failure at all."
+    },
+    {
+      "id": "suite-determinism",
+      "ledgerId": "flaky-test quarantine",
+      "rule": "A test that gates a change gives the same answer twice; a flake is decided about in writing, never re-run away.",
+      "statedIn": { "file": "AGENTS.md", "quote": "A gate that fails at random is not a gate for long" },
+      "enforcement": [
+        { "kind": "test", "name": "test-unit/flake-census.test.mjs", "note": "the register still describes the suite, and the drill can still reproduce the suite's own command" },
+        { "kind": "gate", "name": "flake:drill", "note": "runs the unit suite N times with varied file concurrency and reports every test whose outcome changed; weekly in .github/workflows/flake-watch.yml" },
+        { "kind": "gate", "name": "contract:ledger:check", "note": "caps the quarantine register in .github/flaky-tests.json at its ceiling" }
+      ],
+      "rung": "partial",
+      "gapNote": "Only the register's shape and its ceiling block. The measurement runs weekly and off the landing path; N runs can only find a flake whose rate is high enough to show up in N; it covers the unit suite and not the Playwright lane; and it runs on one machine, so a flake that needs a slower or busier runner is invisible to it."
     }
   ]
 }

@@ -1,7 +1,9 @@
 {
   "$comment": "One row per rule in this repository's contract: what enforces it, what it is currently absorbing, and every breach recorded against it. Kept honest by scripts/contract-ledger.mjs (`npm run contract:ledger:check`, blocking inside check:ci): a rule defined in the sources with no row here fails, and a row claiming a rule that no longer exists fails. Most of the numbers are reporting-rung — they inform what AGENTS.md should say next, they never fail a build. The exception is `ceiling`, below. Breaches are appended by `--record`, fed the JSON a rubric review writes.",
 
-  "$ceiling": "A row that measures an EXCEPTION LIST (a SAST allowlist, the names a lint fence waves through) carries `ceiling: { max, reason, comesOffWhen }`, and `--check` fails when the list grows past `max`. Why: both lists are the right shape — narrow, each entry read and accepted — and both are one entry away from being the wrong one, because an exception list that grows a line per inconvenient diff erodes its fence without a build ever going red. `max` is what the list holds today, so this is green on arrival (ADR-0007). `comesOffWhen` is the field an exemption list normally never has, and the reason exemptions become permanent. Raising a ceiling is fine and is the point: it is one reviewed line next to the entry it pays for.",
+  "$ceiling": "A row that measures an EXCEPTION LIST (a SAST allowlist, the names a lint fence waves through) or a RATCHET BASELINE carries `ceiling: { max, reason, comesOffWhen }`, and `--check` fails when the count grows past `max`. Why: both lists are the right shape — narrow, each entry read and accepted — and both are one entry away from being the wrong one, because an exception list that grows a line per inconvenient diff erodes its fence without a build ever going red. A baseline is the same thing counted differently: it is the number of findings a rule is living with rather than fixing, and it is one digit in the script that enforces the rule. `max` is what the list or the baseline holds today, so this is green on arrival (ADR-0007). `comesOffWhen` is the field an exemption list normally never has, and the reason exemptions become permanent. Raising a ceiling is fine and is the point: it is one reviewed line next to the change it pays for.",
+
+  "$floor": "The other direction. A row that measures a THRESHOLD inside a gate — `FLOOR = 6.5` in scripts/quality-gate.mjs, `COMPONENT_LOC_LIMIT = 200` in scripts/agent-review.mjs — or a ratchet that counts compliance rather than debt pins it with `floor: { min, reason, risesWhen }`, and `--check` fails when the number drops below `min`. Why: those numbers ARE what the gate calls failure. Lowering one turns a red gate green without changing a single answer the product gives, and nothing in a green build looks any different afterwards. Same rule as a ceiling: move it on purpose, in the diff that needs it, with the sentence next to it.",
 
   "schema": 1,
   "seededOn": "2026-08-30",
@@ -16,6 +18,26 @@
       "guidance": "AGENTS.md § Conventions that bite — components under 200 LOC",
       "why": "a component may not grow past 200 lines; one already over may shrink or stay put",
       "measure": { "kind": "locOver", "dir": "src/components", "ext": [".tsx", ".ts"], "loc": 200 },
+      "breaches": []
+    },
+    {
+      "id": "A1 component-LOC limit",
+      "surface": "gate",
+      "enforcedBy": "scripts/agent-review.mjs (Part A, blocking) — the number A1 compares against",
+      "probe": { "file": "scripts/agent-review.mjs", "contains": "const COMPONENT_LOC_LIMIT" },
+      "guidance": "AGENTS.md § Conventions that bite + docs/roadmap/component-debt.md",
+      "why": "the line A1 draws; the rule above measures the population over it, this pins the line itself",
+      "measure": {
+        "kind": "threshold",
+        "file": "scripts/agent-review.mjs",
+        "symbol": "COMPONENT_LOC_LIMIT",
+        "unit": "lines — the A1 limit"
+      },
+      "ceiling": {
+        "max": 200,
+        "reason": "200 lines, the number AGENTS.md, the rubric and docs/roadmap/component-debt.md all state. A1 is a ratchet on growth, so a component already over the line may sit there — which means raising this constant would not turn anything red anywhere, it would simply stop refusing the next overgrown component. That is the softening this pin refuses.",
+        "comesOffWhen": "It does not rise. It could fall, and a fall is the debt catalogue getting shorter — the pin is one-directional on purpose."
+      },
       "breaches": []
     },
     {
@@ -291,6 +313,69 @@
       "guidance": "docs/testing/llm-quality-matrix.md",
       "why": "how good the output has to be, per operation, and which model it was measured on",
       "measure": { "kind": "ratchet", "file": "scripts/quality-gate.mjs", "key": "unbaked" },
+      "ceiling": {
+        "max": 9,
+        "reason": "Nine registry tools carry no baked quality score. Every one of them is a tool that landed with its contract golden and whose quality cells are measured on the next full `npm run llm:quality` bake — a bake costs money and runs across six models, so it is deliberately not run per tool. Nine is what the file holds today; raising it means another tool shipped unbaked, which is a decision rather than a digit.",
+        "comesOffWhen": "The next full bake: every tool in the registry gets a cell, and this drops to 0. It has never legitimately gone up except by a tool landing, so a raise that is not accompanied by a new `// llm-tool:` tag in the same diff is a finding being absorbed."
+      },
+      "breaches": []
+    },
+    {
+      "id": "quality retired-operation ratchet",
+      "surface": "gate",
+      "enforcedBy": "scripts/quality-gate.mjs (reporting, ratcheted) + this ledger's ceiling (blocking)",
+      "probe": { "file": "scripts/quality-gate.mjs", "contains": "retired: " },
+      "guidance": "docs/testing/llm-quality-matrix.md",
+      "why": "a baked score still on the public scorecard for an operation the registry no longer has",
+      "measure": { "kind": "ratchet", "file": "scripts/quality-gate.mjs", "key": "retired" },
+      "ceiling": {
+        "max": 1,
+        "reason": "One: `lead-reply`, retired when the twin absorbed it, whose score is still on the public scorecard. A stale cell is a published number about something the product no longer does, so one is already one more than the right answer — it is here because removing it means re-baking.",
+        "comesOffWhen": "The next full bake, which drops the retired cell. A second entry means a second operation was removed without the scorecard following, which is the drift this counts."
+      },
+      "breaches": []
+    },
+    {
+      "id": "quality unbaselined-cell ratchet",
+      "surface": "gate",
+      "enforcedBy": "scripts/quality-gate.mjs (reporting, ratcheted) + this ledger's ceiling (blocking)",
+      "probe": { "file": "scripts/quality-gate.mjs", "contains": "unbaselined: " },
+      "guidance": "docs/testing/llm-quality-matrix.md",
+      "why": "a baked serving-model cell with no recorded baseline is a score nothing can be compared against",
+      "measure": { "kind": "ratchet", "file": "scripts/quality-gate.mjs", "key": "unbaselined" },
+      "ceiling": {
+        "max": 0,
+        "reason": "Zero, and it should stay zero: a freshly baked operation has just been measured, so there is no reason not to record what it scored. `npm run llm:quality:baseline -- --reason \"…\"` records every cell in a bake at once, which makes any non-zero number here a step somebody skipped rather than a cost somebody could not pay."
+      },
+      "breaches": []
+    },
+    {
+      "id": "quality floor threshold",
+      "surface": "gate",
+      "enforcedBy": "scripts/quality-gate.mjs (blocking inside check:ci) — the number the gate calls failure",
+      "probe": { "file": "scripts/quality-gate.mjs", "contains": "const FLOOR" },
+      "guidance": "docs/testing/llm-quality-matrix.md + ADR-0007",
+      "why": "below this score the judge is no longer splitting hairs — it is writing up invented figures",
+      "measure": { "kind": "threshold", "file": "scripts/quality-gate.mjs", "symbol": "FLOOR", "unit": "quality floor" },
+      "floor": {
+        "min": 6.5,
+        "reason": "Both serving columns sit at 7.0 or above on every baked operation, so 6.5 leaves half a point of run-to-run variance and still fails a real drop. It is one digit in the file that enforces it, and lowering it would make the gate green without changing a single answer the product gives — which is the whole shape of softening a gate to pass.",
+        "risesWhen": "After a fresh full matrix shows the serving columns are comfortably higher, per the note above the constant. Raising it is a decision to make on measurement; lowering it is what this floor exists to refuse."
+      },
+      "breaches": []
+    },
+    {
+      "id": "flaky-test quarantine",
+      "surface": "gate",
+      "enforcedBy": "scripts/flake-drill.mjs (reporting, weekly) + test-unit/flake-census.test.mjs (blocking) + this ledger's ceiling",
+      "probe": { "file": "scripts/flake-drill.mjs", "contains": "flaky-tests.json" },
+      "guidance": "ADR-0007 + AGENTS.md § Commands — flake:drill",
+      "why": "a blocking gate that fails at random teaches people to re-run rather than read a red build",
+      "measure": { "kind": "listLength", "file": ".github/flaky-tests.json", "key": "quarantined", "unit": "quarantined test(s)" },
+      "ceiling": {
+        "max": 0,
+        "reason": "Empty, because nothing had ever measured whether these 482 test files agree with themselves — there is no history of flakes to seed it from, and the first weekly run of .github/workflows/flake-watch.yml is what will say. A ceiling of 0 makes the FIRST accepted flake a decision somebody takes on purpose, which is the right shape for the most expensive exception list here: `npm run test:unit` is what stands between a change and master."
+      },
       "breaches": []
     },
     {
@@ -364,6 +449,21 @@
       "breaches": []
     },
     {
+      "id": "P6 action-pin ratchet",
+      "surface": "gate",
+      "enforcedBy": "scripts/actions-pin.mjs (blocking in CI and check:ci) — the floor SHA-pinned refs may not fall below",
+      "probe": { "file": "scripts/actions-pin.mjs", "contains": "const RATCHET = { pinned:" },
+      "guidance": "AGENTS.md § Commands — actions:check",
+      "why": "a pin that nothing enforces comes undone on the next Dependabot bump or copy-pasted step",
+      "measure": { "kind": "ratchet", "file": "scripts/actions-pin.mjs", "key": "pinned" },
+      "floor": {
+        "min": 0,
+        "reason": "The one ratchet here that counts COMPLIANCE rather than debt, so it is pinned with a floor rather than a ceiling: it may only rise. It is 0 today because every `uses:` in this repository is first-party and exempt (STRICT = false), which is the exemption `npm run actions:pin` closes in one networked pass — that command resolves every tag to its digest and writes STRICT = true and the new baseline back into the script itself. Be exact about what a floor of 0 buys while the count is 0: nothing yet. It records the DIRECTION before the number moves, so that the raise below is a step somebody takes rather than a convention somebody remembers.",
+        "risesWhen": "In the same diff as `npm run actions:pin` — that command needs the network, so no offline session can do it, and it prints this as its closing instruction. Raise `min` to the count it reports, and the pin can no longer be undone by a Dependabot bump, a copy-pasted step, or an agent 'simplifying' a 40-character ref back to `@v4`."
+      },
+      "breaches": []
+    },
+    {
       "id": "P5 run-expression-injection",
       "surface": "gate",
       "enforcedBy": "scripts/actions-pin.mjs (blocking in CI and check:ci)",
@@ -380,6 +480,55 @@
       "guidance": "ADR-0006",
       "why": "parity is the type system; what typecheck cannot see is measured instead of asserted",
       "measure": { "kind": "ratchet", "file": "scripts/i18n-audit.mjs", "key": "coverage" },
+      "ceiling": {
+        "max": 38,
+        "reason": "Thirty-eight hardcoded cs strings still sit outside any T table. The audit cannot be zeroed today, which is why it is on the reporting rung — the baseline is the honest population, and it has only ever moved down (40 → 38 when the /lp variants were retired).",
+        "comesOffWhen": "When the remaining strings move into their component's own T dict and this reaches 0, at which point the audit's coverage half can be promoted to blocking. Every legitimate move so far has been downward; a raise means a new hardcoded string was accepted rather than localised."
+      },
+      "breaches": []
+    },
+    {
+      "id": "i18n leftover-source ratchet",
+      "surface": "gate",
+      "enforcedBy": "scripts/i18n-audit.mjs --check (reporting, ratcheted) + this ledger's ceiling (blocking)",
+      "probe": { "file": "scripts/i18n-audit.mjs", "contains": "leftover: " },
+      "guidance": "ADR-0006 + ADR-0007",
+      "why": "a cs value byte-identical to its en source is a locale column nobody actually wrote",
+      "measure": { "kind": "ratchet", "file": "scripts/i18n-audit.mjs", "key": "leftover" },
+      "ceiling": {
+        "max": 40,
+        "reason": "Forty cs values are still byte-identical to their en source, minus the do-not-translate list. This is the count typecheck structurally cannot see: the key exists in both columns, so parity holds and the Czech reader gets English. Forty is what the tree holds; the number has moved down twice and never up.",
+        "comesOffWhen": "As the localization waves transcreate the remaining values. The `RATCHET` comment in scripts/i18n-audit.mjs records that origin/master once measured 44 here — that is exactly the kind of quiet drift a ceiling in a reviewed file makes visible."
+      },
+      "breaches": []
+    },
+    {
+      "id": "i18n register ratchet",
+      "surface": "gate",
+      "enforcedBy": "scripts/i18n-audit.mjs --check (reporting, ratcheted) + this ledger's ceiling (blocking)",
+      "probe": { "file": "scripts/i18n-audit.mjs", "contains": "register: " },
+      "guidance": "ADR-0006",
+      "why": "tykání in the cs column — the product addresses its users formally, and a mixed register reads as a different product",
+      "measure": { "kind": "ratchet", "file": "scripts/i18n-audit.mjs", "key": "register" },
+      "ceiling": {
+        "max": 0,
+        "reason": "Clean today, and the only one of the three i18n counts that is. A register slip is a one-word edit to fix and a one-digit edit to absorb, which is precisely the asymmetry a ceiling of 0 removes."
+      },
+      "breaches": []
+    },
+    {
+      "id": "unmapped-source ratchet",
+      "surface": "gate",
+      "enforcedBy": "scripts/agent-surface.mjs --check (reporting, ratcheted) + this ledger's ceiling (blocking)",
+      "probe": { "file": "scripts/agent-surface.mjs", "contains": "unmapped: " },
+      "guidance": "AGENTS.md § context-map.json is an index, not an inventory",
+      "why": "a tracked source file no context maps is a file an agent scoping by context never sees",
+      "measure": { "kind": "ratchet", "file": "scripts/agent-surface.mjs", "key": "unmapped" },
+      "ceiling": {
+        "max": 159,
+        "reason": "159 tracked source files that no context in context-map.json claims, measured at the 2026-07-30 scan. The map is honest about being an index rather than an inventory, and this is the size of the gap. It is also the single easiest number in the repository to raise: a scan that maps nothing new still passes if the baseline moves with it.",
+        "comesOffWhen": "As context scans claim the unmapped files. It may only fall — a rise means new source landed outside every context, which is a scoping question for the change that added it, not a baseline question."
+      },
       "breaches": []
     },
 
@@ -394,11 +543,12 @@
     },
     {
       "id": "never raise a ratchet you could have lowered",
-      "surface": "prose",
-      "enforcedBy": "nothing — each ratchet enforces its own direction, nothing enforces the intent",
+      "surface": "gate",
+      "enforcedBy": "scripts/contract-ledger.mjs (blocking inside check:ci) — every baseline and threshold is pinned above",
+      "probe": { "file": "scripts/contract-ledger.mjs", "contains": "CEILINGED_KINDS" },
       "guidance": "ADR-0007 + AGENTS.md § amber",
       "why": "raising a baseline is how a finding gets absorbed instead of fixed",
-      "verdict": "candidate fence: three baselines have been raised legitimately (a new AI tool ships unbaked), and nothing distinguishes that from absorbing a regression. A raised baseline could be required to carry a reason in the same commit, the way a golden already is.",
+      "verdict": "the candidate fence in this row's previous verdict, built: every ratchet baseline in the repository now carries a `ceiling` here and every gate threshold a `ceiling` or a `floor`, so moving one in its own script is red until the pin moves in the same diff with the reason. What is still judgment, and stays with rubric B3: whether a legitimate-looking reason (a new AI tool shipping unbaked) is the real one, or a regression wearing its clothes.",
       "breaches": []
     },
     {

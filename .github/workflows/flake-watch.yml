@@ -1,0 +1,161 @@
+name: Flake watch
+
+# Does the suite give the same answer twice? — on a schedule, with the verdicts
+# kept where a trend is readable.
+#
+# WHY. `npm run test:unit` is a blocking stage of `check:ci`, and `check:ci` is
+# what .husky/pre-push runs before the push that ships master (docs/deploy.md
+# § Delivery contract). There are 482 test files behind that gate and nothing had
+# ever asked whether they agree with themselves. That is the cheapest way in this
+# repository to lose a gate without anybody removing it: a suite that fails one
+# run in twenty teaches whoever is waiting to press the button again, and once
+# re-running is the habit, a real red looks exactly like the noise. Nothing goes
+# red for it and nothing gets softened — the fence just stops being read.
+#
+# WHAT IT RUNS. `scripts/flake-drill.mjs`: the whole unit suite five times, with
+# file-level concurrency varied between the runs, parsing each run's TAP output
+# down to individual test names. The finding is any test whose OUTCOME changed
+# between runs, or that ran in some and not others. Five rather than three because
+# this is the unattended pass and the runner is paying for it either way.
+#
+# WHAT IT DOES NOT DO. It never edits a file and never quarantines anything on
+# anybody's behalf. `.github/flaky-tests.json` is a decision a maintainer writes
+# down — fix, quarantine, or delete — and its length is capped by a ceiling in
+# .github/contract-ledger.json, so a growing register is a line in a reviewed diff
+# rather than a habit.
+#
+# REPORTING RUNG (docs/adr/0007-gate-rung-discipline.md) and permanently so: it
+# runs the whole suite several times over, so it can never sit in `check:ci` or
+# the pre-push hook, and it is deliberately absent from
+# .github/required-checks.json. Its red is a signal to a human — a new flake
+# nobody has decided about, or a suite that is simply red — not a blocked release.
+# What blocks on every build is the register's shape
+# (test-unit/flake-census.test.mjs).
+#
+# WHERE THE HISTORY LIVES. Not in the repository: master ships on push, so a
+# commit from a cron would be a release. One GitHub issue, rewritten each week,
+# exactly as llm-drift.yml and revert-drill.yml publish theirs — plus a 90-day
+# artifact, because "was this test always like that?" is asked well after a run's
+# logs stop being convenient.
+#
+# No `github.event.*` appears in this file (rule P9, scripts/actions-pin.mjs), no
+# `${{ … }}` reaches a `run:` body (P5), and it holds no secret at all.
+on:
+  schedule:
+    # Friday, early: clear of Monday's triage (agent-review-history), Wednesday's
+    # real-model prove (llm-drift), Thursday's revert + mutation drills, and the
+    # weekend supply-chain and sast passes.
+    - cron: "0 5 * * 5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drill:
+    name: Run the suite five times and compare
+    runs-on: ubuntu-latest
+    # Nothing here writes anywhere and nothing here holds a secret: the drill runs
+    # the runner's own checkout and edits no file in it.
+    permissions:
+      contents: read
+    env:
+      # The same zone `check:ci` runs in. The format goldens
+      # (test-unit/fixtures/format-golden.json) are minted in the product's home
+      # timezone, so a run in another one fails for a reason that is correct rather
+      # than flaky — and a drill that reported THAT as nondeterminism would be
+      # lying in the alarming direction.
+      TZ: Europe/Prague
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.14.0
+          cache: npm
+
+      # NODE_ENV stays off this step: `npm ci` under production skips the
+      # devDependencies the suite needs to run at all.
+      - name: Install dependencies
+        run: npm ci
+
+      # No `continue-on-error`. The job's conclusion IS the weekly verdict, and it
+      # is what next week's table reads back: red means either a test that did not
+      # agree with itself and is not on the register (the finding worth having) or
+      # a suite that is simply red in every run, which the drill refuses to call a
+      # flake.
+      - name: Run the flake drill
+        run: |
+          node scripts/flake-drill.mjs \
+            --runs 5 \
+            --out flake-drill.json \
+            --report flake-drill.md \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      # `if: always()` because the run a reader most wants to see is the one that
+      # went red.
+      - name: Keep the verdict
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: flake-drill
+          path: |
+            flake-drill.md
+            flake-drill.json
+          if-no-files-found: ignore
+          retention-days: 90
+
+  publish:
+    name: Publish the flake trail (reporting)
+    runs-on: ubuntu-latest
+    needs: drill
+    if: always()
+    # The only write scope in this workflow, on the only job that needs it, and
+    # narrower than the workflow default: it edits one issue. It does not check the
+    # repository out, so no repository code runs in the job holding the token.
+    permissions:
+      issues: write
+    steps:
+      - name: Fetch the report
+        continue-on-error: true
+        uses: actions/download-artifact@v7
+        with:
+          name: flake-drill
+
+      # One issue, rewritten each run: a stable URL that always shows the current
+      # picture, with every previous week kept in the issue's own edit history.
+      - name: Rewrite the trail issue
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TITLE: "Flake watch — does the suite agree with itself?"
+        run: |
+          if [ ! -s flake-drill.md ]; then
+            echo "No report was produced (see the \`drill\` job); leaving the issue as it is." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo
+            echo "---"
+            echo
+            echo "_Rewritten by \`.github/workflows/flake-watch.yml\` every Friday and on demand._"
+            echo "_The drill: \`scripts/flake-drill.mjs\` · the register it holds you to: \`.github/flaky-tests.json\`._"
+            echo "_A flake has three honest answers — fix it, quarantine it in writing, or delete it with an \`Ack:\`._"
+            echo "_Re-running until it is green is not one of them._"
+            echo "_Edit this issue and the next run overwrites you — reply in a comment instead._"
+          } >> flake-drill.md
+          number="$(gh issue list --state all --limit 100 --json number,title \
+            --jq '.[] | select(.title == env.TITLE) | .number' | head -n 1)"
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --body-file flake-drill.md
+            gh issue reopen "$number" >/dev/null 2>&1 || true
+            echo "Updated issue #$number." >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh issue create --title "$TITLE" --body-file flake-drill.md \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -56,6 +56,36 @@
  *  diff, next to the entry it pays for, with a sentence saying why. What is no
  *  longer possible is adding the entry and nothing else.
  *
+ *  AND THE SAME ARGUMENT APPLIES TO THE NUMBERS INSIDE THE GATES. An exception
+ *  list is not the only thing that decides what red means. `RATCHET.unmapped` in
+ *  scripts/agent-surface.mjs, `RATCHET.coverage` in scripts/i18n-audit.mjs and
+ *  `FLOOR` in scripts/quality-gate.mjs are each one digit, in the file that
+ *  enforces the rule, and editing that digit is the cheapest way in this
+ *  repository to turn a red gate green. Nothing went red for it: this ledger
+ *  MEASURED the ratchets and printed them, the rubric's B3 asked about them in a
+ *  comment that needs a model key to be written at all, and `AGENTS.md` said
+ *  "never raise a ratchet you could have lowered" to whoever read it. This row's
+ *  own `verdict` field called that a candidate fence. It is now the fence:
+ *
+ *    ratchet   — a baseline is a count of findings absorbed rather than fixed, so
+ *                it is an exception list counted differently and carries the same
+ *                `ceiling`. Raising `RATCHET.coverage` from 38 is red until the
+ *                ceiling that pays for it moves too.
+ *    threshold — one named number read out of a gate script (`FLOOR = 6.5`,
+ *                `COMPONENT_LOC_LIMIT = 200`). Which direction loosens it depends
+ *                on the number, so a threshold row pins it with a `ceiling` (a
+ *                limit that must not rise) or a `floor` (a bar that must not
+ *                drop):
+ *
+ *                    "floor": { "min": 6.5, "reason": "…", "risesWhen": "…" }
+ *
+ *  Both are green on arrival — every pin is the value the tree holds today
+ *  (ADR-0007) — and both fail the same way an exception list does, with the same
+ *  remedy: restore the number, or move the pin in the same commit with the reason,
+ *  where a reviewer reads the two lines together. Proven from the other side by
+ *  test-unit/contract-ledger-ceiling.test.mjs, which lowers a ceiling and raises a
+ *  floor under the real tree and requires a red.
+ *
  *  WHAT TO DO WITH IT. Two lists at the bottom of the report:
  *    • a FENCE that has never fired and absorbs nothing — ask whether the sentence
  *      in AGENTS.md that it came from is still describing this repository;
@@ -309,6 +339,20 @@ function measure(spec) {
         detail: [...allowed, ...off],
       };
     }
+    /** An exception list that lives in a JSON file of its own — the quarantine
+     *  register in .github/flaky-tests.json is the first. Same shape as
+     *  `allowlist`, without hard-coding which file it reads. */
+    case "listLength": {
+      const text = read(spec.file);
+      if (text === null) return null;
+      const list = JSON.parse(text)[spec.key];
+      if (!Array.isArray(list)) return null;
+      return {
+        count: list.length,
+        unit: spec.unit ?? `${spec.key} entr(y|ies)`,
+        detail: list.map((e) => (typeof e === "string" ? e : (e?.test ?? e?.id ?? JSON.stringify(e)))),
+      };
+    }
     /** A ratchet baseline IS a count of findings that were absorbed rather than
      *  fixed — the honest number for "how often is this rule broken". */
     case "ratchet": {
@@ -318,6 +362,18 @@ function measure(spec) {
       const body = from === -1 ? text : text.slice(from);
       const m = new RegExp(`\\b${spec.key}:\\s*(\\d+)`).exec(body);
       return m ? { count: Number(m[1]), unit: `${spec.key} baseline`, detail: [] } : null;
+    }
+    /** One NAMED number inside a gate script — the value that decides what red
+     *  means. A ratchet baseline is a count that may only fall; a threshold is a
+     *  limit somebody chose (200 lines, a 6.5 quality floor) and can soften by
+     *  editing a digit in the file that enforces it. Read as text, like everything
+     *  else here: this script is zero-dependency and never imports a gate. */
+    case "threshold": {
+      const text = read(spec.file);
+      if (text === null) return null;
+      if (!/^[A-Za-z_$][\w$]*$/.test(String(spec.symbol ?? ""))) return null;
+      const m = new RegExp(`\\bconst\\s+${spec.symbol}\\s*=\\s*(-?\\d+(?:\\.\\d+)?)`).exec(text);
+      return m ? { count: Number(m[1]), unit: spec.unit ?? `(${spec.symbol})`, detail: [] } : null;
     }
     /** Files already past a limit the rule polices. A1 blocks *growth* past 200
      *  lines, so the population over the line is what the rule is living with. */
@@ -358,28 +414,37 @@ for (const row of rows) {
   }
 }
 
-// --- 5b. the ceiling on an exception list -------------------------------------
+// --- 5b. the pins: a ceiling on a list, a floor under a threshold -------------
 //
-// Blocking, and the only measured number here that is. See the header: a fence
+// Blocking, and the only measured numbers here that are. See the header: a fence
 // whose exception list can grow by one entry per inconvenient diff is a fence
-// that erodes without a build ever going red. Two invariants:
+// that erodes without a build ever going red, and so is a gate whose baseline or
+// threshold is one digit somebody can edit. Three invariants:
 //
-//   • a row that measures an exception list MUST carry a ceiling, with a reason
-//     and — once there is anything to come off — the condition under which it
-//     does. That is what stops a new fence landing with an uncapped list.
-//   • no measured count may exceed its row's ceiling. Growing a list is then a
-//     two-line diff (the entry, and the ceiling that pays for it), which is
-//     exactly the conversation the entry deserves.
+//   • a row that measures an exception list or a RATCHET BASELINE must carry a
+//     ceiling, with a reason and — once there is anything to come off — the
+//     condition under which it does. That is what stops a new fence landing with
+//     an uncapped list, and what stops a baseline being nudged up in silence.
+//   • a row that measures a THRESHOLD inside a gate must pin it in the direction
+//     that loosens it: a `ceiling` for a limit that must not rise, a `floor` for
+//     a bar that must not drop.
+//   • no measured count may cross its pin. Moving one is then a two-line diff
+//     (the change, and the pin that pays for it), which is exactly the
+//     conversation it deserves.
 //
 // A count that could not be measured is never a failure — a broken counter must
 // not be able to stop a change.
 
 /** Measures whose whole content is "exceptions somebody accepted". */
-const EXCEPTION_KINDS = new Set(["allowlist", "exemptions"]);
+const EXCEPTION_KINDS = new Set(["allowlist", "exemptions", "listLength"]);
+/** …and a ratchet baseline, which is the same thing counted differently: the
+ *  number of findings this rule is living with rather than fixing. */
+const CEILINGED_KINDS = new Set([...EXCEPTION_KINDS, "ratchet"]);
 
 for (const row of rows) {
   const kind = row.measure?.kind;
   const ceiling = row.ceiling;
+  const floor = row.floor;
 
   if (EXCEPTION_KINDS.has(kind) && !ceiling) {
     failures.push(
@@ -389,34 +454,77 @@ for (const row of rows) {
     );
     continue;
   }
-  if (!ceiling) continue;
-
-  if (typeof ceiling.max !== "number" || !Number.isInteger(ceiling.max) || ceiling.max < 0) {
-    failures.push(`${row.id}: \`ceiling.max\` must be a non-negative integer — it is what the list holds today.`);
+  if (CEILINGED_KINDS.has(kind) && !ceiling && !floor) {
+    // Most baselines here count findings and may only FALL, so the pin is a
+    // ceiling. A few count compliance and may only RISE (the SHA-pinned action
+    // refs), and those are pinned with a floor — either way the direction that
+    // loosens the gate has to be written down.
+    failures.push(
+      `${row.id}: measures a ratchet baseline and pins it with neither a \`ceiling\` nor a \`floor\`. A baseline ` +
+        "is a count of findings absorbed rather than fixed, and moving it is the cheapest way in this " +
+        'repository to turn a red gate green — add `"ceiling": { "max": <today\'s baseline>, "reason": "…", ' +
+        '"comesOffWhen": "…" }` so the move is a reviewed line rather than a digit.'
+    );
     continue;
   }
-  if (!String(ceiling.reason ?? "").trim()) {
+  if (kind === "threshold" && !ceiling && !floor) {
     failures.push(
-      `${row.id}: the ceiling has no \`reason\`. A number with no sentence is a limit nobody can argue with, ` +
-        "which is how it gets raised."
+      `${row.id}: measures a threshold inside a gate and pins it with neither a \`ceiling\` nor a \`floor\`. ` +
+        "A number that decides what red means has a direction that loosens it — record that direction, or the " +
+        "gate can be softened by editing one digit in the script that enforces it."
     );
+    continue;
   }
-  if (ceiling.max > 0 && !String(ceiling.comesOffWhen ?? "").trim()) {
-    failures.push(
-      `${row.id}: the ceiling allows ${ceiling.max} exception(s) and records no \`comesOffWhen\`. An exemption ` +
-        "with no removal condition is permanent by default — say what would make these unnecessary."
-    );
+  if (!ceiling && !floor) continue;
+
+  if (ceiling) {
+    if (typeof ceiling.max !== "number" || !Number.isInteger(ceiling.max) || ceiling.max < 0) {
+      failures.push(`${row.id}: \`ceiling.max\` must be a non-negative integer — it is what the list holds today.`);
+      continue;
+    }
+    if (!String(ceiling.reason ?? "").trim()) {
+      failures.push(
+        `${row.id}: the ceiling has no \`reason\`. A number with no sentence is a limit nobody can argue with, ` +
+          "which is how it gets raised."
+      );
+    }
+    if (ceiling.max > 0 && !String(ceiling.comesOffWhen ?? "").trim()) {
+      failures.push(
+        `${row.id}: the ceiling allows ${ceiling.max} exception(s) and records no \`comesOffWhen\`. An exemption ` +
+          "with no removal condition is permanent by default — say what would make these unnecessary."
+      );
+    }
+  }
+
+  if (floor) {
+    if (typeof floor.min !== "number" || !Number.isFinite(floor.min)) {
+      failures.push(`${row.id}: \`floor.min\` must be a number — it is the bar the gate holds today.`);
+      continue;
+    }
+    if (!String(floor.reason ?? "").trim()) {
+      failures.push(
+        `${row.id}: the floor has no \`reason\`. A bar with no sentence behind it is a bar the next hurried ` +
+          "diff lowers, and lowering it is invisible in a green build."
+      );
+    }
   }
 
   const m = measured.get(row.id);
   if (!m || m.count === null || m.count === undefined) continue; // unmeasurable: reported, never blocking
-  if (m.count > ceiling.max) {
+  if (ceiling && m.count > ceiling.max) {
     const added = (m.detail ?? []).slice(0, 10);
     failures.push(
       `${row.id}: ${m.count} ${m.unit}, over the ceiling of ${ceiling.max}. ` +
         (added.length ? `Now: ${added.join(", ")}. ` : "") +
         "Either fix the cause the new entry was papering over, or raise the ceiling in the same commit with " +
         "the reason — the point of this gate is that the second one is a line a reviewer sees."
+    );
+  }
+  if (floor && m.count < floor.min) {
+    failures.push(
+      `${row.id}: ${m.count} ${m.unit}, BELOW the floor of ${floor.min}. This number is what the gate calls ` +
+        "failure, and it just got easier to pass. Restore it, or lower the floor in the same commit with the " +
+        "reason — softening a gate to make your own change pass is the one thing AGENTS.md § Red names outright."
     );
   }
 }
@@ -441,7 +549,7 @@ say(
     `${rows.reduce((n, r) => n + breachCount(r), 0)} recorded breach(es)`
 );
 say("");
-say("| Rule | Enforced by | Absorbing now | Ceiling | Breaches recorded | Last |");
+say("| Rule | Enforced by | Absorbing now | Pinned at | Breaches recorded | Last |");
 say("| --- | --- | ---: | ---: | ---: | --- |");
 
 const sorted = [...rows].sort((a, b) => {
@@ -451,7 +559,12 @@ const sorted = [...rows].sort((a, b) => {
 for (const row of sorted) {
   const m = measured.get(row.id);
   const absorbing = m ? (m.count === null ? m.unit : `${m.count} ${m.unit}`) : row.surface === "prose" ? "—" : "0";
-  const ceiling = typeof row.ceiling?.max === "number" ? String(row.ceiling.max) : "—";
+  const ceiling =
+    typeof row.ceiling?.max === "number"
+      ? `≤ ${row.ceiling.max}`
+      : typeof row.floor?.min === "number"
+        ? `≥ ${row.floor.min}`
+        : "—";
   say(
     `| \`${row.id}\` | ${row.enforcedBy ?? (row.source ? DISCOVERY[row.source].file : "nothing — prose")} | ` +
       `${absorbing} | ${ceiling} | ${breachCount(row)} | ${lastBreach(row) ?? "—"} |`
@@ -505,10 +618,12 @@ if (failures.length) {
 
 say(
   "_Absorbing now_ is measured live from the same files the gates read (allowlists, lint-fence exception " +
-    "lists, ratchet baselines, the population already over a limit). _Ceiling_ is what that number may not " +
-    "exceed without a reviewed diff raising it, and it is the one measured number that DOES fail the build — " +
-    "see the ceiling section in scripts/contract-ledger.mjs. _Breaches recorded_ come from `--record`, fed the " +
-    "JSON a rubric review writes, and never fail anything; the parity check above does."
+    "lists, ratchet baselines, thresholds inside the gate scripts, the population already over a limit). " +
+    "_Pinned at_ is the value that number may not cross without a reviewed diff moving the pin — `≤` a " +
+    "ceiling for a list or a baseline that must not grow, `≥` a floor under a threshold that must not drop " +
+    "(the quality floor, the SHA-pin count). Those are the measured numbers that DO fail the build; see the " +
+    "pins section in scripts/contract-ledger.mjs. _Breaches recorded_ come from `--record`, fed the JSON a " +
+    "rubric review writes, and never fail anything; the parity check above does."
 );
 
 if (SUMMARY_FILE) {

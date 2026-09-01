@@ -428,7 +428,14 @@ if (UPDATE) {
       );
     }
   }
-  console.log("\nNow run `npm run actions:check`: it must print \"N of N\" and stay green. Commit both files.");
+  console.log(
+    "\nTwo more lines belong in the same commit, and they are the ones that stop this coming undone:\n" +
+      "  1. `npm run actions:check` — it must print \"N of N\" and stay green.\n" +
+      "  2. .github/contract-ledger.json, rule `P6 action-pin ratchet`: raise `floor.min` from 0 to the count\n" +
+      "     above. The floor there is what refuses a LOWERED baseline; the ratchet in this file only refuses a\n" +
+      "     lowered COUNT, and an agent under time pressure edits the baseline, not the workflows.\n" +
+      "Commit the workflows, this file and the ledger together."
+  );
   process.exit(0);
 }
 
