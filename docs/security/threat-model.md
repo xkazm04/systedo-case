@@ -35,18 +35,18 @@ different blast radii and the second is the interesting half.
 
 ### Operator-wide — one value, whole deployment
 
-| Credential | Enters via | At rest | Leaves to | Seen by | What stands on it |
-|---|---|---|---|---|---|
-| `AUTH_SECRET` | platform env | never stored | nothing — signs session cookies | `src/lib/auth*`, and as the fallback key of both token-crypto seams below | `sast` `client-env` (a `"use client"` module may not read it) |
-| `FIREBASE_SERVICE_ACCOUNT` | platform env | never stored | Google (Firestore admin API) | `src/lib/` store layer only | lint `adamant/seams` — a route or component importing `firebase-admin` is refused |
-| `CRON_SECRET` | platform env | never stored | compared against an inbound `Authorization` header | `src/lib/cron-auth.ts`, and only it | `test-unit/cron-auth.test.mjs` (fail-closed, constant-time, digested); mutants `cron-fails-open` and `cron-undigested-compare` |
-| `GEMINI_API_KEY`, `LEONARDO_API_KEY`, `OPENROUTER_API_KEY`, `QWEN_API_KEY` | platform env | never stored | the provider | `src/lib/llm/` and the image/vision modules | lint `adamant/seams` + `adamant/seams-lib` — a client may be constructed nowhere else (ADR-0003) |
-| `GOOGLE_ADS_DEVELOPER_TOKEN` | platform env | never stored | Google Ads API, alongside a *tenant's* OAuth token | `src/lib/google/` | `sast` `route-auth` on every route that reaches it |
-| `RESEND_API_KEY` | platform env | never stored | Resend, when mail is sent | `src/lib/` mail path | **honour** — `no-outbound-under-operator` in [`.github/constraint-map.json`](../../.github/constraint-map.json) has no fence; the operator presses send |
-| `SKLIK_API_TOKEN` | platform env | never stored | Sklik API | `src/lib/campaigns/` | `SKLIK_WRITES_ENABLED` (below) decides whether the path may mutate at all |
-| `CATALOG_TOKEN_SECRET` | platform env | never stored | nothing — it is the KEY, not a credential | `src/lib/inventory/token-crypto.ts` | `sast` `deprecated-cipher` pins it to the explicit-IV form |
-| `WEBHOOK_SECRET_KEY` | platform env | never stored | nothing — the KEY for outbound secrets | `src/lib/outbound/secret-crypto.ts` | same rule, same reason |
-| `BYOM_KEY_SECRET` | platform env | never stored | nothing — the KEY for tenant provider keys | `src/lib/llm/keys/crypto.ts` | same rule; and see § below |
+| Flow | Credential | Enters via | At rest | Leaves to | Seen by | What stands on it |
+|---|---|---|---|---|---|---|
+| TM-01 | `AUTH_SECRET` | platform env | never stored | nothing — signs session cookies | `src/lib/auth*`, and as the fallback key of both token-crypto seams below | `sast` `client-env` (a `"use client"` module may not read it) |
+| TM-02 | `FIREBASE_SERVICE_ACCOUNT` | platform env | never stored | Google (Firestore admin API) | `src/lib/` store layer only | lint `adamant/seams` — a route or component importing `firebase-admin` is refused |
+| TM-03 | `CRON_SECRET` | platform env | never stored | compared against an inbound `Authorization` header | `src/lib/cron-auth.ts`, and only it | `test-unit/cron-auth.test.mjs` (fail-closed, constant-time, digested); mutants `cron-fails-open` and `cron-undigested-compare` |
+| TM-04 | `GEMINI_API_KEY`, `LEONARDO_API_KEY`, `OPENROUTER_API_KEY`, `QWEN_API_KEY` | platform env | never stored | the provider | `src/lib/llm/` and the image/vision modules | lint `adamant/seams` + `adamant/seams-lib` — a client may be constructed nowhere else (ADR-0003) |
+| TM-05 | `GOOGLE_ADS_DEVELOPER_TOKEN` | platform env | never stored | Google Ads API, alongside a *tenant's* OAuth token | `src/lib/google/` | `sast` `route-auth` on every route that reaches it |
+| TM-06 | `RESEND_API_KEY` | platform env | never stored | Resend, when mail is sent | `src/lib/` mail path | **honour** — `no-outbound-under-operator` in [`.github/constraint-map.json`](../../.github/constraint-map.json) has no fence; the operator presses send |
+| TM-07 | `SKLIK_API_TOKEN` | platform env | never stored | Sklik API | `src/lib/campaigns/` | `SKLIK_WRITES_ENABLED` (below) decides whether the path may mutate at all |
+| TM-08 | `CATALOG_TOKEN_SECRET` | platform env | never stored | nothing — it is the KEY, not a credential | `src/lib/inventory/token-crypto.ts` | `sast` `deprecated-cipher` pins it to the explicit-IV form |
+| TM-09 | `WEBHOOK_SECRET_KEY` | platform env | never stored | nothing — the KEY for outbound secrets | `src/lib/outbound/secret-crypto.ts` | same rule, same reason |
+| TM-10 | `BYOM_KEY_SECRET` | platform env | never stored | nothing — the KEY for tenant provider keys | `src/lib/llm/keys/crypto.ts` | same rule; and see § below |
 
 **Both token-crypto seams fall back to `AUTH_SECRET`** when their dedicated key is
 unset (`src/lib/inventory/token-crypto.ts`, `src/lib/outbound/secret-crypto.ts`,
@@ -63,13 +63,13 @@ wrong.
 These are the ones a bug leaks *someone else's* copy of, so the row that matters is
 `seen by`.
 
-| Credential | Enters via | At rest | Leaves to | Seen by | What stands on it |
-|---|---|---|---|---|---|
-| Google OAuth access/refresh token | the user's Google sign-in | Firestore, under the Auth.js adapter | Google Ads API | `src/lib/google/token.ts` → `getUserAccessToken` | the tenant key (ADR-0002): the id embeds `userId`, so reading another user's row needs a forged session, not a guessed id |
-| Sklik account token | the user pastes it | encrypted (`src/lib/inventory/token-crypto.ts`), in the store | Sklik API | `src/lib/campaigns/sklik-connection.ts` → `getSklikToken` | lint `adamant/seams` (no driver outside `src/lib/`) + `sast` `route-auth` |
-| Warehouse / ERP connector token | the user pastes it | encrypted, same seam | the connector's API | `src/lib/inventory/` | same |
-| Outbound webhook secret | the user sets it | encrypted (`src/lib/outbound/secret-crypto.ts`) | signs the outbound payload | `src/lib/outbound/emit.ts` | same |
-| **BYOM provider key** (OpenAI / Gemini / Claude / OpenRouter) | the user pastes it in Settings | encrypted (`src/lib/llm/keys/crypto.ts`), in the store | the user's chosen provider, from the chokepoint | `src/lib/llm/keys/store.ts` → `resolveByomKey`, and the chokepoint | its own `sast` rule — see below |
+| Flow | Credential | Enters via | At rest | Leaves to | Seen by | What stands on it |
+|---|---|---|---|---|---|---|
+| TM-11 | Google OAuth access/refresh token | the user's Google sign-in | Firestore, under the Auth.js adapter | Google Ads API | `src/lib/google/token.ts` → `getUserAccessToken` | the tenant key (ADR-0002): the id embeds `userId`, so reading another user's row needs a forged session, not a guessed id |
+| TM-12 | Sklik account token | the user pastes it | encrypted (`src/lib/inventory/token-crypto.ts`), in the store | Sklik API | `src/lib/campaigns/sklik-connection.ts` → `getSklikToken` | lint `adamant/seams` (no driver outside `src/lib/`) + `sast` `route-auth` |
+| TM-13 | Warehouse / ERP connector token | the user pastes it | encrypted, same seam | the connector's API | `src/lib/inventory/connection-store.ts` | same |
+| TM-14 | Outbound webhook secret | the user sets it | encrypted (`src/lib/outbound/secret-crypto.ts`) | signs the outbound payload | `src/lib/outbound/emit.ts` | same |
+| TM-15 | **BYOM provider key** (OpenAI / Gemini / Claude / OpenRouter) | the user pastes it in Settings | encrypted (`src/lib/llm/keys/crypto.ts`), in the store | the user's chosen provider, from the chokepoint | `src/lib/llm/keys/store.ts` → `resolveByomKey`, and the chokepoint | its own `sast` rule — see below |
 
 ## The seams, by what they are actually defending
 
@@ -115,6 +115,38 @@ because master ships on push). The four that bear on the flows above:
 That is the only credential in the tree with a rule of its own, and it earned it:
 it is the one a user hands over, that the operator can be billed for, and that
 would leave the machine under the user's own provider account.
+
+## Which test asserts each flow
+
+**A threat model nothing points back at is a description.** Every row above was true
+when it was written, and the suite that proves the seams is large, behavioural and
+mutation-tested — but until the `TM-nn` ids landed, no assertion anywhere named a
+flow in this document. A refactor that widened a credential path stayed green, and
+the page stayed confident, because nothing tied the two together in a direction a
+machine could read.
+
+So each flow carries an id, a suite claims it by naming that id, and
+`npm run threat:flows` prints the matrix. The claim is not a comment for the reader:
+[`test-unit/threat-flows.test.mjs`](../../test-unit/threat-flows.test.mjs) blocks on
+every build — inside `npm run test:unit` → `check:ci` → `.husky/pre-push` — when
+
+- a flow declared here is claimed by no suite (and is not on the short untraced list
+  in [`scripts/threat-flows.mjs`](../../scripts/threat-flows.mjs), which has a
+  ceiling like every other exception list here);
+- a suite names a `TM-nn` this document no longer declares — a citation that rots
+  while the test keeps passing is worse than none;
+- or a repository path this page cites has moved, which is the ordinary way a flow
+  stops matching the code.
+
+**What a claim means, and what it does not.** It means that suite exercises the seam
+this row says stands on the credential — the cron guard's fail-closed branch, the
+token blob's auth tag, the lint fence refusing a driver import. It does not mean the
+flow is fully covered: coverage is a judgment and this is a pointer. The value is
+that the pointer is now checkable in both directions, so the next agent asking "what
+asserts this?" gets an answer instead of a search.
+
+    npm run threat:flows          # the matrix: every flow, and the suites that claim it
+    npm run threat:flows:check    # exit 1 on an unclaimed flow, a rotted id or a moved path
 
 ## What this model cannot see
 

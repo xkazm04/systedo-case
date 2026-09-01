@@ -1,6 +1,10 @@
 /** Direction 3 — token crypto v2 (per-token salts). Verifies: v2 round-trip and blob
  *  shape (a fresh salt per encryption), backward-compatible decryption of legacy v1
- *  blobs, and that tamper / wrong-secret return null rather than throwing. */
+ *  blobs, and that tamper / wrong-secret return null rather than throwing.
+ *
+ *  Threat-model flow TM-08 (docs/security/threat-model.md § Credentials, by flow):
+ *  `CATALOG_TOKEN_SECRET` is the KEY rather than a credential, and this is the seam it
+ *  is the key TO — the one every connector token in the tree rests behind. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";

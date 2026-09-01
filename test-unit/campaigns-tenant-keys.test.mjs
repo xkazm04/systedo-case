@@ -2,7 +2,12 @@
  *  (src/lib/campaigns/store-keys.ts). The audit + activity of a pause/budget-shift
  *  must land under the SAME project-scoped tenant as the campaigns they mutate,
  *  and legacy audit docs (written under the old project-agnostic key) must stay
- *  readable via a dual-read that never rewrites history. */
+ *  readable via a dual-read that never rewrites history.
+ *
+ *  Threat-model flow TM-11 (docs/security/threat-model.md § Credentials, by flow): a
+ *  tenant's Google OAuth token rests in Firestore, and what stands on it is the tenant
+ *  key itself — the id embeds `userId` (ADR-0002), so reading another user's row needs
+ *  a forged session rather than a guessed id. This suite is where that key is pinned. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {

@@ -22,6 +22,15 @@
  *  in a plain `node` rather than importing it, so ESLint and the Next config load
  *  under the flags `npm run lint` uses and not under this suite's
  *  `--conditions react-server`.
+ *
+ *  Threat-model flows TM-02 and TM-04 (docs/security/threat-model.md § Credentials, by
+ *  flow): two of the three fences drilled here are SECURITY fences rather than
+ *  architectural ones. `adamant/seams` is what keeps `FIREBASE_SERVICE_ACCOUNT` — and
+ *  the tenant key the store layer applies with it — out of a route or a component, and
+ *  the chokepoint fence is what keeps a provider key (and a tenant's decrypted BYOM
+ *  key) from being handled by a second client somebody built elsewhere. The model
+ *  names those fences as what stands on both flows; this is the file that proves they
+ *  still fire.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";

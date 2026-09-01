@@ -7,7 +7,13 @@
  *  give: the pending sweep is DUE-filtered across projects, and the log is capped so
  *  an endpoint that fails forever cannot grow the table without bound.
  *
- *  Temp-db pattern from campaigns-local-store.test.mjs. */
+ *  Temp-db pattern from campaigns-local-store.test.mjs.
+ *
+ *  Threat-model flows TM-09 and TM-14 (docs/security/threat-model.md § Credentials, by
+ *  flow): `WEBHOOK_SECRET_KEY` is the key, and a tenant's outbound webhook secret is
+ *  what rests behind it — set by the user, encrypted in the store, and used to sign the
+ *  payload that leaves. This suite drives the real config store end to end with that
+ *  key configured. `npm run threat:flows` ties the rows to this file. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { tmpdir } from "node:os";

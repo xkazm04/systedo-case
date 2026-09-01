@@ -20,6 +20,13 @@
  *  derived half: `npm run api:surface:write` re-derives it, keeps every written
  *  sentence, and leaves a diff to read.
  *
+ *  Threat-model flow TM-05 (docs/security/threat-model.md § Credentials, by flow):
+ *  `GOOGLE_ADS_DEVELOPER_TOKEN` travels to the Google Ads API alongside a tenant's own
+ *  OAuth token, and what stands on it is `sast` `route-auth` — caller identity on every
+ *  route that can reach it. The posture assertions below classify handlers with the
+ *  SAME regex the security gate uses, so the document and the gate cannot hold two
+ *  opinions about whether a route knows who is calling.
+ *
  *  Pure — reads files, runs nothing, spends nothing.
  */
 import { test } from "node:test";

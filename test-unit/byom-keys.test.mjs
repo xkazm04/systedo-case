@@ -1,6 +1,12 @@
 /** Unit tests for per-user BYOM keys: key encryption at rest (round-trip, tamper
  *  detection, fail-safe when unconfigured), the sqlite config store round-trip,
- *  the vendor guard, and that publicByomConfig never leaks a key. */
+ *  the vendor guard, and that publicByomConfig never leaks a key.
+ *
+ *  Threat-model flows TM-10 and TM-15 (docs/security/threat-model.md § Credentials, by
+ *  flow): `BYOM_KEY_SECRET` is the key, and the tenant's provider key is the one
+ *  credential in this tree with a `sast` rule of its own — the one a user hands over,
+ *  that the operator can be billed for, and that would leave the machine under the
+ *  user's own provider account. `npm run threat:flows` ties the rows to this file. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { decryptByomKey, encryptByomKey, hasByomCrypto } from "@/lib/llm/keys/crypto";

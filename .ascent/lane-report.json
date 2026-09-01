@@ -2,81 +2,80 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "73d3017c-23dc-4c13-a17b-f59b81884924",
+      "recommendationId": "a1b48742-79de-4094-8a2a-d8b5cf5d53b8",
       "verdict": "skipped",
-      "reason": "Needs network: pinning an action to a SHA means asking GitHub what the tag points at right now, and inventing a digest breaks the workflow rather than pinning it — the repo already ships the resolver (`npm run actions:pin`, scripts/actions-pin.mjs) and it is documented as needing network.",
+      "reason": "Pinning a tag to a SHA means asking GitHub what the tag points at right now, and this session has no network; the repository already ships the one networked command that closes it (`npm run actions:pin`, which rewrites the workflows AND flips STRICT/RATCHET in the same pass), so inventing SHAs or adding another burn-down job would be worse than leaving it.",
       "files": []
     },
     {
-      "recommendationId": "d765a8d5-4a36-46d8-b79f-375f24866d72",
+      "recommendationId": "bcb23a3c-e230-4d06-8d0e-3e3a317337d8",
       "verdict": "skipped",
-      "reason": "Already fenced another way: scripts/commit-subject.mjs refuses every family in the sampled log (first-person, opens-with-done, loop-mechanics, run-progress, item-tally, queue-position), rubric A5 runs it over origin/master..HEAD in check:ci and in agent-review.yml on every push AND pull request, and `npm run commit:check -- --message` exists as documented; what remains is history, which cannot be rewritten from this session.",
+      "reason": "The half that is still open is history — measuring and re-attributing past subjects needs git, which this session cannot run; the forward half is already fenced (rubric A5 blocks via review:agent:gate inside check:ci and the pre-push hook, with a known-bad fixture in test-unit/gate-bite.test.mjs, and scripts/commit-attribution.mjs writes the authorship and provenance trailers from the commit hooks).",
       "files": []
     },
     {
-      "recommendationId": "c4ddbe8e-62b4-4d39-a98c-185d9e6da443",
+      "recommendationId": "1dcd34c0-eb9a-4df6-8d8e-6abb9c1e326d",
       "verdict": "skipped",
-      "reason": "Already covered: AGENTS.md § 'Which of these rules will actually stop you' is a 50-row rule-to-fence table with a `rung` column (blocking / reporting / partial / honour), backed by .github/constraint-map.json and held to the tree by test-unit/constraint-map.test.mjs — the eslint.config.mjs sentence the scan quotes is the historical reason the fences were added, in the past tense.",
+      "reason": "Already closed before this cycle: .github/guidance-budget.json declares the seven read-first documents with a line ceiling on each and on the total, scripts/guidance-budget.mjs measures it, and test-unit/guidance-budget.test.mjs blocks on every build — this session paid the ceiling honestly (126 → 127 for docs/task-index.md) rather than editing around it.",
+      "files": [".github/guidance-budget.json"]
+    },
+    {
+      "recommendationId": "18ac2a25-53f3-49b1-8417-977e14397bea",
+      "verdict": "skipped",
+      "reason": "Already closed before this cycle: scripts/lib/review-prompt.mjs fences every untrusted surface with a per-run nonce, test-llm/injection/corpus.json holds the hostile cases for both model surfaces (the review and the issue dispatch), test-unit/prompt-injection.test.mjs blocks on containment with an unfenced negative control, and the live refusal drill runs weekly in llm-drift.yml.",
       "files": []
     },
     {
-      "recommendationId": "05706f26-44a2-4ad3-a94e-78755d512d73",
-      "verdict": "skipped",
-      "reason": "Needs a build run: the route-cost half is already fenced (.github/perf-budgets.json + tests/perf-budget.spec.ts in the required E2E job), and the half still open is bundle size, which requires `next build` output to declare a defensible ceiling — the `.next/` in this worktree is a stale dev artefact with no chunks, and a ceiling invented without measuring is exactly what perf-budgets.json's own `notCovered` note refuses.",
-      "files": []
-    },
-    {
-      "recommendationId": "34082d42-8001-4f79-8544-1d8b03d25efd",
-      "verdict": "skipped",
-      "reason": "Already covered: scripts/lib/review-prompt.mjs fences all four untrusted surfaces of the reviewer's prompt (commit messages, PR body, Part A report, the DIFF) behind a per-run nonce with a system prompt saying an instruction inside the fence is a finding; test-unit/prompt-injection.test.mjs runs the committed hostile corpus on every build and .github/workflows/llm-drift.yml runs `injection-drill --live` weekly.",
-      "files": []
-    },
-    {
-      "recommendationId": "bf92aec3-4891-4229-af49-b974eb28fd94",
+      "recommendationId": "602a87d4-1df2-409f-a4d5-9504c3bf19e4",
       "verdict": "resolved",
-      "reason": "Added `npm run check:fast`, an inner loop derived from the declared chain (the fourteen `seconds` stages of scripts/gate-remedy.mjs, then typecheck, lint and the already-existing scoped `test:fast`), skipping `next build` and the 499-file suite and printing what it skipped every time; test-unit/check-fast.test.mjs blocks if it stops being a strict subset or is wired into check:ci or the pre-push hook.",
+      "reason": "Every credential flow in docs/security/threat-model.md now carries a TM-nn id, fourteen of the fifteen are claimed by the suite that asserts the fence the row names, and test-unit/threat-flows.test.mjs blocks when a flow is unclaimed, a citation rots, or a cited path has moved.",
       "files": [
-        "scripts/check-fast.mjs",
-        "test-unit/check-fast.test.mjs",
-        "package.json",
-        "AGENTS.md",
-        ".github/test-tiers.json",
-        ".github/guidance-budget.json"
-      ]
-    },
-    {
-      "recommendationId": "208c2d57-02e0-47d5-8308-97c8c1ac60f8",
-      "verdict": "resolved",
-      "reason": "scripts/lint-fence-drill.mjs lints thirteen fixtures through the real ESLint against this repository's own config — violations that each fence must refuse and the code each fence deliberately allows — and test-unit/lint-fence-firing.test.mjs blocks on it inside test:unit, including a negative control that re-runs every case with the `adamant/*` blocks removed and requires a red, plus a census so a fourth fence cannot land unrehearsed.",
-      "files": [
-        "scripts/lint-fence-drill.mjs",
+        "docs/security/threat-model.md",
+        "scripts/threat-flows.mjs",
+        "test-unit/threat-flows.test.mjs",
+        "test-unit/cron-auth.test.mjs",
+        "test-unit/token-crypto-v2.test.mjs",
+        "test-unit/byom-keys.test.mjs",
+        "test-unit/catalog-connection.test.mjs",
+        "test-unit/sklik-connection.test.mjs",
+        "test-unit/campaigns-tenant-keys.test.mjs",
+        "test-unit/campaigns-mutator.test.mjs",
+        "test-unit/outbound-stores-local.test.mjs",
         "test-unit/lint-fence-firing.test.mjs",
-        "test-unit/lint-fences.test.mjs",
-        "package.json",
-        "AGENTS.md",
-        ".github/guidance-budget.json"
+        "test-unit/api-surface.test.mjs",
+        "test-unit/gate-bite.test.mjs",
+        "docs/task-index.md",
+        "package.json"
       ]
     },
     {
-      "recommendationId": "c05bb85a-367f-4029-a9f6-613dfa19e8bb",
+      "recommendationId": "fbd89fc7-85c9-49cd-90df-ffd023f4e332",
+      "verdict": "needs_human",
+      "reason": "Staged exposure is a deployment-platform change (Vercel skew/aliases or a flag SDK) plus a halt signal nobody has agreed on; AGENTS.md puts anything that changes what production runs on the operator's side, and there is nothing offline in this repository that would make a canary real rather than declared.",
+      "files": []
+    },
+    {
+      "recommendationId": "145c1582-e1ec-4856-afaa-01a163e6cc87",
       "verdict": "resolved",
-      "reason": "Added the reverse lookup docs/task-index.md never had: .github/adr-ownership.json maps every one of the twelve ADRs to the paths it governs, `npm run adr:owner -- <path>` answers with a path instead of a task, and test-unit/adr-ownership.test.mjs blocks when a record has no row or a row names a path that has moved; `--unmapped` reports the subtrees no record claims, deliberately without a number.",
+      "reason": "scripts/guidance-commands.mjs resolves every `npm run …` quoted in the read-first set, the documents task-index routes to and the five entry points against package.json, blocking through test-unit/guidance-commands.test.mjs, and reports the scripts no guidance names.",
       "files": [
-        ".github/adr-ownership.json",
-        "scripts/adr-owner.mjs",
-        "test-unit/adr-ownership.test.mjs",
+        "scripts/guidance-commands.mjs",
+        "test-unit/guidance-commands.test.mjs",
         "docs/task-index.md",
-        "package.json",
-        "AGENTS.md",
-        ".github/test-tiers.json",
-        ".github/guidance-budget.json"
+        ".github/guidance-budget.json",
+        "package.json"
       ]
+    },
+    {
+      "recommendationId": "917fcb5d-c755-4aca-abc7-ce2525df2cbe",
+      "verdict": "skipped",
+      "reason": "Already closed before this cycle: test-unit/gate-bite.test.mjs gives every stage of check:ci a known-bad fixture, a delegated suite or a written exemption, and the COVERAGE list is held closed against the CHAIN in scripts/gate-remedy.mjs, so a gate added to the chain without a proof that it bites turns the unit suite red.",
+      "files": []
     }
   ],
   "lessons": [
-    "This repository states, for every rule, whether anything actually enforces it (.github/constraint-map.json and AGENTS.md's rung table) — read that table before proposing a fence, because roughly half the gaps a maturity scan raises here are already fenced and the scan is reading a snapshot that predates the fence.",
-    "AGENTS.md and docs/task-index.md sit EXACTLY on their line ceilings in .github/guidance-budget.json (`wc -l` them first). Adding guidance is a deliberate two-part diff — the paragraph, plus the per-file ceiling, the total, and a dated `$raised` note saying why every run should now read it.",
-    "Assertions here are overwhelmingly text-level (does the config still say X?), which is blind to a rule that is still written and has stopped matching. When strengthening a fence, prefer running the real tool over a fixture and pair it with a negative control that removes the fence and requires a red — the repo already uses that shape in test-unit/contract-ledger-ceiling.test.mjs and test-unit/prompt-injection.test.mjs.",
-    "An Ascent lane in a throwaway worktree runs no hooks, so the outer harness's commit subject is the one thing the repository cannot refuse before it is written: rubric A5 (scripts/commit-subject.mjs) rejects 'partial work from an interrupted lane session' and 'Done. Here's what I found' by name, so the report's first line has to be written as a conventional-commit subject."
+    "This repository's gates are mostly cheap file-reading checks wired through test-unit/*.test.mjs rather than as new check:ci stages — adding a stage drags in a gate-remedy entry, a gate-bite fixture row, a constraint-map rule and a timing baseline, so a new fence is cheapest and most conventional as a unit test that spawns its own script.",
+    "Ascent findings here can be several cycles stale: four of the eight items named gaps that prior work had already closed (the injection corpus, the gate-bite fixtures, the guidance budget). Read the tree before writing anything — the honest answer for those is a skip that names the existing artefact, not a second implementation of it.",
+    "Anything added to AGENTS.md or docs/task-index.md is priced: .github/guidance-budget.json pins both at their exact current line count, so a paragraph costs a ceiling raise with a written reason. Routing a new tool from the task index (one line) rather than describing it in the canonical document (seven) is the move the budget's own $howToChange asks for."
   ]
 }

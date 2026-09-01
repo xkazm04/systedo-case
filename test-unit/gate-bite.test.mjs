@@ -32,6 +32,12 @@
  *  read back from scripts/gate-remedy.mjs. A stage with neither a fixture nor a
  *  written exemption fails this suite, so the next gate added to the chain arrives
  *  with the proof that it bites, or with the reason it cannot have one.
+ *
+ *  Threat-model flow TM-01 (docs/security/threat-model.md § Credentials, by flow):
+ *  `AUTH_SECRET` signs the session cookies and is the fallback key of both token-crypto
+ *  seams, and what stands on it is `sast` `client-env` — a `"use client"` module may
+ *  not read a server env var. The sast fixture below is where that rule is shown
+ *  firing on exactly that shape.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";

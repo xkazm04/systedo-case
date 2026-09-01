@@ -1,6 +1,11 @@
 /** Unit tests for persistent warehouse connections: token encryption at rest
  *  (round-trip, tamper detection, fail-safe when unconfigured), the sqlite connection
- *  store round-trip, and that publicConnection never leaks the token. */
+ *  store round-trip, and that publicConnection never leaks the token.
+ *
+ *  Threat-model flow TM-13 (docs/security/threat-model.md § Credentials, by flow): the
+ *  warehouse / ERP connector token is pasted by a tenant, rests encrypted behind the
+ *  same seam as the Sklik token, and the client-safe view is what stops it coming back
+ *  out. `npm run threat:flows` ties the row to this file. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { decryptToken, encryptToken, hasTokenCrypto } from "@/lib/inventory/token-crypto";

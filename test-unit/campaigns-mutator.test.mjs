@@ -15,7 +15,12 @@
  *  What is mocked and why: the credential seams only — the tenant's sync meta, the
  *  Google connection/token, and the Sklik connection/token. The mutator, the rails
  *  and the real SklikClient are the code under test; the Sklik transport is injected
- *  as a fixture, so nothing here can reach the network. */
+ *  as a fixture, so nothing here can reach the network.
+ *
+ *  Threat-model flow TM-07 (docs/security/threat-model.md § Credentials, by flow):
+ *  `SKLIK_API_TOKEN` reaches the Sklik API, and what stands on it is not the token's
+ *  storage but rail 3 — `SKLIK_WRITES_ENABLED`, default OFF, only "1" arms it. That
+ *  rail is pinned here, in both states. */
 import { test, mock, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { contract } from "./contract.mjs";

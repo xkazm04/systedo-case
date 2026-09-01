@@ -15,7 +15,12 @@
  *  absent, one that is close, one that is a different LENGTH (which is what the
  *  SHA-256 of both sides buys — `timingSafeEqual` throws on unequal-length inputs,
  *  so an un-digested compare is a 500 on every probe rather than a 401), and the
- *  exact-match case that must still be true afterwards. */
+ *  exact-match case that must still be true afterwards.
+ *
+ *  Threat-model flow TM-03 (docs/security/threat-model.md § Credentials, by flow):
+ *  `CRON_SECRET` enters from platform env, is never stored, and is compared against an
+ *  inbound Authorization header by this one function. The model's "what stands on it"
+ *  cell names this file; `npm run threat:flows` keeps the two pointing at each other. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 

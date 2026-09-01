@@ -6,7 +6,12 @@
  *   - the stable `sklik` tenant suffix that drift-proofs Sklik history against a
  *     later Google connection.
  *  The sqlite backend is exercised directly (like catalog-connection.test.mjs), so
- *  no Firestore/network is touched. */
+ *  no Firestore/network is touched.
+ *
+ *  Threat-model flow TM-12 (docs/security/threat-model.md § Credentials, by flow): the
+ *  Sklik account token is pasted by a tenant, rests encrypted in the store, and the
+ *  client-safe view is what stops it travelling back out. `npm run threat:flows` ties
+ *  the row to this file. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chooseAdsSource, unionConnectedUserIds } from "@/lib/campaigns/provider-precedence";
