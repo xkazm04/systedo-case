@@ -2899,10 +2899,15 @@
       "api_surface": null,
       "business_feature": "Lead Management",
       "category": "ui",
+      "$comment": "cross_refs 2026-09-01: campaigns-core-lib + ad-platform-integrations — the conversion-upload feature pushes lead conversions into the project's linked Google Ads account (getAdsConnection, google/token, google/ads); campaigns-store-backend — the drain claims its sent-period under buildTenantKey so conversions and campaigns share ONE tenant key scheme (conversion-join coherence); recaps-activity — an upload emits an activity event for the feed.",
       "cross_refs": [
         "speed-lead-ui",
         "audience-goals-ltv",
-        "local-seo-core-lib"
+        "local-seo-core-lib",
+        "campaigns-core-lib",
+        "ad-platform-integrations",
+        "campaigns-store-backend",
+        "recaps-activity"
       ],
       "db_tables": [],
       "description": "Handles lead quality scoring, import, source diagnosis, and review triage in the authed product. LeadQualityModule surfaces a scored lead list with quality indicators; LeadImportPanel supports CSV/API lead ingestion; LeadSourceDiagnosisPanel runs AI diagnosis on underperforming lead sources; ReviewInbox consolidates incoming customer reviews for CRM follow-up.",
