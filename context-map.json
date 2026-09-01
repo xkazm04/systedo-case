@@ -1064,11 +1064,14 @@
       "api_surface": null,
       "business_feature": "Campaign Alerts & Control",
       "category": "ui",
+      "$comment": "cross_refs 2026-09-01: campaigns-sklik-sync + campaigns-budget-alerts — the control plane UI renders ChangeSets typed by control-plane-types, projected by simulate and realized by realize; those libs are the control plane's model and this context is its face. The pre-existing ControlPlane.tsx already crossed here; the new files are its extractions.",
       "cross_refs": [
         "campaigns-core-ui",
         "campaigns-core-lib",
         "campaign-table",
-        "performance-analyst-ai"
+        "performance-analyst-ai",
+        "campaigns-sklik-sync",
+        "campaigns-budget-alerts"
       ],
       "db_tables": [],
       "description": "Implements the campaign triage workflow — real-time alerts, health timelines, budget movement actions, and the control plane for applying changes. ControlPlane is the primary action surface; AlertsInbox and TriageBanner surface issues; HealthTimeline and ScoreTimeline chart performance over time; BudgetMoves, ChangeStrip, and ActivityFeed handle the audit trail of actions taken.",
