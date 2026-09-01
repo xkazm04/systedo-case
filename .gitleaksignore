@@ -1,0 +1,15 @@
+# gitleaks fingerprints the full-history secret scan (Supply chain → "Secret scan (full history,
+# blocking)") must skip. A fingerprint is <commit>:<file>:<rule>:<line> — it names exactly one line
+# in exactly one commit, so nothing else is waved through: not the file, not the rule, not a later
+# real key. Adding a line here is the same act as adding an exception to any other gate in this
+# repository: it must name what it forgives and why. A fingerprint for a REAL credential does not
+# belong here — the remedy for that is revocation and a history rewrite.
+#
+# Why these two exist: test-unit/secret-scan-sensitivity.test.mjs proves the repository's own secret
+# scanner catches each credential shape. Its header states the invariant that makes such a test safe
+# to commit — "NO CREDENTIAL-SHAPED LITERAL APPEARS IN THIS FILE. Every fixture is assembled" at
+# runtime — and two fixtures broke it with a literal 20-hex value (a lane commit, 2026-08-31). The
+# tree was fixed on 2026-09-01 (the value is now joined at runtime), but the literal already sits in
+# pushed history at 27379f47, and a full-history scan would report it on every push forever.
+27379f47f903bf3249fcb130c428a60fccba0f2f:test-unit/secret-scan-sensitivity.test.mjs:generic-api-key:96
+27379f47f903bf3249fcb130c428a60fccba0f2f:test-unit/secret-scan-sensitivity.test.mjs:generic-api-key:99

@@ -68,6 +68,11 @@ function ruleNames() {
 
 const a = (n) => "a".repeat(n);
 const hex = "0123456789abcdef0123456789abcdef";
+/** The generic-secret fixture VALUE. Joined at runtime so the file never contains a
+ *  credential-shaped literal — the invariant the header states, which two fixtures and one
+ *  assertion loop had broken with this exact string written out, and which the repository's own
+ *  full-history gitleaks scan then flagged on every push. */
+const FAKE_HEX20 = ["9f3b1c7d", "2e4a6b8c", "0d5e"].join("");
 
 /** rule → the smallest file that must trip it. `file` names the fixture, because
  *  two of these rules are about the PATH rather than the content. */
@@ -93,10 +98,10 @@ const FIXTURES = {
   "vercel-token": { file: "f.ts", line: `${a(24)} is the VERCEL_TOKEN` },
   jwt: { file: "f.ts", line: `const t = "eyJ${a(14)}.eyJ${a(14)}.${a(14)}";` },
   "db-url-with-password": { file: "f.ts", line: `const u = "postgres://u:${a(12)}@db.internal:5432/x";` },
-  "generic-assigned-secret": { file: "f.ts", line: `const cfg = { apiKey: "9f3b1c7d2e4a6b8c0d5e" };` },
+  "generic-assigned-secret": { file: "f.ts", line: `const cfg = { apiKey: "${FAKE_HEX20}" };` },
   // The one the generic rule structurally could not see: an env NAME with an
   // underscore in front of the secret-ish word.
-  "app-credential-env": { file: "f.ts", line: `process.env.SKLIK_API_TOKEN = "9f3b1c7d2e4a6b8c0d5e";` },
+  "app-credential-env": { file: "f.ts", line: `process.env.SKLIK_API_TOKEN = "${FAKE_HEX20}";` },
   "forbidden-file": { file: ".env.local", line: "# nothing secret in here at all\n" },
 };
 
@@ -161,7 +166,7 @@ test("this app's own credential names are covered, and adding one is a one-line 
   // advertiser's budget, send mail under the operator's name, or open the six cron
   // endpoints are asserted to be in it.
   for (const name of ["SKLIK_API_TOKEN", "GOOGLE_ADS_DEVELOPER_TOKEN", "RESEND_API_KEY", "CRON_SECRET"]) {
-    const { code, out } = scan("f.ts", `const x = { ${name}: "9f3b1c7d2e4a6b8c0d5e" };\n`);
+    const { code, out } = scan("f.ts", `const x = { ${name}: "${FAKE_HEX20}" };\n`);
     assert.equal(code, 1, `${name} is not in APP_SECRET_ENV — a leak of it would be caught by nothing:\n${out}`);
   }
 });
