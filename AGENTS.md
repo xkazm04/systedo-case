@@ -207,6 +207,12 @@ npm run llm:drift     # AMBER (spends money): every registered operation against
                       #   and publishes a dated pass/fail trail; never in check:ci
 npm run context:decay # cross-group imports the context map does not declare;
                       #   :check blocks a NEW crossing in the diff (--base <ref>)
+npm run context:coverage # which CONTEXTS have a test pointing at them — the number
+                      #   a repository-wide ratio hides. 515 test files and a healthy
+                      #   ratio are both totals, and a whole context nothing claims
+                      #   does not move a total. Reporting, ranked; the blocking half
+                      #   is the FLOORS in .github/context-test-floors.json, on the
+                      #   five contexts where zero is a bill, a breach or a credential
 npm run sast          # repo security rules over src/. BLOCKING, in both places that
                       #   matter: a required check on a PR (sast.yml, job repo-rules)
                       #   and a cheap stage of check:ci, so the pre-push hook refuses
@@ -424,9 +430,15 @@ remedy all turn the unit suite red.
   `.github/workflows/agent-review.yml` runs the rubric in
   `.github/agent-review-rubric.md` on every push and PR. Part A is mechanical and
   **blocks**: a component growing past 200 LOC, an `export const dynamic|runtime|
-  revalidate` under `src/app/`, a deleted test, a new runtime dependency. The last
-  two are unblocked by a sentence — put `Ack: <why>` in the commit message or the
-  PR body; there is no flag that turns the rule off. Part B is a model applying
+  revalidate` under `src/app/`, a deleted test, a new runtime dependency, a
+  narrating commit subject, and (A6) a pin in `.github/contract-ledger.json` that
+  moved in the LOOSENING direction — a ceiling raised, a floor lowered, a pin
+  removed — without the same diff re-dating `accepted.on` and rewriting `reason`.
+  Tightening a pin is free and silent, and that asymmetry is the whole rule:
+  `contract:ledger:check` measures the tree against the pins and cannot see a pin
+  move, because afterwards the tree agrees with it again. Deleting a test and
+  adding a dependency are unblocked by a sentence — put `Ack: <why>` in the commit
+  message or the PR body; there is no flag that turns any of them off. Part B is a model applying
   the judgment half and posting a comment; it never blocks — and it runs in a
   separate job, because the half that holds `pull-requests: write` should not be
   the half that decides the build. Part A also runs as an early stage of
@@ -581,6 +593,40 @@ remedy all turn the unit suite red.
   **A lane that commits for itself writes its own trailers**, because a runner
   where nobody ran `npm install` runs no hooks —
   [`scripts/issue-dispatch.mjs`](scripts/issue-dispatch.mjs) is the worked example.
+- **And the third fact is which DECISION the change served.** The log is filterable
+  by shape (the conventional prefix) and by origin (the trailers above), and twelve
+  ADRs and a twelve-rule rubric govern the seams — so "which changes have actually
+  been made under ADR-0001, and did any of them argue with it?" and "which commits
+  fixed a finding rubric A6 raised, and which absorbed one?" were answered by
+  reading prose bodies and guessing. `git log -- <paths>` plus
+  `.github/adr-ownership.json` answers a NEIGHBOURING question — which commits
+  touched code a record governs — and a change is governed by ADR-0001 whether or
+  not its author had read it. What only the author holds is that it was made
+  *because* of it. So it goes in a trailer, below a blank line, where git can count
+  it:
+
+  ```
+  Decision: ADR-0001
+  Decision: rubric-A6, ADR-0007
+  ```
+
+  **Citing nothing is the common and correct case** — most changes act on no
+  recorded decision, and a log where every commit cites ADR-0007 says less than one
+  where none does. What is refused is a citation that does not RESOLVE:
+  `Decision: ADR-0013` on a repository with twelve records is worse than silence,
+  because it is a citation and a citation is read with confidence.
+  [`scripts/commit-decision.mjs`](scripts/commit-decision.mjs) derives what is
+  citable from the ADR filenames and the rubric's own headings, so a record that
+  lands is citable without anyone editing a list; `.husky/commit-msg` refuses an
+  unresolvable one while the message is still free to change, and
+  `npm run commit:check -- --range <range>` fails on one already in history.
+  Coverage is reporting, on the same rung and for the same reason as the
+  authorship trailer. Read it back the way the question is actually asked:
+
+  ```bash
+  npm run commit:check -- --decisions                              # what may be cited
+  npm run commit:check -- --range origin/master..HEAD --decision ADR-0001
+  ```
 - **But it does owe the next run a checkpoint.** Refusing the narrating commit is
   only half the rule; the other half is that a run stopped by its wall clock must
   leave something better than a commit behind. **Read the open checkpoints before
@@ -665,6 +711,28 @@ remedy all turn the unit suite red.
   reviewer see the line. `npm run context:decay` (no `--check`) is the census of
   what already crosses — inherited, printed, not blocked; it is where the "are
   these 16 groups real?" question gets answered.
+- **And the suite is measured for the repository, while the work is done in a
+  context.** 515 test files, a healthy ratio and a mutation drill on six seams are
+  all TOTALS, and a whole context with no test pointing at it moves a total by a
+  fraction of a percent — which is to say it does not move it, so the one shape
+  nothing here could see was a feature area the suite has never been aimed at.
+  `npm run context:coverage` measures it per context: a test CLAIMS a source file
+  when the test's own text names it, by repo path or by its `@/` specifier, so the
+  mapping is kept by the tests and cannot rot. It is deliberately stricter than the
+  selector in `npm run test:fast`, which also matches a bare filename — right for
+  choosing what to run, wrong for a claim, because half the files under `src/app/`
+  are called `route.ts`. Reporting, ranked, with no accepted ceiling until somebody
+  has run it. What BLOCKS on every build is
+  [`.github/context-test-floors.json`](.github/context-test-floors.json)
+  (`test-unit/context-coverage.test.mjs`): five contexts — the LLM chokepoint, the
+  metering, the campaign store backend, the Sklik write path and the cron spine —
+  may not fall to zero claimed files, and a floor naming a context a rescan renamed
+  is red too, because a guard that guards nothing reads exactly like one that is
+  being met. **A new context starts with no floor**: the Personas scan creates
+  contexts, and a red build caused by a rescan teaches a reader to distrust the
+  rescan rather than to write the test. Naming a file is not exercising it, and the
+  census says so in its own words — `npm run mutation:drill` is what asks whether
+  the attention is worth anything.
 - **Security rules are a gate, not a review note.** `npm run sast` blocks a new
   route under `src/app/api/` that establishes no caller identity, a `"use client"`
   module reading a server env var, a route importing the decrypted BYOM key, SQL
@@ -859,6 +927,8 @@ would notice afterwards.
 | `a11y-budget` — a budgeted page keeps the invariants that make it usable | `tests/a11y-budget.spec.ts` (the required E2E job), `test-unit/a11y-budget.test.mjs` | partial |
 | `interruption-handoff` — a killed lane leaves a handoff, and the kill is rehearsed | `test-unit/interrupt-census.test.mjs`, `interrupt:drill`, `checkpoint:check` | partial |
 | `context-conventions` — a context whose local rules are not derivable says so | `test-unit/context-conventions.test.mjs`, `context:conventions:check` | partial |
+| `context-test-floor` — a context on a money or credential seam keeps a test pointing at it | `test-unit/context-coverage.test.mjs`, `context:coverage:check` | partial |
+| `decision-trailer` — a commit that acted on a decision says which, and a citation resolves | `commit:check`, `test-unit/commit-decision.test.mjs` | partial |
 
 `test-unit/constraint-map.test.mjs` holds this table and the JSON to each other,
 and both to the tree: a gate named here that `package.json` does not define, a

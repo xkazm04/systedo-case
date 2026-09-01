@@ -1,0 +1,63 @@
+{
+  "$comment": [
+    "WHICH CONTEXTS MAY NOT FALL TO ZERO TESTS.",
+    "",
+    "There are 515 test files here and a healthy test-to-source ratio, and both of those",
+    "numbers are taken over the whole repository. The unit an agent actually works in is the",
+    "CONTEXT: context-map.json scopes every tracked source file into 117 of them, AGENTS.md",
+    "tells a run to scope its edits to one, and .github/context-conventions.json routes the",
+    "sharp local rules by context name. A whole context with no test pointing at it moves a",
+    "repository-wide ratio by a fraction of a percent — which is to say it does not move it.",
+    "So the one shape the suite could not see was a feature area nothing claims.",
+    "",
+    "`npm run context:coverage` measures it per context and ranks the gaps. This file is the",
+    "half that BLOCKS: the contexts where zero is not a gap but a credential, a bill or a",
+    "breach. `test-unit/context-coverage.test.mjs` runs it on every build, inside",
+    "`npm run test:unit` → `check:ci` → .husky/pre-push."
+  ],
+
+  "$whatAClaimIs": "A test claims a source file when the test's own text NAMES it — by repo path (`src/lib/cron/fan-out.ts`) or by its `@/` module specifier (`@/lib/cron/fan-out`). Derived from the tests, so the mapping cannot rot the way a hand-kept one does. It is deliberately STRICTER than the selector in scripts/test-fast.mjs, which also matches a bare filename: that is right for choosing what to run and wrong for a coverage claim, because half the files under src/app/ are called `route.ts` and a matcher that accepts a bare filename reports the whole App Router as covered by whichever test says the word `route`.",
+
+  "$whatItIsNot": "Coverage, and it is not called coverage anywhere it prints. Naming a file is not exercising it: a test that imports a module to assert its shape claims it here exactly as loudly as one that drives its behaviour. This measures ATTENTION — whether anything in the suite is pointed at this part of the map. Whether that attention would catch a wrong answer is the question `npm run mutation:drill` answers, on the seams where wrong is a bill or a breach, and the two are meant to be read together: this one says a seam is watched, that one says the watching is worth something.",
+
+  "$howToChange": "Adding a floor is one line plus the reason, and it must PASS on the day it lands (docs/adr/0007-gate-rung-discipline.md — a check earns the blocking rung by passing first). Lowering one to make your own change go green is rubric B3, and it is the worst place in this repository to do it: every context listed below is one AGENTS.md § Red or § Architecture already names. Removing one is an argument to make in the diff, not a cleanup.",
+
+  "$grace": "A NEW CONTEXT STARTS WITH NO FLOOR. The Personas scan creates contexts, so a floor that arrived automatically with one would be a red build caused by a rescan — which teaches a reader to distrust the rescan rather than to write the test. A new context appears in the ranked census instead (`npm run context:coverage -- --uncovered`), and earns a floor deliberately, once somebody decides that zero there would cost something. The same asymmetry as every pin here: tightening is a decision, and it is cheap.",
+
+  "$ceiling": "`accepted` is null and that is the honest state, not an oversight: nothing has yet RUN this census, and a ratchet baseline invented without measuring is exactly what tsconfig.strict.json names as the thing that must not happen. Until the first `npm run context:coverage -- --accept --reason \"…\"`, the total prints and the FLOORS decide. After it, a change that adds a context nothing claims — or takes the last test off one — fails the check.",
+
+  "schema": 1,
+  "map": "context-map.json",
+  "reader": "npm run context:coverage",
+
+  "floors": [
+    {
+      "context": "llm-core-providers",
+      "minClaimedFiles": 1,
+      "why": "The chokepoint every text call in the product passes through (ADR-0003). A change here reaches every AI operation, the BYOM keys and the metering at once, and the demo fallback that makes the whole key-free gate surface work lives in the same module."
+    },
+    {
+      "context": "ai-pipeline-limits",
+      "minClaimedFiles": 1,
+      "why": "The money seam: the durable per-IP limit, the global daily spend ceiling and the paid-plan gate (AGENTS.md § Architecture 7). Wrong here is a bill the operator pays, and two of its files are CODEOWNERS law files."
+    },
+    {
+      "context": "campaigns-store-backend",
+      "minClaimedFiles": 1,
+      "why": "The dual-store seam and the tenant key that makes cross-user IDOR impossible by construction (ADR-0001, ADR-0002). It has two implementations behind one interface, so a method added to one and not the other is invisible until somebody runs the half nobody touched."
+    },
+    {
+      "context": "campaigns-sklik-sync",
+      "minClaimedFiles": 1,
+      "why": "The only context where a wrong change spends somebody else's advertising budget. SKLIK_WRITES_ENABLED arms real mutations and is RED under AGENTS.md § What you may do unattended; the control plane also decides which platform's numbers a customer's report shows."
+    },
+    {
+      "context": "cron-jobs",
+      "minClaimedFiles": 1,
+      "why": "Six scheduled routes nobody signs in to, behind the constant-time CRON_SECRET guard (AGENTS.md § Architecture 9). The schedule the repository declares and the schedule the platform fires are two halves that drift apart silently, and the idempotency guard is the only thing between a retry and a duplicate dispatch."
+    }
+  ],
+
+  "accepted": null,
+  "history": []
+}

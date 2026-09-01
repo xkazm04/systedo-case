@@ -93,6 +93,8 @@ const LAW_PATHS = [
   ".github/agent-surface.lock.json",
   ".github/agent-review-rubric.md",
   ".github/required-checks.json",
+  ".github/contract-ledger.json",
+  ".github/constraint-map.json",
   "scripts/merge-gate.mjs",
   "LICENSE",
   "CLA.md",

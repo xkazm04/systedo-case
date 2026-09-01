@@ -523,6 +523,68 @@ test("review:agent:gate fails on an oversized component, a route opt-out and a n
   assert.match(text, /A5 commit-subject/);
 });
 
+test("review:agent:gate refuses a loosened pin and waves a tightened one through", () => {
+  // A6. `contract:ledger:check` measures the TREE against each pin and therefore
+  // cannot see the pin move — after the move the tree agrees with it again — so the
+  // cheapest green in this repository was editing the number the gate is measured
+  // against. The asymmetry is the rule: a ceiling that falls is debt being paid and
+  // costs nobody a sentence; one that rises is a decision, and the diff has to carry
+  // the date it was taken on and the argument it was taken with.
+  const dir = gitRepo("gate-bite-pin-");
+  const ledger = (rules) => `${JSON.stringify({ schema: 1, rules }, null, 2)}\n`;
+  const pin = (max, on, reason) => ({ id: "sample allowlist", ceiling: { max, reason, accepted: { on, reviewBy: "2027-09-01" } } });
+
+  const base = commit(
+    dir,
+    {
+      "package.json": `${JSON.stringify({ name: "gate-bite-fixture", private: true, dependencies: {} }, null, 2)}\n`,
+      ".github/contract-ledger.json": ledger([pin(3, "2026-01-01", "three entries, each defensible")]),
+    },
+    "chore(fixture): a ledger with one pinned ceiling"
+  );
+
+  // Tightening: free, silent, and no sentence required.
+  const tightened = commit(
+    dir,
+    { ".github/contract-ledger.json": ledger([pin(2, "2026-01-01", "three entries, each defensible")]) },
+    "chore(fixture): lower the sample ceiling by one"
+  );
+  const tight = runGate(dir, "agent-review.mjs", ["--base", base]);
+  assert.equal(
+    tight.status,
+    0,
+    `a ceiling that FALLS is debt being paid — refusing it would tax the only direction anyone should be ` +
+      `encouraged to move a pin:\n${output(tight)}`
+  );
+
+  // Loosening, with the argument left exactly as it was.
+  commit(
+    dir,
+    { ".github/contract-ledger.json": ledger([pin(5, "2026-01-01", "three entries, each defensible")]) },
+    "chore(fixture): raise the sample ceiling"
+  );
+  const loose = runGate(dir, "agent-review.mjs", ["--base", tightened]);
+  assert.equal(loose.status, 1, `a raised ceiling with an unchanged date and reason must block:\n${output(loose)}`);
+  assert.match(output(loose), /A6 pin-loosening/);
+  assert.match(output(loose), /moved from 2 to 5/);
+
+  // And the way through, which is the two-line diff the rest of this repository
+  // already asks for: the number, and the sentence that pays for it.
+  const raised = git(dir, ["rev-parse", "HEAD"]).stdout.trim();
+  commit(
+    dir,
+    { ".github/contract-ledger.json": ledger([pin(9, "2026-09-01", "nine after the connector split; the sixth through ninth are the same seam")]) },
+    "chore(fixture): raise the sample ceiling with a fresh argument"
+  );
+  const argued = runGate(dir, "agent-review.mjs", ["--base", raised]);
+  assert.equal(
+    argued.status,
+    0,
+    `a loosening that re-dates \`accepted.on\` AND rewrites \`reason\` in the same diff is the documented way ` +
+      `through — if it does not pass, the rule has no way out and stops being read:\n${output(argued)}`
+  );
+});
+
 test("review:agent:gate still checks the subject when the diff nets out to nothing", () => {
   // THE HOLE THIS CLOSES. The reviewer returns early when `BASE...HEAD` has no
   // changed files — correctly, because CI's shallow `check` job diffs the pushed

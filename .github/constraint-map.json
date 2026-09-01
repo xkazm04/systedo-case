@@ -714,6 +714,50 @@
       ],
       "rung": "partial",
       "gapNote": "It holds a note to a CONTEXT and to the paths it cites, which catches the note whose code moved. It cannot see a note whose code stayed and changed its mind — that is a reader's job, and the reason the notes are kept short and consequence-first. And it is deliberately incomplete: seven of 117 contexts carry a row, because most are governed entirely by the global rules and a row for each would bury the ones that say something. Coverage is printed by the command and floored by the test, never required."
+    },
+    {
+      "id": "context-test-floor",
+      "rule": "A context on a money, credential or tenancy seam may not fall to zero test files pointing at it, however healthy the repository-wide ratio is.",
+      "statedIn": {
+        "file": "AGENTS.md",
+        "quote": "five contexts — the LLM chokepoint, the metering, the campaign store backend, the Sklik write path and the cron spine — may not fall to zero claimed files"
+      },
+      "enforcement": [
+        {
+          "kind": "test",
+          "name": "test-unit/context-coverage.test.mjs",
+          "note": "blocking on every build, through the real census: a floor that is not met, a floor naming a context the Personas scan has renamed, a floor of zero that cannot fail, and a self-test proving the checker still detects an unmet floor rather than reporting one as met"
+        },
+        {
+          "kind": "gate",
+          "name": "context:coverage:check",
+          "note": "the same floors on demand; `npm run context:coverage -- --uncovered` is the ranked list the weekly triage works through"
+        }
+      ],
+      "rung": "partial",
+      "gapNote": "Only five of the 117 contexts carry a floor, and a floor of 1 is a low bar on purpose — it earns the blocking rung by passing today (ADR-0007), and the number to argue about is which contexts have one, not how high it is. The TOTAL is reporting and carries no accepted ceiling until somebody has run the census, so a context that arrives with nothing pointing at it is printed and not refused. And what a claim measures is ATTENTION, not exercise: a test that names a module to assert its shape claims it exactly as loudly as one that drives its behaviour. Whether that attention would catch a wrong answer is `suite-sensitivity`, on the seams where wrong is a bill or a breach."
+    },
+    {
+      "id": "decision-trailer",
+      "rule": "A commit that acted on a decision record or a rubric finding says which, in a trailer git can count — and a citation that does not resolve is refused.",
+      "statedIn": {
+        "file": "AGENTS.md",
+        "quote": "What is refused is a citation that does not RESOLVE"
+      },
+      "enforcement": [
+        {
+          "kind": "gate",
+          "name": "commit:check",
+          "note": "`--range` fails on a citation already in history and reports coverage; `--decisions` lists what may be cited; `--decision <id>` is the reverse query the log could not answer at all. The same file is what `.husky/commit-msg` runs, so an unresolvable citation is refused while the message is still free to change"
+        },
+        {
+          "kind": "test",
+          "name": "test-unit/commit-decision.test.mjs",
+          "note": "blocking on every build: what may be cited is derived from the ADR filenames and the rubric's own headings rather than listed, so this asserts the derivation still finds them and that an unknown record, an unknown rule and free prose are all findings"
+        }
+      ],
+      "rung": "partial",
+      "gapNote": "Nothing requires the trailer, and nothing could: most commits act on no recorded decision, and a rule that demanded one would produce a log where every commit cites ADR-0007 and the field means nothing. What blocks is only the citation that does not resolve. It also shares the hole rubric A5 has — a lane committing in a throwaway worktree where nobody ran `npm install` runs no hooks, so the refusal arrives later, from `npm run commit:check -- --range` over history, when fixing it means rewriting it."
     }
   ]
 }

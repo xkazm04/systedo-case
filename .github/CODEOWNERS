@@ -23,6 +23,14 @@
 # Shrinking either one is a governance change, not a cleanup.
 /.github/required-checks.json    @xkazm04
 /scripts/merge-gate.mjs          @xkazm04
+# Every NUMBER a gate is measured against, and the map of which rules have a fence
+# at all. `contract:ledger:check` compares the tree against these pins and cannot
+# see a pin move — after the move the tree agrees with it again. Rubric A6 blocks a
+# loosening in the diff; this is the half that puts it in front of a person on any
+# path that goes through a pull request. Deliberately only these two: the list stays
+# short enough to be read (see scripts/group-owners.mjs on why it is not wider).
+/.github/contract-ledger.json    @xkazm04
+/.github/constraint-map.json     @xkazm04
 # Who answers for each of the 16 context groups, and how much may land between two
 # triage passes. Both are declarations ABOUT the maintainer's attention, so an agent
 # widening either one is the one edit nobody would be reviewing.

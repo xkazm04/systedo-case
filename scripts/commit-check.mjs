@@ -31,12 +31,31 @@ import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { GUIDANCE, checkSubject, subjectOf } from "./commit-subject.mjs";
 import { harnessOf, hasAttribution } from "./commit-attribution.mjs";
+import { citesDecision, decisionProblems, decisionsOf, knownDecisions } from "./commit-decision.mjs";
 
 const argv = process.argv.slice(2);
 const arg = (name) => {
   const i = argv.indexOf(name);
   return i !== -1 ? argv[i + 1] : null;
 };
+
+// --- --decisions: what may be cited here -------------------------------------
+
+if (argv.includes("--decisions")) {
+  const known = knownDecisions();
+  console.log("Decisions a commit may cite in a `Decision:` trailer:");
+  console.log("");
+  console.log(`  decision records (docs/adr/):     ${[...known.adrs].sort().join(", ") || "(none)"}`);
+  console.log(`  rubric rules (.github/…rubric.md): ${[...known.rules].sort().join(", ") || "(none)"}`);
+  console.log("");
+  console.log("  Decision: ADR-0001                 one decision this change acted on");
+  console.log("  Decision: rubric-A6, ADR-0007      more than one, or a finding and the record behind it");
+  console.log("");
+  console.log("  Citing nothing is the common and correct case — most changes act on no recorded decision, and a");
+  console.log("  log where every commit cites ADR-0007 would say less than one where none does. What is refused is");
+  console.log("  a citation that does not RESOLVE: rules in scripts/commit-decision.mjs.");
+  process.exit(0);
+}
 
 function report(label, problems) {
   console.error("");
@@ -121,13 +140,59 @@ if (argv.includes("--range")) {
     );
   }
 
-  process.exit(bad ? 1 : 0);
+  // And WHICH DECISION — the third fact, after shape and origin. Two rungs, and
+  // they are different questions (scripts/commit-decision.mjs):
+  //
+  //   BLOCKING   a `Decision:` that does not resolve. A citation to a record this
+  //              repository does not have is worse than no citation, because it is
+  //              read with confidence.
+  //   REPORTING  coverage. Most commits act on no recorded decision and should carry
+  //              nothing; a log where every commit cites ADR-0007 says less than one
+  //              where none does.
+  const known = knownDecisions();
+  const WANTED = arg("--decision");
+  let unresolved = 0;
+  const cited = new Map();
+  for (const e of entries) {
+    const values = decisionsOf(e.body);
+    if (!values.length) continue;
+    for (const v of values) cited.set(v, (cited.get(v) ?? 0) + 1);
+    const problems = decisionProblems(values, known);
+    if (!problems.length) continue;
+    unresolved += 1;
+    console.log(`✗ ${e.sha.slice(0, 8)}  ${e.subject}`);
+    for (const p of problems) console.log(`    • ${p}`);
+  }
+  const withDecision = entries.filter((e) => decisionsOf(e.body).length).length;
+  console.log(
+    `commit-check: ${withDecision} of ${entries.length} name the decision they acted on (\`Decision:\`).` +
+      (cited.size ? `  ${[...cited].map(([d, n]) => `${d}: ${n}`).join(", ")}` : "")
+  );
+
+  // The reverse query, which is the whole reason the trailer is worth writing:
+  // "which changes were actually made under ADR-0001?" — unanswerable from a log
+  // that records only shape and origin.
+  if (WANTED) {
+    const hits = entries.filter((e) => citesDecision(e.body, WANTED));
+    console.log("");
+    console.log(`Commits in ${range} acting on ${WANTED}: ${hits.length}`);
+    for (const e of hits) console.log(`    ${e.sha.slice(0, 8)}  ${e.subject}`);
+    if (!hits.length) {
+      console.log(
+        "    None. Either nothing here touched that decision, or the commits that did were written before the" +
+          " trailer existed — `npm run commit:check -- --decisions` lists what may be cited."
+      );
+    }
+  }
+
+  process.exit(bad || unresolved ? 1 : 0);
 }
 
 // --- a single message: a hook's file, or --message ---------------------------
 
 const inline = arg("--message");
-const file = argv.find((a) => !a.startsWith("--") && a !== inline);
+const wanted = arg("--decision");
+const file = argv.find((a) => !a.startsWith("--") && a !== inline && a !== wanted);
 
 let message = inline;
 if (message == null) {
@@ -145,7 +210,27 @@ if (message == null) {
 
 const subject = subjectOf(message);
 const problems = checkSubject(subject);
-if (!problems.length) process.exit(0);
+if (problems.length) {
+  report(`this subject describes the session, not the change:\n\n    ${subject}`, problems);
+  process.exit(1);
+}
 
-report(`this subject describes the session, not the change:\n\n    ${subject}`, problems);
-process.exit(1);
+// A `Decision:` trailer is optional — most changes act on no recorded decision. One
+// that is PRESENT and does not resolve is refused here, at the one moment the
+// message is still free to change: a citation to a record this repository does not
+// have is read with confidence and is worse than no citation at all.
+const cited = decisionsOf(message);
+if (cited.length) {
+  const bad = decisionProblems(cited);
+  if (bad.length) {
+    console.error("");
+    console.error("✗ commit-check: this commit cites a decision that does not resolve.");
+    console.error("");
+    for (const p of bad) console.error(`  • ${p}`);
+    console.error("");
+    console.error("  Rules: scripts/commit-decision.mjs · what may be cited: npm run commit:check -- --decisions");
+    console.error("");
+    process.exit(1);
+  }
+}
+process.exit(0);
