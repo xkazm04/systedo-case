@@ -94,6 +94,19 @@
       "why": "The way back out. A runbook that no longer matches its script is found out at the worst moment."
     },
     {
+      "doc": "docs/runbooks/credential-rotation.md",
+      "watches": [
+        "docs/security/threat-model.md",
+        ".github/credential-rotation.json",
+        ".env.example",
+        "src/lib/inventory/token-crypto.ts",
+        "src/lib/outbound/secret-crypto.ts",
+        "src/lib/llm/keys/crypto.ts"
+      ],
+      "maxAgeDays": 120,
+      "why": "The way a credential is taken away. It is the one procedure here that is performed under real time pressure, and it is read by somebody who has already lost control of a value — so a page describing a crypto seam that has since moved does not merely misinform, it sends them to re-key against the wrong file. Watched against the threat model in particular, because that is where the fifteenth credential arrives in a table of fourteen."
+    },
+    {
       "doc": "docs/design-system.md",
       "watches": ["src/components/ui.tsx", "src/app/globals.css"],
       "maxAgeDays": 180,

@@ -2,73 +2,71 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "9361f219-6806-4084-b5ea-a8cdef1e799f",
-      "verdict": "skipped",
-      "reason": "Pinning an action to a SHA means asking GitHub what a tag points at right now, and this session has no network; the repo already has scripts/actions-pin.mjs --update, which resolves every tag AND flips its own STRICT/RATCHET in the same pass, so the close is one networked command plus the ledger floor.",
-      "files": []
-    },
-    {
-      "recommendationId": "fb04e305-cbff-45e3-9326-dbb85c2cde05",
-      "verdict": "skipped",
-      "reason": "The rule, the checker (scripts/commit-subject.mjs, rubric A5) and the provenance trailers all exist and run in .husky/prepare-commit-msg; what breaks it is an outer lane harness committing its report's first line in a throwaway worktree with no hooks installed, which is not fixable from inside the repository and not measurable here without git history.",
-      "files": []
-    },
-    {
-      "recommendationId": "872511bb-ea33-4758-bc5d-d4ee5005979c",
-      "verdict": "skipped",
-      "reason": "Already covered: .github/guidance-budget.json declares the seven READ-FIRST documents with a per-file and total line ceiling (AGENTS.md 934, total 1602), npm run guidance:budget prints it and test-unit/guidance-budget.test.mjs blocks on every build; I deliberately added no line to AGENTS.md or docs/task-index.md, both of which sit exactly on their ceilings.",
-      "files": [".github/guidance-budget.json"]
-    },
-    {
-      "recommendationId": "39d2d2f7-d6ac-4d25-83fd-3461b0600a55",
+      "recommendationId": "d23b9f0b-82fa-4279-ab4a-5ff0e13f904f",
       "verdict": "resolved",
-      "reason": "Found and fenced three unquarantined third-party surfaces (fetched page text in onboarding-scan, public review quotes in local-page, scan-derived profile prose in channel-research), added four adversarial corpus cases that exercise them, and added a census that enumerates every prompt builder so a fourth cannot arrive unnoticed.",
+      "reason": "Added docs/runbooks/credential-rotation.md plus a machine-readable registry and a blocking test that fails when a credential in the threat model has no rotation procedure.",
       "files": [
-        "src/lib/ai/tools/onboarding-scan.ts",
-        "src/lib/ai/tools/local-page.ts",
-        "src/lib/ai/tools/channel-research.ts",
-        "test-llm/adversarial/corpus.json",
-        "test-llm/adversarial/surfaces.json",
-        "test-unit/llm-adversarial.test.mjs",
-        "test-unit/untrusted-surface-census.test.mjs",
-        ".github/test-tiers.json"
+        "docs/runbooks/credential-rotation.md",
+        ".github/credential-rotation.json",
+        "test-unit/credential-rotation.test.mjs",
+        ".github/docs-staleness.json",
+        "docs/task-index.md",
+        ".github/guidance-budget.json"
       ]
     },
     {
-      "recommendationId": "43e68bd0-e600-481b-8b2b-9707decfb409",
+      "recommendationId": "a629c949-603c-4268-8bcd-df04df2b2541",
+      "verdict": "resolved",
+      "reason": "Gave scripts/agent-surface.mjs a --root override and added a drill that plants an instruction inside a generated block and requires the real gate to go red, including --accept refusing to pin it without --accept-instructions.",
+      "files": [
+        "scripts/agent-surface.mjs",
+        "test-unit/generated-instruction-drill.test.mjs"
+      ]
+    },
+    {
+      "recommendationId": "f9586dd3-88ee-44f9-8452-fa032a514ecb",
+      "verdict": "resolved",
+      "reason": "Added hostile-payload fault injection for the Sklik connector (malformed, partial, rate-limited, half-payload mid-sync) and for the Google daily mappers, and fixed a latent TypeError where a non-string segments.date reached localeCompare.",
+      "files": [
+        "test-unit/fault-injection-sklik-sync.test.mjs",
+        "test-unit/ads-account-daily.test.mjs",
+        "src/lib/google/ads.ts"
+      ]
+    },
+    {
+      "recommendationId": "592de9ec-6ab0-488a-8f7b-1b4a0d6a2d87",
+      "verdict": "skipped",
+      "reason": "Needs network: pinning 53 action refs means resolving each tag to a commit SHA against the GitHub API, and scripts/actions-pin.mjs --update already does exactly that in one pass (it also flips STRICT and the P6 ratchet), so there is nothing to add offline and an invented SHA would break the workflow rather than pin it.",
+      "files": []
+    },
+    {
+      "recommendationId": "29b32c93-167a-4acd-bcaa-4a1da0d08f18",
+      "verdict": "skipped",
+      "reason": "Already covered: .github/branch-ruleset.json is the server-side ruleset declared in the repo, npm run merge-gate fails when its contexts drift from .github/required-checks.json, and npm run protection:verify reads the live rules weekly; POSTing the ruleset to GitHub needs network and an admin token.",
+      "files": []
+    },
+    {
+      "recommendationId": "6c8c98cb-10e1-4892-86ad-fccdafc8c8a7",
+      "verdict": "skipped",
+      "reason": "Already covered: scripts/commit-subject.mjs already refuses both cited subjects by name (loop-mechanics and run-progress catch 'partial work from an interrupted lane session'; first-person and session-report catch 'I've finished, here's what I did'), and scripts/commit-attribution.mjs already emits Co-Authored-By alongside the lane trailers — the residual is history plus outer harnesses that run no hooks, which AGENTS.md states has no repository-side fix.",
+      "files": []
+    },
+    {
+      "recommendationId": "aba0c717-65ef-4df6-b787-24066d947cac",
+      "verdict": "skipped",
+      "reason": "Already covered: .github/guidance-budget.json caps the seven read-first documents at 1603 lines with a per-file ceiling, scripts/guidance-budget.mjs measures it, and test-unit/guidance-budget.test.mjs blocks on every build — this change paid for its own one-line raise of the task-index ceiling through that mechanism.",
+      "files": []
+    },
+    {
+      "recommendationId": "b1cc61da-bdae-4175-9cf0-843ddc1090e7",
       "verdict": "needs_human",
-      "reason": "A staged rollout on Vercel is platform configuration (skew protection, alias promotion) plus a token that can move a deployment, and .github/workflows/post-deploy.yml already argues in writing that arming an automatic abort is the operator's decision because it needs a token that can write master; the repository half (a dated, automatic health verdict after every release) is already there.",
-      "files": [".github/workflows/post-deploy.yml"]
-    },
-    {
-      "recommendationId": "1c667705-689b-4957-a0f2-e88736358841",
-      "verdict": "skipped",
-      "reason": "Already covered: test-llm/model-pins.json pins the model surface every golden/budget/bake was accepted against, test-llm/model-candidates.json declares the successor, npm run llm:candidate rehearses every registered operation against it through the real wrapper weekly in llm-drift.yml, and test-unit/model-candidate-census.test.mjs blocks when a candidate row stops naming the model actually being served.",
-      "files": ["test-llm/model-candidates.json", "test-llm/model-pins.json"]
-    },
-    {
-      "recommendationId": "0f1d9ab0-dc69-4371-ad3c-686ec8f11994",
-      "verdict": "resolved",
-      "reason": "scripts/setup-walk.mjs now follows docs/open-source/self-hosting.md § Quick start on a clean machine (asserts the page still gives the commands, copies .env.example, builds under SELF_HOSTED+LOCAL_DB, boots and fetches /, parses the compose file) and .github/workflows/setup-walk.yml runs it weekly and on every change to the files it walks, keeping a dated verdict for 90 days.",
-      "files": [
-        "scripts/setup-walk.mjs",
-        ".github/workflows/setup-walk.yml",
-        ".github/workflow-permissions.json",
-        "docs/open-source/self-hosting.md",
-        "package.json",
-        ".gitignore"
-      ]
-    },
-    {
-      "recommendationId": "1f6a40f2-e3ae-40de-b4f8-aaf52c3efccd",
-      "verdict": "skipped",
-      "reason": "Already covered: .github/constraint-map.json is exactly that artefact — one row per never/always rule AGENTS.md states, with a rung of blocking | reporting | partial | honour, a mitigation field on the honour rows and a gapNote on the partial ones, summarised as a table in AGENTS.md and held to the tree (and to the check:ci chain) by test-unit/constraint-map.test.mjs.",
-      "files": [".github/constraint-map.json"]
+      "reason": "Needs platform credentials: a preview-per-change environment requires a Vercel project token and preview env wiring that does not exist in this repo, and a workflow referencing secrets nobody has set would be a file that never operates.",
+      "files": []
     }
   ],
   "lessons": [
-    "In this repository every fence is paired with a pin, a ceiling or a census, and the meta-tests enforce the pairing: adding an exception without its ceiling, a check:ci stage without a constraint-map row, or a line to AGENTS.md without raising .github/guidance-budget.json all turn the unit suite red. Read the pin file before the source file — the two-line diff is the house style, and half of one is a red build.",
-    "The scan's 'missing' bullets are worth verifying before acting on them: three of eight items here (guidance budget, model-candidate rehearsal, the unfenced-rule map) were already implemented as first-class artefacts with blocking tests, and the honest move was to name the artefact rather than build a second one next to it.",
-    "A prompt-injection corpus can only cover the builders somebody remembered. Enumerating the builders instead — every module under the AI seam, with the ORIGIN of the text it renders — is what found three unfenced third-party surfaces that eight hand-written adversarial cases had walked past for months."
+    "This repository already answers most maturity questions, so the first move on any item must be to look for the existing mechanism: three of eight dispatched gaps (guidance budget, branch-ruleset declaration, commit-subject narration rules) were fully built and the scan was reading history or an unreadable GitHub setting, not an absent practice.",
+    "Its house idiom for 'is this fence still connected?' is to give the gate script a --root/--ledger/--budget override and spawn the REAL script over a mutated fixture from a unit test. Follow that shape rather than unit-testing the gate's helper functions, which passes just as happily when the gate has been disconnected.",
+    "Adding any document here is a multi-file act by design: a runbook must land with an entry in .github/docs-staleness.json, a route in docs/task-index.md, and — because that route costs a line — a raised ceiling in .github/guidance-budget.json with the reason next to it. Budget for the wiring, not just the page."
   ]
 }

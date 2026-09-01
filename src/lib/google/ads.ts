@@ -377,7 +377,12 @@ export function mapRowsToDailySeries(rows: SearchRow[]): DailyPoint[] {
   const byDate = new Map<string, DailyPoint>();
   for (const r of rows) {
     const date = r.segments?.date;
-    if (!date) continue;
+    // `typeof` and not just truthiness: SearchRow says `date?: string`, but these
+    // rows are decoded JSON off the wire and the type is a claim about what Google
+    // sends, not a check. A non-string date survives the truthy test, becomes the
+    // point's `date`, and then `sortByDate` calls `.localeCompare` on it — which
+    // throws, from a 200 response, on the one code path a malformed payload reaches.
+    if (typeof date !== "string" || !date) continue;
     accumulateDaily(byDate, date, r);
   }
   return sortByDate([...byDate.values()]);
@@ -390,7 +395,8 @@ export function mapRowsToCampaignDailySeries(rows: SearchRow[]): Record<string, 
   for (const r of rows) {
     const id = r.campaign?.id ? String(r.campaign.id) : null;
     const date = r.segments?.date;
-    if (!id || !date) continue;
+    // Same wire guard as {@link mapRowsToDailySeries} — see the note there.
+    if (!id || typeof date !== "string" || !date) continue;
     const byDate = byCampaign.get(id) ?? new Map<string, DailyPoint>();
     accumulateDaily(byDate, date, r);
     byCampaign.set(id, byDate);

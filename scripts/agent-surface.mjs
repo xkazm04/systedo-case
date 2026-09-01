@@ -48,21 +48,42 @@
  *
  *  Runs blocking in CI as part of `npm run check:ci`.
  *
+ *  AND THE DRILL. This repository does not trust a fence it has not watched fire
+ *  (`npm run lint:fences`, test-unit/contract-ledger-ceiling.test.mjs). `--root`
+ *  points this gate at a tree of somebody else's choosing, which is what lets
+ *  test-unit/generated-instruction-drill.test.mjs PLANT an instruction inside a
+ *  generated block and require a red — including the half that is easiest to lose,
+ *  where `--accept` refuses to pin a newly arrived imperative without
+ *  `--accept-instructions`. A defence nobody has seen refuse anything is a defence
+ *  nobody knows is still connected.
+ *
  *  Usage:
  *    node scripts/agent-surface.mjs
  *    node scripts/agent-surface.mjs --check                 # + enforce the ratchet
  *    node scripts/agent-surface.mjs --accept "why it changed"
  *    node scripts/agent-surface.mjs --accept "…" --accept-instructions
  *    node scripts/agent-surface.mjs --summary FILE
+ *    node scripts/agent-surface.mjs --root DIR              # run over a fixture tree
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname, join, sep } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { printRemedy } from "./gate-remedy.mjs";
 import { directiveLines } from "./lib/generated-instructions.mjs";
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const argv = process.argv.slice(2);
+
+/** The tree this gate reads. Overridable so a test can point the REAL gate at a
+ *  fixture and require a red — the same override scripts/actions-pin.mjs
+ *  (`--permissions`) and scripts/guidance-budget.mjs (`--budget`) carry, for the
+ *  same reason: mutating the fixture is the only way to watch a fence fire without
+ *  editing the gate that is supposed to be firing. */
+const rootIdx = argv.indexOf("--root");
+const ROOT =
+  rootIdx !== -1 && argv[rootIdx + 1]
+    ? resolve(argv[rootIdx + 1])
+    : join(dirname(fileURLToPath(import.meta.url)), "..");
 const LOCK_PATH = join(ROOT, ".github", "agent-surface.lock.json");
 const MAP_PATH = join(ROOT, "context-map.json");
 
@@ -87,7 +108,6 @@ const BLOCKS = [
 /** Ratcheted count. Fix findings and lower it in the same commit; never raise it. */
 const RATCHET = { unmapped: 159 };
 
-const argv = process.argv.slice(2);
 const CHECK = argv.includes("--check");
 const acceptIdx = argv.indexOf("--accept");
 const ACCEPT = acceptIdx !== -1 ? String(argv[acceptIdx + 1] ?? "").trim() : null;

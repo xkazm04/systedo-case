@@ -11,7 +11,7 @@
 
   "schema": 1,
   "routedBy": "docs/task-index.md",
-  "maxTotalLines": 1602,
+  "maxTotalLines": 1603,
 
   "readFirst": [
     {
@@ -37,9 +37,9 @@
     },
     {
       "file": "docs/task-index.md",
-      "maxLines": 127,
+      "maxLines": 128,
       "why": "the routing table that makes every OTHER document a lookup. It is read first precisely so the ADRs, runbooks and contracts do not have to be.",
-      "$raised": "126 → 127 on 2026-09-01, for one route and deliberately NOT one paragraph in AGENTS.md: `scripts/guidance-commands.mjs`, which resolves every `npm run …` the guidance quotes against package.json. The question this ceiling exists to force — does EVERY run need this before its first edit? — answers no: it is needed by the run that RENAMES a script, which is a task, which is what a routing table is for. One line here rather than seven in the canonical document. Previously 125 → 126 on 2026-09-01, for the route this table did not have: the REVERSE lookup (`.github/adr-ownership.json`). Every other row here is keyed by a task the reader has already framed; this one is keyed by a path, which is all a reader three files into a change actually holds. Previously 123 → 125 on 2026-09-01, for two routes rather than two documents: `docs/security/threat-model.md` (which credential a change is about to touch, and which fence stands on it) and `test-unit/contract.mjs` (what a seam assertion's failure must SAY). Both are lookups — the whole point of paying two lines here is that neither page is read before every edit, only before the edits that need them."
+      "$raised": "127 → 128 on 2026-09-01, for one route to a runbook that did not exist: `docs/runbooks/credential-rotation.md`. The question this ceiling exists to force — does EVERY run need this before its first edit? — answers no, emphatically: almost no run rotates a credential. But the population that needs it is a reader who has just lost control of a value and does not know the filename, which is precisely the state this index is for, and a runbook nobody can find is one that gets improvised instead. One line here, and the page itself stays a lookup. Previously 126 → 127 on 2026-09-01, for one route and deliberately NOT one paragraph in AGENTS.md: `scripts/guidance-commands.mjs`, which resolves every `npm run …` the guidance quotes against package.json. The question this ceiling exists to force — does EVERY run need this before its first edit? — answers no: it is needed by the run that RENAMES a script, which is a task, which is what a routing table is for. One line here rather than seven in the canonical document. Previously 125 → 126 on 2026-09-01, for the route this table did not have: the REVERSE lookup (`.github/adr-ownership.json`). Every other row here is keyed by a task the reader has already framed; this one is keyed by a path, which is all a reader three files into a change actually holds. Previously 123 → 125 on 2026-09-01, for two routes rather than two documents: `docs/security/threat-model.md` (which credential a change is about to touch, and which fence stands on it) and `test-unit/contract.mjs` (what a seam assertion's failure must SAY). Both are lookups — the whole point of paying two lines here is that neither page is read before every edit, only before the edits that need them."
     },
     {
       "file": "docs/agent-index.md",
