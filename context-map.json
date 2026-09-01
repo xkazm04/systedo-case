@@ -2244,11 +2244,13 @@
       "api_surface": "POST /api/cron/* (secret-gated)",
       "business_feature": "Cron Scheduler",
       "category": "lib",
+      "$comment": "cross_refs 2026-09-01: twin-assistant-core — the ledgers step registry hosts twinDispatchStep, the same registry-imports-its-steps pattern as the other declared step providers here (diagnoses-engine, recaps-activity, campaigns-sklik-sync, inventory-sync-ops).",
       "cross_refs": [
         "diagnoses-engine",
         "recaps-activity",
         "campaigns-sklik-sync",
-        "inventory-sync-ops"
+        "inventory-sync-ops",
+        "twin-assistant-core"
       ],
       "db_tables": [
         "cron_runs",
