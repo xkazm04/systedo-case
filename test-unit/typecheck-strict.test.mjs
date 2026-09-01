@@ -38,6 +38,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { bySeam, normalizeDiagnosticFile, seamRegressions } from "../scripts/typecheck-strict.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
@@ -171,6 +172,86 @@ test("the baseline record is readable, and honest about not being measured yet",
     assert.ok(
       String(record.accepted.reason ?? "").trim().length >= 12,
       "an accepted baseline with no sentence behind it is a number nobody can argue with, which is how it gets raised."
+    );
+  }
+});
+
+// ---------------------------------------------------------------------------
+// The per-seam half: a total does not know where it hurts
+// ---------------------------------------------------------------------------
+
+test("every declared seam names paths that still exist", () => {
+  // A seam pointing at a moved file measures nothing and keeps printing a zero,
+  // which reads as "clean" — the same failure mode as a gate that stopped running.
+  const record = JSON.parse(read(".github/typecheck-strict.json"));
+  assert.ok(Array.isArray(record.seams) && record.seams.length > 0, "the seam declaration is gone; a global count is all that would be left, and it can be paid for with cleanup anywhere.");
+  for (const seam of record.seams) {
+    assert.match(seam.id ?? "", /^[a-z][a-z0-9-]*$/, `seam id ${JSON.stringify(seam.id)} is not a slug.`);
+    assert.ok(String(seam.why ?? "").length >= 20, `seam "${seam.id}" says nothing about why a strict hole there costs more than one elsewhere.`);
+    assert.ok(Array.isArray(seam.paths) && seam.paths.length > 0, `seam "${seam.id}" declares no paths.`);
+    for (const p of seam.paths) {
+      assert.ok(
+        existsSync(join(ROOT, p)),
+        `seam "${seam.id}" names ${p}, which is not in the tree. Point it at where the seam moved, or drop it — ` +
+          "a path nothing matches is a seam that can never go red."
+      );
+    }
+  }
+  const ids = record.seams.map((s) => s.id);
+  assert.equal(new Set(ids).size, ids.length, "two seams share an id, so one of their pins would silently win.");
+});
+
+test("errors are attributed to the seam they landed in", () => {
+  const seams = [
+    { id: "llm", paths: ["src/lib/llm/"] },
+    { id: "quota", paths: ["src/lib/usage.ts"] },
+  ];
+  const rows = [
+    { file: "src/lib/llm/index.ts", code: "TS2532" },
+    { file: "src/lib/llm/gemini.ts", code: "TS2532" },
+    { file: "src/lib/usage.ts", code: "TS4111" },
+    { file: "src/components/site/Hero.tsx", code: "TS2532" },
+    // A file whose name merely STARTS with a seam file's name is not that file.
+    { file: "src/lib/usage.helpers.ts", code: "TS2532" },
+  ];
+  assert.deepEqual(bySeam(rows, seams), [
+    { id: "llm", errors: 2, files: 2 },
+    { id: "quota", errors: 1, files: 1 },
+  ]);
+  assert.deepEqual(bySeam(rows, []), [], "no seams declared is no seam counts, not a crash");
+  // tsc reports absolute paths in some invocations; the seam paths are relative.
+  assert.equal(normalizeDiagnosticFile("C:/work/adamant/src/lib/llm/index.ts"), "src/lib/llm/index.ts");
+  assert.equal(normalizeDiagnosticFile("./src/lib/llm/index.ts"), "src/lib/llm/index.ts");
+});
+
+test("a seam that rose is a finding even when the TOTAL fell", () => {
+  // THE case a single number structurally cannot see, and the reason this half
+  // exists: three new errors in the chokepoint, four cleaned up in a landing page.
+  const counts = [
+    { id: "llm-chokepoint", errors: 5, files: 2 },
+    { id: "cron-auth", errors: 0, files: 0 },
+  ];
+  const regressions = seamRegressions(counts, { "llm-chokepoint": 2, "cron-auth": 0 });
+  assert.deepEqual(regressions, [{ id: "llm-chokepoint", errors: 5, pin: 2 }]);
+  assert.deepEqual(seamRegressions(counts, { "llm-chokepoint": 5, "cron-auth": 0 }), [], "at the pin is not over it");
+  assert.deepEqual(seamRegressions(counts, null), [], "no accepted baseline means nothing to compare against");
+  assert.deepEqual(
+    seamRegressions(counts, { "cron-auth": 0 }),
+    [],
+    "a seam declared AFTER the baseline was accepted has no pin — the answer is the next --accept, not a red " +
+      "build over a number nobody measured"
+  );
+});
+
+test("an accepted baseline pins every seam, not just the total", () => {
+  const record = JSON.parse(read(".github/typecheck-strict.json"));
+  if (!record.accepted) return; // still unmeasured — the honest state (ADR-0007)
+  assert.equal(typeof record.accepted.bySeam, "object", "an accepted baseline with no per-seam pins is the global-only ratchet this half replaced.");
+  for (const seam of record.seams ?? []) {
+    assert.equal(
+      typeof record.accepted.bySeam?.[seam.id],
+      "number",
+      `seam "${seam.id}" is declared and unpinned. Re-run npm run typecheck:strict:accept -- --reason "…".`
     );
   }
 });

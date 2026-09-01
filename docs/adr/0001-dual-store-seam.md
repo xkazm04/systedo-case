@@ -96,6 +96,23 @@ reference pair: the invariant is named in the file header, both sides are
 genuinely atomic, and the dispatcher converts both outcomes into one typed
 error.
 
+**And the list above is executed, not only stated.** Every driver here had a
+suite and the seam had none: `test-unit/project-state-concurrency.test.mjs`
+proves sqlite, `test-unit/distribution-variants-firestore.test.mjs` proves
+Firestore, and the two are hand-written prose about the same promise — so they
+can agree today and drift tomorrow, and a case added on one side and forgotten on
+the other looks exactly like a case nobody thought worth writing.
+`test-unit/store-contract.mjs` holds the cases ONCE, written against the driver
+interface rather than a backend; `test-unit/store-contract-project-state.test.mjs`
+and `test-unit/store-contract-activity.test.mjs` execute the whole list against
+both drivers in one process and then **compare what the two answered**. A case
+added there reaches both drivers by construction, which is the one property two
+parallel suites cannot have. Two limits are worth knowing before leaning on it:
+the Firestore side runs against the in-memory fakes, so the service's own
+tie-break for a capped read over equal sort keys (rule 3) is still not observable
+in this repository, and the contract covers the two pairs named here rather than
+every store — a domain not in it is proven exactly as well as it was before.
+
 **The one invariant with no second implementation is the quota.**
 `src/lib/usage.ts` short-circuits on `LOCAL_DB || selfHosted()` and returns
 `{ ok: true }` without writing anything, so the metering invariant is enforced

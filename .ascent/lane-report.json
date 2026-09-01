@@ -2,59 +2,59 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "ee63c04b-9dce-4f9d-aaf9-06b275b407de",
+      "recommendationId": "aa3d5fee-360d-49c7-8cbc-3a6ff69726e2",
+      "verdict": "skipped",
+      "reason": "Pinning a tag to a commit SHA means asking GitHub what the tag points at right now, and this session has no network; scripts/actions-pin.mjs --update already does exactly this burn-down (and raises its own RATCHET.pinned in the same pass), so there was no useful adjacent artefact to add.",
+      "files": []
+    },
+    {
+      "recommendationId": "f276b22f-229d-4acd-a92e-13aff899e352",
+      "verdict": "skipped",
+      "reason": "Already covered: .github/guidance-budget.json declares the seven READ-FIRST documents with a per-file and total line ceiling, scripts/guidance-budget.mjs measures it, and test-unit/guidance-budget.test.mjs blocks on every build — editing anything here would have been work for the scanner rather than for the repository.",
+      "files": []
+    },
+    {
+      "recommendationId": "fbd4896c-f5c6-4669-a39c-dd3fca3acced",
+      "verdict": "skipped",
+      "reason": "Already covered: .husky/commit-msg runs scripts/commit-check.mjs on the message file and exits 1 on an A5 violation, and scripts/install-commit-hooks.mjs installs it from package.json `prepare`, so the rule now fires while the message is still editable; the residual hole is a throwaway lane worktree where nobody ran npm install, which no repository-side change can close.",
+      "files": []
+    },
+    {
+      "recommendationId": "25e91cef-f349-400a-aecb-a0c1e9a7c5a9",
+      "verdict": "skipped",
+      "reason": "Already covered: scripts/adr-check.mjs rule 7 requires a non-placeholder `## Revisit when` section on EVERY record (blocking, inside check:ci) and all twelve ADRs carry one, including ADR-0008's no-formatter stance.",
+      "files": []
+    },
+    {
+      "recommendationId": "17b9d723-6109-44f7-90f2-c5c2f7f9713b",
       "verdict": "resolved",
-      "reason": "Every ceiling and floor in .github/contract-ledger.json now carries `accepted: { on, reviewBy }`; contract:ledger:check (blocking, inside check:ci and .husky/pre-push) refuses an undated pin, a live exception with no review date, a backwards date or one past a two-year horizon, and reports pins past their review date with their age.",
+      "reason": "The ADR-0001 invariants are now one contract executed against both drivers in one process — cases live once in test-unit/store-contract.mjs and the two runner suites run them against sqlite and the Firestore fake, then deep-compare what each driver answered.",
       "files": [
-        ".github/contract-ledger.json",
-        "scripts/contract-ledger.mjs",
-        "test-unit/contract-ledger-expiry.test.mjs",
-        ".github/constraint-map.json",
-        ".github/guidance-budget.json",
-        "AGENTS.md"
+        "test-unit/store-contract.mjs",
+        "test-unit/store-contract-project-state.test.mjs",
+        "test-unit/store-contract-activity.test.mjs",
+        "docs/adr/0001-dual-store-seam.md"
       ]
     },
     {
-      "recommendationId": "b4c96011-2b54-4539-bca4-09adf96894e0",
-      "verdict": "skipped",
-      "reason": "Needs network: pinning a tag to a digest means asking GitHub what the tag points at today, and inventing a SHA breaks the workflow rather than pinning it — the repository already ships `npm run actions:pin` (scripts/actions-pin.mjs --update), which resolves every ref, flips STRICT to true and raises the P6 floor in one networked run.",
-      "files": []
-    },
-    {
-      "recommendationId": "82e154f8-9ee2-45a6-beed-c7ce37488dee",
+      "recommendationId": "d96792cd-5594-4279-8c85-cb4b01466eb1",
       "verdict": "needs_human",
-      "reason": "The repository-side halves already exist and block (rubric A5 over the whole origin/master..HEAD range in agent-review.yml and check:ci; scripts/commit-attribution.mjs writes Agent-Harness/Model/Spec/Session/Lane trailers); what lets the narrating subjects through is an external lane committing in a throwaway worktree that never ran `npm install`, so no hook exists — closing it means the Ascent harness setting AGENT_HARNESS and running the hook, and diagnosing why the pushed lane commits were not refused needs CI history this session cannot read.",
+      "reason": "A release that aborts itself needs a health signal and window the team accepts, Vercel deployment credentials to read and roll back with, and the authority to push a revert to master — all three are on this repository's red list for an unattended agent (AGENTS.md § Red) and none of them is reachable without network or an operator decision.",
       "files": []
     },
     {
-      "recommendationId": "6949c045-3c95-4fc2-aafd-11b4eee31a28",
-      "verdict": "skipped",
-      "reason": "Needs live provider credentials and network: a consumer-driven contract test only detects upstream drift by talking to Google Ads, Sklik and Meta, and every fixture here is inline in its test file with no recorded provenance to refresh against. The offline finding worth acting on: SearchRow (src/lib/google/ads.ts:122) and AdsMetricRow (src/lib/report-metrics/map.ts:11) are two independent hand-written declarations of the same Google row, cast between at src/lib/report-metrics/sync.ts:179-185, and four near-identical private num() coercers (ads.ts:534, keyword-planner.ts:16, sklik/client.ts:78, report-metrics/map.ts:22) silently turn a shape change into 0 rather than an error.",
-      "files": []
-    },
-    {
-      "recommendationId": "e9c17b7e-9541-4f92-912a-3450e3704189",
-      "verdict": "skipped",
-      "reason": "Needs platform access: a per-PR preview environment is a Vercel project setting plus a deploy token, neither of which exists in this worktree and neither of which can be verified from it.",
-      "files": []
-    },
-    {
-      "recommendationId": "58ab2679-0c73-41d9-9ae0-8054f9601e63",
-      "verdict": "skipped",
-      "reason": "Needs deployment credentials and a production URL: /api/health is behind the CRON_SECRET Bearer guard (src/app/api/health/route.ts:86), docs/deploy.md names the canonical origin only as an example, and a push-triggered probe would race the Vercel build with no deployment-status signal available here — a health window built on three guesses would be noise, and the auto-revert half is a push to master, which AGENTS.md § Red reserves for the operator.",
-      "files": []
-    },
-    {
-      "recommendationId": "753fea28-5f13-4253-8261-ee0711cba948",
-      "verdict": "skipped",
-      "reason": "Already covered another way: .github/workflows/llm-drift.yml runs npm run llm:drift weekly (Wed 06:00) against the CONFIGURED provider through the real chokepoint, records `skipped` rather than a green without a key, and publishes a dated pass/fail trail into a rewritten GitHub issue; the quality delta that counts as regression is FLOOR = 6.5 plus per-cell maxDrop in scripts/quality-gate.mjs, pinned in the contract ledger.",
-      "files": []
+      "recommendationId": "962a3606-06f2-4fa5-8eb3-4b6db427f036",
+      "verdict": "resolved",
+      "reason": "The strict measurement is now taken per seam as well as in total: six load-bearing seams are declared in .github/typecheck-strict.json, printed on every run, pinned by the same --accept, and a seam over its pin is reported even when the total fell.",
+      "files": [
+        ".github/typecheck-strict.json",
+        "scripts/typecheck-strict.mjs",
+        "test-unit/typecheck-strict.test.mjs"
+      ]
     }
   ],
   "lessons": [
-    "This repository indexes its own guardrails: .github/constraint-map.json says whether a rule blocks or is honour-system, .github/contract-ledger.json says what each fence is absorbing and pins the number that decides red, and both are held to the tree by tests — read those two files before proposing a control, because the answer is often that the control exists and the gap is one field inside it.",
-    "Several rows in .github/contract-ledger.json already state their own closing condition, including that it needs the network (P4 action-sha-pin: 'Closing it is one networked run (npm run actions:pin), which no offline session can do'). An offline lane should grep the ledger's `verdict` fields before starting work on a supply-chain or ratchet item.",
-    "AGENTS.md is line-budgeted to the exact line (.github/guidance-budget.json, blocking via test-unit/guidance-budget.test.mjs), so adding guidance prose is a two-line diff: the paragraph, and the ceiling plus the total that pay for it.",
-    "Time is the field this repository's otherwise-excellent exception machinery was missing: a `reason` and a `comesOffWhen` cannot distinguish a considered exception from a two-year-old shortcut, and dating the pin is a cheaper fix than any new gate."
+    "This repository closes its own gaps fast: three of the seven dispatched items (guidance budget, commit-msg hook, ADR revisit conditions) were already implemented and enforced by a blocking gate before the scan's findings were dispatched. Read the gate scripts and .github/*.json registries before writing anything — a plausible-looking gap here is usually a scan that ran on an older tree.",
+    "When adding a test to a repository whose conventions are this dense, check the registries that count things (scripts/agent-surface.mjs's unmapped ratchet, .github/test-tiers.json's census, the contract ledger's discovery sources) before adding a file: several of them turn a new path into a red build, and which ones do is not guessable from the file's location."
   ]
 }

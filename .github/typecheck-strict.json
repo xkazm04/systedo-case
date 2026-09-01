@@ -19,6 +19,55 @@
     "test-unit/typecheck-strict.test.mjs, and measured on every push and pull request by the",
     "reporting step in .github/workflows/ci.yml."
   ],
+
+  "$seams": [
+    "AND A TOTAL DOES NOT KNOW WHERE IT HURTS. One number for the whole tree lets a strict",
+    "regression in the LLM chokepoint or a store driver be paid for with cleanup in a marketing",
+    "page: the total falls, the ratchet is happy, and the hole opened in the place where a type",
+    "hole costs a bill or a breach. The seams below are the ones AGENTS.md already names as",
+    "load-bearing, so the measurement is taken per seam as well as in total, and each seam gets",
+    "its own pin at the same moment the total does. After that a seam that rises is reported",
+    "even when the total fell.",
+    "",
+    "`paths` are project-relative; a trailing slash means the directory and everything under it.",
+    "Every one of them is asserted to exist by test-unit/typecheck-strict.test.mjs — a seam",
+    "pointing at a moved file measures nothing and keeps printing a zero that reads as clean.",
+    "Adding a seam is cheap and is meant to be; removing one is the decision worth arguing about."
+  ],
+
+  "seams": [
+    {
+      "id": "llm-chokepoint",
+      "why": "ADR-0003 — every text call goes through generateStructured(); a wrong shape here reaches every AI operation, the BYOM keys and the metering.",
+      "paths": ["src/lib/llm/"]
+    },
+    {
+      "id": "billing-and-metering",
+      "why": "AGENTS.md § Architecture 7 — the quota transaction and the durable per-IP + daily spend ceiling. Wrong here is a bill somebody else pays.",
+      "paths": ["src/lib/usage.ts", "src/lib/ai/durable-limit.ts"]
+    },
+    {
+      "id": "tenancy-keys",
+      "why": "ADR-0002 — the tenant key embeds the userId, so cross-user IDOR is impossible by construction only while this module is right.",
+      "paths": ["src/lib/campaigns/store-keys.ts"]
+    },
+    {
+      "id": "store-seam",
+      "why": "ADR-0001 — one interface, two backends. A type hole here holds on the driver the offline lane runs and not on the one production uses.",
+      "paths": ["src/lib/db.ts", "src/lib/local-mode.ts", "src/lib/project-state/", "src/lib/tenant-docs/"]
+    },
+    {
+      "id": "cron-auth",
+      "why": "AGENTS.md § Architecture 9 — the constant-time CRON_SECRET guard in front of six scheduled routes.",
+      "paths": ["src/lib/cron-auth.ts"]
+    },
+    {
+      "id": "ad-platform-writes",
+      "why": "AGENTS.md § Red — the path that mutates a real ad account. SKLIK_WRITES_ENABLED is off, and the day it is not, this is where wrong spends an advertiser's budget.",
+      "paths": ["src/lib/campaigns/mutator.ts"]
+    }
+  ],
+
   "schema": 1,
   "accepted": null,
   "history": []
