@@ -1,0 +1,552 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Adamant HTTP surface",
+    "version": "2026-09-01",
+    "summary": "Every route handler under src/app/api, as a contract a change can be compared against.",
+    "description": "HALF OF THIS DOCUMENT IS DERIVED AND HALF IS WRITTEN, AND THE SPLIT IS THE POINT.\n\nDerived and pinned by `npm run api:surface:check` (blocking, through test-unit/api-surface.test.mjs inside `npm run test:unit`): the path template, the exported verbs, the path parameters, `x-adamant.source`, `x-adamant.auth` and `x-adamant.maxDuration`. Those six facts are read out of the tree by scripts/lib/api-surface-core.mjs on every build, and a disagreement between them and this file fails the build. Editing this half by hand to make a red check green is the one thing never to do here — the disagreement IS the change being caught. Regenerate with `npm run api:surface:write`, which keeps every written sentence, and read the diff.\n\nWritten and required: the one-sentence `summary` on every operation. Not generated, because a generated sentence about a route reads as informative and says nothing; not optional either, because the check refuses a `TODO` summary, which is what a route arriving for the first time is given.\n\nWHAT IS DELIBERATELY NOT PINNED YET. Request and response BODIES. Every operation below states its posture's response codes, and those are indicative rather than derived — the check does not compare them against the handler. Pinning bodies means either a schema per route hand-written from 88 modules (documentation that goes stale the first week) or a type extractor (a real project, and a bigger one than the gap this closes). The honest position is that the SHAPE of the surface — what exists, what verbs it answers, and who it lets in — is pinned today, and the bodies are not. If a body contract starts mattering to a consumer, the seam to extend is `compareSurface()` in scripts/lib/api-surface-core.mjs, not this file.\n\nAUTH IS THE FACT WORTH HAVING HERE. `x-adamant.auth` is classified by the SAME regex `scripts/sast.mjs` uses for its `route-auth` rule, deliberately copied rather than re-invented, so the document and the security gate cannot hold two opinions about whether a handler establishes caller identity. A route that quietly stops requiring a session changes one word in this file and fails the build.",
+    "license": { "name": "AGPL-3.0-only", "identifier": "AGPL-3.0-only" }
+  },
+  "servers": [
+    { "url": "https://{host}", "description": "The deployment. The host is declared in .github/environments.json; see docs/deploy.md.", "variables": { "host": { "default": "adamant.cz" } } },
+    { "url": "http://localhost:3000", "description": "npm run dev:local — DEV_AUTH + LOCAL_DB, fully offline." }
+  ],
+  "tags": [
+    { "name": "activity", "description": "The per-project activity feed." },
+    { "name": "ai", "description": "The single AI entry point and its readiness probe. Every text call behind it goes through generateStructured()." },
+    { "name": "alerts", "description": "Performance alerts raised against a project." },
+    { "name": "auth", "description": "The Auth.js v5 catch-all handler." },
+    { "name": "byom", "description": "Bring-your-own-model: per-user encrypted provider keys and the per-operation model matrix." },
+    { "name": "campaigns", "description": "Ad accounts, campaign reads, analysis and the Sklik/Google control plane." },
+    { "name": "cron", "description": "The six scheduled jobs declared in vercel.json, behind a constant-time CRON_SECRET check." },
+    { "name": "eval", "description": "LLM evaluation telemetry." },
+    { "name": "experiments", "description": "Hosted landing-page experiments." },
+    { "name": "feed", "description": "The public outbound product feed for merchant channels." },
+    { "name": "feedback", "description": "In-product feedback capture." },
+    { "name": "health", "description": "The operator readiness probe." },
+    { "name": "images", "description": "Creative Studio image generation, storage and attribution." },
+    { "name": "keywords", "description": "Keyword research and saved keyword lists." },
+    { "name": "microsite", "description": "Generated microsites." },
+    { "name": "patterns", "description": "The creative patterns library and its retrieval search." },
+    { "name": "projects", "description": "Projects and every per-project resource. The tenant key embeds userId, so cross-user access is impossible by construction (ADR-0002)." },
+    { "name": "sken", "description": "The anonymous website scan and its claim/redeem handoff across sign-in." },
+    { "name": "skills", "description": "The registered AI skill ids — a build-time diagnostics surface." },
+    { "name": "social", "description": "Social accounts, drafts, messages and scheduled posts." },
+    { "name": "twin", "description": "The brand communication twin: public intake and the operator's review gate." },
+    { "name": "usage", "description": "AI unit metering for the signed-in user." }
+  ],
+  "components": {
+    "securitySchemes": {
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "authjs.session-token",
+        "description": "An Auth.js v5 session established by Google OAuth. The tenant key is derived from the session (`u_{userId}_proj_{projectId}`) and never taken from the wire — an unverified projectId does not mint a tenant."
+      },
+      "cronBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "The CRON_SECRET bearer token, compared in constant time by src/lib/cron-auth.ts. Vercel's scheduler holds it; so does whatever uptime monitor polls /api/health."
+      },
+      "pathToken": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "token",
+        "description": "A 128-bit random token carried as a PATH segment, not a query parameter — OpenAPI has no place to say that, so this scheme is documentation. The token is the credential: unguessable, per-resource, revocable by re-minting, and the (userId, projectId) pairing is read from the stored row rather than supplied by the caller."
+      }
+    },
+    "responses": {
+      "Ok": { "description": "The resource, in the route's own envelope (`{ ok: true, … }` for most of the app surface)." },
+      "Created": { "description": "Created — the new resource is in the body." },
+      "BadRequest": { "description": "The request could not be read: a malformed body, a missing or unparseable parameter." },
+      "Unauthorized": { "description": "No caller identity: no session, or a CRON_SECRET bearer token that did not match." },
+      "Forbidden": { "description": "Identified, but not entitled to this resource." },
+      "NotFound": { "description": "No such resource for this caller. Ownership failures answer here rather than leaking existence." },
+      "Conflict": { "description": "The resource is already in the state the request would create, or a concurrent write won." },
+      "PayloadTooLarge": { "description": "The body exceeded this route's byte cap." },
+      "Unprocessable": { "description": "Read, but refused: a field is missing, out of range, or names something the route will not act on." },
+      "TooManyRequests": { "description": "A durable per-IP limit or the global daily spend ceiling refused the call (src/lib/ai/durable-limit.ts)." },
+      "ServerError": { "description": "An unhandled failure on this side." },
+      "BadGateway": { "description": "An upstream — a provider, an ad platform, an image service — failed or timed out." },
+      "Text": { "description": "A plain-text body. The caller is a robot, not a browser, so there is no JSON envelope." }
+    }
+  },
+  "paths": {
+    "/api/activity": {
+      "x-adamant": { "source": "src/app/api/activity/route.ts", "auth": "session" },
+      "get": { "operationId": "listActivity", "summary": "List the signed-in user's recent activity entries.", "tags": ["activity"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "recordActivity", "summary": "Record one activity entry against the caller's account.", "tags": ["activity"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/ai": {
+      "x-adamant": { "source": "src/app/api/ai/route.ts", "auth": "session" },
+      "post": { "operationId": "runAiOperation", "summary": "Run one registered AI operation — the single metered entry point in front of generateStructured().", "description": "Every text operation the product offers arrives here by name. The handler meters units through usage.consume(), applies the durable per-IP limit and the global daily spend ceiling, and falls back to the operation's deterministic demo answer when no provider is configured.", "tags": ["ai"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "429": { "$ref": "#/components/responses/TooManyRequests" }, "502": { "$ref": "#/components/responses/BadGateway" } } }
+    },
+    "/api/ai/status": {
+      "x-adamant": { "source": "src/app/api/ai/status/route.ts", "auth": "session" },
+      "get": { "operationId": "getAiStatus", "summary": "Report which AI providers are configured for this caller and whether the app is in demo mode.", "tags": ["ai"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/alerts": {
+      "x-adamant": { "source": "src/app/api/alerts/route.ts", "auth": "session" },
+      "get": { "operationId": "listAlerts", "summary": "List the performance alerts currently raised for the caller's projects.", "tags": ["alerts"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "updateAlerts", "summary": "Acknowledge or dismiss alerts for the caller's projects.", "tags": ["alerts"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/auth/{nextauth}": {
+      "x-adamant": { "source": "src/app/api/auth/[...nextauth]/route.ts", "auth": "authjs" },
+      "parameters": [{ "name": "nextauth", "in": "path", "required": true, "schema": { "type": "string" }, "x-catch-all": true, "description": "The Auth.js action and provider — `signin/google`, `callback/google`, `session`, `csrf`, `signout`." }],
+      "get": { "operationId": "authJsGet", "summary": "The Auth.js v5 GET handler — sign-in pages, CSRF, session and OAuth callbacks.", "description": "This route IS the sign-in surface, so it establishes the session rather than requiring one; `x-adamant.auth` is `authjs` for exactly that reason and no other route may hold it.", "tags": ["auth"], "security": [], "responses": { "200": { "$ref": "#/components/responses/Ok" } } },
+      "post": { "operationId": "authJsPost", "summary": "The Auth.js v5 POST handler — sign-in, sign-out and callback submissions.", "tags": ["auth"], "security": [], "responses": { "200": { "$ref": "#/components/responses/Ok" } } }
+    },
+    "/api/byom": {
+      "x-adamant": { "source": "src/app/api/byom/route.ts", "auth": "session" },
+      "get": { "operationId": "getByomConfig", "summary": "Return the caller's public BYOM configuration — which vendors are configured, never a key.", "tags": ["byom"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "patch": { "operationId": "updateByomConfig", "summary": "Change the caller's active BYOM vendor or model preferences.", "tags": ["byom"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/byom/keys": {
+      "x-adamant": { "source": "src/app/api/byom/keys/route.ts", "auth": "session" },
+      "post": { "operationId": "storeByomKey", "summary": "Store one provider key for the caller, encrypted at rest.", "description": "The plaintext key is never read back. Only src/app/api/byom/validate holds a decrypted key, and it holds it to call the vendor — the sast rule `plaintext-key-in-route` blocks any other route importing resolveByomKey.", "tags": ["byom"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "500": { "$ref": "#/components/responses/ServerError" } } },
+      "delete": { "operationId": "deleteByomKey", "summary": "Remove one stored provider key for the caller.", "tags": ["byom"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/byom/matrix": {
+      "x-adamant": { "source": "src/app/api/byom/matrix/route.ts", "auth": "session" },
+      "post": { "operationId": "setByomMatrixEntry", "summary": "Pin a provider, model and reasoning tier for one AI operation.", "tags": ["byom"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "delete": { "operationId": "clearByomMatrixEntry", "summary": "Drop a per-operation model pin and fall back to the account default.", "tags": ["byom"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/byom/validate": {
+      "x-adamant": { "source": "src/app/api/byom/validate/route.ts", "auth": "session" },
+      "post": { "operationId": "validateByomKey", "summary": "Test the caller's stored provider key against the vendor and report the verdict.", "description": "The one route that legitimately decrypts a BYOM key (allowlisted under sast's `plaintext-key-in-route` with the reason). The key reaches the vendor and never the response — the body is getPublicByomConfig() plus the verdict.", "tags": ["byom"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/campaigns": {
+      "x-adamant": { "source": "src/app/api/campaigns/route.ts", "auth": "session" },
+      "get": { "operationId": "listCampaigns", "summary": "List the campaigns visible to the caller across their connected ad accounts.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "429": { "$ref": "#/components/responses/TooManyRequests" }, "500": { "$ref": "#/components/responses/ServerError" }, "502": { "$ref": "#/components/responses/BadGateway" } } },
+      "post": { "operationId": "refreshCampaigns", "summary": "Pull a fresh campaign read from the connected ad platforms.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "429": { "$ref": "#/components/responses/TooManyRequests" }, "502": { "$ref": "#/components/responses/BadGateway" } } }
+    },
+    "/api/campaigns/accounts": {
+      "x-adamant": { "source": "src/app/api/campaigns/accounts/route.ts", "auth": "session" },
+      "get": { "operationId": "listAdAccounts", "summary": "List the ad accounts connected to the caller.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "403": { "$ref": "#/components/responses/Forbidden" }, "502": { "$ref": "#/components/responses/BadGateway" } } },
+      "post": { "operationId": "connectAdAccount", "summary": "Connect an ad account to the caller.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "403": { "$ref": "#/components/responses/Forbidden" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "502": { "$ref": "#/components/responses/BadGateway" } } },
+      "patch": { "operationId": "updateAdAccount", "summary": "Rename a connected ad account or change which project it feeds.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "disconnectAdAccount", "summary": "Disconnect an ad account from the caller.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/campaigns/analyze": {
+      "x-adamant": { "source": "src/app/api/campaigns/analyze/route.ts", "auth": "session" },
+      "post": { "operationId": "analyzeCampaign", "summary": "Diagnose one campaign and return the findings.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "404": { "$ref": "#/components/responses/NotFound" }, "409": { "$ref": "#/components/responses/Conflict" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "502": { "$ref": "#/components/responses/BadGateway" } } }
+    },
+    "/api/campaigns/analyze/batch": {
+      "x-adamant": { "source": "src/app/api/campaigns/analyze/batch/route.ts", "auth": "session", "maxDuration": 300 },
+      "post": { "operationId": "analyzeCampaignBatch", "summary": "Diagnose a whole account's campaigns in one long-running pass.", "description": "Five minutes of function budget (`maxDuration: 300`) because the pass is per-campaign and serial against the platform's rate limits.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "409": { "$ref": "#/components/responses/Conflict" }, "429": { "$ref": "#/components/responses/TooManyRequests" } } }
+    },
+    "/api/campaigns/control-plane": {
+      "x-adamant": { "source": "src/app/api/campaigns/control-plane/route.ts", "auth": "session" },
+      "get": { "operationId": "getControlPlane", "summary": "Read the proposed and applied campaign changes for the caller's accounts.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "post": { "operationId": "actOnControlPlane", "summary": "Propose, approve or discard a campaign change.", "description": "Whether an approved change ever reaches a live ad account is decided by SKLIK_WRITES_ENABLED, which is off unless the exact value is `1` (AGENTS.md § What you may do unattended, red list).", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/campaigns/report-config": {
+      "x-adamant": { "source": "src/app/api/campaigns/report-config/route.ts", "auth": "session" },
+      "get": { "operationId": "getReportConfig", "summary": "Read the caller's scheduled reporting configuration.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "put": { "operationId": "putReportConfig", "summary": "Replace the caller's scheduled reporting configuration.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/campaigns/share": {
+      "x-adamant": { "source": "src/app/api/campaigns/share/route.ts", "auth": "session" },
+      "get": { "operationId": "listCampaignShares", "summary": "List the share links the caller has minted for campaign reports.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "createCampaignShare", "summary": "Mint a share link for a campaign report.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "409": { "$ref": "#/components/responses/Conflict" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "revokeCampaignShare", "summary": "Revoke a share link.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/campaigns/sklik": {
+      "x-adamant": { "source": "src/app/api/campaigns/sklik/route.ts", "auth": "session" },
+      "get": { "operationId": "getSklikState", "summary": "Read Sklik campaign state for the caller's connected accounts.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "502": { "$ref": "#/components/responses/BadGateway" } } },
+      "put": { "operationId": "putSklikState", "summary": "Stage a Sklik mutation. Whether it reaches the live account is gated by SKLIK_WRITES_ENABLED === \"1\".", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "patch": { "operationId": "patchSklikState", "summary": "Amend a staged Sklik mutation.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "deleteSklikState", "summary": "Discard a staged Sklik mutation.", "tags": ["campaigns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/cron/catalog-sync": {
+      "x-adamant": { "source": "src/app/api/cron/catalog-sync/route.ts", "auth": "cron", "maxDuration": 300 },
+      "get": { "operationId": "cronCatalogSync", "summary": "Daily: re-import every project's product catalog from its configured source.", "tags": ["cron"], "security": [{ "cronBearer": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/cron/digest": {
+      "x-adamant": { "source": "src/app/api/cron/digest/route.ts", "auth": "cron", "maxDuration": 300 },
+      "get": { "operationId": "cronDigest", "summary": "Weekly: assemble each project's digest. Nothing is sent — outbound waits for the operator.", "tags": ["cron"], "security": [{ "cronBearer": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/cron/ledgers": {
+      "x-adamant": { "source": "src/app/api/cron/ledgers/route.ts", "auth": "cron", "maxDuration": 300 },
+      "get": { "operationId": "cronLedgers", "summary": "Hourly: settle the advice, conversion and outcome ledgers.", "tags": ["cron"], "security": [{ "cronBearer": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/cron/report": {
+      "x-adamant": { "source": "src/app/api/cron/report/route.ts", "auth": "cron", "maxDuration": 300 },
+      "get": { "operationId": "cronReport", "summary": "Daily: build the scheduled performance reports.", "tags": ["cron"], "security": [{ "cronBearer": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/cron/social": {
+      "x-adamant": { "source": "src/app/api/cron/social/route.ts", "auth": "cron", "maxDuration": 300 },
+      "get": { "operationId": "cronSocial", "summary": "Hourly: advance scheduled social posts to the point where the operator presses send.", "tags": ["cron"], "security": [{ "cronBearer": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/cron/sync": {
+      "x-adamant": { "source": "src/app/api/cron/sync/route.ts", "auth": "cron", "maxDuration": 300 },
+      "get": { "operationId": "cronSync", "summary": "Hourly: pull metrics from the connected ad platforms into the warehouse.", "tags": ["cron"], "security": [{ "cronBearer": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/eval/telemetry": {
+      "x-adamant": { "source": "src/app/api/eval/telemetry/route.ts", "auth": "session" },
+      "get": { "operationId": "getEvalTelemetry", "summary": "Read recorded LLM evaluation telemetry — operation, tier, tokens and cost, never prompt content.", "tags": ["eval"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/experiments": {
+      "x-adamant": { "source": "src/app/api/experiments/route.ts", "auth": "session" },
+      "get": { "operationId": "listExperiments", "summary": "List the caller's hosted landing-page experiments.", "tags": ["experiments"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "createExperiment", "summary": "Create a landing-page experiment.", "tags": ["experiments"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "patch": { "operationId": "updateExperiment", "summary": "Start, stop or amend an experiment.", "tags": ["experiments"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "deleteExperiment", "summary": "Delete an experiment and its variants.", "tags": ["experiments"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/feed/{token}": {
+      "x-adamant": { "source": "src/app/api/feed/[token]/route.ts", "auth": "public" },
+      "parameters": [{ "name": "token", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The 128-bit per-project feed token. It IS the credential; (userId, projectId) are read from the stored row, never from the wire." }],
+      "get": { "operationId": "getProductFeed", "summary": "Serve the project's product feed to a merchant channel robot (Google Merchant, Heureka, Zboží).", "description": "Deliberately anonymous — the callers cannot sign in — with the reasoning recorded in .github/security/sast-allowlist.json § route-auth. An empty catalog answers with a VALID EMPTY feed rather than a 404, because every one of these channels de-lists a shop whose feed errors; only an unknown or revoked token is a 404.", "tags": ["feed"], "security": [{ "pathToken": [] }], "responses": { "200": { "$ref": "#/components/responses/Text" }, "404": { "$ref": "#/components/responses/Text" } } }
+    },
+    "/api/feedback": {
+      "x-adamant": { "source": "src/app/api/feedback/route.ts", "auth": "session" },
+      "post": { "operationId": "submitFeedback", "summary": "Record one piece of in-product feedback from the caller.", "tags": ["feedback"], "security": [{ "sessionCookie": [] }], "responses": { "201": { "$ref": "#/components/responses/Created" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "429": { "$ref": "#/components/responses/TooManyRequests" } } }
+    },
+    "/api/health": {
+      "x-adamant": { "source": "src/app/api/health/route.ts", "auth": "cron" },
+      "get": { "operationId": "getHealth", "summary": "The operator readiness probe: which credentials are configured, whether Firestore answers a one-document read, and which crons have gone stale.", "description": "Behind the same CRON_SECRET bearer guard as the crons, so it is safe to wire to an uptime monitor. It reports WHICH credentials are present as booleans and never a value. `firestoreReachable` is reality rather than configuration — a present-but-misconfigured credential passes the boolean and fails here — and `cronsStale` names the schedules whose last run is older than vercel.json allows.", "tags": ["health"], "security": [{ "cronBearer": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/images": {
+      "x-adamant": { "source": "src/app/api/images/route.ts", "auth": "session", "maxDuration": 120 },
+      "get": { "operationId": "listImages", "summary": "List the caller's generated and uploaded images.", "tags": ["images"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "post": { "operationId": "generateImage", "summary": "Generate an image through Leonardo and store it against the caller's project.", "tags": ["images"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "429": { "$ref": "#/components/responses/TooManyRequests" }, "502": { "$ref": "#/components/responses/BadGateway" } } },
+      "delete": { "operationId": "deleteImage", "summary": "Delete one of the caller's stored images.", "tags": ["images"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/images/attribution": {
+      "x-adamant": { "source": "src/app/api/images/attribution/route.ts", "auth": "session" },
+      "get": { "operationId": "listImageAttribution", "summary": "Read the attribution records for the caller's images.", "tags": ["images"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "post": { "operationId": "createImageAttribution", "summary": "Record where an image came from and under what licence.", "tags": ["images"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "patch": { "operationId": "updateImageAttribution", "summary": "Amend an image's attribution record.", "tags": ["images"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "deleteImageAttribution", "summary": "Remove an image's attribution record.", "tags": ["images"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/images/file/{id}": {
+      "x-adamant": { "source": "src/app/api/images/file/[id]/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The stored image id. Ownership is checked before the bytes are served." }],
+      "get": { "operationId": "getImageFile", "summary": "Serve the bytes of one of the caller's stored images.", "tags": ["images"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" } } }
+    },
+    "/api/images/nobg": {
+      "x-adamant": { "source": "src/app/api/images/nobg/route.ts", "auth": "session", "maxDuration": 120 },
+      "post": { "operationId": "removeImageBackground", "summary": "Produce a background-removed variant of one of the caller's images.", "tags": ["images"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "429": { "$ref": "#/components/responses/TooManyRequests" }, "502": { "$ref": "#/components/responses/BadGateway" } } }
+    },
+    "/api/images/upload-ref": {
+      "x-adamant": { "source": "src/app/api/images/upload-ref/route.ts", "auth": "public", "maxDuration": 60 },
+      "post": { "operationId": "uploadReferenceImage", "summary": "Accept a reference image from a signed-out visitor on the marketing site.", "description": "Deliberately anonymous because Creative Studio has to work before sign-in, with the reasoning in .github/security/sast-allowlist.json § route-auth. Not unguarded: durableGuard applies the per-minute AI throttle and a per-IP DAILY cap (RATE_RULES.uploadRefPerDay), and it spends no AI units.", "tags": ["images"], "security": [], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "413": { "$ref": "#/components/responses/PayloadTooLarge" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "429": { "$ref": "#/components/responses/TooManyRequests" }, "502": { "$ref": "#/components/responses/BadGateway" } } }
+    },
+    "/api/keywords": {
+      "x-adamant": { "source": "src/app/api/keywords/route.ts", "auth": "session" },
+      "post": { "operationId": "researchKeywords", "summary": "Run keyword research for a project and return the suggestions.", "tags": ["keywords"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "429": { "$ref": "#/components/responses/TooManyRequests" }, "502": { "$ref": "#/components/responses/BadGateway" } } }
+    },
+    "/api/keywords/lists": {
+      "x-adamant": { "source": "src/app/api/keywords/lists/route.ts", "auth": "session" },
+      "get": { "operationId": "listKeywordLists", "summary": "List the caller's saved keyword lists.", "tags": ["keywords"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "createKeywordList", "summary": "Save a keyword list.", "tags": ["keywords"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "patch": { "operationId": "updateKeywordList", "summary": "Rename a saved keyword list or change its members.", "tags": ["keywords"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "deleteKeywordList", "summary": "Delete a saved keyword list.", "tags": ["keywords"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/microsite": {
+      "x-adamant": { "source": "src/app/api/microsite/route.ts", "auth": "session" },
+      "get": { "operationId": "listMicrosites", "summary": "List the caller's generated microsites.", "tags": ["microsite"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" } } },
+      "post": { "operationId": "createMicrosite", "summary": "Generate or update a microsite for one of the caller's projects.", "tags": ["microsite"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "409": { "$ref": "#/components/responses/Conflict" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "deleteMicrosite", "summary": "Take down a microsite.", "tags": ["microsite"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/patterns": {
+      "x-adamant": { "source": "src/app/api/patterns/route.ts", "auth": "session" },
+      "get": { "operationId": "listPatterns", "summary": "List the creative patterns in the caller's library.", "tags": ["patterns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "post": { "operationId": "createPattern", "summary": "Add a creative pattern to the library and embed it for retrieval.", "tags": ["patterns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "deletePattern", "summary": "Remove a pattern from the library.", "tags": ["patterns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/patterns/search": {
+      "x-adamant": { "source": "src/app/api/patterns/search/route.ts", "auth": "session" },
+      "post": { "operationId": "searchPatterns", "summary": "Retrieve the patterns nearest a query, by embedding similarity.", "tags": ["patterns"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "429": { "$ref": "#/components/responses/TooManyRequests" }, "502": { "$ref": "#/components/responses/BadGateway" } } }
+    },
+    "/api/projects": {
+      "x-adamant": { "source": "src/app/api/projects/route.ts", "auth": "session" },
+      "get": { "operationId": "listProjects", "summary": "List the caller's projects.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "createProject", "summary": "Create a project under the caller's account.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "201": { "$ref": "#/components/responses/Created" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/orphans": {
+      "x-adamant": { "source": "src/app/api/projects/orphans/route.ts", "auth": "session" },
+      "get": { "operationId": "listOrphanTenants", "summary": "List tenant documents that no longer belong to a live project.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "reclaimOrphanTenants", "summary": "Reclaim or delete orphaned tenant documents for the caller.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/orphans/walk": {
+      "x-adamant": { "source": "src/app/api/projects/orphans/walk/route.ts", "auth": "session" },
+      "get": { "operationId": "walkOrphanTenants", "summary": "Walk one page of the caller's tenant documents looking for orphans.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "advanceOrphanWalk", "summary": "Advance the orphan walk by one page.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/{id}": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id. Ownership is checked before anything is read or written (ADR-0002)." }],
+      "patch": { "operationId": "updateProject", "summary": "Amend one of the caller's projects.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "deleteProject", "summary": "Delete one of the caller's projects and everything under its tenant.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" } } }
+    },
+    "/api/projects/{id}/advice": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/advice/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "getAdviceLedger", "summary": "Read the project's advice ledger — what the app recommended, when it was shown, and how it turned out.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" } } },
+      "patch": { "operationId": "setAdviceSubjectStatus", "summary": "Dismiss one advice subject, or undo the dismissal.", "description": "The narrow exception to the ledger's `http: false` state key: it moves ONE subject between `dismissed` and `open` and nothing else. `resolved` is refused with a 422 by construction — it is machine-minted alongside the outcome that justifies it, and a client-set \"resolved\" would be a verdict with no measurement behind it.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/{id}/annotations": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/annotations/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "listAnnotations", "summary": "List the timeline annotations recorded against the project.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "createAnnotation", "summary": "Record a timeline annotation against the project.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "deleteAnnotation", "summary": "Remove a timeline annotation.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/{id}/brand-context": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/brand-context/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "getBrandContext", "summary": "Read the project's brand context — the grounding the AI operations are given.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" } } }
+    },
+    "/api/projects/{id}/catalog": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/catalog/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "put": { "operationId": "putCatalog", "summary": "Replace the project's offering catalog.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/{id}/catalog/events": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/catalog/events/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "listCatalogEvents", "summary": "Read the catalog's change history — what was imported, synced or edited, and when.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/catalog/import": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/catalog/import/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "post": { "operationId": "importCatalog", "summary": "Import offerings into the project's catalog from an uploaded feed.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/{id}/catalog/sync": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/catalog/sync/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "post": { "operationId": "syncCatalog", "summary": "Re-pull the project's catalog from its configured source now, rather than waiting for the daily cron.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/{id}/competitors": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/competitors/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "post": { "operationId": "addCompetitor", "summary": "Add a competitor to the project's watch list.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "delete": { "operationId": "removeCompetitor", "summary": "Remove a competitor from the watch list.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/conversions/export": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/conversions/export/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "exportConversions", "summary": "Export the project's conversion ledger in the shape an ad platform accepts.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/conversions/upload": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/conversions/upload/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "getConversionUploadState", "summary": "Read the state of offline conversion uploads for the project.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "uploadConversions", "summary": "Upload offline conversions to the connected ad platform.", "description": "Outbound under the operator's name — AGENTS.md's red list. The dry run is the default and the live upload is the operator's act.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "502": { "$ref": "#/components/responses/BadGateway" } } }
+    },
+    "/api/projects/{id}/cost-model": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/cost-model/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "post": { "operationId": "putCostModel", "summary": "Set the project's cost model — the unit economics every profit figure is derived from.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "delete": { "operationId": "clearCostModel", "summary": "Clear the project's cost model.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/crm/contacts": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/crm/contacts/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "listContacts", "summary": "List the project's CRM contacts.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "createContact", "summary": "Create a CRM contact under the project.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/{id}/crm/contacts/{contactId}": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/crm/contacts/[contactId]/route.ts", "auth": "session" },
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." },
+        { "name": "contactId", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The contact id, resolved within the project's tenant." }
+      ],
+      "get": { "operationId": "getContact", "summary": "Read one CRM contact.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" } } },
+      "patch": { "operationId": "updateContact", "summary": "Amend one CRM contact.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "deleteContact", "summary": "Delete one CRM contact.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" } } }
+    },
+    "/api/projects/{id}/crm/events": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/crm/events/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "post": { "operationId": "recordCrmEvent", "summary": "Record a CRM event against a contact — the raw material the conversion ledger is built from.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/{id}/crm/summary": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/crm/summary/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "getCrmSummary", "summary": "Read the project's CRM pipeline in aggregate — counts and value by stage.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/diagnoses": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/diagnoses/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "listDiagnoses", "summary": "List the diagnoses raised against the project.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "createDiagnosis", "summary": "Run or record a diagnosis for the project.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "patch": { "operationId": "updateDiagnosis", "summary": "Dismiss a diagnosis or move it back to open.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/{id}/duplicate": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/duplicate/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id to copy from." }],
+      "post": { "operationId": "duplicateProject", "summary": "Copy a project — its settings and grounding, into a fresh tenant.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "201": { "$ref": "#/components/responses/Created" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" } } }
+    },
+    "/api/projects/{id}/experiments": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/experiments/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "listProjectExperiments", "summary": "List the project's experiments and their measured results.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "createProjectExperiment", "summary": "Create an experiment under the project.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "patch": { "operationId": "updateProjectExperiment", "summary": "Start, stop or amend one of the project's experiments.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "deleteProjectExperiment", "summary": "Delete one of the project's experiments.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/feed-token": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/feed-token/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "getFeedToken", "summary": "Read the project's current product-feed token, if one has been minted.", "description": "The owner-guarded management side of /api/feed/{token}. The (userId, projectId) pairing the public route reads is written HERE — which is why a valid token can never be pointed at somebody else's catalog.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "mintFeedToken", "summary": "Mint or re-mint the project's product-feed token, revoking the previous one.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "delete": { "operationId": "revokeFeedToken", "summary": "Revoke the project's product-feed token.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/finance-inputs": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/finance-inputs/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "getFinanceInputs", "summary": "Read the project's finance inputs — margins, fixed costs and the figures profit is computed from.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "putFinanceInputs", "summary": "Replace the project's finance inputs.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/{id}/go-links": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/go-links/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "listGoLinks", "summary": "List the project's tracked short links.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "createGoLink", "summary": "Mint a tracked short link for the project.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "429": { "$ref": "#/components/responses/TooManyRequests" } } }
+    },
+    "/api/projects/{id}/goal": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/goal/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "getProjectGoal", "summary": "Read the project's stated goal — what every module is asked to optimise for.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "setProjectGoal", "summary": "Set the project's goal.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/{id}/inventory-plan": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/inventory-plan/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "post": { "operationId": "putInventoryPlan", "summary": "Set the project's inventory plan — what is in stock, and what the ads may promise.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/leads/import": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/leads/import/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "post": { "operationId": "importLeads", "summary": "Import leads into the project from an uploaded file.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "clearImportedLeads", "summary": "Clear the project's imported leads.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/local-signals/import": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/local-signals/import/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "post": { "operationId": "importLocalSignals", "summary": "Import local-SEO rank and visibility signals for the project's map surface.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "clearLocalSignals", "summary": "Clear the project's imported local signals.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/metrics/sync": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/metrics/sync/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "post": { "operationId": "syncProjectMetrics", "summary": "Pull the project's platform metrics now, rather than waiting for the hourly cron.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "502": { "$ref": "#/components/responses/BadGateway" } } },
+      "delete": { "operationId": "clearProjectMetrics", "summary": "Clear the project's synced metrics.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/onboarding": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/onboarding/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "post": { "operationId": "applyOnboardingScan", "summary": "Apply a website scan to the project — seeding its profile, competitors and keyword seed.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "clearOnboardingScan", "summary": "Discard the project's onboarding scan.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/organic-channels": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/organic-channels/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "post": { "operationId": "saveOrganicChannels", "summary": "Save the project's zero-ad-spend channel research and intent.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "clearOrganicChannels", "summary": "Clear the project's organic channel research.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/publishing": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/publishing/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "getPublishingState", "summary": "Read what the project has queued for publication and what is still waiting for the operator.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/state/{key}": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/state/[key]/route.ts", "auth": "session" },
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." },
+        { "name": "key", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project_state key. A key declared `http: false` — the advice ledger is one — cannot be reached here at all, because a client that could rewrite a measurement could write itself any result it liked." }
+      ],
+      "get": { "operationId": "getProjectState", "summary": "Read one of the project's generic state blobs.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" } } },
+      "put": { "operationId": "putProjectState", "summary": "Replace one of the project's generic state blobs.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/projects/{id}/twin": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/twin/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "getTwin", "summary": "Read the project's communication twin — its trained voice and its inbox of drafts.", "tags": ["twin"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "updateTwin", "summary": "Train the twin's voice or draft a reply through it.", "tags": ["twin"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "deleteTwinDraft", "summary": "Discard a twin draft.", "tags": ["twin"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/twin/inbound": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/twin/inbound/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "listInboundEndpoints", "summary": "List the project's inbound twin endpoints and their channels.", "description": "The owner-guarded management side of /api/twin/inbound/{token}: this is where (userId, projectId, channel) is written, so the public intake never takes a tenant from the wire.", "tags": ["twin"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "mintInboundEndpoint", "summary": "Mint an inbound endpoint for a channel, with its own token and signing secret.", "tags": ["twin"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "revokeInboundEndpoint", "summary": "Revoke an inbound endpoint.", "tags": ["twin"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/twin/send": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/twin/send/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "post": { "operationId": "sendTwinDraft", "summary": "Send an approved twin draft on the wire — the operator's act, never an agent's.", "description": "Outbound under the operator's name (AGENTS.md § red list). Everything upstream of this route produces drafts; this is the one that leaves the machine.", "tags": ["twin"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "502": { "$ref": "#/components/responses/BadGateway" } } }
+    },
+    "/api/projects/{id}/warehouse": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/warehouse/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "getWarehouse", "summary": "Read the project's metric warehouse — the daily series every report is computed from.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "put": { "operationId": "putWarehouse", "summary": "Write rows into the project's metric warehouse.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "clearWarehouse", "summary": "Clear the project's metric warehouse.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/webhooks": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/webhooks/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "listWebhooks", "summary": "List the project's outbound webhook endpoints.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "put": { "operationId": "putWebhooks", "summary": "Replace the project's outbound webhook configuration.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "429": { "$ref": "#/components/responses/TooManyRequests" } } },
+      "delete": { "operationId": "deleteWebhook", "summary": "Remove an outbound webhook endpoint.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/webhooks/deliveries": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/webhooks/deliveries/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "get": { "operationId": "listWebhookDeliveries", "summary": "Read the delivery log for the project's webhooks — what was sent, and what answered.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "delete": { "operationId": "clearWebhookDeliveries", "summary": "Clear the webhook delivery log.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/projects/{id}/webhooks/test": {
+      "x-adamant": { "source": "src/app/api/projects/[id]/webhooks/test/route.ts", "auth": "session" },
+      "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The project id." }],
+      "post": { "operationId": "testWebhook", "summary": "Send a signed test payload to one of the project's webhook endpoints.", "tags": ["projects"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "429": { "$ref": "#/components/responses/TooManyRequests" }, "502": { "$ref": "#/components/responses/BadGateway" } } }
+    },
+    "/api/sken/claim": {
+      "x-adamant": { "source": "src/app/api/sken/claim/route.ts", "auth": "public" },
+      "post": { "operationId": "claimScan", "summary": "Store a signed-out visitor's own website scan under a random token so it survives the sign-in redirect.", "description": "Deliberately anonymous, with the reasoning in .github/security/sast-allowlist.json § route-auth: the visitor has no account yet, which is the whole point. No AI spend, no tenant read; a durableGuard per-IP daily cap (RATE_RULES.skenPerDay) and a 32 KB body cap.", "tags": ["sken"], "security": [], "responses": { "201": { "$ref": "#/components/responses/Created" }, "429": { "$ref": "#/components/responses/TooManyRequests" } } }
+    },
+    "/api/sken/redeem": {
+      "x-adamant": { "source": "src/app/api/sken/redeem/route.ts", "auth": "session" },
+      "post": { "operationId": "redeemScan", "summary": "Attach a claimed scan to the newly signed-in caller's account.", "tags": ["sken"], "security": [{ "sessionCookie": [] }], "responses": { "201": { "$ref": "#/components/responses/Created" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" } } }
+    },
+    "/api/skills": {
+      "x-adamant": { "source": "src/app/api/skills/route.ts", "auth": "public" },
+      "get": { "operationId": "listSkills", "summary": "List the registered AI skill ids and the gate-covered set.", "description": "Deliberately anonymous, with the reasoning in .github/security/sast-allowlist.json § route-auth: build-time facts identical for every caller, with no tenant, no project id and no provider call. Importing the registry is itself the check — registration throws on an incomplete skill — which is the point of being able to curl it.", "tags": ["skills"], "security": [], "responses": { "200": { "$ref": "#/components/responses/Ok" } } }
+    },
+    "/api/social/accounts": {
+      "x-adamant": { "source": "src/app/api/social/accounts/route.ts", "auth": "session" },
+      "get": { "operationId": "listSocialAccounts", "summary": "List the social accounts connected to the caller.", "tags": ["social"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "post": { "operationId": "connectSocialAccount", "summary": "Connect a social account to the caller.", "tags": ["social"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "disconnectSocialAccount", "summary": "Disconnect a social account.", "tags": ["social"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    },
+    "/api/social/draft": {
+      "x-adamant": { "source": "src/app/api/social/draft/route.ts", "auth": "session" },
+      "post": { "operationId": "draftSocialPost", "summary": "Draft a social post in the project's trained voice. It is a draft — nothing is published here.", "tags": ["social"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "429": { "$ref": "#/components/responses/TooManyRequests" }, "502": { "$ref": "#/components/responses/BadGateway" } } }
+    },
+    "/api/social/messages": {
+      "x-adamant": { "source": "src/app/api/social/messages/route.ts", "auth": "session" },
+      "get": { "operationId": "listSocialMessages", "summary": "List inbound social messages awaiting a reply.", "tags": ["social"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "replySocialMessage", "summary": "Draft or record a reply to an inbound social message.", "tags": ["social"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" }, "502": { "$ref": "#/components/responses/BadGateway" } } }
+    },
+    "/api/social/posts": {
+      "x-adamant": { "source": "src/app/api/social/posts/route.ts", "auth": "session" },
+      "get": { "operationId": "listSocialPosts", "summary": "List the caller's scheduled and published social posts.", "tags": ["social"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "scheduleSocialPost", "summary": "Schedule a social post. Publication stays behind the operator's review gate.", "tags": ["social"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "409": { "$ref": "#/components/responses/Conflict" }, "422": { "$ref": "#/components/responses/Unprocessable" } } },
+      "delete": { "operationId": "deleteSocialPost", "summary": "Delete a scheduled social post.", "tags": ["social"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "422": { "$ref": "#/components/responses/Unprocessable" } } }
+    },
+    "/api/twin/inbound/{token}": {
+      "x-adamant": { "source": "src/app/api/twin/inbound/[token]/route.ts", "auth": "public" },
+      "parameters": [{ "name": "token", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The 128-bit per-(project, channel) intake token. Half of the credential; the other half is an HMAC over the raw body." }],
+      "get": { "operationId": "verifyTwinIntake", "summary": "Answer a channel's subscription verification handshake (Meta's hub.challenge).", "tags": ["twin"], "security": [{ "pathToken": [] }], "responses": { "200": { "$ref": "#/components/responses/Text" }, "401": { "$ref": "#/components/responses/Unauthorized" } } },
+      "post": { "operationId": "receiveTwinIntake", "summary": "Accept an inbound message from a channel webhook and append it to the project's twin inbox as a pending draft.", "description": "Deliberately anonymous — the callers are machines — with the reasoning in .github/security/sast-allowlist.json § route-auth. The order of operations IS the security property: read the RAW body, cap it at 64 KB, verify the HMAC over those exact bytes, and only THEN parse. It cannot send, approve, mint sentAt, or read anything back; the worst a stolen token buys is unread messages in one project's inbox, bounded at INBOUND_PENDING_CAP with operator-written drafts never evicted.", "tags": ["twin"], "security": [{ "pathToken": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "500": { "$ref": "#/components/responses/ServerError" } } }
+    },
+    "/api/usage": {
+      "x-adamant": { "source": "src/app/api/usage/route.ts", "auth": "session" },
+      "get": { "operationId": "getUsage", "summary": "Read the caller's AI unit balance and consumption for the period.", "tags": ["usage"], "security": [{ "sessionCookie": [] }], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "401": { "$ref": "#/components/responses/Unauthorized" } } }
+    }
+  }
+}
