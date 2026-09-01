@@ -1,0 +1,113 @@
+{
+  "$comment": [
+    "THE NUMBER THAT CAN GO RED AFTER THE RELEASE.",
+    "",
+    "Everything this repository does about a bad change happens BEFORE the push: seventeen",
+    "gates, a rubric review, a perf budget on the e2e lane, and `.husky/pre-push` running the",
+    "whole chain because Vercel ships `master` on push and a required status check never sees",
+    "that landing path. Past the push there was one signal and it was binary:",
+    "`scripts/post-deploy-verify.mjs` asked `/api/health` whether the deployment ANSWERS.",
+    "",
+    "A deployment that answers can still be broken. `/api/health` returns `ok: true` for a",
+    "release that made every page four times slower, and for one whose homepage now 500s —",
+    "the probe never asks. So the first report of a degraded release was somebody opening the",
+    "app, and `npm run revert:drill` — a rehearsed, timed rollback — was waiting on a human",
+    "noticing a symptom. A rehearsal with no trigger is a rehearsal.",
+    "",
+    "This file is the trigger's input: a small set of routes on the DEPLOYED host, each with",
+    "the response time it may not pass and the reason it earns one, plus a ceiling on how many",
+    "samples may fail outright. `scripts/post-deploy-verify.mjs` measures them after the health",
+    "probe comes back clean, and a breach FAILS the post-deploy run — with the promote-previous",
+    "rollback command printed next to it, the same one the drill rehearses.",
+    "",
+    "WHAT IT DOES NOT DO, and this is deliberate rather than unfinished: it does not revert.",
+    "An automatic revert means a token that can write `refs/heads/master` on a repository where",
+    "that push IS a release under the operator's name, which AGENTS.md § Red says never. The",
+    "verify job holds `contents: read`. What this produces is the dated, automatic ANSWER the",
+    "rehearsed rollback was always waiting for; arming the revert leg is a decision an operator",
+    "makes with a token.",
+    "",
+    "WHAT IS MEASURED. The DOCUMENT RESPONSE — the wall clock from issuing the request to the",
+    "server committing the response, read without following redirects and without downloading",
+    "sub-resources. It is the half of a page's cost this repository's code owns, and it is the",
+    "same choice `.github/perf-budgets.json` makes for the e2e lane, so a reader meets one",
+    "definition rather than two. Warm (`warmups` requests thrown away, because a serverless",
+    "function's first invocation after a deploy is a cold start and a fact about the platform)",
+    "and best-of-`samples`, because a shared runner stalls and a route that is genuinely twice",
+    "as slow is slow in every sample.",
+    "",
+    "THE ROUTE LIST IS SHORT ON PURPOSE. This is the one budget in the repository that can fail",
+    "a RELEASE, so a route listed here that 404s on the deployment is a red build about the",
+    "list rather than about the release. Every entry is a public, key-free page that exists in",
+    "`src/app` and answers anonymously; `test-unit/post-deploy-budget.test.mjs` holds each one",
+    "to a real page module on every build. Adding one is cheap and adding a wrong one is not.",
+    "",
+    "THE NUMBERS ARE CEILINGS, NOT TARGETS, and they are UNMEASURED — `baseline` is null,",
+    "because nothing has yet run this against the production host and recorded what these",
+    "routes actually cost. They are generous on purpose (ADR-0007: a check blocks where it",
+    "passes). Every run writes its measurements into `post-deploy.json`, which the workflow",
+    "keeps for 90 days, so the first green release produces exactly the numbers a tighter",
+    "ceiling needs. TIGHTEN THEM WITH THE REASON IN THE SAME DIFF; never raise one to make your",
+    "own release pass — that is rubric B3, and a budget nobody can fail is the cheapest green",
+    "in this repository."
+  ],
+
+  "schema": 1,
+  "metric": {
+    "what": "document-response",
+    "redirect": "manual",
+    "warmups": 1,
+    "samples": 3,
+    "statistic": "min",
+    "timeoutMs": 15000,
+    "cacheBusting": true,
+    "why": "The server's answer for the route, warm, best of three — the same definition .github/perf-budgets.json uses, so the pre-merge budget and the post-deploy one are measuring the same thing on two hosts."
+  },
+
+  "errorRate": {
+    "maxFailingRoutes": 0,
+    "why": "A route in this list that answers a non-2xx, or does not answer at all, is not slow — it is down, and it is down on a release that already shipped. Zero is the only defensible ceiling for a list this short and this public; a non-zero one would mean deciding in advance which of four public pages may be broken."
+  },
+
+  "baseline": null,
+
+  "notCovered": [
+    "Authenticated pages. Everything under /app needs a session, and a post-deploy probe holding one would need a real account's cookie in CI — a credential this repository will not move (AGENTS.md § Red). The public shell at /dashboard renders the same composition for the anonymous sample tenant and is the proxy.",
+    "Error RATE in the statistical sense. This samples four routes a handful of times a minute after the deploy; it catches a release that is broken, not one that fails 2% of requests. That number lives in a platform's own telemetry and .github/environments.json § cannotSee already says which half of production this repository cannot see.",
+    "Anything after the first few minutes. The probe runs on the release event and then stops. A regression that only appears under Monday-morning load is not this check's job and is not claimed to be.",
+    "The AI routes. They spend money per call and the budget would be measuring a provider. /api/health already reports whether they are configured."
+  ],
+
+  "routes": [
+    {
+      "path": "/",
+      "label": "Homepage",
+      "budgetMs": 4000,
+      "why": "The marketing entry point and the most-linked page in the product — the one URL where a slow or broken release is visible to everyone immediately. Rendered from fixtures with no store and no model, so time spent here is time spent in the render path."
+    },
+    {
+      "path": "/cena",
+      "label": "Pricing",
+      "budgetMs": 4000,
+      "why": "The page a release must never break, because it is the one that carries the plans and the prices. It is nearly static, so a ceiling this generous can only be passed by something structural."
+    },
+    {
+      "path": "/dashboard",
+      "label": "Demo app shell",
+      "budgetMs": 6000,
+      "why": "The heaviest public composition — the whole authed shell rendered for the anonymous sample tenant, and the closest key-free proxy for what a signed-in page costs. A store change that stops deduping its reads lands here first."
+    },
+    {
+      "path": "/kampane",
+      "label": "Campaign triage",
+      "budgetMs": 6000,
+      "why": "The heaviest public READ: the campaign store plus the triage ranking. It shares its render path with the authed product's busiest module, which is why it is worth a number on the deployed host and not only on the e2e lane's dev server."
+    }
+  ],
+
+  "probe": {
+    "path": "/api/health",
+    "budgetMs": 5000,
+    "why": "The readiness probe itself, which does a real one-document Firestore read behind the CRON_SECRET guard. It is the only measured route that touches the store, so it is the number that moves when the store — rather than the render path — is the thing that got slower. Generous, because a cold serverless invocation plus a round trip to Firestore is not a fast operation and this must not teach anyone to re-run a release."
+  }
+}

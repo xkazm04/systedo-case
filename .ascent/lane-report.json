@@ -2,71 +2,67 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "d23b9f0b-82fa-4279-ab4a-5ff0e13f904f",
-      "verdict": "resolved",
-      "reason": "Added docs/runbooks/credential-rotation.md plus a machine-readable registry and a blocking test that fails when a credential in the threat model has no rotation procedure.",
-      "files": [
-        "docs/runbooks/credential-rotation.md",
-        ".github/credential-rotation.json",
-        "test-unit/credential-rotation.test.mjs",
-        ".github/docs-staleness.json",
-        "docs/task-index.md",
-        ".github/guidance-budget.json"
-      ]
-    },
-    {
-      "recommendationId": "a629c949-603c-4268-8bcd-df04df2b2541",
-      "verdict": "resolved",
-      "reason": "Gave scripts/agent-surface.mjs a --root override and added a drill that plants an instruction inside a generated block and requires the real gate to go red, including --accept refusing to pin it without --accept-instructions.",
-      "files": [
-        "scripts/agent-surface.mjs",
-        "test-unit/generated-instruction-drill.test.mjs"
-      ]
-    },
-    {
-      "recommendationId": "f9586dd3-88ee-44f9-8452-fa032a514ecb",
-      "verdict": "resolved",
-      "reason": "Added hostile-payload fault injection for the Sklik connector (malformed, partial, rate-limited, half-payload mid-sync) and for the Google daily mappers, and fixed a latent TypeError where a non-string segments.date reached localeCompare.",
-      "files": [
-        "test-unit/fault-injection-sklik-sync.test.mjs",
-        "test-unit/ads-account-daily.test.mjs",
-        "src/lib/google/ads.ts"
-      ]
-    },
-    {
-      "recommendationId": "592de9ec-6ab0-488a-8f7b-1b4a0d6a2d87",
+      "recommendationId": "74dad7fd-302b-4b8a-884d-5c803ef9e557",
       "verdict": "skipped",
-      "reason": "Needs network: pinning 53 action refs means resolving each tag to a commit SHA against the GitHub API, and scripts/actions-pin.mjs --update already does exactly that in one pass (it also flips STRICT and the P6 ratchet), so there is nothing to add offline and an invented SHA would break the workflow rather than pin it.",
+      "reason": "Pinning the 53 action references means asking GitHub what each tag points at right now, and this session has no network; the broad-write half is already split and justified (issue-dispatch.yml push/open/propose in .github/workflow-permissions.json), and scripts/actions-pin.mjs already documents the exact one-command close.",
       "files": []
     },
     {
-      "recommendationId": "29b32c93-167a-4acd-bcaa-4a1da0d08f18",
+      "recommendationId": "fee129a2-3262-4553-9c12-cecf7888aeb0",
       "verdict": "skipped",
-      "reason": "Already covered: .github/branch-ruleset.json is the server-side ruleset declared in the repo, npm run merge-gate fails when its contexts drift from .github/required-checks.json, and npm run protection:verify reads the live rules weekly; POSTing the ruleset to GitHub needs network and an admin token.",
+      "reason": "The repository side already exists — .github/branch-ruleset.json is the ruleset payload, merge-gate holds it to .github/required-checks.json, and protection:verify reads back what GitHub enforces — but applying or reading the ruleset needs the GitHub API and `gh`, which this session does not have.",
       "files": []
     },
     {
-      "recommendationId": "6c8c98cb-10e1-4892-86ad-fccdafc8c8a7",
+      "recommendationId": "d7e01f62-146f-4393-897c-b4cdd2e11f25",
       "verdict": "skipped",
-      "reason": "Already covered: scripts/commit-subject.mjs already refuses both cited subjects by name (loop-mechanics and run-progress catch 'partial work from an interrupted lane session'; first-person and session-report catch 'I've finished, here's what I did'), and scripts/commit-attribution.mjs already emits Co-Authored-By alongside the lane trailers — the residual is history plus outer harnesses that run no hooks, which AGENTS.md states has no repository-side fix.",
+      "reason": "Already covered another way: test-llm/adversarial/corpus.json + test-unit/llm-adversarial.test.mjs place hostile payloads in the REAL product prompt builders (campaign names, Google reviews, twin inbound, fetched page text) and assert detection, containment and output-side refusal, blocking inside test:unit; test-unit/untrusted-surface-census.test.mjs stops a new builder arriving uncovered.",
       "files": []
     },
     {
-      "recommendationId": "aba0c717-65ef-4df6-b787-24066d947cac",
-      "verdict": "skipped",
-      "reason": "Already covered: .github/guidance-budget.json caps the seven read-first documents at 1603 lines with a per-file ceiling, scripts/guidance-budget.mjs measures it, and test-unit/guidance-budget.test.mjs blocks on every build — this change paid for its own one-line raise of the task-index ceiling through that mechanism.",
-      "files": []
-    },
-    {
-      "recommendationId": "b1cc61da-bdae-4175-9cf0-843ddc1090e7",
+      "recommendationId": "3fb627af-135f-454b-90b2-07b4d4de6f5a",
       "verdict": "needs_human",
-      "reason": "Needs platform credentials: a preview-per-change environment requires a Vercel project token and preview env wiring that does not exist in this repo, and a workflow referencing secrets nobody has set would be a file that never operates.",
+      "reason": "The rule is not passing them — scripts/commit-subject.mjs already refuses both cited subjects (`first-person` and the full stop for one, `loop-mechanics` + `run-progress` for the other) — they land because the outer lane commits after the agent exits, in a throwaway worktree where no hook is installed; the fix is in the harness that writes the subject, not in this repository, and AGENTS.md already records that.",
+      "files": []
+    },
+    {
+      "recommendationId": "7ccd960f-28b8-43b4-9bd3-002cead9813a",
+      "verdict": "resolved",
+      "reason": "docs/api/openapi.json now pins the failure contract (Error / RateLimited schemas, `content` and a closed `x-retryable` vocabulary on all 14 response classes) and compareErrorContract() in scripts/lib/api-surface-core.mjs blocks on every build when an operation documents only success, references a body inline, or points at a class that does not exist.",
+      "files": [
+        "docs/api/openapi.json",
+        "scripts/lib/api-surface-core.mjs",
+        "scripts/api-surface.mjs",
+        "test-unit/api-surface.test.mjs"
+      ]
+    },
+    {
+      "recommendationId": "d843b7d1-04c4-4425-ab9f-c9b46a7e31da",
+      "verdict": "resolved",
+      "reason": "scripts/post-deploy-verify.mjs now times four public routes plus the health probe against ceilings in .github/post-deploy-budgets.json on the same push that ships the release, and a breach (or a public page not answering 2xx) fails that run with the promote-previous rollback command printed; it deliberately does not revert, because that needs a token AGENTS.md § Red refuses.",
+      "files": [
+        ".github/post-deploy-budgets.json",
+        "scripts/post-deploy-verify.mjs",
+        "test-unit/post-deploy-budget.test.mjs",
+        "docs/deploy.md"
+      ]
+    },
+    {
+      "recommendationId": "ba49cd32-80f7-4707-b57a-ae65023afd31",
+      "verdict": "skipped",
+      "reason": "Already covered another way: test-unit/fault-injection-ads-sync.test.mjs (9 scenarios: 5xx that clears, 5xx that does not, revoked token refreshed and retried, permanent 403, and a failure landing on the SECOND of a sync's two reads) and test-unit/fault-injection-sklik-sync.test.mjs (a rate limit signalled inside an HTTP 200, malformed/partial pages, a mid-sync stats failure) both monkey-patch fetch and assert the degraded path and its truth-in-labelling flags, blocking inside test:unit.",
+      "files": []
+    },
+    {
+      "recommendationId": "fa9eac1c-4fa5-4c1d-82ed-5235800c267b",
+      "verdict": "needs_human",
+      "reason": "The machine-readable policy already exists (.github/agent-permissions.json, 7 rules over deny/ask/allow, held to the AGENTS.md sentences by test-unit/agent-permissions.test.mjs); what is missing is only the ENFORCED half — .claude/settings.json carries no permissions block — and writing that file is itself refused in this session, so `npm run agent:permissions -- --install` is the one command a human runs.",
       "files": []
     }
   ],
   "lessons": [
-    "This repository already answers most maturity questions, so the first move on any item must be to look for the existing mechanism: three of eight dispatched gaps (guidance budget, branch-ruleset declaration, commit-subject narration rules) were fully built and the scan was reading history or an unreadable GitHub setting, not an absent practice.",
-    "Its house idiom for 'is this fence still connected?' is to give the gate script a --root/--ledger/--budget override and spawn the REAL script over a mutated fixture from a unit test. Follow that shape rather than unit-testing the gate's helper functions, which passes just as happily when the gate has been disconnected.",
-    "Adding any document here is a multi-file act by design: a runbook must land with an entry in .github/docs-staleness.json, a route in docs/task-index.md, and — because that route costs a line — a raised ceiling in .github/guidance-budget.json with the reason next to it. Budget for the wiring, not just the page."
+    "This repository states, for every rule, whether anything actually enforces it (.github/constraint-map.json `rung` column) and what each fence is absorbing (.github/contract-ledger.json). Read those two before concluding a gap is open: three of the eight items dispatched here were already closed by blocking machinery the scan's sampled evidence did not reach.",
+    "Adding a gate here is never one file. A new blocking stage in check:ci needs a scripts/gate-remedy.mjs entry and a .github/constraint-map.json row; a new READ-FIRST paragraph in AGENTS.md needs its line ceiling raised in .github/guidance-budget.json; a new threshold needs a pin in the contract ledger. The cheapest safe shape for new enforcement is a test under test-unit/ (already inside check:ci) plus a registry JSON that carries its own reasons.",
+    "When a session cannot execute anything, prefer gaps whose closure is verifiable by READING committed data. The API error-contract rules were safe to make blocking because every one of the 164 documented operations could be enumerated with a single ripgrep over one-line-per-operation JSON; a change to runtime logic under the same constraints would not have been."
   ]
 }

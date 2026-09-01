@@ -37,6 +37,8 @@ import { fileURLToPath } from "node:url";
 import {
   GUARD_RE,
   POSTURES,
+  RETRYABLE,
+  compareErrorContract,
   compareSurface,
   deriveSurface,
   routeFiles,
@@ -136,6 +138,165 @@ test("the check still detects — a spec that has drifted is refused", () => {
     compareSurface(surface, undescribed).some((f) => f.kind === "undescribed"),
     "a route that landed with a TODO summary passed the comparison, so a new route can arrive undescribed."
   );
+});
+
+// --- the failure half -------------------------------------------------------
+//
+// The surface check above answers "does this route exist, and who may call it?".
+// These answer the question a caller asks immediately afterwards and the document
+// used to be silent on: "and what happens when it says no?". A spec that describes
+// only success is worse than none — every integration invents its own error
+// contract, and the guesses diverge without any of them being wrong enough to fix.
+
+test("every operation says how it refuses, not only how it succeeds", () => {
+  const findings = compareErrorContract(spec).filter((f) => f.kind === "no-error-response");
+  assert.deepEqual(
+    findings,
+    [],
+    "operation(s) documenting only success:\n" +
+      findings.map((f) => `  • ${f.path} — ${f.detail}`).join("\n") +
+      "\n\nAdd the refusal(s) the handler really answers, referencing an existing " +
+      "`#/components/responses/…` class. If a genuinely new class is needed, add it there with its " +
+      "`content` and `x-retryable`."
+  );
+});
+
+test("every documented response resolves to a shared class", () => {
+  const findings = compareErrorContract(spec).filter(
+    (f) => f.kind === "response-ref" || f.kind === "dangling-ref" || f.kind === "responses"
+  );
+  assert.deepEqual(
+    findings,
+    [],
+    "response reference problem(s):\n" + findings.map((f) => `  • ${f.path} — ${f.detail}`).join("\n")
+  );
+});
+
+test("every response class states its body and whether retrying is the right move", () => {
+  const findings = compareErrorContract(spec).filter(
+    (f) => f.kind === "error-body" || f.kind === "retryability" || f.kind === "unused-response"
+  );
+  assert.deepEqual(
+    findings,
+    [],
+    "response class problem(s):\n" + findings.map((f) => `  • ${f.path} — ${f.detail}`).join("\n")
+  );
+});
+
+test("the pinned failure body is the one the handlers actually write", () => {
+  // The success bodies are deliberately unpinned and the document says so. The
+  // FAILURE body is pinned, so it has to keep matching the helper every route
+  // reaches for — otherwise the one shape a caller was promised drifts silently.
+  const schemas = spec.components?.schemas ?? {};
+  assert.ok(schemas.Error, "components.schemas.Error is gone — the failure body is no longer described anywhere.");
+  assert.deepEqual(
+    schemas.Error.required,
+    ["error"],
+    "`error` is the only field every refusal carries; a caller told otherwise will branch on a missing key."
+  );
+  assert.ok(
+    schemas.RateLimited?.properties?.retryAfter,
+    "the 429 body no longer documents `retryAfter`, which is the only refusal a client can act on unattended."
+  );
+
+  const rateLimit = read("src/lib/ai/rate-limit.ts");
+  assert.match(
+    rateLimit,
+    /code:\s*"rate_limited"/,
+    "src/lib/ai/rate-limit.ts no longer answers `code: \"rate_limited\"`, and docs/api/openapi.json still says it does."
+  );
+  assert.match(
+    rateLimit,
+    /"Retry-After":\s*String\(retryAfter\)/,
+    "the 429 no longer mirrors `retryAfter` into the `Retry-After` header — the document promises both."
+  );
+});
+
+test("the failure rules still detect — a spec that goes quiet about failure is refused", () => {
+  // Same discipline as the surface mutations above: a rule nobody has watched fail
+  // is a rule nobody knows is wired. Each mutation is a real way this document
+  // could rot, and each one must produce its own finding.
+  const clone = () => JSON.parse(JSON.stringify(spec));
+  const anyVerb = (item) => ["get", "post", "put", "patch", "delete"].find((v) => v in item);
+  const [samplePath] = Object.keys(spec.paths);
+
+  const successOnly = clone();
+  {
+    const item = successOnly.paths[samplePath];
+    const verb = anyVerb(item);
+    item[verb].responses = { 200: { $ref: "#/components/responses/Ok" } };
+    assert.ok(
+      compareErrorContract(successOnly).some((f) => f.kind === "no-error-response"),
+      "an operation that documents only its 200 passed — which is exactly the state this rule set exists to end."
+    );
+  }
+
+  const inlineBody = clone();
+  {
+    const item = inlineBody.paths[samplePath];
+    const verb = anyVerb(item);
+    item[verb].responses = { 200: { $ref: "#/components/responses/Ok" }, 418: { description: "a second opinion" } };
+    assert.ok(
+      compareErrorContract(inlineBody).some((f) => f.kind === "response-ref"),
+      "a body described inline at one call site passed — the error contract has to be written once."
+    );
+  }
+
+  const dangling = clone();
+  {
+    const item = dangling.paths[samplePath];
+    const verb = anyVerb(item);
+    item[verb].responses = {
+      200: { $ref: "#/components/responses/Ok" },
+      500: { $ref: "#/components/responses/Envelope" },
+    };
+    assert.ok(
+      compareErrorContract(dangling).some((f) => f.kind === "dangling-ref"),
+      "a `$ref` to a component nobody defined passed — it reads as a documented error and resolves to nothing. " +
+        "(`Envelope` is not hypothetical: it is what `api:surface:write` used to emit for every new route.)"
+    );
+  }
+
+  const noRetryAnswer = clone();
+  {
+    delete noRetryAnswer.components.responses.TooManyRequests["x-retryable"];
+    assert.ok(
+      compareErrorContract(noRetryAnswer).some((f) => f.kind === "retryability"),
+      "a refusal class with no retry answer passed — the one question a status code cannot answer."
+    );
+  }
+
+  const wrongRetryWord = clone();
+  {
+    wrongRetryWord.components.responses.BadGateway["x-retryable"] = "sometimes";
+    assert.ok(
+      compareErrorContract(wrongRetryWord).some((f) => f.kind === "retryability"),
+      `the vocabulary is closed (${Object.keys(RETRYABLE).join(", ")}) and an invented value passed. ` +
+        "A field with an open vocabulary is prose with a colon in it."
+    );
+  }
+
+  const bodilessClass = clone();
+  {
+    delete bodilessClass.components.responses.Unprocessable.content;
+    assert.ok(
+      compareErrorContract(bodilessClass).some((f) => f.kind === "error-body"),
+      "a response class with no `content` passed — a status code and no answer to \"what will I receive?\"."
+    );
+  }
+
+  const orphanClass = clone();
+  {
+    orphanClass.components.responses.Teapot = {
+      description: "nobody points at this",
+      content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } },
+      "x-retryable": "no",
+    };
+    assert.ok(
+      compareErrorContract(orphanClass).some((f) => f.kind === "unused-response"),
+      "a response class nobody references passed — a stale one reads exactly like a live one."
+    );
+  }
 });
 
 test("the gate is reachable by name", () => {

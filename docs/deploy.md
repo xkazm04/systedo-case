@@ -473,6 +473,21 @@ host = an adamant-named Vercel host; free during validation.
 
 ## Post-deploy verification
 
+**Two of these are automatic now.** `.github/workflows/post-deploy.yml` fires on the
+same push that ships the release and runs `scripts/post-deploy-verify.mjs`, which (1)
+polls `/api/health` until the new deployment answers and (2) times the public routes
+in [`.github/post-deploy-budgets.json`](../.github/post-deploy-budgets.json) against
+the ceiling each one is allowed. A route over its ceiling — or one that does not
+answer 2xx at all — **fails that run**, which is the only number in this repository
+that can go red *after* the merge. The verdict, with every measurement, is kept as a
+90-day artifact (`post-deploy.json`).
+
+It does **not** revert: that would need a token able to write `refs/heads/master`, and
+the job holds `contents: read`. A red run is the trigger for the rollback below, which
+is rehearsed weekly by `npm run revert:drill`. Without `CRON_SECRET` and
+`vars.ADAMANT_HEALTH_URL` the run records `skipped` rather than a green it did not
+earn — the release then ships unverified, and the checklist below is all there is.
+
 - [ ] `https://<host>/` renders the landing page (no 500, correct brand).
 - [ ] `https://<host>/app` resolves — redirects to sign-in when logged out
       (a crash here means Firestore/auth env is broken).

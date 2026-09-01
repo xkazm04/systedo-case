@@ -25,6 +25,18 @@
  *  of documentation that reads as informative and says nothing. What the check does
  *  insist on is that every operation HAS one, so a route cannot land undescribed.
  *
+ *  AND THAT IT SAYS HOW IT FAILS. `compareErrorContract()` below is the second half
+ *  of the same idea, and it exists because a spec that documents only success is
+ *  the one shape that is worse than no spec: an integrator — or an agent writing a
+ *  client — hits the failure path first, finds nothing, and invents an error
+ *  contract per call site. So an operation must document at least one refusal, every
+ *  response must point into `#/components/responses`, and every component there must
+ *  carry a `content` body and an `x-retryable` answer from a closed vocabulary. None
+ *  of that is derived either — which codes a handler CAN emit is not read back out
+ *  of the tree, and the document says so in its own `info.description` rather than
+ *  implying a derivation that does not happen. What is mechanical is that the answers
+ *  exist, resolve, and are not silently empty.
+ *
  *  THE AUTH CLASSIFIER IS THE SAME ONE THE SECURITY GATE USES. `GUARD_RE` below is
  *  copied verbatim from `scripts/sast.mjs` (rule `route-auth`) on purpose: two
  *  different opinions about whether a handler establishes caller identity is worse
@@ -159,6 +171,142 @@ export function deriveSurface(root) {
 
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
+/** The closed vocabulary of `x-retryable`, and what each answer costs a caller who
+ *  gets it wrong. This is the fact a status code does not carry: 429 and 502 are
+ *  both "try again" and 400 and 404 are both "never", but nothing in the number
+ *  says so, and a client written without it either retries a permanent refusal in
+ *  a loop or gives up on a transient one. Closed on purpose — a new response class
+ *  cannot arrive without an answer, because the check below refuses an unknown
+ *  value as loudly as a missing one. */
+export const RETRYABLE = {
+  no: "retrying reproduces the same refusal — the request or the entitlement has to change.",
+  after: "retry is expected, and the response says when (`Retry-After` header, `retryAfter` in the body).",
+  yes: "a transient failure on this side or an upstream's — retry with backoff.",
+  "n/a": "a success; the field exists so a 2xx cannot be silently missing its answer.",
+};
+
+/** A response entry must be a reference into the shared components, so the failure
+ *  contract is written once and every operation points at it. An inline body here
+ *  would be a second opinion about what a 429 looks like. */
+const RESPONSE_REF_RE = /^#\/components\/responses\/([A-Za-z0-9_.-]+)$/;
+
+/** Is this status code a refusal? Everything a caller has to HANDLE rather than
+ *  consume, which is the set the document used to be silent about. */
+const isError = (code) => /^[45]\d\d$/.test(String(code));
+
+/** The failure half of the contract, checked against the document as a whole
+ *  rather than against the tree — the handlers are not read back for this, and
+ *  `info.description` says so rather than implying a derivation that does not
+ *  happen. What IS mechanical, and what a spec silently loses without it:
+ *
+ *    responses          an operation that documents only its 200. The most common
+ *                       way an OpenAPI file becomes confidently useless.
+ *    response-ref       a body shape written inline at one call site, so the same
+ *                       error is described two ways in one document.
+ *    dangling-ref       a `$ref` to a component nobody ever added — which reads as
+ *                       a documented error and resolves to nothing.
+ *    no-error-response  the gap this rule set exists for: success documented,
+ *                       failure not.
+ *    error-body         a response component with no `content`, i.e. a status code
+ *                       and no answer to "what will I receive?".
+ *    retryability       a response component that does not say whether retrying is
+ *                       the right move. The one question a status code cannot
+ *                       answer and every integration has to.
+ *    unused-response    a component nobody points at. Kept as a finding because a
+ *                       stale response class reads exactly like a live one.
+ */
+export function compareErrorContract(doc) {
+  const findings = [];
+  const documented = doc?.paths ?? {};
+  const components = doc?.components?.responses ?? {};
+  const used = new Set();
+
+  for (const [path, item] of Object.entries(documented)) {
+    for (const verb of VERBS.filter((v) => v.toLowerCase() in item)) {
+      const op = item[verb.toLowerCase()];
+      const responses = op?.responses;
+      const codes = responses && typeof responses === "object" ? Object.keys(responses) : [];
+
+      if (!codes.length) {
+        findings.push({
+          path,
+          kind: "responses",
+          detail: `${verb} documents no responses at all — a caller cannot tell success from refusal`,
+        });
+        continue;
+      }
+
+      for (const code of codes) {
+        const ref = responses[code]?.$ref;
+        if (typeof ref !== "string") {
+          findings.push({
+            path,
+            kind: "response-ref",
+            detail:
+              `${verb} ${code} describes its body inline instead of referencing ` +
+              "`#/components/responses/…` — the failure contract is written once, in one place",
+          });
+          continue;
+        }
+        const name = RESPONSE_REF_RE.exec(ref)?.[1];
+        if (!name || !(name in components)) {
+          findings.push({
+            path,
+            kind: "dangling-ref",
+            detail: `${verb} ${code} points at \`${ref}\`, which components.responses does not define`,
+          });
+          continue;
+        }
+        used.add(name);
+      }
+
+      if (!codes.some(isError)) {
+        findings.push({
+          path,
+          kind: "no-error-response",
+          detail:
+            `${verb} documents only success (${codes.join(", ")}) — say how it refuses. Every caller meets ` +
+            "the failure path, and an undocumented one is invented per integration",
+        });
+      }
+    }
+  }
+
+  for (const [name, component] of Object.entries(components)) {
+    const content = component?.content;
+    if (!content || typeof content !== "object" || !Object.keys(content).length) {
+      findings.push({
+        path: `components.responses.${name}`,
+        kind: "error-body",
+        detail: "declares no `content` — a status code with no answer to \"what will I receive?\"",
+      });
+    }
+    const retryable = component?.["x-retryable"];
+    // `Object.hasOwn` rather than `in`: `in` walks the prototype, so an
+    // `x-retryable: "constructor"` would pass a vocabulary check that is supposed
+    // to be closed.
+    if (typeof retryable !== "string" || !Object.hasOwn(RETRYABLE, retryable)) {
+      findings.push({
+        path: `components.responses.${name}`,
+        kind: "retryability",
+        detail:
+          `\`x-retryable\` is ${retryable === undefined ? "absent" : `\`${retryable}\``}; it must be one of ` +
+          `${Object.keys(RETRYABLE).map((k) => `\`${k}\``).join(", ")}. A status code does not say whether ` +
+          "retrying is the right move, and every client has to decide",
+      });
+    }
+    if (!used.has(name)) {
+      findings.push({
+        path: `components.responses.${name}`,
+        kind: "unused-response",
+        detail: "no operation references it — a stale response class reads exactly like a live one",
+      });
+    }
+  }
+
+  return findings;
+}
+
 /** Compare the tree against a committed OpenAPI document and return findings.
  *
  *  Each finding is `{ path, kind, detail }`. The kinds are deliberately specific,
@@ -225,6 +373,11 @@ export function compareSurface(derived, doc) {
       findings.push({ path, kind: "phantom", detail: "the spec describes a route the router no longer serves" });
     }
   }
+
+  // The failure half. Folded in here rather than exposed as a second entry point so
+  // there is exactly one call every caller of this module already makes — the CLI,
+  // the unit test and anything added later get the error contract without opting in.
+  findings.push(...compareErrorContract(doc));
 
   return findings;
 }

@@ -4,7 +4,7 @@
     "title": "Adamant HTTP surface",
     "version": "2026-09-01",
     "summary": "Every route handler under src/app/api, as a contract a change can be compared against.",
-    "description": "HALF OF THIS DOCUMENT IS DERIVED AND HALF IS WRITTEN, AND THE SPLIT IS THE POINT.\n\nDerived and pinned by `npm run api:surface:check` (blocking, through test-unit/api-surface.test.mjs inside `npm run test:unit`): the path template, the exported verbs, the path parameters, `x-adamant.source`, `x-adamant.auth` and `x-adamant.maxDuration`. Those six facts are read out of the tree by scripts/lib/api-surface-core.mjs on every build, and a disagreement between them and this file fails the build. Editing this half by hand to make a red check green is the one thing never to do here — the disagreement IS the change being caught. Regenerate with `npm run api:surface:write`, which keeps every written sentence, and read the diff.\n\nWritten and required: the one-sentence `summary` on every operation. Not generated, because a generated sentence about a route reads as informative and says nothing; not optional either, because the check refuses a `TODO` summary, which is what a route arriving for the first time is given.\n\nWHAT IS DELIBERATELY NOT PINNED YET. Request and response BODIES. Every operation below states its posture's response codes, and those are indicative rather than derived — the check does not compare them against the handler. Pinning bodies means either a schema per route hand-written from 88 modules (documentation that goes stale the first week) or a type extractor (a real project, and a bigger one than the gap this closes). The honest position is that the SHAPE of the surface — what exists, what verbs it answers, and who it lets in — is pinned today, and the bodies are not. If a body contract starts mattering to a consumer, the seam to extend is `compareSurface()` in scripts/lib/api-surface-core.mjs, not this file.\n\nAUTH IS THE FACT WORTH HAVING HERE. `x-adamant.auth` is classified by the SAME regex `scripts/sast.mjs` uses for its `route-auth` rule, deliberately copied rather than re-invented, so the document and the security gate cannot hold two opinions about whether a handler establishes caller identity. A route that quietly stops requiring a session changes one word in this file and fails the build.",
+    "description": "HALF OF THIS DOCUMENT IS DERIVED AND HALF IS WRITTEN, AND THE SPLIT IS THE POINT.\n\nDerived and pinned by `npm run api:surface:check` (blocking, through test-unit/api-surface.test.mjs inside `npm run test:unit`): the path template, the exported verbs, the path parameters, `x-adamant.source`, `x-adamant.auth` and `x-adamant.maxDuration`. Those six facts are read out of the tree by scripts/lib/api-surface-core.mjs on every build, and a disagreement between them and this file fails the build. Editing this half by hand to make a red check green is the one thing never to do here — the disagreement IS the change being caught. Regenerate with `npm run api:surface:write`, which keeps every written sentence, and read the diff.\n\nWritten and required: the one-sentence `summary` on every operation. Not generated, because a generated sentence about a route reads as informative and says nothing; not optional either, because the check refuses a `TODO` summary, which is what a route arriving for the first time is given.\n\nAND HOW IT FAILS IS WRITTEN AND REQUIRED TOO. A contract that describes only success is the expensive half to leave out: an integrator — and an agent writing a client — meets the failure path first and, with nothing to read, invents an error contract per call site, after which the guesses diverge and none of them is wrong enough to fix. So every operation below MUST document at least one refusal alongside its success, every response MUST be a `$ref` into `#/components/responses`, and every component there MUST carry two things a status code cannot: the body a caller actually receives (`content`) and `x-retryable` — `no` (retrying is a bug), `after` (retry when the response says so), `yes` (a transient upstream, back off) or `n/a` (a success). All four rules are enforced by `compareSurface()` and therefore block on every build; a route that lands documenting only its 200 is refused the same way one that lands with a `TODO` summary is.\n\nThe failure BODY is pinned where the success body is not, because there is only one of it: every handler under `/api` answers `Response.json({ error }, { status })`, with an optional machine `code` next to the human sentence — `#/components/schemas/Error`, and `#/components/schemas/RateLimited` for the 429, which additionally carries `retryAfter` and mirrors it in the `Retry-After` header (src/lib/ai/rate-limit.ts). Read `error` to a person and never branch on it: it is localized prose, cs being the source locale. Branch on the status, then on `code`.\n\nWHAT IS DELIBERATELY NOT PINNED. SUCCESS bodies, and WHICH status codes a given handler can emit. The codes on each operation are the ones its author knew about — indicative, not derived, and the check does not read them back out of the handler; what it enforces is that the set is non-empty on both sides and resolves. Pinning success bodies means either a schema per route hand-written from 88 modules (documentation that goes stale the first week) or a type extractor (a real project, and a bigger one than the gap this closes). The honest position is that the SHAPE of the surface — what exists, what verbs it answers, who it lets in, and what a caller does when it says no — is pinned today, and the success payloads are not. If a body contract starts mattering to a consumer, the seam to extend is `compareSurface()` in scripts/lib/api-surface-core.mjs, not this file.\n\nAUTH IS THE FACT WORTH HAVING HERE. `x-adamant.auth` is classified by the SAME regex `scripts/sast.mjs` uses for its `route-auth` rule, deliberately copied rather than re-invented, so the document and the security gate cannot hold two opinions about whether a handler establishes caller identity. A route that quietly stops requiring a session changes one word in this file and fails the build.",
     "license": { "name": "AGPL-3.0-only", "identifier": "AGPL-3.0-only" }
   },
   "servers": [
@@ -55,20 +55,148 @@
         "description": "A 128-bit random token carried as a PATH segment, not a query parameter — OpenAPI has no place to say that, so this scheme is documentation. The token is the credential: unguessable, per-resource, revocable by re-minting, and the (userId, projectId) pairing is read from the stored row rather than supplied by the caller."
       }
     },
+    "schemas": {
+      "Envelope": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "A SUCCESS body, deliberately unpinned. Most of the app surface answers `{ ok: true, … }` or a named collection (`{ activity: [...] }`); which keys a given route returns is not derived and not compared, and `info.description` § WHAT IS DELIBERATELY NOT PINNED says why. The FAILURE body below is pinned, because it is the one shape every caller has to handle and the one every integration was previously guessing at."
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "additionalProperties": true,
+        "description": "The failure body every route under `/api` returns, without exception: `Response.json({ error }, { status })`. `error` is a HUMAN sentence, written in the caller's product language (cs is the source locale) — it is safe to display and must never be branched on. `code` is the machine half and is what a client switches on; it is absent on the oldest handlers, so treat it as optional and fall back to the status.",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "A displayable sentence saying what went wrong. Localized prose — never a stable identifier, never parsed."
+          },
+          "code": {
+            "type": "string",
+            "description": "The stable machine reason, where the handler sets one. Observed vocabulary today: `invalid` (the request was read and refused), `quota` (the caller's daily AI allowance is spent), `rate_limited` (a durable per-IP window or the global spend ceiling), `too_large` (body cap), `provider` / `provider-empty` / `failed` (an upstream model or platform), `auth` / `unauthenticated` / `forbidden`, `not-found`, `invalid-scan`, `competitors-truncated`. Open by design: a new handler may add one, and a client that does not recognise a code falls back to the status."
+          },
+          "upgradeUrl": {
+            "type": "string",
+            "description": "Present only on a `quota` refusal for a caller whose plan can be raised — the in-app page to send them to. Absent for a BYOM subscriber, who already owns the top tier."
+          }
+        }
+      },
+      "RateLimited": {
+        "type": "object",
+        "required": ["error", "code", "retryAfter"],
+        "additionalProperties": true,
+        "description": "The 429 body, which carries more than the base error because it is the one refusal a caller can act on without a human. Written by `tooManyRequests()` in src/lib/ai/rate-limit.ts, which also sets the `Retry-After` header to the same number of seconds. The `layer`/`limit`/`windowSeconds` trio is present when the guard could name WHICH rule refused; it is diagnostic and may be absent.",
+        "properties": {
+          "error": { "type": "string", "description": "A displayable sentence naming the wait." },
+          "code": { "type": "string", "const": "rate_limited" },
+          "retryAfter": {
+            "type": "integer",
+            "description": "Seconds until the window reopens. The same value as the `Retry-After` header — wait it out; retrying sooner consumes the budget again."
+          },
+          "layer": { "type": "string", "description": "Which guard refused, when it can be named (per-IP window, global daily spend ceiling)." },
+          "limit": { "type": "integer", "description": "The refusing rule's ceiling." },
+          "windowSeconds": { "type": "integer", "description": "The refusing rule's window." },
+          "used": { "type": "integer" },
+          "remaining": { "type": "integer" },
+          "bucket": { "type": "string" }
+        }
+      },
+      "TextBody": {
+        "type": "string",
+        "description": "A plain-text body. The caller is a robot (a channel's verification handshake, a merchant feed), so there is no JSON envelope and no error object either — a failure on these routes is the status alone."
+      }
+    },
+
+    "x-responses-contract": "EVERY response component below declares two things beyond its sentence, and `npm run api:surface:check` refuses one that does not: a `content` block naming the body schema a caller will actually receive, and `x-retryable`, which is the fact an integrator needs first and the one a status code does not carry. `no` — the request will fail again identically, so retrying is a bug; `after` — retry is expected, and the response says when (`Retry-After`, `retryAfter`); `yes` — a transient upstream, safe to retry with backoff; `n/a` — a success. That vocabulary is closed, and it is checked, so a new response class cannot arrive without an answer.",
+
     "responses": {
-      "Ok": { "description": "The resource, in the route's own envelope (`{ ok: true, … }` for most of the app surface)." },
-      "Created": { "description": "Created — the new resource is in the body." },
-      "BadRequest": { "description": "The request could not be read: a malformed body, a missing or unparseable parameter." },
-      "Unauthorized": { "description": "No caller identity: no session, or a CRON_SECRET bearer token that did not match." },
-      "Forbidden": { "description": "Identified, but not entitled to this resource." },
-      "NotFound": { "description": "No such resource for this caller. Ownership failures answer here rather than leaking existence." },
-      "Conflict": { "description": "The resource is already in the state the request would create, or a concurrent write won." },
-      "PayloadTooLarge": { "description": "The body exceeded this route's byte cap." },
-      "Unprocessable": { "description": "Read, but refused: a field is missing, out of range, or names something the route will not act on." },
-      "TooManyRequests": { "description": "A durable per-IP limit or the global daily spend ceiling refused the call (src/lib/ai/durable-limit.ts)." },
-      "ServerError": { "description": "An unhandled failure on this side." },
-      "BadGateway": { "description": "An upstream — a provider, an ad platform, an image service — failed or timed out." },
-      "Text": { "description": "A plain-text body. The caller is a robot, not a browser, so there is no JSON envelope." }
+      "Ok": {
+        "description": "The resource, in the route's own envelope (`{ ok: true, … }` for most of the app surface).",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } },
+        "x-retryable": "n/a"
+      },
+      "Created": {
+        "description": "Created — the new resource is in the body.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Envelope" } } },
+        "x-retryable": "n/a"
+      },
+      "BadRequest": {
+        "description": "The request could not be read: a malformed body, a missing or unparseable parameter.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } },
+        "x-retryable": "no",
+        "x-remedy": "Fix the request. The same bytes produce the same 400 forever."
+      },
+      "Unauthorized": {
+        "description": "No caller identity: no session, or a CRON_SECRET bearer token that did not match.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } },
+        "x-retryable": "no",
+        "x-remedy": "Establish a session (or present the right bearer token) and issue the request again. Retrying the same credentials is a loop."
+      },
+      "Forbidden": {
+        "description": "Identified, but not entitled to this resource.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } },
+        "x-retryable": "no",
+        "x-remedy": "An entitlement decision, not a transient one — a plan or a connected-account change is what moves it."
+      },
+      "NotFound": {
+        "description": "No such resource for this caller. Ownership failures answer here rather than leaking existence.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } },
+        "x-retryable": "no",
+        "x-remedy": "Do not read this as 'not yet'. A resource owned by somebody else answers here too, deliberately, so a retry never turns it into a 200."
+      },
+      "Conflict": {
+        "description": "The resource is already in the state the request would create, or a concurrent write won.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } },
+        "x-retryable": "no",
+        "x-remedy": "Re-read the resource and decide again. A blind retry either does nothing or overwrites the write that won."
+      },
+      "PayloadTooLarge": {
+        "description": "The body exceeded this route's byte cap.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } },
+        "x-retryable": "no",
+        "x-remedy": "Send less. The cap is per route and is not raised by waiting."
+      },
+      "Unprocessable": {
+        "description": "Read, but refused: a field is missing, out of range, or names something the route will not act on.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } },
+        "x-retryable": "no",
+        "x-remedy": "The `code` says which class of refusal it is; the `error` sentence is displayable as-is."
+      },
+      "TooManyRequests": {
+        "description": "A durable per-IP limit, the caller's daily AI allowance, or the global daily spend ceiling refused the call (src/lib/ai/durable-limit.ts, src/lib/ai/rate-limit.ts).",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RateLimited" } } },
+        "headers": {
+          "Retry-After": {
+            "description": "Seconds until the window reopens. Set by `tooManyRequests()` on every per-IP refusal, and equal to the body's `retryAfter`.",
+            "schema": { "type": "integer" }
+          }
+        },
+        "x-retryable": "after",
+        "x-remedy": "Wait `retryAfter` seconds. A `code: \"quota\"` refusal is the daily allowance rather than a window — it reopens tomorrow, and `upgradeUrl` (when present) is the other way out."
+      },
+      "ServerError": {
+        "description": "An unhandled failure on this side.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } },
+        "x-retryable": "yes",
+        "x-remedy": "Retry once with backoff. A 500 that repeats is a defect here, not a transient — it belongs in an issue rather than in a retry loop."
+      },
+      "BadGateway": {
+        "description": "An upstream — a provider, an ad platform, an image service — failed or timed out.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } },
+        "x-retryable": "yes",
+        "x-remedy": "Retry with backoff. This is the one error class that is genuinely somebody else's outage, and the AI routes degrade to a deterministic demo answer rather than answering 502 when no provider is configured at all."
+      },
+      "Text": {
+        "description": "A plain-text body. The caller is a robot, not a browser, so there is no JSON envelope.",
+        "content": { "text/plain": { "schema": { "$ref": "#/components/schemas/TextBody" } } },
+        "x-retryable": "n/a"
+      },
+      "TextNotFound": {
+        "description": "No such resource, answered to a robot in plain text. On the product feed this means the token is unknown or revoked — and ONLY that: an empty catalog deliberately answers 200 with a valid empty feed, because a merchant channel de-lists a shop whose feed errors.",
+        "content": { "text/plain": { "schema": { "$ref": "#/components/schemas/TextBody" } } },
+        "x-retryable": "no",
+        "x-remedy": "Re-mint the token. Retrying a revoked one answers 404 forever, and a channel that keeps retrying is the failure this route is shaped to avoid."
+      }
     }
   },
   "paths": {
@@ -93,8 +221,8 @@
     "/api/auth/{nextauth}": {
       "x-adamant": { "source": "src/app/api/auth/[...nextauth]/route.ts", "auth": "authjs" },
       "parameters": [{ "name": "nextauth", "in": "path", "required": true, "schema": { "type": "string" }, "x-catch-all": true, "description": "The Auth.js action and provider — `signin/google`, `callback/google`, `session`, `csrf`, `signout`." }],
-      "get": { "operationId": "authJsGet", "summary": "The Auth.js v5 GET handler — sign-in pages, CSRF, session and OAuth callbacks.", "description": "This route IS the sign-in surface, so it establishes the session rather than requiring one; `x-adamant.auth` is `authjs` for exactly that reason and no other route may hold it.", "tags": ["auth"], "security": [], "responses": { "200": { "$ref": "#/components/responses/Ok" } } },
-      "post": { "operationId": "authJsPost", "summary": "The Auth.js v5 POST handler — sign-in, sign-out and callback submissions.", "tags": ["auth"], "security": [], "responses": { "200": { "$ref": "#/components/responses/Ok" } } }
+      "get": { "operationId": "authJsGet", "summary": "The Auth.js v5 GET handler — sign-in pages, CSRF, session and OAuth callbacks.", "description": "This route IS the sign-in surface, so it establishes the session rather than requiring one; `x-adamant.auth` is `authjs` for exactly that reason and no other route may hold it. ITS FAILURE SHAPE IS NOT THE APP'S: Auth.js owns the response, so an OAuth failure is a 302 back to the error page with an `?error=` query parameter rather than an `{ error }` body, and the codes below are the ones it answers directly.", "tags": ["auth"], "security": [], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "500": { "$ref": "#/components/responses/ServerError" } } },
+      "post": { "operationId": "authJsPost", "summary": "The Auth.js v5 POST handler — sign-in, sign-out and callback submissions.", "description": "Same ownership as the GET: the library writes the response, a rejected CSRF token or an unknown action is a 400, and an adapter or provider misconfiguration is a 500.", "tags": ["auth"], "security": [], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "400": { "$ref": "#/components/responses/BadRequest" }, "500": { "$ref": "#/components/responses/ServerError" } } }
     },
     "/api/byom": {
       "x-adamant": { "source": "src/app/api/byom/route.ts", "auth": "session" },
@@ -196,7 +324,7 @@
     "/api/feed/{token}": {
       "x-adamant": { "source": "src/app/api/feed/[token]/route.ts", "auth": "public" },
       "parameters": [{ "name": "token", "in": "path", "required": true, "schema": { "type": "string" }, "description": "The 128-bit per-project feed token. It IS the credential; (userId, projectId) are read from the stored row, never from the wire." }],
-      "get": { "operationId": "getProductFeed", "summary": "Serve the project's product feed to a merchant channel robot (Google Merchant, Heureka, Zboží).", "description": "Deliberately anonymous — the callers cannot sign in — with the reasoning recorded in .github/security/sast-allowlist.json § route-auth. An empty catalog answers with a VALID EMPTY feed rather than a 404, because every one of these channels de-lists a shop whose feed errors; only an unknown or revoked token is a 404.", "tags": ["feed"], "security": [{ "pathToken": [] }], "responses": { "200": { "$ref": "#/components/responses/Text" }, "404": { "$ref": "#/components/responses/Text" } } }
+      "get": { "operationId": "getProductFeed", "summary": "Serve the project's product feed to a merchant channel robot (Google Merchant, Heureka, Zboží).", "description": "Deliberately anonymous — the callers cannot sign in — with the reasoning recorded in .github/security/sast-allowlist.json § route-auth. An empty catalog answers with a VALID EMPTY feed rather than a 404, because every one of these channels de-lists a shop whose feed errors; only an unknown or revoked token is a 404.", "tags": ["feed"], "security": [{ "pathToken": [] }], "responses": { "200": { "$ref": "#/components/responses/Text" }, "404": { "$ref": "#/components/responses/TextNotFound" } } }
     },
     "/api/feedback": {
       "x-adamant": { "source": "src/app/api/feedback/route.ts", "auth": "session" },
@@ -515,7 +643,7 @@
     },
     "/api/skills": {
       "x-adamant": { "source": "src/app/api/skills/route.ts", "auth": "public" },
-      "get": { "operationId": "listSkills", "summary": "List the registered AI skill ids and the gate-covered set.", "description": "Deliberately anonymous, with the reasoning in .github/security/sast-allowlist.json § route-auth: build-time facts identical for every caller, with no tenant, no project id and no provider call. Importing the registry is itself the check — registration throws on an incomplete skill — which is the point of being able to curl it.", "tags": ["skills"], "security": [], "responses": { "200": { "$ref": "#/components/responses/Ok" } } }
+      "get": { "operationId": "listSkills", "summary": "List the registered AI skill ids and the gate-covered set.", "description": "Deliberately anonymous, with the reasoning in .github/security/sast-allowlist.json § route-auth: build-time facts identical for every caller, with no tenant, no project id and no provider call. Importing the registry is itself the check — registration throws on an incomplete skill — which is the point of being able to curl it.", "tags": ["skills"], "security": [], "responses": { "200": { "$ref": "#/components/responses/Ok" }, "500": { "$ref": "#/components/responses/ServerError" } } }
     },
     "/api/social/accounts": {
       "x-adamant": { "source": "src/app/api/social/accounts/route.ts", "auth": "session" },

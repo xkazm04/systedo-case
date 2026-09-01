@@ -30,6 +30,21 @@
  *  that last ran 90 minutes ago says nothing about the deploy that happened 90
  *  seconds ago.
  *
+ *  AND THEN WHETHER IT ANSWERS WELL. Liveness alone is the wrong shape for the only
+ *  post-merge signal a repository has: `/api/health` returns `ok: true` for a release
+ *  whose homepage 500s and for one that made every page four times slower, because it
+ *  never asks either question. So after the probe comes back clean, this measures a
+ *  short list of public, key-free routes against
+ *  `.github/post-deploy-budgets.json` — document response, warm, best of three — and
+ *  a route over its ceiling, or one that does not answer 2xx at all, FAILS the run.
+ *  That is the number this repository did not have: one that goes red AFTER the merge,
+ *  on the deployment, rather than one more thing to be green before it.
+ *
+ *  The budget file is deliberately short, generous and unmeasured (`baseline: null`) —
+ *  see its own `$comment`. Every run writes what it measured into the verdict, which
+ *  the workflow keeps for 90 days, so the first green release produces exactly the
+ *  numbers a tighter ceiling needs.
+ *
  *  IT DOES NOT REVERT, and that is a decision rather than an omission. Reverting
  *  automatically means a token that can write `refs/heads/master` on a repository
  *  where that push IS a release under the operator's name (AGENTS.md § Red). This
@@ -46,8 +61,11 @@
  *  Usage:
  *    node scripts/post-deploy-verify.mjs [--out FILE] [--summary FILE]
  *                                        [--url URL] [--attempts N] [--delay MS]
+ *                                        [--budgets FILE] [--no-budgets]
  */
-import { writeFileSync, appendFileSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync, existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const argv = process.argv.slice(2);
 const flag = (name) => {
@@ -68,6 +86,14 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const BASE = (flag("--url") ?? process.env.ADAMANT_HEALTH_URL ?? "").trim().replace(/\/+$/, "");
 const SECRET = (process.env.CRON_SECRET ?? "").trim();
 
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const BUDGETS_REL = ".github/post-deploy-budgets.json";
+const BUDGETS_FILE = flag("--budgets") ?? join(ROOT, ...BUDGETS_REL.split("/"));
+/** The escape hatch is for the OPERATOR probing a preview by hand, never for a
+ *  release: a run that skips the budgets says so in the verdict rather than
+ *  recording a `healthy` it did not measure. */
+const NO_BUDGETS = argv.includes("--no-budgets");
+
 /** The runbook's own next command, printed next to a failure rather than linked
  *  to. docs/deploy.md § Deploy + rollback is canonical: rollback here is promoting
  *  the previous deployment, NOT a git revert under pressure. */
@@ -76,6 +102,9 @@ const NEXT_STEPS = [
   "not a git revert under pressure — promotion is atomic and takes the alias with it.",
   "The repository leg, once the alias is safe: git revert --no-edit <sha> && push.",
   "The rehearsal, and what each layer costs: docs/runbooks/revert-drill.md.",
+  "If the failure is a BUDGET: the ceiling and the reason it earns one are in",
+  ".github/post-deploy-budgets.json. Raising it to make this release pass is rubric B3 —",
+  "the release got slower, and the number saying so is the only one there is post-merge.",
 ];
 
 const say = (line = "") => console.log(line);
@@ -128,6 +157,152 @@ async function probe(url) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** One timed request for the document response — the server committing its answer.
+ *
+ *  `redirect: "manual"` on purpose: a 30x IS the server's answer for that URL, and
+ *  following it would silently measure a different route than the budget names. The
+ *  body is drained so the clock covers the response actually arriving rather than
+ *  the headers alone, and never throws — a failure is a described outcome, because
+ *  a budget that dies on a DNS blip has told the operator nothing.
+ */
+async function timedGet(url, timeoutMs, headers = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const started = Date.now();
+  try {
+    const res = await fetch(url, { redirect: "manual", cache: "no-store", headers, signal: controller.signal });
+    await res.arrayBuffer().catch(() => null);
+    return { ok: res.status < 400, status: res.status, ms: Date.now() - started };
+  } catch (err) {
+    return {
+      ok: false,
+      status: null,
+      ms: Date.now() - started,
+      detail: err.name === "AbortError" ? "timed out" : err.message,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Measure one route: throw away the warm-ups (a serverless function's first
+ *  invocation after a deploy is a cold start, which is a fact about the platform),
+ *  keep the rest, and compare the best of them. Best-of-N rather than the mean is
+ *  the same trade `.github/perf-budgets.json` makes: less sensitive, and it does not
+ *  teach anyone to re-run a red release. */
+async function measureRoute(url, metric, headers = {}) {
+  const timeoutMs = Number(metric.timeoutMs ?? 15_000);
+  const bust = () => (metric.cacheBusting ? `${url}${url.includes("?") ? "&" : "?"}_pd=${Date.now()}` : url);
+
+  for (let i = 0; i < Number(metric.warmups ?? 1); i += 1) await timedGet(bust(), timeoutMs, headers);
+
+  const samples = [];
+  for (let i = 0; i < Math.max(1, Number(metric.samples ?? 3)); i += 1) {
+    samples.push(await timedGet(bust(), timeoutMs, headers));
+  }
+
+  const answered = samples.filter((s) => s.ok);
+  return {
+    samples: samples.map((s) => ({ status: s.status, ms: s.ms, ...(s.detail ? { detail: s.detail } : {}) })),
+    // `null` when nothing answered — a route that is DOWN has no meaningful timing,
+    // and reporting its timeout as a duration would read as "slow" when it is "off".
+    ms: answered.length ? Math.min(...answered.map((s) => s.ms)) : null,
+    answered: answered.length,
+    status: samples.at(-1)?.status ?? null,
+    detail: samples.find((s) => s.detail)?.detail ?? null,
+  };
+}
+
+/** The budgets, measured. Returns `{ status, problems, measurements }`; `status` is
+ *  `skipped` when the file is absent or the run opted out, which is recorded rather
+ *  than counted as a pass. */
+async function runBudgets(base) {
+  if (NO_BUDGETS) return { status: "skipped", reason: "--no-budgets", problems: [], measurements: [] };
+  if (!existsSync(BUDGETS_FILE)) {
+    return {
+      status: "skipped",
+      reason: `${BUDGETS_REL} is missing — nothing measured the release's cost.`,
+      problems: [],
+      measurements: [],
+    };
+  }
+
+  let budgets;
+  try {
+    budgets = JSON.parse(readFileSync(BUDGETS_FILE, "utf8"));
+  } catch (err) {
+    // A malformed budget file is a problem, not a skip: it is the difference between
+    // "we chose not to measure" and "we thought we were measuring".
+    return {
+      status: "failed",
+      problems: [`${BUDGETS_REL} is not parseable JSON — ${err.message}. The release shipped unmeasured.`],
+      measurements: [],
+    };
+  }
+
+  const metric = budgets.metric ?? {};
+  // The public routes are timed exactly as a visitor sees them — no cookie, no
+  // token, `redirect: "manual"` — because that is the request whose cost this
+  // repository is answerable for. The PROBE is the one exception: `/api/health` is
+  // behind the constant-time CRON_SECRET guard, so timing it without the bearer
+  // would measure a 401 and report the release as down on every deploy.
+  const entries = [
+    ...(Array.isArray(budgets.routes) ? budgets.routes : []).map((r) => ({ ...r, authorized: false })),
+    ...(budgets.probe
+      ? [{ ...budgets.probe, label: budgets.probe.label ?? "Health probe", authorized: true }]
+      : []),
+  ];
+
+  const problems = [];
+  const measurements = [];
+  let failingRoutes = 0;
+
+  for (const entry of entries) {
+    const url = `${base}${entry.path}`;
+    const result = await measureRoute(url, metric, entry.authorized ? { authorization: `Bearer ${SECRET}` } : {});
+    const overBudget = result.ms !== null && result.ms > Number(entry.budgetMs);
+    const down = result.answered === 0;
+    measurements.push({
+      path: entry.path,
+      label: entry.label ?? entry.path,
+      budgetMs: Number(entry.budgetMs),
+      ms: result.ms,
+      answered: result.answered,
+      samples: result.samples,
+      verdict: down ? "down" : overBudget ? "over" : "ok",
+    });
+
+    if (down) {
+      failingRoutes += 1;
+      problems.push(
+        `${entry.path} did not answer on this release (last status ${result.status ?? "none"}` +
+          `${result.detail ? `, ${result.detail}` : ""}). It is a public, key-free page — this is not slow, it is down.`
+      );
+      say(`  ✗ ${entry.path.padEnd(16)} DOWN`);
+      continue;
+    }
+    if (overBudget) {
+      problems.push(
+        `${entry.path} answered in ${result.ms} ms, over its ${entry.budgetMs} ms ceiling (${entry.label ?? entry.path}). ` +
+          `${entry.why ?? ""}`.trim()
+      );
+      say(`  ✗ ${entry.path.padEnd(16)} ${result.ms} ms  (ceiling ${entry.budgetMs} ms)`);
+      continue;
+    }
+    say(`  ✓ ${entry.path.padEnd(16)} ${result.ms} ms  (ceiling ${entry.budgetMs} ms)`);
+  }
+
+  const maxFailing = Number(budgets.errorRate?.maxFailingRoutes ?? 0);
+  if (failingRoutes > maxFailing) {
+    problems.push(
+      `${failingRoutes} budgeted route(s) did not answer; the ceiling is ${maxFailing} ` +
+        `(.github/post-deploy-budgets.json § errorRate).`
+    );
+  }
+
+  return { status: problems.length ? "failed" : "passed", problems, measurements };
 }
 
 async function main() {
@@ -191,6 +366,17 @@ async function main() {
     );
   }
 
+  // The budgets, once the deployment has proved it is answering at all. A release
+  // that never came up has nothing to time, and timing a timeout would report
+  // "slow" for something that is off.
+  let budgets = { status: "skipped", reason: "the deployment never answered, so nothing was timed.", problems: [], measurements: [] };
+  if (last?.kind === "body") {
+    say("");
+    say(`post-deploy: measuring ${BUDGETS_REL} against ${BASE}`);
+    budgets = await runBudgets(BASE);
+    problems.push(...budgets.problems);
+  }
+
   const verdict = {
     schema: 1,
     status: problems.length ? "failed" : "healthy",
@@ -199,6 +385,14 @@ async function main() {
     url,
     attempts,
     problems,
+    // The measurements outlive the run whether or not they breached. `baseline` in
+    // the budget file is null on purpose, and these are the numbers that make it
+    // possible to replace it with something measured.
+    budgets: {
+      status: budgets.status,
+      ...(budgets.reason ? { reason: budgets.reason } : {}),
+      measurements: budgets.measurements,
+    },
     // Reported, never asserted: real signals about the deployment that are not
     // signals about THIS release.
     reported: body
@@ -207,12 +401,31 @@ async function main() {
   };
   record(verdict);
 
+  const budgetTable = () => {
+    if (!budgets.measurements.length) return;
+    summary("");
+    summary("| route | measured | ceiling | verdict |");
+    summary("| --- | --- | --- | --- |");
+    for (const m of budgets.measurements) {
+      summary(`| \`${m.path}\` | ${m.ms === null ? "no answer" : `${m.ms} ms`} | ${m.budgetMs} ms | ${m.verdict} |`);
+    }
+  };
+
   if (!problems.length) {
     say("");
     say(`post-deploy: the release answers — ok, dbMode ${body?.dbMode ?? "?"}.`);
     summary("### Post-deploy verification — healthy");
     summary("");
     summary(`\`/api/health\` answered clean after ${attempts.length} attempt(s).`);
+    if (budgets.status === "passed") {
+      summary("");
+      summary(`Every budgeted route answered inside its ceiling (${BUDGETS_REL}).`);
+    } else if (budgets.status === "skipped") {
+      say(`::warning title=Post-deploy budgets were not measured::${budgets.reason}`);
+      summary("");
+      summary(`Budgets were NOT measured: ${budgets.reason} The release is live and unmeasured.`);
+    }
+    budgetTable();
     if (Array.isArray(body?.cronsStale) && body.cronsStale.length) {
       summary("");
       summary(`Reported, not failed: crons past their schedule — ${body.cronsStale.join(", ")}.`);
@@ -228,6 +441,7 @@ async function main() {
   summary("### Post-deploy verification — FAILED");
   summary("");
   for (const p of problems) summary(`- ${p}`);
+  budgetTable();
   summary("");
   for (const line of NEXT_STEPS) summary(`> ${line}`);
   return 1;
