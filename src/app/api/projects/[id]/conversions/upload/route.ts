@@ -20,8 +20,8 @@
  *
  *  ADR-0002: keyed by `requireOwnedProject`, so another owner's mapping is a 404 and
  *  never an approval. No PII crosses this wire — the rows carry a click id, a time and
- *  a value (see google-upload.ts). Cache Components: a plain handler, no
- *  `export const dynamic`. */
+ *  a value (see google-upload.ts). Cache Components: a plain handler, with no route
+ *  segment config at all (rubric A2) — nothing here un-caches the segment. */
 import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { apiError, readJson } from "@/lib/api/route-utils";
 import { emitProjectActivity } from "@/lib/activity/emit";
