@@ -10,6 +10,7 @@
  *  a forged session rather than a guessed id. This suite is where that key is pinned. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { contract } from "./contract.mjs";
 import {
   buildTenantKey,
   legacyMutationAuditTenant,
@@ -17,9 +18,25 @@ import {
   safeKeyComponent,
 } from "@/lib/campaigns/store-keys";
 
+/** What a failure here MEANS, in the words of the rule rather than of the value.
+ *  `store-seam` is the row in .github/constraint-map.json for reaching data only
+ *  through a store in src/lib/, and this key builder is the seam's own front door:
+ *  scripts/mutation-catalogue.mjs files both mutants over this file under "Store
+ *  seam" — one drops the project out of the key, one drops the sanitiser — and
+ *  neither of them 401s or changes a query, so one advertiser's campaigns are
+ *  simply served under another project's view. A lint rule can prove the read goes
+ *  through this builder; only these assertions can say the key still carries the
+ *  project. So a red one below cites the rule rather than reporting that two
+ *  strings differed. See test-unit/contract.mjs. */
+const storeSeam = contract("store-seam");
+
 test("buildTenantKey is per-user, per-project, per-account and composes in that order", () => {
   assert.equal(buildTenantKey("u1"), "u_u1");
-  assert.equal(buildTenantKey("u1", "p1"), "u_u1_proj_p1");
+  assert.equal(
+    buildTenantKey("u1", "p1"),
+    "u_u1_proj_p1",
+    storeSeam("a project-scoped tenant key carries the project, so no two projects share a tenant")
+  );
   assert.equal(buildTenantKey("u1", "p1", "123"), "u_u1_proj_p1_123");
   // No project but an account (public/legacy per-user account tenant).
   assert.equal(buildTenantKey("u1", null, "123"), "u_u1_123");
@@ -28,7 +45,10 @@ test("buildTenantKey is per-user, per-project, per-account and composes in that 
 
 test("every key component is sanitised so a '/' can't break out of the Firestore path", () => {
   assert.equal(safeKeyComponent("a/b c.d"), "a_b_c_d");
-  assert.ok(!buildTenantKey("a/b", "p/1", "12/3").includes("/"));
+  assert.ok(
+    !buildTenantKey("a/b", "p/1", "12/3").includes("/"),
+    storeSeam("no key component can smuggle a `/` into the document path")
+  );
 });
 
 test("the mutation audit tenant equals the campaigns' tenant (project scope)", () => {

@@ -53,6 +53,17 @@ function fixture(name, mutate) {
 
 const rowOf = (obj, id) => (obj.rules ?? []).find((r) => r.id === id);
 
+/** A row whose ceiling actually ALLOWS exceptions, found rather than named.
+ *
+ *  `comesOffWhen` is only owed by a ceiling above zero — a ceiling of 0 allows
+ *  nothing and has nothing to take away. Naming one such row by hand rotted this
+ *  file once already: `plaintext-key-in-route` was pinned here, and then the seam
+ *  it excused was built and its ceiling fell to 0, so deleting the field became a
+ *  no-op and the gate's rule looked lost when it was intact. The rule is about the
+ *  SHAPE of a ceiling, so the fixture asks the ledger for one of that shape. */
+const rowWithExceptions = (obj) =>
+  (obj.rules ?? []).find((r) => (r.ceiling?.max ?? 0) > 0 && String(r.ceiling.comesOffWhen ?? "").trim());
+
 // --- the gate runs, and it is green on this tree ------------------------------
 
 test("the ledger check passes on the tree as it stands", () => {
@@ -93,8 +104,13 @@ test("an exception list with no ceiling at all fails too", () => {
 });
 
 test("a ceiling that allows exceptions must say what would take them away", () => {
+  assert.ok(
+    rowWithExceptions(ledger),
+    "no row in the ledger allows a single exception any more. Either every list reached zero — which would be " +
+      "worth saying out loud — or `ceiling.max` stopped meaning what this file reads it as."
+  );
   const path = fixture("no-exit", (l) => {
-    delete rowOf(l, "plaintext-key-in-route").ceiling.comesOffWhen;
+    delete rowWithExceptions(l).ceiling.comesOffWhen;
   });
   const res = run(path);
   assert.equal(res.status, 1);

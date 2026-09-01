@@ -32,6 +32,18 @@
  */
 import { test, beforeEach, mock } from "node:test";
 import assert from "node:assert/strict";
+import { contract } from "./contract.mjs";
+
+/** What a failure here MEANS, in the words of the rule rather than of the value.
+ *  Every scenario below runs INSIDE `generateStructured` — the one chokepoint
+ *  `llm-chokepoint` requires every LLM text call to pass through — so the retry
+ *  ladder, the cross-provider walk and the degrade path are that rule's behaviour
+ *  and not incidental detail. `scripts/mutation-catalogue.mjs` points its
+ *  `byom-fault-absorbed` and `retry-bound-off-by-one` mutants at this file: both
+ *  are wrong answers that cost real spend or leak a user's key fault into the
+ *  app's own providers, so a red assertion here is that rule breaking and the
+ *  message says so. See test-unit/contract.mjs. */
+const chokepoint = contract("llm-chokepoint");
 
 const { LlmCallError, ByomUserError } = await import("@/lib/llm/errors");
 
@@ -215,8 +227,16 @@ test("a retryable failure is retried a bounded number of times, then handed on",
 
   const { result, meta } = await generateStructured(request());
 
-  assert.equal(calls.claude, 3, "the wrapper's bounded retry is three attempts — no more, and no fewer.");
-  assert.equal(calls.codex, 1, "the next configured provider must serve once the first is exhausted.");
+  assert.equal(
+    calls.claude,
+    3,
+    chokepoint("the wrapper's bounded retry is three attempts — no more, and no fewer")
+  );
+  assert.equal(
+    calls.codex,
+    1,
+    chokepoint("the next configured provider serves once the first is exhausted")
+  );
   assert.deepEqual(result, GOOD);
   assert.equal(meta.demo, false, "a second healthy provider means there is no reason to degrade to the demo.");
   assert.equal(meta.fellBack, true, "the answer came from a fallback provider and the envelope must say so.");
@@ -313,8 +333,16 @@ test("a BYOM user fault surfaces instead of quietly moving onto the app's own pr
   script.claude = [new ByomUserError("auth", "openai", "Klíč je neplatný nebo vypršel.", 401)];
 
   await assert.rejects(() => generateStructured(request()), (err) => err instanceof ByomUserError);
-  assert.equal(calls.codex, 0, "a user-side BYOM fault must not reach the app's own providers.");
-  assert.equal(demoCalls, 0, "a user-side BYOM fault must not degrade to the demo either.");
+  assert.equal(
+    calls.codex,
+    0,
+    chokepoint("a user-side BYOM fault never reaches the app's own providers")
+  );
+  assert.equal(
+    demoCalls,
+    0,
+    chokepoint("a user-side BYOM fault never degrades to the demo either")
+  );
 });
 
 test("a bug in our own normalize is an app error, not a provider failure", async () => {
@@ -330,7 +358,11 @@ test("a bug in our own normalize is an app error, not a provider failure", async
     (err) => err === boom
   );
   assert.equal(calls.claude, 1);
-  assert.equal(calls.codex, 0, "a mapper throw must not be retried against another provider — that is real spend.");
+  assert.equal(
+    calls.codex,
+    0,
+    chokepoint("a throw from our own normalize is never retried against another provider — that is real spend")
+  );
   assert.equal(demoCalls, 0, "a mapper throw must not be hidden behind the demo.");
   assert.ok(
     telemetry.calls.every((e) => e.status !== "error"),
