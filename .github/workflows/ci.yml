@@ -121,6 +121,27 @@ jobs:
         continue-on-error: true
         run: npm run i18n:audit:check
 
+      # The stricter TypeScript project — REPORTING rung, and the loop that was
+      # missing.
+      #
+      # `tsconfig.strict.json` turns on the two flags `strict: true` does not
+      # (noUncheckedIndexedAccess, exactOptionalPropertyTypes) and `npm run
+      # typecheck:strict` runs it. Nothing ran it. A second standard nothing executes
+      # gives no feedback to the author of a change: the frontier could only move when
+      # somebody remembered to look, and the number ADR-0007 says a promotion decision
+      # needs was never produced. This step produces it — the count, the files it
+      # clusters in, and the rules that fire — into this job's summary on every push
+      # and pull request.
+      #
+      # `continue-on-error` for the same reason as the audit above: the count is not
+      # zero today, and a check blocks only once somebody has measured that it passes.
+      # `.github/typecheck-strict.json` carries no accepted baseline yet, so the script
+      # exits 0 by design; the first `npm run typecheck:strict:accept -- --reason "…"`
+      # pins it and a change that makes the frontier worse starts failing here.
+      - name: Stricter typecheck (reporting rung, unbaselined)
+        continue-on-error: true
+        run: npm run typecheck:strict:check -- --summary "$GITHUB_STEP_SUMMARY"
+
   # Key-free E2E smoke lane. Runs the Playwright suite with NO GEMINI_API_KEY:
   # the two keyed specs (ai-asistent, kampane-triage's model bits) skip their
   # live-model tests and keep structural + demo-mode + timeout coverage; the

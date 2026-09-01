@@ -7,9 +7,21 @@
 // `npm run doctor` (env preflight) and `npm run context:decay` (the census) —
 // what it produces is the number the decision needs:
 //
-//     npm run typecheck:strict 2>&1 | grep -c "error TS"        # how bad is it?
-//     npm run typecheck:strict 2>&1 | grep -o "^src/[^(]*" | sort | uniq -c | sort -rn
-//                                                                # clustered, or spread?
+//     npm run typecheck:strict:report    # how bad is it, and how clustered?
+//     npm run typecheck:strict           # the raw compiler output, file by file
+//
+// AND SOMETHING NOW RUNS IT. Being an instrument is a fine answer; being an
+// instrument nobody measures is not, and that is what this was — the number above
+// only existed when a maintainer thought to produce it, so the frontier could only
+// move by accident. `npm run typecheck:strict:check` runs on every push and pull
+// request as a REPORTING step of .github/workflows/ci.yml (scripts/typecheck-strict.mjs),
+// and puts the count, the ten worst files and the rules that fire into the job
+// summary. It is still not a gate: `.github/typecheck-strict.json` carries no
+// accepted baseline, because a baseline invented without running it is the one thing
+// this file says must not happen. The first
+// `npm run typecheck:strict:accept -- --reason "…"` pins what was measured, and from
+// then on a change that ADDS strict errors fails that step — the rung above
+// reporting, reached by measurement rather than by decision.
 //
 // WHY THESE TWO. `strict: true` leaves both off, and both catch the mistake
 // generated code makes most often:

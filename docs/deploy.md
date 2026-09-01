@@ -5,6 +5,32 @@ listed by NAME only — values live in the Vercel project settings (and locally
 in `.env.local`, which is gitignored). `.env.example` is the annotated source
 of truth for what each variable does.
 
+## The manifest — this page's machine-readable half
+
+Everything below is prose, and prose drifts. The same facts are declared as data in
+[`.github/environments.json`](../.github/environments.json): the runtime the platform
+must give us, the schedules it must fire, and every environment variable the
+deployment reads, each classified by what its absence costs and whether it reaches the
+browser.
+
+```bash
+npm run env:manifest         # print the declared target
+npm run env:manifest:check   # …and fail on drift
+```
+
+The check diffs that declaration against `vercel.json`, `package.json`,
+`next.config.ts`, `.env.example`, the workflows and this page, and the same comparison
+runs on **every build** (`test-unit/environment-manifest.test.mjs`, inside
+`npm run test:unit` → `npm run check:ci` → `.husky/pre-push`). So a cron nobody
+declared, a Node bump in one workflow and not the others, or a new variable classified
+nowhere refuses the push rather than surfacing after a deploy.
+
+**It reads the repository, not the Vercel project.** What is actually configured
+there — whether a secret is set, which region a function landed in, whether the
+Firestore TTL policy below exists — is not in any committed file, and the manifest's
+`cannotSee` list says so. That half is § Post-deploy verification, and it is the
+operator's.
+
 ## Environment variables (by name)
 
 Required in production:

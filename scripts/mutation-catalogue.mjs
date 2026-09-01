@@ -111,6 +111,41 @@ export const MUTANTS = [
   },
 ];
 
+/** The number of mutants this catalogue must carry, and the floor no diff may take
+ *  it below.
+ *
+ *  WHY A FLOOR AND NOT JUST A SCORE. The drill already fails on a SURVIVOR: a wrong
+ *  answer the tests call green exits 1 and turns the weekly job red. What nothing
+ *  measured is the measure itself SHRINKING. A mutant deleted — because it started
+ *  surviving, because a refactor moved its anchor and re-anchoring looked like work,
+ *  because an agent under a wall clock reached for the fastest green — costs nothing:
+ *  the census still passes, the drill still prints a perfect score, and it is a
+ *  perfect score over less of the tree. That is the one direction in which this
+ *  repository's sensitivity measure can get worse without a single build going red.
+ *
+ *  So the count is pinned, and the pin is in .github/contract-ledger.json (rule
+ *  `mutation catalogue floor`) like every other number that decides what red means:
+ *  moving it is a two-line diff with the sentence next to it, not a digit. It may
+ *  rise freely — widening the measure is the point — and it may not fall.
+ *  test-unit/mutation-census.test.mjs enforces it on every build. */
+export const MUTANT_FLOOR = 7;
+
+/** …and PER SEAM, which is the honest shape. A repo-wide count can stay level while
+ *  the coverage moves off the seam that matters: drop both Sklik mutants, add two
+ *  more to the rate limiter, and the total is unchanged while the only path in this
+ *  repository that spends an advertiser's money is no longer measured at all.
+ *
+ *  Keyed by the file, valued by the minimum number of mutants it must carry. Every
+ *  entry is a seam where a wrong answer is a bill or a breach (AGENTS.md § Red), and
+ *  each floor is what the catalogue holds today — green on arrival (ADR-0007). A new
+ *  money seam belongs here WITH its mutants; a seam that stops existing comes off in
+ *  the diff that deletes it, which is a line a reviewer reads. */
+export const SEAM_FLOORS = {
+  "src/lib/cron-auth.ts": 2,
+  "src/lib/ai/durable-limit-core.ts": 3,
+  "src/lib/campaigns/mutator.ts": 2,
+};
+
 /** What a green drill still does NOT prove. Printed with every run, because a
  *  score with no honest limit next to it reads as a guarantee. */
 export const CANNOT_SEE = [

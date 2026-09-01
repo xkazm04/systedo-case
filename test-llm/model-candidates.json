@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "note": "THE MODEL AFTER THIS ONE, rehearsed before the swap rather than after it. Every proof this harness keeps is about the model being served TODAY: the goldens pin each tool's prompt and shape against it, the quality bake pins how good its answers are, the budget file pins what its prompts cost, and test-llm/model-pins.json pins which model all of that was true of. None of them can be pointed at a model the app does not yet serve — so the first time anyone found out how the next Gemini flash behaves on these fifteen operations was after `GEMINI_MODEL` had already moved and production was serving it. A model upgrade is the dependency most likely to change behaviour without changing a line of code here, and it was the one dependency with no rehearsal. `npm run llm:candidate` runs every registered operation against the CANDIDATE named below, through the real wrapper (BYOM context, so the app's own prompt, schema and pipeline are exercised), and reports which shapes survive. Held to the tree on every build by test-unit/model-candidate-census.test.mjs; run weekly by .github/workflows/llm-drift.yml, next to the drift prove it complements — that one asks whether today's model still holds, this one asks whether tomorrow's would.",
+  "source": "src/lib/llm/models.ts",
+  "pins": "test-llm/model-pins.json",
+
+  "candidates": [
+    {
+      "path": "gemini.quality",
+      "declaredBy": "GEMINI_MODEL",
+      "serving": "gemini-3-flash-preview",
+      "candidate": "gemini-3.5-flash",
+      "vendor": "gemini",
+      "keyEnv": "GEMINI_API_KEY",
+      "tier": "quality",
+      "why": "The production quality tier serves a `-preview` tag, and a preview's whole promise is that it stops existing. `gemini-3.5-flash` is the successor this repository already ships against for BYOM users (BYOM_DEFAULT_MODELS.gemini.quality in src/lib/llm/models.ts), so it is a real model id the app already talks to rather than a name invented for a rehearsal."
+    },
+    {
+      "path": "gemini.fast",
+      "declaredBy": "GEMINI_MODEL_FAST",
+      "serving": "gemini-3-flash-lite-preview",
+      "candidate": "gemini-3.1-flash-lite",
+      "vendor": "gemini",
+      "keyEnv": "GEMINI_API_KEY",
+      "tier": "fast",
+      "why": "The fast tier's half of the same swap, and the tier where a downgrade hides best: the short, low-stakes operations (lead replies, repurposing, keyword clustering) are the ones nobody reads closely enough to notice a shape that has quietly loosened. `gemini-3.1-flash-lite` is BYOM_DEFAULT_MODELS.gemini.fast."
+    }
+  ],
+
+  "acceptance": {
+    "maxShapeFailures": 0,
+    "reason": "A candidate that cannot return the tool's own shape is not a candidate — the validator is the contract every registered operation already meets on the serving model, and nothing about a newer model makes a broken shape acceptable. Zero is therefore the only defensible number, and it is a rehearsal rather than a gate: this never runs in `check:ci`, it spends money, and its red is a fact about a model nobody has swapped to yet.",
+    "$note": "A shape failure is the finding, not the bug. The answer is either 'do not swap yet' or 'accept the new shape on purpose' — `npm run llm:eval:update -- --reason \"…\"` — and never a looser validator."
+  },
+
+  "cannotSee": [
+    "QUALITY. This proves the candidate still answers in shape, on its own tier, through the real wrapper. Whether the answer is as GOOD is `npm run llm:quality`, which judges every operation across a roster and has its own floor (`npm run llm:quality:check`).",
+    "COST. `test-llm/budget.json` measures the input side, which does not change with the model; the output-side price of a candidate is on the provider's page, not in this run.",
+    "A model that changes BEHIND its own id. The same limitation test-llm/model-pins.json records in its `unpinnable` list: a rehearsal dates a candidate's behaviour on the day it ran, and the weekly drift run is what dates the serving model's.",
+    "A provider or SDK upgrade that changes the transport rather than the model. That arrives as a dependency bump and is `npm run check` plus the weekly drift run, not this."
+  ]
+}

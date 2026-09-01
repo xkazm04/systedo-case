@@ -1,0 +1,242 @@
+{
+  "$comment": [
+    "THE DEPLOY TARGET, DECLARED. Fifteen gates run before a change lands here and past the",
+    "merge there was nothing: no environment manifest, no drift check, nothing an agent could",
+    "read to know what runs where. Vercel's project settings are a dashboard, and a dashboard is",
+    "not reviewable, not diffable and not reversible — so 'the production environment drifted",
+    "from what the repo assumes' was a state no check in this repository could go red for.",
+    "",
+    "This file is the smallest declaration of that target which is still worth diffing in a pull",
+    "request: the runtime the platform must give us, the schedules it must fire, and every",
+    "environment variable the deployment reads, each one classified by what happens when it is",
+    "absent. `npm run env:manifest` prints it; `npm run env:manifest:check` diffs it against the",
+    "repository's own sources and fails on drift, and the same comparison runs on every build in",
+    "test-unit/environment-manifest.test.mjs (blocking, inside `npm run test:unit` → `check:ci`",
+    "→ .husky/pre-push).",
+    "",
+    "BE EXACT ABOUT WHAT THIS CAN AND CANNOT SEE. Everything below is checked against COMMITTED",
+    "data — package.json, vercel.json, next.config.ts, .env.example, docs/deploy.md, the",
+    "workflows. So it catches the drift that starts in the repository: a cron added to vercel.json",
+    "and to no schedule anyone declared, a Node bump in one workflow and not the others, a new",
+    "env var read by the code and classified nowhere, a variable that must never be set in",
+    "production quietly moving into the required list. It CANNOT read the Vercel project: what",
+    "is actually configured there today, whether a secret is set, which region a function runs",
+    "in. That half needs an API token and is the operator's (docs/deploy.md § Post-deploy",
+    "verification) — `cannotSee` below says so in the file rather than leaving a reader to",
+    "assume otherwise.",
+    "",
+    "WHEN THIS GOES RED, the fix is never to delete the row: the row firing IS the drift being",
+    "caught. Move the declaration in the same diff as the change it describes, which is one line",
+    "a reviewer reads next to the other."
+  ],
+
+  "schema": 1,
+  "declaredOn": "2026-09-01",
+
+  "runtime": {
+    "$comment": "What the platform must give us. Each value is compared against the file named in `from`.",
+    "node": { "value": "24.x", "from": "package.json → engines.node" },
+    "ciNode": {
+      "value": "24.14.0",
+      "from": ".github/workflows/*.yml → every `node-version:`",
+      "why": "the format goldens pin byte-identical Intl output, and ICU moves across Node minors — docs/deploy.md § Node version authority"
+    },
+    "framework": { "value": "next", "version": "16.3.3", "from": "package.json → dependencies.next" },
+    "nextConfig": {
+      "cacheComponents": true,
+      "partialPrefetching": true,
+      "from": "next.config.ts",
+      "why": "dynamic-by-default with no implicit caching; a route segment-config opt-out would un-cache a whole route, which is why lint block adamant/route-segment-config refuses one"
+    },
+    "timezone": {
+      "value": "Europe/Prague",
+      "from": ".github/workflows/ci.yml → env.TZ",
+      "why": "the date goldens are minted in the product's home market"
+    }
+  },
+
+  "environments": [
+    {
+      "id": "production",
+      "platform": "vercel",
+      "branch": "master",
+      "promotion": "push. Vercel ships master on push, so the push IS the release act — there is no PR stage between a developer and production (docs/deploy.md § Delivery contract).",
+      "gate": ".husky/pre-push runs `npm run check:ci` before any push that updates master; the same checks are required status checks on a pull request (.github/required-checks.json, .github/branch-ruleset.json).",
+      "rollback": "docs/deploy.md § Deploy + rollback (Vercel) — re-alias the previous deployment; the operator's action, rehearsed weekly by .github/workflows/revert-drill.yml for everything that needs no production access.",
+      "dataStore": "firestore",
+      "nodeEnv": "production"
+    },
+    {
+      "id": "preview",
+      "platform": "vercel",
+      "branch": "*",
+      "promotion": "automatic per push to a non-default branch; never aliased to the production domain.",
+      "gate": "the same required checks run on the pull request.",
+      "rollback": "not applicable — a preview is discarded, never promoted.",
+      "dataStore": "firestore",
+      "nodeEnv": "production"
+    },
+    {
+      "id": "local",
+      "platform": "workstation",
+      "branch": "*",
+      "promotion": "none — `npm run dev:local` (DEV_AUTH=true LOCAL_DB=true) is the fully offline authenticated product.",
+      "gate": "none; this environment ships nothing.",
+      "rollback": "delete `.data/` and re-run `npm run seed:local`.",
+      "dataStore": "sqlite",
+      "nodeEnv": "development"
+    }
+  ],
+
+  "crons": {
+    "$comment": "Declared here and compared set-for-set against vercel.json, and each path must resolve to a route module. Every one is guarded by CRON_SECRET through src/lib/cron-auth.ts, which fails CLOSED when the secret is unset.",
+    "guardedBy": "CRON_SECRET",
+    "schedules": [
+      { "path": "/api/cron/sync", "schedule": "0 * * * *", "does": "ad-platform data-in sync" },
+      { "path": "/api/cron/catalog-sync", "schedule": "0 5 * * *", "does": "catalog / inventory connector sync" },
+      { "path": "/api/cron/digest", "schedule": "0 7 * * 1", "does": "weekly digest to the operator's destination" },
+      { "path": "/api/cron/report", "schedule": "0 6 * * *", "does": "scheduled project reports" },
+      { "path": "/api/cron/social", "schedule": "0 * * * *", "does": "social publishing queue" },
+      { "path": "/api/cron/ledgers", "schedule": "30 * * * *", "does": "outcome / conversion / twin-dispatch ledger steps" }
+    ]
+  },
+
+  "productionForbidden": {
+    "$comment": "Variables that must never be set in the production environment. The code fuses DEV_AUTH and LOCAL_DB when NODE_ENV=production, but an unset variable is the only configuration that cannot rot (docs/deploy.md § Pre-deploy checklist). A name here may not also be classified `required` or `optional`.",
+    "names": ["DEV_AUTH", "DEV_AUTH_USER_ID", "DEV_AUTH_USER_NAME", "DEV_AUTH_USER_EMAIL", "ALLOW_OPEN"]
+  },
+
+  "cannotSee": [
+    "what is actually configured in the Vercel project today — this reads the repository, not the platform",
+    "whether a declared secret is SET, and what its value is (that is `npm run doctor` locally and the operator's dashboard in production)",
+    "function region, memory and concurrency, which Vercel decides from its own defaults and the per-route `maxDuration` exports",
+    "the Firestore TTL policy on `llmTelemetry`, which is created once per project with gcloud and is not code-deployable (docs/deploy.md § Telemetry retention)",
+    "DNS, the custom domain and the production alias — all of them operator actions under their own account"
+  ],
+
+  "$env": [
+    "Every variable the deployment reads, classified by what its absence costs. `class`:",
+    "  required   production does not work correctly without it.",
+    "  optional   a feature degrades — usually to demo or to log-only — and the app still works.",
+    "  local      a local-development switch; several are also on `productionForbidden` above.",
+    "  selfhosted only meaningful under SELF_HOSTED=true (docs/open-source/self-hosting.md).",
+    "  bench      read by a benchmark or a drill, never by the serving app.",
+    "  build      read at build time only, never at runtime; not in .env.example by design.",
+    "`scope`: `server` (never reaches the browser) or `public` (NEXT_PUBLIC_, published by",
+    "construction — a secret here is a published secret, which is what SAST rule",
+    "`public-env-secret` refuses). `source: env-example` means the name must appear in",
+    ".env.example, which is the annotated reference a human reads."
+  ],
+
+  "env": {
+    "AUTH_SECRET": { "class": "required", "scope": "server", "source": "env-example" },
+    "AUTH_TRUST_HOST": { "class": "required", "scope": "server", "source": "env-example" },
+    "GOOGLE_CLIENT_ID": { "class": "required", "scope": "server", "source": "env-example" },
+    "GOOGLE_CLIENT_SECRET": { "class": "required", "scope": "server", "source": "env-example" },
+    "GOOGLE_CLOUD_PROJECT": { "class": "required", "scope": "server", "source": "env-example" },
+    "FIREBASE_SERVICE_ACCOUNT": { "class": "required", "scope": "server", "source": "env-example" },
+    "CRON_SECRET": { "class": "required", "scope": "server", "source": "env-example" },
+    "GEMINI_API_KEY": { "class": "required", "scope": "server", "source": "env-example" },
+
+    "NEXT_PUBLIC_SITE_URL": { "class": "optional", "scope": "public", "source": "env-example" },
+    "FIREBASE_ALLOW_ADC": { "class": "optional", "scope": "server", "source": "env-example" },
+    "GOOGLE_APPLICATION_CREDENTIALS": { "class": "optional", "scope": "server", "source": "env-example" },
+    "FIREBASE_STORAGE_BUCKET": { "class": "optional", "scope": "server", "source": "env-example" },
+    "CATALOG_TOKEN_SECRET": { "class": "optional", "scope": "server", "source": "env-example" },
+    "BYOM_KEY_SECRET": { "class": "optional", "scope": "server", "source": "env-example" },
+    "WEBHOOK_SECRET_KEY": { "class": "optional", "scope": "server", "source": "env-example" },
+    "ADMIN_EMAILS": { "class": "optional", "scope": "server", "source": "env-example" },
+    "GEMINI_MODEL": { "class": "optional", "scope": "server", "source": "env-example" },
+    "GEMINI_VISION_MODEL": { "class": "optional", "scope": "server", "source": "env-example" },
+    "GEMINI_EMBED_MODEL": { "class": "optional", "scope": "server", "source": "env-example" },
+    "PATTERNS_EMBED_TIMEOUT_MS": { "class": "optional", "scope": "server", "source": "env-example" },
+    "CODEX_TIMEOUT_MS": { "class": "optional", "scope": "server", "source": "env-example" },
+    "BYOM_MATRIX": { "class": "optional", "scope": "server", "source": "env-example" },
+    "OPENAI_BASE_URL": { "class": "optional", "scope": "server", "source": "env-example" },
+    "ANTHROPIC_BASE_URL": { "class": "optional", "scope": "server", "source": "env-example" },
+    "GEMINI_BASE_URL": { "class": "optional", "scope": "server", "source": "env-example" },
+    "OLLAMA_BASE_URL": { "class": "optional", "scope": "server", "source": "env-example" },
+    "QWEN_BASE_URL": { "class": "optional", "scope": "server", "source": "env-example" },
+    "OPENROUTER_BASE_URL": { "class": "optional", "scope": "server", "source": "env-example" },
+    "OPENROUTER_SITE_URL": { "class": "optional", "scope": "server", "source": "env-example" },
+    "OPENROUTER_APP_NAME": { "class": "optional", "scope": "server", "source": "env-example" },
+    "LEONARDO_API_KEY": { "class": "optional", "scope": "server", "source": "env-example" },
+    "GOOGLE_ADS_DEVELOPER_TOKEN": { "class": "optional", "scope": "server", "source": "env-example" },
+    "GOOGLE_ADS_LOGIN_CUSTOMER_ID": { "class": "optional", "scope": "server", "source": "env-example" },
+    "SKLIK_API_TOKEN": { "class": "optional", "scope": "server", "source": "env-example" },
+    "SKLIK_WRITES_ENABLED": {
+      "class": "optional",
+      "scope": "server",
+      "source": "env-example",
+      "note": "AGENTS.md § Red. Only the exact value \"1\" arms real Sklik mutations; it stays unset until the owner's live proof (docs/deploy.md § Sklik writes). Never set, widen or model a second guard on this."
+    },
+    "META_APP_ID": { "class": "optional", "scope": "server", "source": "env-example" },
+    "META_APP_SECRET": { "class": "optional", "scope": "server", "source": "env-example" },
+    "LINKEDIN_CLIENT_ID": { "class": "optional", "scope": "server", "source": "env-example" },
+    "LINKEDIN_CLIENT_SECRET": { "class": "optional", "scope": "server", "source": "env-example" },
+    "RESEND_API_KEY": {
+      "class": "optional",
+      "scope": "server",
+      "source": "env-example",
+      "note": "a two-in-one switch: it also arms real twin delivery to a customer's customers (docs/deploy.md § Environment variables)."
+    },
+    "ALERT_FROM_EMAIL": { "class": "optional", "scope": "server", "source": "env-example" },
+    "ALERT_WEBHOOK_URL": { "class": "optional", "scope": "server", "source": "env-example" },
+    "AI_RATE_PER_MIN": { "class": "optional", "scope": "server", "source": "env-example" },
+    "AI_RATE_PER_DAY": { "class": "optional", "scope": "server", "source": "env-example" },
+    "SYNC_RATE_PER_MIN": { "class": "optional", "scope": "server", "source": "env-example" },
+    "AI_MAX_CONCURRENT": { "class": "optional", "scope": "server", "source": "env-example" },
+    "AI_MAX_BODY_BYTES": { "class": "optional", "scope": "server", "source": "env-example" },
+    "AI_GLOBAL_DAILY_CEILING": { "class": "optional", "scope": "server", "source": "env-example" },
+    "AI_CEILING_FAIL_CLOSED": { "class": "optional", "scope": "server", "source": "env-example" },
+    "TRUSTED_PROXY": { "class": "optional", "scope": "server", "source": "env-example" },
+    "TRUSTED_PROXY_HOPS": { "class": "optional", "scope": "server", "source": "env-example" },
+    "SENTRY_DSN": { "class": "optional", "scope": "server", "source": "env-example" },
+    "NEXT_PUBLIC_SENTRY_DSN": { "class": "optional", "scope": "public", "source": "env-example" },
+    "LIGHTTRACK_URL": { "class": "optional", "scope": "server", "source": "env-example" },
+    "LIGHTTRACK_PROJECT": { "class": "optional", "scope": "server", "source": "env-example" },
+    "LIGHTTRACK_KEY": { "class": "optional", "scope": "server", "source": "env-example" },
+    "LIGHTTRACK_SOURCE": { "class": "optional", "scope": "server", "source": "env-example" },
+    "LIGHTTRACK_ENABLED": { "class": "optional", "scope": "server", "source": "env-example" },
+    "NEXT_PUBLIC_SOURCE_REPO_URL": {
+      "class": "optional",
+      "scope": "public",
+      "source": "env-example",
+      "note": "proposed, not yet read by the app — docs/open-source/self-hosting.md."
+    },
+    "NEXT_TELEMETRY_DISABLED": { "class": "optional", "scope": "server", "source": "env-example" },
+
+    "SELF_HOSTED": { "class": "selfhosted", "scope": "server", "source": "env-example" },
+    "ADAMANT_OPERATOR_PASSWORD": { "class": "selfhosted", "scope": "server", "source": "env-example" },
+    "ALLOW_OPEN": { "class": "selfhosted", "scope": "server", "source": "env-example" },
+    "SYSTEDO_DB_FILE": { "class": "selfhosted", "scope": "server", "source": "env-example" },
+
+    "DEV_AUTH": { "class": "local", "scope": "server", "source": "env-example" },
+    "DEV_AUTH_USER_ID": { "class": "local", "scope": "server", "source": "env-example" },
+    "DEV_AUTH_USER_NAME": { "class": "local", "scope": "server", "source": "env-example" },
+    "DEV_AUTH_USER_EMAIL": { "class": "local", "scope": "server", "source": "env-example" },
+    "LOCAL_DB": {
+      "class": "local",
+      "scope": "server",
+      "source": "env-example",
+      "note": "fused off in production EXCEPT under SELF_HOSTED=true, where the sqlite store IS the data layer — which is why it is not on productionForbidden."
+    },
+
+    "OPENROUTER_API_KEY": { "class": "bench", "scope": "server", "source": "env-example" },
+    "QWEN_API_KEY": { "class": "bench", "scope": "server", "source": "env-example" },
+    "CLAUDE_CLI_PIN": { "class": "bench", "scope": "server", "source": "env-example" },
+
+    "ADAMANT_DOCKER_BUILD": {
+      "class": "build",
+      "scope": "server",
+      "source": "code",
+      "note": "next.config.ts — emits the standalone server for container builds only. Never set on Vercel."
+    },
+    "DEV_INSPECT": {
+      "class": "build",
+      "scope": "server",
+      "source": "code",
+      "note": "next.config.ts — registers the dev-inspector Turbopack loader; set only by `npm run dev:inspect`."
+    }
+  }
+}

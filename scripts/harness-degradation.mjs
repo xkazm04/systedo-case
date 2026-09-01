@@ -128,6 +128,22 @@ export const CAPABILITIES = [
     announces: true,
   },
   {
+    id: "model-candidate",
+    name: "Weekly candidate-model rehearsal (would the NEXT model still hold?)",
+    needs: "GEMINI_API_KEY",
+    workflow: ".github/workflows/llm-drift.yml",
+    absent:
+      "the successor declared in test-llm/model-candidates.json is not rehearsed this week, so the next time " +
+      "GEMINI_MODEL moves the first evidence about the new model is production — which is the arrangement this " +
+      "rehearsal exists to replace, and it looks identical to a week where the candidate passed.",
+    visible:
+      "scripts/llm-candidate.mjs writes `status: \"skipped\"` with the key it needed named in the reason, kept as " +
+      "a 90-day artifact next to the drift verdict, instead of a green it did not earn.",
+    announces: false,
+    recordedBy: "scripts/llm-candidate.mjs",
+    marker: 'status: "skipped"',
+  },
+  {
     id: "injection-drill",
     name: "Weekly prompt-injection refusal drill (the review's judgment half)",
     needs: "ANTHROPIC_API_KEY",

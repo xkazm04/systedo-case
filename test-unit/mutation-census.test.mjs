@@ -27,7 +27,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { CANNOT_SEE, MUTANTS, unitTestFlags } from "../scripts/mutation-catalogue.mjs";
+import { CANNOT_SEE, MUTANTS, MUTANT_FLOOR, SEAM_FLOORS, unitTestFlags } from "../scripts/mutation-catalogue.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
@@ -131,6 +131,48 @@ test("the drill is wired to a command and to the weekly job", () => {
     /mutation-drill\.mjs/,
     "the weekly drill workflow no longer runs the mutation drill. It is the only thing that asks whether the " +
       "suite would notice a wrong answer, and on this repository's landing path nobody runs it by hand."
+  );
+});
+
+test("the measure may not SHRINK — a mutant deleted is coverage nobody voted to lose", () => {
+  // The gap this closes. A survivor already fails the drill; nothing failed when the
+  // catalogue itself got smaller. Deleting the mutant that started surviving is the
+  // cheapest green in this repository — the census passes, the drill prints a perfect
+  // score, and it is a perfect score over less of the tree.
+  assert.ok(
+    MUTANTS.length >= MUTANT_FLOOR,
+    `the catalogue holds ${MUTANTS.length} mutant(s) and the floor is ${MUTANT_FLOOR}. A mutant was removed. ` +
+      "The fix for a survivor is the missing assertion, never a weaker catalogue — and if the seam genuinely " +
+      "went away, lower MUTANT_FLOOR in scripts/mutation-catalogue.mjs AND its `floor.min` in " +
+      ".github/contract-ledger.json (`mutation catalogue floor`) in the same diff, where a reviewer reads both."
+  );
+});
+
+test("every money seam keeps its own floor — a level total can still stop covering the seam that matters", () => {
+  // Per-seam rather than repo-wide, because the repo-wide number is exactly the one
+  // that can stay level while the coverage moves off the path that spends money.
+  const perFile = new Map();
+  for (const m of MUTANTS) perFile.set(m.file, (perFile.get(m.file) ?? 0) + 1);
+
+  const problems = [];
+  for (const [file, floor] of Object.entries(SEAM_FLOORS)) {
+    if (!existsSync(join(ROOT, file))) {
+      problems.push(
+        `${file} is a declared money seam and does not exist. If it moved, re-anchor its mutants and this floor; ` +
+          "if it was deleted, say in the commit what now guards what it guarded."
+      );
+      continue;
+    }
+    const held = perFile.get(file) ?? 0;
+    if (held < floor) {
+      problems.push(`${file}: ${held} mutant(s), floor ${floor} — this seam is now less measured than it was.`);
+    }
+  }
+  assert.deepEqual(
+    problems,
+    [],
+    "a seam where a wrong answer is a bill or a breach lost mutation coverage. AGENTS.md § Red lists what those " +
+      "seams are; SEAM_FLOORS in scripts/mutation-catalogue.mjs is that list in a form a build can fail on."
   );
 });
 

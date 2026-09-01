@@ -64,6 +64,7 @@ is a red build, not a dead link somebody finds later.
 | Starting the app locally with no keys | [`README.md`](../README.md) § Two-minute local start | `npm run seed:local` then `npm run dev:local` — fully offline `/app` |
 | Connecting real Google sign-in and Ads | [`SETUP.md`](../SETUP.md) | The cloud-connected walkthrough. Partly stale — it predates the offline path |
 | Deploying, env names, crons, rollback, host rename | [`docs/deploy.md`](deploy.md) | The Vercel runbook, and the delivery contract that makes a push the release act |
+| Knowing what production actually runs — runtime, schedules, every env var | [`.github/environments.json`](../.github/environments.json) | The deploy target declared as data, diffed against the tree on every build (`npm run env:manifest`). It reads the repository, not the Vercel project, and says so |
 | Getting a bad change back out | [`docs/runbooks/revert-drill.md`](runbooks/revert-drill.md) | The measured drill, so the answer is a number and not a hope |
 | Running it on your own machine or server | [`docs/open-source/self-hosting.md`](open-source/self-hosting.md) | The self-hosted design, its operator password, and what it deliberately does not need |
 | Why `SELF_HOSTED` is not just "dev mode in production" | [`docs/adr/0004-self-hosted-third-deploy-mode.md`](adr/0004-self-hosted-third-deploy-mode.md) | The third deploy mode, and the guards it does not loosen |

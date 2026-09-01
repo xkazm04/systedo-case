@@ -133,6 +133,48 @@ test("the config and the chain agree about whether it is a gate", () => {
   );
 });
 
+test("something actually RUNS it — an instrument nobody measures produces no number", () => {
+  // The gap this closes. Being documented and routed to is necessary and was not
+  // sufficient: `npm run typecheck:strict` still only ran when a maintainer thought
+  // to run it, so the count ADR-0007 says a promotion decision needs was never
+  // produced and the frontier could only move by accident. It is now measured on
+  // every push and pull request, on the reporting rung, next to the i18n audit.
+  assert.match(
+    scripts["typecheck:strict:check"] ?? "",
+    /scripts\/typecheck-strict\.mjs/,
+    "`typecheck:strict:check` no longer runs the measurement. The raw `typecheck:strict` prints compiler output; " +
+      "this is the one that counts it, clusters it and compares it against the baseline."
+  );
+  assert.match(
+    scripts["typecheck:strict:accept"] ?? "",
+    /--accept/,
+    "there is no way to pin the measured count, so the reporting rung has no rung above it."
+  );
+  const ci = read(".github/workflows/ci.yml");
+  assert.match(
+    ci,
+    /typecheck:strict:check/,
+    "no CI job runs the stricter typecheck. That is the state this test exists to end: a second standard that " +
+      "nothing executes gives no feedback to the author of a change."
+  );
+});
+
+test("the baseline record is readable, and honest about not being measured yet", () => {
+  const record = JSON.parse(read(".github/typecheck-strict.json"));
+  assert.equal(record.schema, 1, ".github/typecheck-strict.json changed schema — scripts/typecheck-strict.mjs reads it.");
+  assert.ok(
+    record.accepted === null || typeof record.accepted?.errors === "number",
+    "`accepted` must be null (nobody has measured it) or carry a numeric `errors` count. Anything else is a " +
+      "baseline that cannot be compared against."
+  );
+  if (record.accepted) {
+    assert.ok(
+      String(record.accepted.reason ?? "").trim().length >= 12,
+      "an accepted baseline with no sentence behind it is a number nobody can argue with, which is how it gets raised."
+    );
+  }
+});
+
 test("a reader following the documented loop meets it", () => {
   // The actual gap. AGENTS.md § Commands is the list an agent works from; the
   // instrument was absent from it, so the only way to meet the stricter project

@@ -124,7 +124,10 @@ npm run mutation:drill # the NEIGHBOURING question: not how long a fault survive
                       #   claim it, and scores the kills. Reporting, weekly next to the
                       #   revert drill. Blocking half is the CATALOGUE
                       #   (test-unit/mutation-census.test.mjs): an anchor that has
-                      #   drifted is a mutant that can never survive
+                      #   drifted is a mutant that can never survive, AND the FLOOR —
+                      #   MUTANT_FLOOR / SEAM_FLOORS, pinned in the contract ledger,
+                      #   because deleting the mutant that started surviving is the
+                      #   cheapest green in this repository
 npm run flake:drill   # and the question BOTH of those assume away: does the suite
                       #   give the same answer twice? Runs the unit suite N times
                       #   (default 3) with file concurrency varied between them and
@@ -156,6 +159,15 @@ npm run llm:models    # WHICH MODEL every one of those records was accepted agai
                       #   the pins do not; the same comparison runs on every build in
                       #   test-unit/llm-model-pin.test.mjs. Re-pin on purpose:
                       #   `npm run llm:models -- --accept --reason "…"`
+npm run llm:candidate # AMBER: the model AFTER this one, rehearsed BEFORE the swap.
+                      #   Every registered operation against the successor declared in
+                      #   test-llm/model-candidates.json, through the real wrapper, and
+                      #   which shapes survive. Weekly next to llm:drift — that one asks
+                      #   whether today's model still holds, this one whether tomorrow's
+                      #   would. Blocking half is the CANDIDATE ROW
+                      #   (test-unit/model-candidate-census.test.mjs): once GEMINI_MODEL
+                      #   moves, a row still naming the old model rehearses a swap
+                      #   nobody is making
 npm run llm:drift     # AMBER (spends money): every registered operation against
                       #   the CONFIGURED provider — real answer, right tier, still
                       #   valid. Runs weekly in CI (.github/workflows/llm-drift.yml)
@@ -183,6 +195,21 @@ npm run docs:staleness # what parity CANNOT see: a doc that is perfectly consist
 npm run commit:check  # commit-subject rules (rubric A5): --range <range> | <msgfile>
 npm run checkpoint    # open checkpoints an interrupted run left — READ THIS FIRST;
                       #   -- --start/--next/--done/--close writes one (.agent/README.md)
+npm run env:manifest  # WHAT RUNS WHERE, past the merge: the runtime the platform must
+                      #   give us, the six schedules it must fire, and every env var the
+                      #   deployment reads, each classified by what its absence costs
+                      #   (.github/environments.json). `env:manifest:check` diffs that
+                      #   declaration against vercel.json, package.json, next.config.ts,
+                      #   .env.example, docs/deploy.md and the workflows; the same
+                      #   comparison blocks on every build in
+                      #   test-unit/environment-manifest.test.mjs. It reads the
+                      #   REPOSITORY, not the Vercel project — the manifest's own
+                      #   `cannotSee` list says which half is still the operator's
+npm run typecheck:strict:report # the stricter project, MEASURED: how many errors, in
+                      #   which files, under which rules. `typecheck:strict:check` runs
+                      #   on every push and PR as a REPORTING step of ci.yml, and becomes
+                      #   one-way the moment somebody pins what it measured
+                      #   (`typecheck:strict:accept -- --reason "…"`)
 npm run doctor        # env preflight (not a gate — reports missing/odd env)
 npm run i18n:gate     # localization-wave gate: diffs the tree vs a ref (--base)
 npm run i18n:audit    # coverage / leftover-source / register audit (ratcheted)
@@ -299,6 +326,52 @@ remedy all turn the unit suite red.
   list: nothing in it stops a test running or failing. What blocks on every build is
   its shape (`test-unit/flake-census.test.mjs`), because an entry naming a test that
   is gone is a flake nobody is tracking any more.
+- **The deploy target is declared, and the declaration is diffed against the tree.**
+  Fifteen gates run before a change lands and past the merge there was nothing: Vercel
+  ships `master` on push, so the push is the release act, and what that release runs
+  on lived in a dashboard — not reviewable, not diffable, not reversible. Nothing in
+  this repository could go red for "production drifted from what the code assumes".
+  [`.github/environments.json`](.github/environments.json) is the declaration: the
+  runtime the platform must provide, the six schedules it must fire, and every one of
+  the ~70 environment variables the deployment reads, each classified by what its
+  absence costs (`required` / `optional` / `local` / `selfhosted` / `bench` / `build`)
+  and whether it reaches the browser. `npm run env:manifest` prints it;
+  `test-unit/environment-manifest.test.mjs` diffs it against `vercel.json`,
+  `package.json`, `next.config.ts`, `.env.example`, `docs/deploy.md` and the workflows
+  on **every build**, so a cron nobody declared, a Node bump in one workflow and not
+  the others, or a new env var classified nowhere refuses the push. **It reads the
+  repository, not the platform** — whether a secret is actually set in Vercel, which
+  region a function landed in, whether the Firestore TTL policy exists — and the
+  manifest's own `cannotSee` list says so rather than leaving a reader to assume a
+  green build means the platform is configured. That half stays in `docs/deploy.md`
+  § Post-deploy verification, under the operator's name.
+- **A second standard that nothing executes gives no feedback.** `tsconfig.strict.json`
+  turns on the two flags `strict: true` does not, `npm run typecheck:strict` runs it,
+  and until now nothing did — so the number ADR-0007 says a promotion decision needs
+  was produced only when somebody remembered to look, and the strict frontier could
+  only move by accident. `npm run typecheck:strict:check` now runs on every push and
+  pull request as a **reporting** step of `ci.yml`, and puts the count, the ten worst
+  files and the rules that fire into the job summary. It is still not a gate:
+  `.github/typecheck-strict.json` carries no accepted baseline, because a baseline
+  invented without running it is the one thing `tsconfig.strict.json` says must not
+  happen. The first `npm run typecheck:strict:accept -- --reason "…"` pins what was
+  measured, and from then on a change that ADDS strict errors fails that step.
+- **The evals prove today's model; this rehearses tomorrow's.** The goldens pin each
+  prompt and schema, the bake pins how good the answers were, the budget file pins
+  what they cost, and `test-llm/model-pins.json` pins which model all of that was true
+  of — and not one of them can be pointed at a model the app does not yet serve, so
+  the swap itself was the experiment. `npm run llm:candidate` runs every registered
+  operation against the successor declared in `test-llm/model-candidates.json`,
+  through the real wrapper (BYOM context, so the app's own prompts, schemas and
+  validators are the ones exercised), and reports which shapes survive. AMBER — it
+  spends money, it is never in `check:ci`, and it runs weekly in
+  `.github/workflows/llm-drift.yml` next to the drift prove it complements. A shape
+  failure is the finding and the answers are "do not swap yet" or
+  `npm run llm:eval:update -- --reason "…"`; a looser validator is neither. What
+  blocks on every build is the CANDIDATE ROW
+  (`test-unit/model-candidate-census.test.mjs`): once `GEMINI_MODEL` moves, a row
+  still naming the old model rehearses a swap nobody is making while whatever shipped
+  was never rehearsed at all.
 - **Your diff gets reviewed before a human sees it.**
   `.github/workflows/agent-review.yml` runs the rubric in
   `.github/agent-review-rubric.md` on every push and PR. Part A is mechanical and
@@ -593,8 +666,11 @@ would notice afterwards.
 | `no-secret-movement` — never move a credential anywhere | `.husky/pre-commit` secret scan, `sast` | partial |
 | `codeowners-law-files` — do not touch one beyond the task | rubric B1 | partial |
 | `model-pin` — the model the harness proves against is pinned | `llm:models:check`, `test-unit/llm-model-pin.test.mjs` | partial |
-| `suite-sensitivity` — a wrong answer on a money seam is killed by a test | `test-unit/mutation-census.test.mjs`, `mutation:drill` | partial |
+| `suite-sensitivity` — a wrong answer on a money seam is killed by a test, and the measure may not shrink | `test-unit/mutation-census.test.mjs`, `mutation:drill`, `contract:ledger:check` | partial |
 | `suite-determinism` — a gating test gives the same answer twice | `test-unit/flake-census.test.mjs`, `flake:drill`, `contract:ledger:check` | partial |
+| `env-manifest` — the deploy target is declared, and diffed against the tree | `test-unit/environment-manifest.test.mjs`, `env:manifest:check` | partial |
+| `strict-frontier` — the stricter type check is measured by a loop, not by memory | `typecheck:strict:check`, `test-unit/typecheck-strict.test.mjs` | reporting |
+| `model-candidate` — the model AFTER this one is rehearsed before the swap | `test-unit/model-candidate-census.test.mjs`, `llm:candidate` | partial |
 
 `test-unit/constraint-map.test.mjs` holds this table and the JSON to each other,
 and both to the tree: a gate named here that `package.json` does not define, a

@@ -57,7 +57,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkSubject } from "./commit-subject.mjs";
-import { hasAttribution } from "./commit-attribution.mjs";
+import { harnessOf, hasAttribution } from "./commit-attribution.mjs";
 import { printRemedy } from "./gate-remedy.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -311,11 +311,13 @@ if (deletedTests.length && !hasAck) {
 // commits could. The fix is a hook, not a rewrite: scripts/commit-attribution.mjs.
 {
   const log = git(["log", "--no-merges", "--format=%H%x1f%s%x1f%B%x1e", `${BASE}..HEAD`], { allowFail: true }) ?? "";
-  const unattributed = log
+  const commits = log
     .split("\x1e")
     .map((r) => r.replace(/^\s+/, ""))
     .filter((r) => r.includes("\x1f"))
-    .map((r) => r.split("\x1f"))
+    .map((r) => r.split("\x1f"));
+
+  const unattributed = commits
     .filter(([, , body = ""]) => !hasAttribution(body))
     .map(([sha, subject]) => `${sha.slice(0, 8)} ${subject}`);
   if (unattributed.length) {
@@ -325,7 +327,30 @@ if (deletedTests.length && !hasAck) {
         .slice(0, 10)
         .concat([
           "→ `Co-Authored-By: <who> <email>` below a blank line makes the loop's footprint countable.",
-          "→ Add it automatically: see the hook one-liners at the top of scripts/commit-check.mjs.",
+          "→ `npm install` wires the hook that adds it; `npm run hooks:check` says whether yours is wired.",
+        ]),
+    });
+  }
+
+  // And WHICH LANE — the question "an assistant wrote it" does not answer, on a
+  // repository where nearly every commit has that property. A commit that says an
+  // agent wrote it and does not say WHICH HARNESS is the one that costs an hour six
+  // weeks later, when a regression is traced back and the only lead is "an agent".
+  // Scoped to commits that already claim agent authorship, so a person's commit is
+  // never asked to name a harness it did not have.
+  const noHarness = commits
+    .filter(([, , body = ""]) => hasAttribution(body) && !harnessOf(body))
+    .map(([sha, subject]) => `${sha.slice(0, 8)} ${subject}`);
+  if (noHarness.length) {
+    notes.push({
+      title: `Agent commits that do not name the lane that wrote them (${noHarness.length})`,
+      body: noHarness
+        .slice(0, 10)
+        .concat([
+          "→ `Agent-Harness: <loop>` (plus Agent-Model / Agent-Spec / Agent-Session / Agent-Lane when the",
+          "   environment states them) is what `git log --format='%(trailers:key=Agent-Harness,valueonly)'` counts.",
+          "→ The same hook writes them; a lane that commits for itself writes them itself —",
+          "   scripts/issue-dispatch.mjs is the worked example. Rules: scripts/commit-attribution.mjs.",
         ]),
     });
   }

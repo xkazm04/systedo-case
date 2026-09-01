@@ -145,6 +145,31 @@ jobs:
           # which belongs to the drift prove.
           exit "$obeyed"
 
+      # The OTHER direction in time. The prove above asks whether TODAY's model still
+      # holds; this asks whether TOMORROW's would. Every proof this harness keeps —
+      # the goldens, the quality bake, the budget ceilings, the model pins — is about
+      # the model being served right now, so a swap was the experiment: GEMINI_MODEL
+      # moves in src/lib/llm/models.ts and the first evidence about the new model is
+      # production. scripts/llm-candidate.mjs runs every registered operation against
+      # the successor declared in test-llm/model-candidates.json, through the real
+      # wrapper (BYOM context, so the app's own prompt, schema and validators are the
+      # ones exercised), and reports which shapes survive.
+      #
+      # `continue-on-error` for the same reason as the injection drill: this verdict
+      # belongs in llm-candidate.json, not in the job's conclusion, which is the drift
+      # prove's. With no key it records `skipped` rather than a green it did not earn
+      # (capability `model-candidate` in scripts/harness-degradation.mjs).
+      - name: Rehearse the candidate model (reporting)
+        if: always()
+        continue-on-error: true
+        env:
+          NODE_ENV: production
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          npm run llm:candidate -- \
+            --out llm-candidate.json \
+            --summary "$GITHUB_STEP_SUMMARY"
+
       - name: Keep the verdict as an artifact too
         if: always()
         continue-on-error: true
@@ -154,6 +179,7 @@ jobs:
           path: |
             llm-drift.md
             llm-drift.json
+            llm-candidate.json
             injection-drill.json
             harness-status.json
           if-no-files-found: ignore

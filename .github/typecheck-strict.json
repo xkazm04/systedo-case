@@ -1,0 +1,25 @@
+{
+  "$comment": [
+    "The measured cost of the stricter TypeScript project (tsconfig.strict.json), and the",
+    "baseline it may not rise above once somebody has measured it.",
+    "",
+    "`accepted: null` is the honest state and not an oversight: tsconfig.strict.json says in its",
+    "own words that what must not happen is a ratchet baseline invented without running it, and",
+    "nobody has run it yet. So `npm run typecheck:strict:check` REPORTS today — it prints the",
+    "count and the clusters and exits 0 — and becomes one-way the moment the first measurement",
+    "is pinned:",
+    "",
+    "    npm run typecheck:strict:report                     # how bad is it, and how clustered?",
+    "    npm run typecheck:strict:accept -- --reason \"…\"     # pin what it measured",
+    "",
+    "After that a change that ADDS strict errors fails the check. The count may fall and may not",
+    "rise (ADR-0007 · AGENTS.md § amber — never raise a ratchet you could have lowered).",
+    "",
+    "Written by scripts/typecheck-strict.mjs, held in shape on every build by",
+    "test-unit/typecheck-strict.test.mjs, and measured on every push and pull request by the",
+    "reporting step in .github/workflows/ci.yml."
+  ],
+  "schema": 1,
+  "accepted": null,
+  "history": []
+}

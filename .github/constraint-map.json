@@ -459,14 +459,16 @@
     },
     {
       "id": "suite-sensitivity",
-      "rule": "A wrong answer on a seam where wrong is a bill or a breach is killed by the tests that claim it.",
+      "ledgerId": "mutation catalogue floor",
+      "rule": "A wrong answer on a seam where wrong is a bill or a breach is killed by the tests that claim it — and the measure may not shrink.",
       "statedIn": { "file": "AGENTS.md", "quote": "Coverage says how much code runs; a mutation drill says whether a wrong answer would be caught" },
       "enforcement": [
-        { "kind": "test", "name": "test-unit/mutation-census.test.mjs", "note": "the catalogue still applies to the tree: anchors match exactly once, named tests exist and import the seam" },
-        { "kind": "gate", "name": "mutation:drill", "note": "applies each mutant and scores the kills; weekly in .github/workflows/revert-drill.yml" }
+        { "kind": "test", "name": "test-unit/mutation-census.test.mjs", "note": "the catalogue still applies to the tree (anchors match exactly once, named tests exist and import the seam) AND still covers it: MUTANT_FLOOR and the per-seam SEAM_FLOORS may not fall" },
+        { "kind": "gate", "name": "mutation:drill", "note": "applies each mutant and scores the kills; weekly in .github/workflows/revert-drill.yml" },
+        { "kind": "gate", "name": "contract:ledger:check", "note": "pins MUTANT_FLOOR, so lowering it is a two-line diff with the sentence next to it rather than a digit" }
       ],
       "rung": "partial",
-      "gapNote": "Only the catalogue's shape blocks. The measurement itself runs weekly and off the landing path, it covers three modules rather than the tree, and a property with no observable behaviour — a constant-time compare replaced by `===` — cannot be mutated into a test failure at all."
+      "gapNote": "The catalogue's shape and its floors block; the SCORE does not. The measurement runs weekly and off the landing path, it covers three modules rather than the tree, and a property with no observable behaviour — a constant-time compare replaced by `===` — cannot be mutated into a test failure at all."
     },
     {
       "id": "suite-determinism",
@@ -480,6 +482,39 @@
       ],
       "rung": "partial",
       "gapNote": "Only the register's shape and its ceiling block. The measurement runs weekly and off the landing path; N runs can only find a flake whose rate is high enough to show up in N; it covers the unit suite and not the Playwright lane; and it runs on one machine, so a flake that needs a slower or busier runner is invisible to it."
+    },
+    {
+      "id": "env-manifest",
+      "rule": "The deploy target is declared as data, and every change to what production runs moves the declaration in the same diff.",
+      "statedIn": { "file": "AGENTS.md", "quote": "The deploy target is declared, and the declaration is diffed against the tree" },
+      "enforcement": [
+        { "kind": "test", "name": "test-unit/environment-manifest.test.mjs", "note": "runs the same comparison the CLI runs, on every build — inside test:unit → check:ci → .husky/pre-push" },
+        { "kind": "gate", "name": "env:manifest:check", "note": "the readable half: prints the target, then exits 1 on drift" }
+      ],
+      "rung": "partial",
+      "gapNote": "It reads the REPOSITORY, not the platform. A cron, a Node version, a framework bump or an env var that drifts between committed files is caught on the machine that did it; what is actually configured in the Vercel project — whether a secret is set, which region a function landed in, whether the Firestore TTL policy exists — needs an API token and stays the operator's (docs/deploy.md § Post-deploy verification). The manifest's own `cannotSee` list is asserted non-empty so that gap stays stated rather than assumed."
+    },
+    {
+      "id": "strict-frontier",
+      "rule": "The stricter TypeScript project is measured on every push, and its accepted count may only fall.",
+      "statedIn": { "file": "AGENTS.md", "quote": "A second standard that nothing executes gives no feedback" },
+      "enforcement": [
+        { "kind": "gate", "name": "typecheck:strict:check", "note": "reporting step of .github/workflows/ci.yml on every push and pull request; scripts/typecheck-strict.mjs" },
+        { "kind": "test", "name": "test-unit/typecheck-strict.test.mjs", "note": "holds the wiring and the baseline record's shape, and refuses the state where tsconfig.strict.json and the chain disagree about whether it is a gate" }
+      ],
+      "rung": "reporting",
+      "gapNote": "Nothing fails on a strict error today: .github/typecheck-strict.json carries no accepted baseline, because a baseline invented without running tsc is the one thing tsconfig.strict.json says must not happen — and no offline session can run it. What blocks now is the wiring; the count starts blocking at the first `npm run typecheck:strict:accept -- --reason \"…\"`."
+    },
+    {
+      "id": "model-candidate",
+      "rule": "The model the app would move to next is rehearsed against every registered operation before the swap, not after it.",
+      "statedIn": { "file": "AGENTS.md", "quote": "The evals prove today's model; this rehearses tomorrow's" },
+      "enforcement": [
+        { "kind": "test", "name": "test-unit/model-candidate-census.test.mjs", "note": "the candidate row still describes a swap that has NOT happened: `serving` equals what src/lib/llm/models.ts declares, the candidate is not the serving model, and the rehearsal is wired to a command and to the weekly job" },
+        { "kind": "gate", "name": "llm:candidate", "note": "the rehearsal itself — AMBER, weekly in .github/workflows/llm-drift.yml, never in check:ci" }
+      ],
+      "rung": "partial",
+      "gapNote": "Only the candidate row's shape blocks. The rehearsal needs a key, money and the network, so it runs weekly and off the landing path; it is a SHAPE verdict and not a quality one (that is `npm run llm:quality`); and it cannot see a model that changes behind its own id, which is the same limit test-llm/model-pins.json records in its `unpinnable` list."
     }
   ]
 }
