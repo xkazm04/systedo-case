@@ -129,6 +129,22 @@ asymmetry rather than discovering it from a bill.
 - The seam is what made self-hosting cheap: promoting sqlite to a production
   store was a mode flag, not a port.
 
+## Revisit when
+
+- **A domain ships Firestore-only and is still Firestore-only a release later.**
+  The seam's whole cost is the second driver, paid per domain by whoever
+  remembers. One skipped twin is a normal miss; a sweep that finds *more* than the
+  twelve of 2026-07-16 means the cost is no longer being paid and the offline lane
+  is a claim rather than a property.
+- **A caller starts branching on which backend it got.** An engine error shape
+  (`SQLITE_CONSTRAINT`, a Firestore `code`) reaching a call site means the
+  invariant's interpretation has moved out of the store, and one interface with
+  two meanings is worse than two interfaces.
+- **The quota gains a second implementation, or an offline metering refusal is
+  needed for real.** `src/lib/usage.ts` short-circuits under `LOCAL_DB`; the day
+  an `ok: false` branch has to be exercised offline is the day the asymmetry
+  recorded above stops being a deliberate trade.
+
 ## Consequences observed
 
 _Read back 2026-08-30 against the tree, not against intentions._

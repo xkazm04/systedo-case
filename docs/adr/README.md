@@ -43,6 +43,8 @@ check:ci`) enforces the parts that can be enforced:
 - the first heading is `# ADR-NNNN — Title`;
 - the record has `## Status`, `## Context`, `## Decision` and `## Consequences`,
   and Status is one of Accepted / Proposed / Superseded / Deprecated;
+- the record has **`## Revisit when`** — see "Knowing when to stop trusting one"
+  below. It is due from the first commit, not later;
 - the record is linked from this index exactly once;
 - **every repo path the record cites in `inline code` still exists.** This is the
   one that earns its keep: an ADR describing a file that has since been renamed
@@ -71,3 +73,31 @@ that is the shape of a section added to make a gate green.
 
 When you find yourself writing that a decision was wrong, that is a new ADR
 superseding this one, not an edit to the old record's Decision.
+
+## Knowing when to stop trusting one
+
+Those two sections say what was decided and what it cost. Neither answers the
+question a reader actually arrives with: **is this still true?** A well-written
+record reads identically on the day its argument was sound and on the day it
+quietly stopped being — ADR-0008's no-formatter stance looks the same either way
+— so without a stated trigger the only honest way to find out is to re-derive the
+whole argument, which nobody does. The record then becomes authority instead of
+reasoning, which is the failure mode an index of twelve of them makes cheap.
+
+So every record carries **`## Revisit when`**: the observation that would tell a
+reader this decision has stopped holding. It is the other half of the argument —
+the part that says what would change your mind — so unlike `## Consequences
+observed` it is due immediately, on every record, including a Proposed one.
+
+What it must be is *falsifiable*: something somebody could notice.
+
+- "a domain ships Firestore-only and is still Firestore-only a release later"
+  (ADR-0001) — an observation;
+- "a fourth deploy mode is proposed" (ADR-0004) — an event;
+- "the leftover-source count stops falling" (ADR-0006) — a number;
+- "when it stops working" or "in a year" — neither. A date is a reminder, not a
+  trigger, and nothing here schedules reminders.
+
+`npm run adr:check` requires the section and refuses a placeholder, and that is
+all it can check — whether the trigger is a good one is a reviewer's judgment.
+When one fires, the answer is a new ADR superseding this one, the same as above.

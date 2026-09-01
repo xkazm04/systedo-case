@@ -58,6 +58,22 @@ captured corpus replayed through each tool's validator — runs in CI for free.
   the gate could not tell you until ADR-0007's provenance rule was added is
   *why* a golden changed; see `test-llm/golden/CHANGELOG.md`.
 
+## Revisit when
+
+- **A text call genuinely cannot go through the wrapper.** Streaming to the
+  browser and a provider with no structured-output mode are the two shapes that
+  would ask for it. The answer is to widen `generateStructured()` — but if it is
+  asked twice and refused twice, the chokepoint is the wrong shape rather than the
+  request.
+- **The lint fence's exception list grows a fourth entry.** Three names cross it
+  today and all three are availability probes that cannot make a call. The first
+  entry that lets a caller *do* something with a provider is the fence failing,
+  not the list growing.
+- **The static gate misses a drift the weekly real-model run catches.** The
+  2026-08-05 retirement of the hash-cached re-prove traded cost for coverage on
+  the explicit bet that a fingerprint over (system prompt + schema) stands in for
+  a model call. Two misses in a row is that bet losing.
+
 ## Consequences observed
 
 _Read back 2026-08-30 against the tree, not against intentions._

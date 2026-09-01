@@ -1,0 +1,35 @@
+{
+  "$comment": "The fast lane. `npm run test:fast` (scripts/test-fast.mjs) runs the suites this file names ALWAYS, plus the ones that actually claim the files you have edited. It is not a gate and never will be: `npm run test:unit` inside check:ci is what decides a build, and a subset that could pass while the suite fails must never be mistakeable for it.",
+
+  "$why": "489 test files sit behind one `test:unit` step, and `check:ci` runs fourteen gates in front of it. Feedback latency is what shapes behaviour — when the only honest signal takes minutes, it gets run once at push time instead of continuously, and a mistake is found after fourteen more edits were built on top of it. What was missing was not a faster suite but a NAMED subset a person or an agent can run mid-edit without deciding, every time, which files matter.",
+
+  "$always": "The invariants any diff can break regardless of what it touched: the maps and censuses that go red when a rule, a gate, a document or a registry stops describing the tree. They are pure — they read files and run nothing — which is why they are cheap enough to run unconditionally. A change to product code is unlikely to break them; a change to a gate, a workflow, a doc or a registry breaks them constantly, and those are exactly the changes an agent makes most.",
+
+  "$selection": "Everything else is derived rather than listed, because a hand-kept list of 'the tests for this module' rots the moment somebody renames a file. A test is selected when its source mentions the changed file — by repo path, by its `@/` module specifier, or by filename — so the mapping is maintained by the tests themselves. An edited file that NO test names is reported rather than passed over silently: that is a finding about coverage, not a quiet green.",
+
+  "schema": 1,
+
+  "budgetSeconds": 90,
+  "$budget": "UNMEASURED, deliberately generous, and reported rather than enforced by default (`--check` makes it fail). Nothing has ever timed this lane, and a budget invented and then enforced is the shape ADR-0007 refuses: a check blocks once somebody has measured that it passes. Run it a few times, then lower this to what it actually costs plus headroom — the number is only worth having if it is tight enough to notice a suite that has stopped being fast.",
+
+  "always": [
+    "test-unit/constraint-map.test.mjs",
+    "test-unit/gate-remedy.test.mjs",
+    "test-unit/delivery-contract.test.mjs",
+    "test-unit/commit-subject.test.mjs",
+    "test-unit/fence-census.test.mjs",
+    "test-unit/flake-census.test.mjs",
+    "test-unit/mutation-census.test.mjs",
+    "test-unit/perf-budget.test.mjs",
+    "test-unit/docs-staleness.test.mjs",
+    "test-unit/docs-task-index.test.mjs",
+    "test-unit/agent-index.test.mjs",
+    "test-unit/agent-lessons.test.mjs",
+    "test-unit/environment-manifest.test.mjs",
+    "test-unit/llm-model-pin.test.mjs",
+    "test-unit/model-candidate-census.test.mjs",
+    "test-unit/dependency-lockfile.test.mjs",
+    "test-unit/typecheck-strict.test.mjs",
+    "test-unit/workflow-permissions.test.mjs"
+  ]
+}

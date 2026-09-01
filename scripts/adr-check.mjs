@@ -22,6 +22,26 @@
  *                    here. Tokens containing `*` are treated as globs and skipped.
  *    6. Hindsight   — a SETTLED record also carries `## Consequences observed`,
  *                    with something in it.
+ *    7. Falsifier   — EVERY record carries `## Revisit when`: the observation that
+ *                    would tell a reader this decision has stopped holding.
+ *
+ *  WHY 7 EXISTS, and why it is due immediately rather than on age like 6. These
+ *  records say what was decided and (once settled) what it cost. Neither tells a
+ *  reader arriving today whether the decision is a LIVE constraint or one nobody
+ *  has re-examined in a year, and those two look identical in a well-written ADR —
+ *  ADR-0008's no-formatter stance reads the same on the day it was argued and on
+ *  the day the argument stopped being true. Without a stated trigger the only
+ *  honest answer is "re-derive the whole argument", which nobody does, so the
+ *  record quietly becomes authority instead of reasoning.
+ *
+ *  A trigger is knowable at the moment of the decision — it is the other half of
+ *  the argument, the part that says what would change your mind — so unlike
+ *  hindsight it is due at once, on every record, including a Proposed one. What it
+ *  must be is FALSIFIABLE: an observation somebody could make ("the second driver
+ *  stops being written", "a fourth deploy mode appears"), not a date and not "when
+ *  it stops working". It is deliberately not a quality bar beyond that; the
+ *  placeholder check below is the only shape refused, because a section added to
+ *  make a gate green is the failure mode this rule would otherwise create.
  *
  *  WHY 6 EXISTS. Rules 1-5 keep the record present and its citations live; none of
  *  them can tell a reader whether the decision worked. An ADR is written at the
@@ -64,6 +84,12 @@ const KNOWN_STATUS = ["Accepted", "Proposed", "Superseded", "Deprecated"];
 /** Rule 6 — the hindsight section, and when it comes due (see the header). */
 const OBSERVED_SECTION = "## Consequences observed";
 const SETTLED_AFTER = 3;
+/** Rule 7 — the falsifier, due on every record from the day it lands. Shorter
+ *  than the hindsight minimum on purpose: one sentence naming an observation is a
+ *  complete answer here, while a section that has to reach 120 characters invites
+ *  padding around a trigger that was already stated. */
+const REVISIT_SECTION = "## Revisit when";
+const REVISIT_MIN_CHARS = 60;
 /** Enough prose that the section says something. Two of the shortest observed
  *  sections in the tree are ~400 characters; 120 refuses a one-word placeholder
  *  without turning the section into an essay quota. */
@@ -132,6 +158,57 @@ for (const file of entries) {
     if (token.includes("*") || !PATH_RE.test(token)) continue;
     if (!existsSync(join(ROOT, token))) fail(`${file}: cites \`${token}\`, which does not exist in the tree`);
   }
+}
+
+/** The lines under `heading`, up to the next heading of the same depth or above.
+ *  Shared by rules 6 and 7 so "is this section actually said anything in?" is one
+ *  answer rather than two that can drift. */
+function sectionBody(lines, heading) {
+  const idx = lines.findIndex((l) => l.trim() === heading);
+  if (idx === -1) return null;
+  const body = [];
+  for (const line of lines.slice(idx + 1)) {
+    if (/^#{1,3}\s/.test(line)) break;
+    body.push(line);
+  }
+  return body;
+}
+
+/** Prose length and at least one line that is not a placeholder — the shape a
+ *  section added to satisfy a gate has, and the one thing refused. */
+function saysSomething(body, minChars) {
+  const prose = body.join("\n").trim();
+  const meaningful = body.filter((l) => l.trim() !== "" && !PLACEHOLDER_RE.test(l.trim().replace(/^[-*]\s*/, "")));
+  return prose.length >= minChars && meaningful.length > 0;
+}
+
+// --- rule 7: the falsifier, on every record ----------------------------------
+//
+// Due immediately, unlike rule 6: what would change your mind is part of the
+// argument, not a thing time reveals. See the header.
+
+const withTrigger = [];
+
+for (const rec of records) {
+  const body = sectionBody(rec.lines, REVISIT_SECTION);
+  if (body === null) {
+    fail(
+      `${rec.file}: no "${REVISIT_SECTION}" section. A record that states no revisit trigger cannot tell a ` +
+        "reader whether it is a live constraint or a decision nobody has re-examined — name the observation " +
+        "that would mean this decision has stopped holding (a seam that stops being written, a mode that gains " +
+        "a fourth member, a count that crosses a line), not a date and not \"when it stops working\"."
+    );
+    continue;
+  }
+  if (!saysSomething(body, REVISIT_MIN_CHARS)) {
+    fail(
+      `${rec.file}: "${REVISIT_SECTION}" is empty or a placeholder. The trigger has to be something somebody ` +
+        "could actually observe; if the honest answer is that this decision has no foreseeable trigger, write " +
+        "that sentence and why."
+    );
+    continue;
+  }
+  withTrigger.push(rec.file);
 }
 
 // --- rule 6: hindsight on the records old enough to have some ----------------
@@ -204,6 +281,10 @@ if (failures.length) {
 }
 
 console.log(`✓ ADR gate: ${entries.length} record(s), indexed, sectioned, and every cited path still exists.`);
+console.log(
+  `  revisit triggers: ${withTrigger.length} of ${records.length} record(s) say what would tell a reader the ` +
+    "decision has stopped holding."
+);
 console.log(
   `  hindsight: ${settled.length} settled record(s) (Accepted, ${SETTLED_AFTER}+ successors) carry ` +
     `"${OBSERVED_SECTION}"; ${pending.length} not due yet.`

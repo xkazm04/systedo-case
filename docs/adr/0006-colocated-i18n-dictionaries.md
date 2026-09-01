@@ -46,6 +46,21 @@ reprices CZK as USD.
   is accepted, because the alternative failure (a shared key changed for one
   caller and silently changed for six others) is worse and harder to see.
 
+## Revisit when
+
+- **A third locale arrives.** "Parity is the type system" is an argument about two
+  structurally identical columns. A third column multiplies every colocated `T`
+  table by the number of components rather than by the number of strings, and that
+  is the point at which a catalogue stops being the worse answer.
+- **The leftover-source count in `scripts/i18n-audit.mjs` stops falling.** It has
+  only ever moved down. A baseline that plateaus means the type system is
+  certifying pairs of keys nobody transcreated, which is precisely the gap
+  colocation trades for.
+- **`DEFAULT_LOCALE` and `HOME_MARKET_LOCALE` are proposed as one value again.**
+  They were split because collapsing them reprices CZK as USD; the request
+  recurring is the signal that the split needs a name a reader understands
+  without this record.
+
 ## Consequences observed
 
 _Read back 2026-08-30 against the tree, not against intentions._

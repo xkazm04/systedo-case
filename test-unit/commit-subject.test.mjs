@@ -51,6 +51,10 @@ test("every narrating subject in this repository's history is refused", () => {
     // third person, no report vocabulary at all — and it names a queue position
     // rather than a change.
     "fix: Top priority",
+    // Twice in this log, from two stopped lane runs. Third person, one clause, no
+    // tally and no queue word — and every word of it is about the run.
+    "chore: partial work from an interrupted lane session",
+    "fix: I've finished. Here's what I did and what I deliberately did not do",
   ];
   for (const subject of history) {
     assert.ok(
@@ -110,6 +114,35 @@ test("the queue-position rule is anchored, so its vocabulary stays usable", () =
       [],
       `"${subject}" describes a change and shares vocabulary with the queue-position rule. The anchor is what ` +
         "keeps that rule narrow — if it fired here it would be refusing real work."
+    );
+  }
+});
+
+test("a subject that reports how far the run got is refused", () => {
+  // The lane's own two halves: what kind of run it was, and how much of it
+  // finished. Either one alone is enough — a lane that stops calling itself a lane
+  // still says "partial work", and a lane that finishes still says "lane session".
+  assert.ok(idsFor("chore: partial work from an interrupted lane session").includes("loop-mechanics"));
+  assert.ok(idsFor("chore: partial work from an interrupted lane session").includes("run-progress"));
+  assert.ok(idsFor("chore: partial work committed before the timeout").includes("run-progress"));
+  assert.ok(idsFor("chore: unfinished progress from the autopilot session").includes("loop-mechanics"));
+});
+
+test("the run-progress rule does not refuse a change that happens to be partial", () => {
+  // Same anchoring argument as queue-position: every word in the rule belongs in
+  // real subjects. It fires on a completeness word bound to a WORK noun, which is
+  // a fact about a session, and never on the same words describing the product.
+  for (const subject of [
+    "fix(feed): resume a partial upload instead of restarting it",
+    "fix(cron): clean up the digest run after a failed upload",
+    "feat(sken): render an incomplete profile without a blank page",
+    "fix(ads): tolerate a truncated report row from the connector",
+  ]) {
+    assert.deepEqual(
+      checkSubject(subject),
+      [],
+      `"${subject}" describes a change and shares vocabulary with run-progress. The rule fires on the PAIR, ` +
+        "which is what keeps it from refusing real work."
     );
   }
 });

@@ -1,0 +1,117 @@
+{
+  "$comment": "Every token scope this repository's workflows hold, declared. `npm run actions:check` (rule P10, blocking inside check:ci and in sast.yml's workflow-policy job) parses the `permissions:` blocks out of .github/workflows and fails when the tree and this file disagree in EITHER direction — an undeclared grant, a declared grant that is gone, an undeclared job, or a `write` with no entry in `writes` below.",
+
+  "$why": "P1 already refuses a workflow with no `permissions:` block at all, which is the failure that hands a job the repository default. What nothing measured is the grants themselves: all nine workflows are least-privilege today, seven `write` grants exist across four of them, and any one of them could be widened — or a tenth workflow could arrive holding `contents: write` — in a diff whose only visible change is two words of YAML. A token scope is the blast radius of every step in the job that holds it, so it is the one thing in a workflow that deserves to be declared rather than reviewed.",
+
+  "$howToChange": "Adding a job, or widening a grant, is a two-part diff on purpose: the workflow, and the line here that pays for it. A new `write` also needs a `writes` entry saying what API call needs it and why the job cannot be split further — `.github/workflows/agent-review.yml` and `issue-dispatch.yml` are the worked examples of the split (the job that holds a model key does not hold the token that can speak, and the job that pushes a ref cannot open a pull request or comment on one).",
+
+  "schema": 1,
+
+  "workflows": {
+    "agent-review-history.yml": {
+      "top": { "contents": "read" },
+      "jobs": {
+        "history": { "contents": "read", "actions": "read", "checks": "read" },
+        "publish": { "issues": "write" }
+      }
+    },
+    "agent-review.yml": {
+      "top": { "contents": "read" },
+      "jobs": {
+        "mechanical": { "contents": "read" },
+        "judgment": { "contents": "read", "pull-requests": "write" }
+      }
+    },
+    "ci.yml": {
+      "top": { "contents": "read" },
+      "jobs": {
+        "check": {},
+        "e2e-smoke": {}
+      }
+    },
+    "flake-watch.yml": {
+      "top": { "contents": "read" },
+      "jobs": {
+        "drill": { "contents": "read" },
+        "publish": { "issues": "write" }
+      }
+    },
+    "issue-dispatch.yml": {
+      "top": { "contents": "read" },
+      "jobs": {
+        "propose": { "contents": "read" },
+        "push": { "contents": "write" },
+        "open": { "contents": "read", "pull-requests": "write" }
+      }
+    },
+    "llm-drift.yml": {
+      "top": { "contents": "read" },
+      "jobs": {
+        "prove": { "contents": "read", "actions": "read" },
+        "publish": { "issues": "write" }
+      }
+    },
+    "revert-drill.yml": {
+      "top": { "contents": "read" },
+      "jobs": {
+        "drill": { "contents": "read" },
+        "publish": { "issues": "write" }
+      }
+    },
+    "sast.yml": {
+      "top": { "contents": "read" },
+      "jobs": {
+        "repo-rules": {},
+        "workflow-policy": {},
+        "semgrep": {}
+      }
+    },
+    "supply-chain.yml": {
+      "top": { "contents": "read" },
+      "jobs": {
+        "audit": {},
+        "secrets": {}
+      }
+    }
+  },
+
+  "$writes": "One entry per `write` grant in the tree above, keyed `<workflow>#<job>.<scope>`. `why` is the API call that needs it; `separatedFrom` is what the job deliberately CANNOT do, because a grant is only least-privilege relative to what was split away from it; `runsRepositoryCode` says whether the job executes anything out of a checkout while holding the grant, which is the property that decides how much an injected instruction could be worth.",
+
+  "writes": {
+    "agent-review.yml#judgment.pull-requests": {
+      "why": "Part B of the rubric review posts its judgment as a pull request comment.",
+      "separatedFrom": "the `mechanical` job, which decides the build and holds `contents: read` only. The half that can speak in this repository's name is not the half that can fail it.",
+      "runsRepositoryCode": true
+    },
+    "issue-dispatch.yml#push.contents": {
+      "why": "pushes the model's proposed branch — `git push --force origin HEAD:refs/heads/<branch>`. This is the broadest token anything here holds: `contents: write` can write any ref, master included, and master ships on push.",
+      "separatedFrom": "`propose` (holds the model key, cannot write a ref) and `open` (can open and comment on a pull request, cannot write a byte of code). The proposal reaches this job as an artifact, and `scripts/issue-dispatch.mjs --apply` refuses any path outside its allowed roots before anything is committed.",
+      "runsRepositoryCode": true
+    },
+    "issue-dispatch.yml#open.pull-requests": {
+      "why": "opens the draft pull request for the branch the `push` job left behind.",
+      "separatedFrom": "`push`, which holds the ref-writing token. This job deliberately does no checkout at all: it reads the branch name, subject and body out of an artifact and never has the source tree in front of it.",
+      "runsRepositoryCode": false
+    },
+    "agent-review-history.yml#publish.issues": {
+      "why": "writes the weekly rubric-firing trail into a tracking issue.",
+      "separatedFrom": "`history`, which reads the check runs and holds no write scope. The job that can publish never runs the analysis.",
+      "runsRepositoryCode": false
+    },
+    "flake-watch.yml#publish.issues": {
+      "why": "writes the weekly flake-drill verdict into its trail issue.",
+      "separatedFrom": "`drill`, which runs the unit suite N times and holds `contents: read`.",
+      "runsRepositoryCode": false
+    },
+    "revert-drill.yml#publish.issues": {
+      "why": "writes the weekly revert-drill verdict into its trail issue.",
+      "separatedFrom": "`drill`, which seeds and removes the fault and holds `contents: read`.",
+      "runsRepositoryCode": false
+    },
+    "llm-drift.yml#publish.issues": {
+      "why": "writes the dated drift and injection verdicts into the drift trail issue.",
+      "separatedFrom": "`prove`, the job that holds the provider keys and spends money. A key and a voice are never in the same job.",
+      "runsRepositoryCode": false
+    }
+  }
+}

@@ -67,6 +67,26 @@
  *  "Top priority" and never on "raise the priority of the retry queue". The
  *  existing length rules do not reach it — "Top priority" is twelve characters and
  *  two words, and both minimums are met.
+ *
+ *  AND THE FAMILY THE THIRD DRAFT STILL MISSED, which is the one an interrupted lane
+ *  writes:
+ *
+ *      chore: partial work from an interrupted lane session
+ *
+ *  Twice in this log, from two different stopped runs. It is third person, one
+ *  clause, no tally, no queue words, no "Done" — and every word of it is about the
+ *  RUN: how much of it finished, what kind of lane it was, and that the lane stopped.
+ *  Nothing in it names a file, a seam or a behaviour, so a bisect that lands on it
+ *  learns only that somebody's clock ran out. `loop-mechanics` was one word away from
+ *  catching it (it named `agent session` and not `lane session`), and `run-progress`
+ *  below is drawn around the other half: a completeness word attached to a work noun
+ *  ("partial work", "unfinished progress"), which is a report on a session and never
+ *  a description of a tree. Both stay narrow — "clean up the digest run after a
+ *  failed upload" and "keep the session cookie on the apex domain" are changes and
+ *  stay legal, and test-unit/commit-subject.test.mjs holds them there.
+ *
+ *  What a stopped run owes the log is in GUIDANCE at the bottom of this file, and it
+ *  is not a commit: it is `npm run checkpoint -- --next "…"`.
  */
 
 /** Conventional-commit types accepted here. */
@@ -135,11 +155,29 @@ export const NARRATION_RULES = [
     say: '"Done" is the session\'s status, not the change\'s. Name what the commit changes.',
   },
   {
+    // The vocabulary is every word an automation lane uses for ITSELF. `lane` and
+    // `loop` were the two missing when "chore: partial work from an interrupted
+    // lane session" landed twice; a change genuinely about "a lane session" is not
+    // a thing this product has, while "the session cookie" has no such qualifier
+    // and stays legal.
     id: "loop-mechanics",
-    re: /\b(agent|claude|assistant|model)\s+session\b/i,
+    re: /\b(agent|claude|assistant|model|lane|loop|harness|autopilot|automation|dispatch|worktree)\s+session\b/i,
     say:
       "the subject describes an agent session rather than a change. A session is not a commit — if the run " +
       "produced no change, do not commit; if it did, describe the change.",
+  },
+  {
+    // "partial work from an interrupted lane session" — the other half of the same
+    // subject, and the half that survives if the lane stops calling itself a lane.
+    // A completeness word bound to a work noun reports how far a RUN got. Anchored
+    // to the pair rather than to either word, so "resume a partial upload" and
+    // "clean up the digest run" are untouched.
+    id: "run-progress",
+    re: /\b(partial|partially|unfinished|incomplete|interrupted|aborted|abandoned|truncated|half-done)\s+(work|progress|attempt|effort|session|run|pass|sweep)\b/i,
+    say:
+      "the subject reports how far the RUN got rather than what the change does. \"Partial work\" is true of " +
+      "every commit and identifies none of them — name the artefact and what happened to it, and leave the " +
+      "unfinished half in a checkpoint (`npm run checkpoint -- --next \"…\"`).",
   },
   {
     id: "session-outcome",

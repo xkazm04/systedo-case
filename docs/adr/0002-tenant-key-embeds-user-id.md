@@ -46,6 +46,20 @@ that take a project id call `rejectUnknownProject()` / `requireOwnedProject()`
   documents are addressed by it. `SKLIK_TENANT_SUFFIX` is the worked example of
   extending the key without orphaning history.
 
+## Revisit when
+
+- **A legitimate read has to cross users.** An agency seat, a shared workspace or
+  an org-level report needs rows this key makes unaddressable without a second
+  index. That is the price of structural isolation, and the day it is charged is
+  the day this shape is a decision again rather than a free win.
+- **A handler composes a key from an id it did not verify.** The residual risk is
+  a minted empty tenant, not a leak; `src/lib/projects/api-guard.ts` is the guard,
+  and a route reaching `buildTenantKey()` without it means the seam has stopped
+  being the only way in.
+- **A component of the key stops being an opaque id.** `safeKeyComponent()` makes
+  a `/` harmless; a key that starts carrying user-supplied text needs the argument
+  made again, not extended.
+
 ## Consequences observed
 
 _Read back 2026-08-30 against the tree, not against intentions._

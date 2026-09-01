@@ -433,6 +433,26 @@
       "breaches": []
     },
     {
+      "id": "P10 workflow-permission-grants",
+      "surface": "gate",
+      "enforcedBy": "scripts/actions-pin.mjs (blocking in CI and check:ci)",
+      "probe": { "file": "scripts/actions-pin.mjs", "contains": "workflow-permissions.json" },
+      "guidance": "AGENTS.md § Commands — actions:check",
+      "why": "P1 refuses a job that INHERITS the default token; until P10 nothing refused a widened one",
+      "measure": {
+        "kind": "occurrences",
+        "dir": ".github/workflows",
+        "ext": [".yml", ".yaml"],
+        "pattern": "^\\s+(contents|packages|deployments|security-events|statuses|id-token|pages|repository-projects|discussions|actions|checks|issues|pull-requests):\\s*write\\s*$"
+      },
+      "ceiling": {
+        "max": 7,
+        "reason": "Seven write grants across four workflows, and every one is a job that was split off from the job that reads: `pull-requests: write` for the review's judgment half and for the dispatch's PR opener, `issues: write` for the four weekly trail publishers, and the one broad grant — `contents: write` on issue-dispatch's `push` job, which writes a ref and holds no key and can neither comment nor open anything. This counts the GRANTS rather than the exception list, because in a workflow the grant IS the exception: it is the line that says this job may do more than read.",
+        "comesOffWhen": "A publisher stops needing to write an issue (a trail that lands as an artifact or a commit instead of a comment), or the dispatch's push job is replaced by something that proposes a change without writing a ref. It rises only for a capability this pipeline does not have today — a release job, a container push — and that is a decision, not a digit."
+      },
+      "breaches": []
+    },
+    {
       "id": "P4 action-sha-pin",
       "surface": "gate",
       "enforcedBy": "scripts/actions-pin.mjs — third-party blocking, first-party EXEMPT (STRICT = false)",

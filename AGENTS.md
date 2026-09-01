@@ -64,6 +64,21 @@ mean reading four operating contracts. Held true by
 `test-unit/agent-index.test.mjs` — a spec that lands with no row, or a row naming
 a spec that is gone, is a red build.
 
+**And that list has a size, so it has a ceiling.** Every document named above was
+added for a reason somebody agreed with, and the total had no limit — which is how
+a reading surface grows past the attention available and starts being read
+partially, with nobody able to say which part was dropped. The READ-FIRST set is
+therefore declared and measured: `.github/guidance-budget.json` names the seven
+documents an agent reads before its first edit, with a line ceiling on each and on
+the total, and `npm run guidance:budget` prints it.
+`test-unit/guidance-budget.test.mjs` blocks on every build. Everything else here —
+the ADRs, the runbooks, `context-map.json`, the contract ledger — is a LOOKUP,
+reached through `docs/task-index.md` when a task needs it, and deliberately
+unbounded: a routing table's whole job is to make a large corpus cheap. So the
+budget's real content is the boundary. Moving a document from lookup to read-first
+is the expensive decision, and raising a ceiling is the same two-line diff as every
+other pin here: the paragraph, and the number that pays for it.
+
 ## Commands
 
 ```bash
@@ -80,7 +95,16 @@ npm run typecheck:strict # the two strictness flags `strict: true` does NOT turn
                       #   it produces is the number a promotion decision needs.
                       #   tsconfig.strict.json holds the reason and the ladder up;
                       #   test-unit/typecheck-strict.test.mjs holds both to it
-npm run test:unit     # node:test suites in test-unit/
+npm run test:unit     # node:test suites in test-unit/ — 489 files, and THE GATE
+npm run test:fast     # the same suites, scoped: the ones that NAME a file you have
+                      #   changed, plus the always tier in .github/test-tiers.json
+                      #   (the maps and censuses any diff can break). Selection is
+                      #   derived from the tests' own text, so it cannot rot; a
+                      #   changed file no test names is REPORTED rather than passed
+                      #   over. Deliberately not a gate and never in check:ci — a
+                      #   subset can be green while the suite is red, and the runner
+                      #   prints what it did not run every time. `-- --list` to see
+                      #   the selection, `-- --base <ref>` for a branch
 npm run test:e2e      # Playwright — also runs in CI (the key-free `e2e-smoke` job)
 npm run check:ci      # what CI runs, CHEAPEST FIRST: adr:check + docs:parity
                       #   + agents:surface + checkpoint:check + actions:check + sast
@@ -179,6 +203,13 @@ npm run sast          # repo security rules over src/. BLOCKING, in both places 
                       #   and a cheap stage of check:ci, so the pre-push hook refuses
                       #   a finding before the push that ships master
 npm run actions:check # workflow token scope, action pinning, no ${{ }} in a run: script
+                      #   — and every GRANT, scope for scope, against
+                      #   .github/workflow-permissions.json (rule P10). P1 refuses a job
+                      #   that INHERITS the default token; P10 refuses a widened one. An
+                      #   undeclared `contents: write`, a job the file does not list, a
+                      #   declaration for a job that is gone, or a write with no recorded
+                      #   reason is red. Seven write grants exist across four workflows
+                      #   and the ledger pins that count
 npm run merge-gate    # the required checks named in .github/required-checks.json
                       #   still exist, still run on PRs, and can still fail
 npm run contract:ledger # every rule in the contract, what enforces it, what it is
@@ -743,6 +774,7 @@ would notice afterwards.
 | `dependency-provenance` — every package comes from the registry, hashed, and the install-script set is pinned | `test-unit/dependency-lockfile.test.mjs` | blocking |
 | `perf-budget` — a budgeted route may not pass the cost it is allowed | `tests/perf-budget.spec.ts` (the required E2E job), `test-unit/perf-budget.test.mjs` | partial |
 | `agent-lessons` — a trap an agent hit is recorded once, with its evidence | `test-unit/agent-lessons.test.mjs`, `docs:staleness:check` | partial |
+| `guidance-budget` — what must be read before the first edit has a ceiling | `test-unit/guidance-budget.test.mjs`, `guidance:budget:check` | blocking |
 
 `test-unit/constraint-map.test.mjs` holds this table and the JSON to each other,
 and both to the tree: a gate named here that `package.json` does not define, a

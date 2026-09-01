@@ -102,6 +102,7 @@ export const CHAIN = [
     proves: "workflow token scope, action pinning, and that no attacker-shaped value enters a workflow.",
     next: [
       "npm run actions:pin         # resolves every tag to its digest (needs network)",
+      "A token scope that is not declared: add it to .github/workflow-permissions.json, with a `writes` entry when it is a write.",
       "An expression in a `run:` body: bind it in the step's `env:` and use \"$VAR\".",
       "A `github.event.*` field: read it from $GITHUB_EVENT_PATH — node scripts/workflow-event.mjs --get <field> --out <file>",
     ],

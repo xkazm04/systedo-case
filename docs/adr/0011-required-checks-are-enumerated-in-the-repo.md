@@ -94,3 +94,19 @@ findings for the weekly triage; a human answers them.
 - `.github/required-checks.json` is a law file in the sense of
   `.github/CODEOWNERS`: shrinking it is a governance change, not a cleanup, and
   should be reviewed as one.
+
+## Revisit when
+
+- **`npm run protection:verify` reports a mismatch and the enumeration is the
+  side that is right.** Twice would settle it: the declaration in
+  `.github/branch-ruleset.json` is being maintained and the platform is not, which
+  means somebody has to apply it — or the reporting rung is where this half stops
+  being useful and it needs an owner rather than a weekly line.
+- **A check that must be green cannot be named here.** An org-level ruleset, a
+  marketplace app's status, anything enforced outside this repository: the file's
+  claim is that the list is complete, and one check outside it makes the list a
+  partial index that reads like a full one.
+- **The deploy topology changes and master stops shipping on push.** Half the
+  reasoning here — that the pre-push hook is the moment that matters — is about
+  that topology. Behind a promotion step, the same enumeration would want to gate
+  the promotion instead, and `check:ci` would stop being the place it belongs.

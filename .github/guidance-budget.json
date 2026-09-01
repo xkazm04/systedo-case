@@ -1,0 +1,66 @@
+{
+  "$comment": "The READ-FIRST guidance surface: the documents this repository tells an agent to read before its first edit, with a line ceiling on each and on the total. Measured by scripts/guidance-budget.mjs (`npm run guidance:budget`) and enforced on every build by test-unit/guidance-budget.test.mjs, inside test:unit → check:ci → .husky/pre-push.",
+
+  "$why": "Every document below was added for a reason a reviewer agreed with, and the total had no limit. That is how a reading surface grows past the attention available — one justified paragraph at a time — and it costs more here than in a repository read by people: a person skims and comes back, while an agent pays for the whole surface on every run, before it has seen a line of the code it was asked to change. A surface nobody can finish is read partially, and nobody can say which part was dropped. `npm run agents:surface` already protects what the guidance SAYS; this protects how much of it there is.",
+
+  "$boundary": "The ceilings are not the interesting number. The BOUNDARY is: everything not listed under `readFirst` is a LOOKUP, reached deliberately through docs/task-index.md when a task needs it, and deliberately unbounded — a routing table's whole job is to make a large corpus cheap, and capping it would push its content back into the file everybody reads. Moving a document from `lookups` to `readFirst` is therefore the expensive decision, and this file is where it becomes visible.",
+
+  "$howToChange": "Raising a ceiling is allowed and is the point: it is one reviewed line next to the paragraph it pays for, the same shape as every pin in .github/contract-ledger.json. What is no longer possible is adding the paragraph and nothing else. Before raising one, ask the question the ceiling exists to force: does EVERY run need this before its first edit, or is it a lookup that docs/task-index.md should route to?",
+
+  "$measuredOn": "2026-09-01. Ceilings are exact — what each file holds today — so this is green on arrival (docs/adr/0007-gate-rung-discipline.md) and red the moment the surface grows. Lines, because it is the unit a diff is written in and anyone can check it with `wc -l`.",
+
+  "schema": 1,
+  "routedBy": "docs/task-index.md",
+  "maxTotalLines": 1538,
+
+  "readFirst": [
+    {
+      "file": "AGENTS.md",
+      "maxLines": 874,
+      "why": "canonical. Every command, every seam, every rule about what may be done unattended. Read late, an agent has already picked the wrong store, the wrong prompt path or the wrong commit subject."
+    },
+    {
+      "file": "CLAUDE.md",
+      "maxLines": 49,
+      "why": "the shim an agent's tooling loads by default: an @AGENTS.md import plus a generated context map. It is short on purpose and the generated half is data, not guidance (ADR-0012)."
+    },
+    {
+      "file": ".github/agent-review-rubric.md",
+      "maxLines": 206,
+      "why": "the rubric applied to the diff on every push. Its mechanical half blocks, so reading it after writing the change means learning the rule from a red build."
+    },
+    {
+      "file": ".github/required-checks.json",
+      "maxLines": 86,
+      "why": "what must be green before a change lands, and the reason each one earns a red build. It decides what 'done' means for the change being started."
+    },
+    {
+      "file": "docs/task-index.md",
+      "maxLines": 123,
+      "why": "the routing table that makes every OTHER document a lookup. It is read first precisely so the ADRs, runbooks and contracts do not have to be."
+    },
+    {
+      "file": "docs/agent-index.md",
+      "maxLines": 107,
+      "why": "the same routing for the other thing a run picks at the start — which subagent spec to use, in the three facts a caller needs."
+    },
+    {
+      "file": "docs/agent-lessons.md",
+      "maxLines": 93,
+      "why": "the traps other agents actually hit here. The rows marked `partial` or `unfenced` are the ones where nothing will tell you that you got it wrong, which is only useful before the edit."
+    }
+  ],
+
+  "$lookups": "Named so the boundary is a list rather than an assumption, and so the gate can refuse a document that is on both sides of it. These are large, they are allowed to be, and none of them is read unless a task needs it.",
+
+  "lookups": [
+    { "file": "docs/adr/README.md", "why": "the decision records, routed to by the seam being changed" },
+    { "file": ".github/constraint-map.json", "why": "which rules actually stop you — read when a rule is in question, and summarised in AGENTS.md's own table" },
+    { "file": ".github/contract-ledger.json", "why": "what each fence is absorbing and the pin it may not cross — read when moving one" },
+    { "file": "context-map.json", "why": "which files belong to the context being edited; an index, consulted per task" },
+    { "file": "docs/deploy.md", "why": "env names, crons, rollback — read when the change touches the deployment" },
+    { "file": "docs/design-system.md", "why": "tokens and component conventions — read when the change is a UI one" },
+    { "file": "docs/i18n/contract.md", "why": "the localisation contract — read during a localisation wave" },
+    { "file": ".agent/README.md", "why": "how checkpoints work — read when a run is long enough to need one" }
+  ]
+}

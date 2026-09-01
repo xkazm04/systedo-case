@@ -318,14 +318,14 @@
     {
       "id": "actions-policy",
       "ledgerId": "P4 action-sha-pin",
-      "rule": "A workflow declares its token scope, uses no privileged trigger, splices no expression into a run: script, and pins what it runs.",
+      "rule": "A workflow declares its token scope — and every grant it holds is the one .github/workflow-permissions.json says it holds — uses no privileged trigger, splices no expression into a run: script, and pins what it runs.",
       "statedIn": { "file": "AGENTS.md", "quote": "workflow token scope, action pinning" },
       "enforcement": [
         { "kind": "gate", "name": "actions:check" },
         { "kind": "test", "name": "test-unit/workflow-injection.test.mjs" }
       ],
       "rung": "partial",
-      "gapNote": "Every rule in it blocks except the pin itself: STRICT is false and RATCHET.pinned is 0, so first-party actions still ride a mutable tag. Closing that is one networked `npm run actions:pin`."
+      "gapNote": "Every rule in it blocks except the pin itself: STRICT is false and RATCHET.pinned is 0, so first-party actions still ride a mutable tag. Closing that is one networked `npm run actions:pin`. What P10 can see is the DECLARED scope; what no offline check can see is whether GitHub's own default token or an org-level policy grants more than the workflow asks for — that half is `npm run protection:verify`."
     },
     {
       "id": "required-checks",
@@ -576,6 +576,27 @@
       ],
       "rung": "partial",
       "gapNote": "Nothing can fail because a lesson was never WRITTEN — an unrecorded trap looks exactly like a trap nobody hit. What blocks is the shape of what is there: a row with no evidence, a fence it names that does not exist, or a lesson the readable page has dropped. The staleness half reports rather than blocks (ADR-0007), because its baseline has never been measured."
+    },
+    {
+      "id": "guidance-budget",
+      "rule": "The set of documents an agent must read before its first edit is declared, and every one of them — and the total — has a line ceiling.",
+      "statedIn": {
+        "file": "AGENTS.md",
+        "quote": "list has a size, so it has a ceiling"
+      },
+      "enforcement": [
+        {
+          "kind": "test",
+          "name": "test-unit/guidance-budget.test.mjs",
+          "note": "blocking on every build: a read-first document over its ceiling, a set over the total, a document that has moved, or an entry AGENTS.md does not name"
+        },
+        {
+          "kind": "gate",
+          "name": "guidance:budget:check",
+          "note": "the same measurement on demand, and the table `npm run guidance:budget` prints"
+        }
+      ],
+      "rung": "blocking"
     }
   ]
 }

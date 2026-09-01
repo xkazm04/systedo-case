@@ -54,6 +54,19 @@ container concern.
   cron sidecar runs from the same image and reads the same schedule source the
   cloud deploy uses — one schedule, two hosts.
 
+## Revisit when
+
+- **Node 24 leaves support, or Alpine stops publishing that tag.** The base pins
+  the sqlite the local driver needs (ADR-0008), so the bump is a store decision
+  wearing a Dockerfile's clothes, not a version number.
+- **Something other than `ADAMANT_DOCKER_BUILD` flips `output: "standalone"`.**
+  "The only thing" is the entire content of that bullet; a second trigger means
+  the build mode is inferred again, which is what made it worth writing down.
+- **The healthcheck starts reporting a broken install as healthy.** It probes `/`
+  precisely because the health endpoint fails closed without `CRON_SECRET`. A
+  container that serves `/` while the store is unreachable is the case that would
+  send this back to `/api/health` plus an unauthenticated liveness path.
+
 ## Consequences observed
 
 _Read back 2026-08-30 against the tree, not against intentions._

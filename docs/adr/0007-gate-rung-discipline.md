@@ -55,6 +55,20 @@ decoration.
 - New checks land on the reporting rung by default and earn their way up. That is
   why the first version of a gate is cheap to add and hard to weaponise.
 
+## Revisit when
+
+- **A reporting-rung check sits there for a year without its baseline moving.**
+  The rung is a promise about a ladder. A baseline that never falls is a parking
+  space, and the honest choice at that point is to promote the check, delete it,
+  or say in its comment that nobody intends to climb.
+- **A baseline is raised rather than lowered.** That is this ADR's own rule
+  breaking. It is now fenced by the pins in `.github/contract-ledger.json`, so the
+  interesting case is a raise that the fence accepted *and* a reviewer waved
+  through — which would mean the pin is measuring the wrong number.
+- **A blocking check goes red on pre-existing debt.** The definition of blocking
+  is "passes today". One red build that nobody's change caused is the rung being
+  wrong, not the build.
+
 ## Consequences observed
 
 _Read back 2026-08-30 against the tree, not against intentions._

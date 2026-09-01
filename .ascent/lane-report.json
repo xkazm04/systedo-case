@@ -2,66 +2,100 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "04c63b18-4aee-4474-943a-7733dbbf0fea",
+      "recommendationId": "d749c252-1b47-4ecb-99ae-046ba584d9ff",
       "verdict": "skipped",
-      "reason": "Pinning a tag to a commit SHA means asking GitHub what the tag points at right now, and this session has no network; the repo already has the one-command close (`npm run actions:pin`, which also flips STRICT and the P6 ratchet in the same pass), and every workflow's permissions are already job-scoped least privilege, so there was nothing left to do offline.",
+      "reason": "Pinning a tag to a commit SHA means asking GitHub what the tag points at right now, and this session has no network; scripts/actions-pin.mjs --update already does the whole close (rewrite + STRICT=true + ratchet) in one networked run, and inventing a SHA would break the workflow rather than pin it.",
       "files": []
     },
     {
-      "recommendationId": "9d47c811-66eb-4b6e-ab88-7299614f437e",
-      "verdict": "skipped",
-      "reason": "Already covered another way: .github/branch-ruleset.json declares the ruleset, scripts/branch-protection.mjs reconciles it against .github/required-checks.json offline and blocks through `npm run merge-gate` inside check:ci, and `npm run protection:verify` reads GitHub's live rules weekly in agent-review-history.yml and publishes the answer into the trail issue.",
-      "files": []
-    },
-    {
-      "recommendationId": "37e4481c-ed8e-4165-ad90-d8575ac033d4",
+      "recommendationId": "b05bbac1-d3b7-432f-8cef-5003119ff337",
       "verdict": "resolved",
-      "reason": "Added a lessons ledger keyed by the mistake — nine traps with evidence, the correct call and whether anything now stops them — routed from AGENTS.md and the task index, held to the tree by a blocking unit test and given an age budget so it is re-read when the guidance moves.",
+      "reason": "The read/write split the item asks for already existed (issue-dispatch.yml is three jobs: the one with the model key, the one that writes a ref, the one that can speak — none can do another's damage), and `contents: write` cannot be narrowed further because pushing a ref needs it; what was missing was that nothing bounded any grant, so rule P10 in scripts/actions-pin.mjs now compares every workflow's and job's permissions against .github/workflow-permissions.json in both directions and refuses a write with no recorded reason.",
       "files": [
-        ".github/agent-lessons.json",
-        "docs/agent-lessons.md",
-        "test-unit/agent-lessons.test.mjs",
+        ".github/workflow-permissions.json",
+        "scripts/actions-pin.mjs",
+        "test-unit/workflow-permissions.test.mjs",
+        ".github/contract-ledger.json",
         ".github/constraint-map.json",
-        ".github/docs-staleness.json",
-        "docs/task-index.md",
+        "scripts/gate-remedy.mjs",
         "AGENTS.md"
       ]
     },
     {
-      "recommendationId": "66b9e2dc-5eaa-46d2-b366-0f2eb5c8b9e8",
+      "recommendationId": "64853792-e2ea-4bf8-97a4-a4519bc8a968",
       "verdict": "resolved",
-      "reason": "Added a performance budget: five key-free routes with declared ceilings, measured as the warm document response (best of three) by a Playwright spec in the required E2E job, with the registry's shape held by a blocking unit test.",
+      "reason": "The rule does reach the path (A5 runs over the pushed range in agent-review.yml and over origin/master..HEAD in the pre-push hook) — it was drawn too narrow: `chore: partial work from an interrupted lane session` passed every existing narration rule and is in this log twice, so loop-mechanics now names lane/loop/harness/autopilot sessions and a new run-progress rule refuses a completeness word bound to a work noun.",
+      "files": ["scripts/commit-subject.mjs", "test-unit/commit-subject.test.mjs"]
+    },
+    {
+      "recommendationId": "4a5a7d25-bdcc-4e2a-9491-1475d009b861",
+      "verdict": "resolved",
+      "reason": "The read-first set is now declared and measured — seven documents, 1538 lines, a ceiling on each and on the total — with everything else declared a lookup routed to by docs/task-index.md, and test-unit/guidance-budget.test.mjs blocking on every build.",
       "files": [
-        ".github/perf-budgets.json",
-        "tests/perf-budget.spec.ts",
-        "test-unit/perf-budget.test.mjs",
+        ".github/guidance-budget.json",
+        "scripts/guidance-budget.mjs",
+        "test-unit/guidance-budget.test.mjs",
         ".github/constraint-map.json",
-        "docs/task-index.md",
+        "package.json",
         "AGENTS.md"
       ]
     },
     {
-      "recommendationId": "bd0e663a-4be0-4f81-a621-28007b68b18a",
+      "recommendationId": "e46f7174-fae0-4717-a724-cdff816b4d0b",
       "verdict": "skipped",
-      "reason": "Already covered another way: test-llm/model-pins.json records which model surface every golden, bake and budget was accepted against, `llm:models:check` and test-unit/llm-model-pin.test.mjs block when src/lib/llm/models.ts declares a model the pins do not, llm-drift.yml re-proves the whole registry against the configured provider weekly, and test-llm/model-candidates.json rehearses the successor before a swap.",
+      "reason": "Already covered another way and better than the item assumes: test-llm/adversarial/corpus.json places hostile payloads in the real product prompt builders (campaign names from an advertiser's console, public Google reviews, inbound messages), test-unit/llm-adversarial.test.mjs asserts detection, containment and refusal on every build, and scripts/injection-drill.mjs does the same for the harness's own model surfaces with a weekly live run.",
       "files": []
     },
     {
-      "recommendationId": "5a7feff1-8d92-4951-81d7-455b9a135c97",
-      "verdict": "needs_human",
-      "reason": "Progressive delivery is a platform and release decision, not a repo file: the deploy target is already declared as data (.github/environments.json, diffed against the tree on every build), and staged exposure on Vercel plus any rollout gate would change how a push reaches users — which AGENTS.md puts squarely on the operator, and which no test here could hold.",
+      "recommendationId": "2aa741a8-c742-4c68-830e-41329b01667c",
+      "verdict": "skipped",
+      "reason": "Already covered: .github/contract-ledger.json carries a `ceiling` for every eslint fence exception list (adamant/seams 3, seams-lib 3, chokepoint 1, route-segment-config 0) and every SAST allowlist, and scripts/contract-ledger.mjs --check (blocking inside check:ci) fails when a list grows past it OR when an exception list carries no ceiling at all.",
       "files": []
     },
     {
-      "recommendationId": "716842d3-ee4c-4ca5-9534-6224fcf282f1",
-      "verdict": "needs_human",
-      "reason": "The provenance mechanism is already complete (scripts/commit-attribution.mjs writes Agent-Harness/Model/Spec/Session/Lane, install-commit-hooks.mjs wires it on `npm install`, commit:check reports coverage); the one repo-side lever left was committing the two managed hooks so worktree lanes inherit them without an install, and this session was refused write access to .husky/ — a maintainer should decide whether to track them, given the installer deliberately never overwrites a human-owned hook.",
+      "recommendationId": "baf865cc-fba6-46fe-9776-ad8414a30709",
+      "verdict": "resolved",
+      "reason": "`npm run test:fast` runs the suites that name the files you changed plus the always tier in .github/test-tiers.json, under the same node flags as the gate, reporting a changed file no test claims; it is deliberately outside check:ci and test-unit/test-tier-census.test.mjs blocks if the tier rots or if somebody wires the subset in as a gate.",
+      "files": [
+        "scripts/test-fast.mjs",
+        ".github/test-tiers.json",
+        "test-unit/test-tier-census.test.mjs",
+        "package.json",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "recommendationId": "84b5fde0-4f84-43d2-a5e9-c5584e862e5b",
+      "verdict": "skipped",
+      "reason": "A health-gated staged rollout is Vercel-side configuration plus a promotion workflow that has to observe live signals; this session has no network, no platform access and no way to verify an abort path, and a rollout config that has never aborted anything is exactly the artefact the brief says not to substitute.",
       "files": []
+    },
+    {
+      "recommendationId": "dfe3a836-6e25-4c16-8998-5f2caff13423",
+      "verdict": "resolved",
+      "reason": "All twelve ADRs now carry a `## Revisit when` section naming falsifiable triggers (an observation, an event or a number — never a date), and scripts/adr-check.mjs rule 7 requires it on every record from the day it lands, blocking inside check:ci.",
+      "files": [
+        "scripts/adr-check.mjs",
+        "docs/adr/README.md",
+        "docs/adr/0001-dual-store-seam.md",
+        "docs/adr/0002-tenant-key-embeds-user-id.md",
+        "docs/adr/0003-single-llm-chokepoint.md",
+        "docs/adr/0004-self-hosted-third-deploy-mode.md",
+        "docs/adr/0005-container-base-and-standalone-output.md",
+        "docs/adr/0006-colocated-i18n-dictionaries.md",
+        "docs/adr/0007-gate-rung-discipline.md",
+        "docs/adr/0008-zero-dependency-tooling.md",
+        "docs/adr/0009-free-channels-lead-the-onboarding-checklist.md",
+        "docs/adr/0010-project-reads-union-of-account-tenants.md",
+        "docs/adr/0011-required-checks-are-enumerated-in-the-repo.md",
+        "docs/adr/0012-generated-regions-are-data.md"
+      ]
     }
   ],
   "lessons": [
-    "This repository's convention is that every new fence arrives as a trio — the declaration as data in .github/, the thing that measures it, and a census test that fails when the declaration stops describing the tree. Matching that shape matters more than the fence itself: test-unit/constraint-map.test.mjs refuses a check:ci stage with no rule attached, so a gate added without its row turns the suite red.",
-    "Rung discipline (ADR-0007) is the load-bearing idea here: a check blocks only once somebody has measured that it passes. An offline session cannot measure, so anything it adds should either block on SHAPE (which is checkable from committed data) or ship with a null baseline and the command that pins it — never with an invented threshold.",
-    "An isolated worktree session may be denied writes to hook directories like .husky/, so plans that depend on committing a git hook need a human step; check that before designing a fix around one."
+    "In this repository a new fence is never one file: a rule needs a row in .github/contract-ledger.json (with a ceiling or a floor if it measures anything), a row in .github/constraint-map.json AND the matching row in AGENTS.md's table in the same order, an entry in scripts/gate-remedy.mjs if it joins check:ci, and a test-unit file that points the real gate at a fixture and requires a red. test-unit/constraint-map.test.mjs and scripts/contract-ledger.mjs enforce all of it, so a half-landed fence is a red build rather than a quiet one.",
+    "Prefer blocking through a test-unit file over adding a stage to check:ci. A new stage drags in gate-remedy entries, the constraint-map's every-stage-has-a-rule assertion and the cheapest-first timing baseline in .github/gate-timings.json; a unit test blocks through the same check:ci and pre-push path with none of that coupling — which is how env-manifest, perf-budget and the model pins are already wired.",
+    "Scan findings about this repository's governance are often already closed, because the fence exists one layer deeper than a scanner looks: exception-list ratchets live in the contract ledger rather than next to the eslint rule, and the adversarial eval corpus lives in test-llm/adversarial rather than in test-llm/golden. Read the ledger and the constraint map before building anything a finding asks for.",
+    "The commit subjects an automation lane writes are the repository's most reliably broken rule, and the cause is structural: the lane takes the first line of the agent's report and uses it as the subject, in a worktree where no hook is installed. The fix that works is to write the report's first line AS a conventional-commit subject, and to keep extending scripts/commit-subject.mjs from the log rather than from imagination."
   ]
 }

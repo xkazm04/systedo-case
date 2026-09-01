@@ -93,3 +93,23 @@ same shape).
   and `sources` + `mixedCurrency` are additive keys present ONLY above one
   tenant — a single-source response is byte-identical, and every write surface
   (change-sets, alerts, analyze, the sync itself) still resolves one tenant.
+
+## Revisit when
+
+- **The union read stops fitting a request.** Fanning out is linear in connected
+  sources, and a project-level read does it per request. A tenant with enough
+  accounts to push a console route past its perf budget is the case that would
+  buy a stored projection instead — and it changes the "no re-keying" claim, which
+  is this decision's whole argument.
+- **A second currency stops being an edge case.** The resolver refuses to blend
+  sections in different currencies and serves the primary. That is right while
+  mixed currency is rare; a tenant whose accounts are genuinely split across two
+  currencies is being served half their data, and the answer is a converted
+  section rather than a suppressed one.
+- **A union WRITE is proposed.** The record says a union read must not be mistaken
+  for one. The day mutations fan out to more than one tenant, the per-account key
+  is carrying a guarantee it was never asked to carry.
+- **`Campaign.source` stops being optional.** It is additive today, which is what
+  made this a non-migration. A required field means the rows have been rewritten,
+  and the argument for keeping the key per-account should be re-made rather than
+  inherited.

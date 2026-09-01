@@ -53,6 +53,20 @@ decision, never an accident.
   globals (`test-unit/self-host-unmeter.test.mjs`). `src/lib/usage.ts` composes
   it with `LOCAL_DB` at the store seam.
 
+## Revisit when
+
+- **A fourth mode is proposed.** Three is already the number this ADR calls a
+  deliberate cost. A fourth means the modes have become a matrix, and a matrix
+  wants a capability list rather than an enum in `src/lib/deploy-mode.ts`.
+- **A guard relaxes a shared predicate instead of opting in at its own seam.** The
+  whole decision is `|| SELF_HOSTED` per consumer; the first guard that widens
+  `src/lib/local-mode.ts`'s predicate for everybody has reintroduced exactly the
+  loosened dev guard this record refused.
+- **`DEV_AUTH` is wanted in a self-hosted install.** That is the one line here
+  written as "forever", so the request is the signal — either the operator flow is
+  missing something the credentials path should provide, or this decision is being
+  rewritten by accretion.
+
 ## Consequences observed
 
 _Read back 2026-08-30 against the tree, not against intentions._

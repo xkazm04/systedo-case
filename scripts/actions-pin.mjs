@@ -13,6 +13,25 @@
  *
  *    P1  Every workflow declares a top-level `permissions:` block. Unset means
  *        the repository default, which on many repositories is write.
+ *    P10 …and every SCOPE it grants is the one `.github/workflow-permissions.json`
+ *        says it grants. P1 refuses the failure where a job inherits the default;
+ *        it says nothing about the grants themselves, so a workflow could be
+ *        widened from `contents: read` to `contents: write` — or a tenth workflow
+ *        could arrive holding it — in a diff whose whole visible change is two
+ *        words of YAML, and every rule above it would stay green.
+ *
+ *        A token scope is the blast radius of every step in the job that holds it,
+ *        which makes it the one thing in a workflow worth declaring rather than
+ *        reviewing. The declaration is compared in BOTH directions: an undeclared
+ *        grant fails, and so does a declared one that is gone, so the file cannot
+ *        drift into describing a pipeline that no longer exists. A `write` also
+ *        needs an entry in that file's `writes` map — what API call needs it, and
+ *        what the job was deliberately split away from — because "least privilege"
+ *        is a claim about what was taken away, and nothing else here records that.
+ *
+ *        Green on arrival (ADR-0007): all nine workflows are least-privilege
+ *        today. Widening one stays allowed and becomes a two-part diff — the
+ *        workflow, and the line that pays for it, where a reviewer reads both.
  *    P2  No PRIVILEGED TRIGGER — a trigger that starts a job in the BASE
  *        repository's context, holding its token and its secrets, on an event
  *        somebody outside the repository controls.
@@ -121,6 +140,8 @@
  *    node scripts/actions-pin.mjs            # check (exit 1 on a violation)
  *    node scripts/actions-pin.mjs --summary FILE
  *    node scripts/actions-pin.mjs --update   # resolve tags → SHAs, rewrite files
+ *    node scripts/actions-pin.mjs --permissions FILE   # P10 against another
+ *                                            # declaration (test-unit uses it)
  *
  *  Runs blocking in CI (sast.yml, job `workflow-policy` — a required check, see
  *  .github/required-checks.json) and inside `npm run check:ci`, which the pre-push
@@ -184,6 +205,82 @@ const UNTRUSTED_RE = /github\.event\.|github\.head_ref/;
 const IMAGE_RE = /^\s*(?:-\s+)?image:\s*(\S+)/;
 const DIGEST_RE = /@sha256:[0-9a-f]{64}$/;
 
+/** P10 — where the grants are declared. Overridable so a test can point the REAL
+ *  parser at a fixture declaration and prove the rule actually refuses a widened
+ *  grant; a gate nobody has seen fail is a gate nobody knows is wired. */
+const permIdx = argv.indexOf("--permissions");
+const PERMISSIONS_FILE =
+  permIdx !== -1 && argv[permIdx + 1] ? argv[permIdx + 1] : join(ROOT, ".github", "workflow-permissions.json");
+/** A `permissions:` key, top-level (column 0) or inside a job. */
+const PERMS_RE = /^(\s*)permissions:\s*(.*)$/;
+/** One grant line inside such a block. */
+const GRANT_RE = /^\s*([a-z][a-z-]*):\s*(read|write|none)\s*$/;
+/** A job key: exactly one level under `jobs:`. */
+const JOB_RE = /^ {2}([A-Za-z0-9_][A-Za-z0-9_.-]*):\s*$/;
+/** A block scalar (`run: |`, `script: |`, `path: |`). Its body is free text that
+ *  can contain anything, YAML included — heredocs writing markdown are all over
+ *  these workflows — so it is skipped rather than parsed. */
+const BLOCK_SCALAR_RE = /^(\s*)(?:-\s+)?[A-Za-z_][\w.-]*:\s*[|>][-+\d]*\s*$/;
+
+/** The `permissions:` blocks of one workflow: the top-level grant map, and one
+ *  map per job (empty when the job declares none and inherits the top-level).
+ *  Text, not a YAML parser — this script is zero-dependency (ADR-0008) and runs
+ *  before `npm ci` in a checkout with no node_modules. */
+function parsePermissions(lines) {
+  const result = { top: null, jobs: {} };
+  let inJobs = false;
+  let job = null;
+  let into = null; // the grant map currently being filled
+  let blockCol = -1;
+
+  for (const raw of lines) {
+    const line = raw.replace(/\r$/, "");
+    const bare = line.replace(/^\s*/, "");
+    if (bare === "" || bare.startsWith("#")) continue;
+    const indent = line.length - bare.length;
+
+    if (blockCol !== -1) {
+      if (indent > blockCol) continue;
+      blockCol = -1;
+    }
+    if (into) {
+      const g = GRANT_RE.exec(line);
+      if (g && indent > 0) {
+        into[g[1]] = g[2];
+        continue;
+      }
+      into = null;
+    }
+    if (BLOCK_SCALAR_RE.test(line)) {
+      blockCol = indent;
+      continue;
+    }
+
+    const perms = PERMS_RE.exec(line);
+    if (perms && (perms[1].length === 0 || (inJobs && job))) {
+      const target = perms[1].length === 0 ? (result.top ??= {}) : (result.jobs[job] ??= {});
+      // `permissions: {}` / `read-all` / `write-all` are single-line forms; only a
+      // bare `permissions:` opens a block of grant lines.
+      if (perms[2].trim() === "") into = target;
+      else target[perms[2].trim()] = "(inline)";
+      continue;
+    }
+    if (/^jobs:\s*$/.test(line)) {
+      inJobs = true;
+      job = null;
+      continue;
+    }
+    if (inJobs) {
+      const j = JOB_RE.exec(line);
+      if (j) {
+        job = j[1];
+        result.jobs[job] ??= {};
+      }
+    }
+  }
+  return result;
+}
+
 if (!existsSync(WF_DIR)) {
   console.error(`✗ actions policy: ${WF_DIR} does not exist.`);
   process.exit(1);
@@ -194,6 +291,8 @@ const workflows = readdirSync(WF_DIR).filter((f) => /\.ya?ml$/.test(f));
 const violations = [];
 const reported = [];
 const inventory = [];
+/** P10 — workflow file → the grants it actually declares. */
+const observedPermissions = new Map();
 
 for (const name of workflows) {
   const path = join(WF_DIR, name);
@@ -204,6 +303,11 @@ for (const name of workflows) {
   if (!lines.some((l) => /^permissions:(\s|$)/.test(l))) {
     violations.push(`${name}: no top-level \`permissions:\` block — the job inherits the repository default token scope.`);
   }
+
+  // P10 — what those blocks actually grant, compared against the declaration
+  // after the loop (every workflow has to be parsed before the reverse direction
+  // can be checked).
+  observedPermissions.set(name, parsePermissions(lines));
 
   // P2 — a privileged trigger, any member of the family.
   lines.forEach((l, i) => {
@@ -357,6 +461,126 @@ for (const name of workflows) {
   });
 }
 
+// --- P10: the grants, against the declaration --------------------------------
+//
+// Both directions, because a declaration that only has to be a SUPERSET of the
+// tree is one an agent satisfies by declaring everything once. A grant that is
+// gone is as much a drift as one that arrived: it means this file has started
+// describing a pipeline that no longer exists, and the next reader trusts it.
+
+const writeGrants = [];
+
+if (!existsSync(PERMISSIONS_FILE)) {
+  violations.push(
+    ".github/workflow-permissions.json is missing — it is the declaration every workflow's token scope is held " +
+      "to (rule P10). Without it a job's blast radius is whatever the last diff said it was."
+  );
+} else {
+  let declaration = null;
+  try {
+    declaration = JSON.parse(readFileSync(PERMISSIONS_FILE, "utf8"));
+  } catch (err) {
+    violations.push(`.github/workflow-permissions.json is not parseable JSON — ${err.message}`);
+  }
+
+  if (declaration) {
+    const declaredWorkflows = declaration.workflows ?? {};
+    const writes = declaration.writes ?? {};
+
+    const fmt = (grants) =>
+      Object.keys(grants).length ? Object.entries(grants).map(([k, v]) => `${k}: ${v}`).join(", ") : "(none)";
+
+    /** One scope map against another, in both directions. */
+    const compare = (where, observed, declared) => {
+      for (const [scope, level] of Object.entries(observed)) {
+        if (!(scope in declared)) {
+          violations.push(
+            `${where}: grants \`${scope}: ${level}\` and .github/workflow-permissions.json does not declare it. ` +
+              "A token scope is the blast radius of every step in the job that holds it — declare it there, in " +
+              "the same diff, with the reason."
+          );
+        } else if (declared[scope] !== level) {
+          violations.push(
+            `${where}: grants \`${scope}: ${level}\` where the declaration says \`${scope}: ${declared[scope]}\`. ` +
+              (level === "write"
+                ? "That is a widening. Move the declaration in the same diff, or narrow the grant back."
+                : "Update the declaration so it stops describing a grant this job no longer has.")
+          );
+        }
+      }
+      for (const scope of Object.keys(declared)) {
+        if (!(scope in observed)) {
+          violations.push(
+            `${where}: .github/workflow-permissions.json declares \`${scope}: ${declared[scope]}\` and the ` +
+              "workflow grants no such scope. A stale declaration reads exactly like a current one."
+          );
+        }
+      }
+    };
+
+    for (const [name, observed] of observedPermissions) {
+      const declared = declaredWorkflows[name];
+      if (!declared) {
+        violations.push(
+          `${name}: no entry in .github/workflow-permissions.json. A workflow arrives with a token; which one ` +
+            `it is (${fmt(observed.top ?? {})} at the top level) belongs in the declaration.`
+        );
+        continue;
+      }
+      compare(`${name} (top level)`, observed.top ?? {}, declared.top ?? {});
+
+      const declaredJobs = declared.jobs ?? {};
+      for (const [job, grants] of Object.entries(observed.jobs)) {
+        if (!(job in declaredJobs)) {
+          violations.push(
+            `${name}: job \`${job}\` is not in .github/workflow-permissions.json. Declare it — with \`{}\` when ` +
+              "it inherits the top-level grant, which is itself worth stating."
+          );
+          continue;
+        }
+        compare(`${name} · job \`${job}\``, grants, declaredJobs[job]);
+        for (const [scope, level] of Object.entries(grants)) {
+          if (level !== "write") continue;
+          const key = `${name}#${job}.${scope}`;
+          writeGrants.push(key);
+          const reason = writes[key];
+          if (!reason || !String(reason.why ?? "").trim()) {
+            violations.push(
+              `${name}: job \`${job}\` holds \`${scope}: write\` and .github/workflow-permissions.json has no ` +
+                `\`writes["${key}"].why\`. Say which API call needs it and what the job was split away from — ` +
+                "least privilege is a claim about what was taken away, and nothing else here records that."
+            );
+          }
+        }
+      }
+      for (const job of Object.keys(declaredJobs)) {
+        if (!(job in observed.jobs)) {
+          violations.push(
+            `${name}: .github/workflow-permissions.json declares job \`${job}\`, which the workflow no longer ` +
+              "has. Remove the entry in the diff that removed the job."
+          );
+        }
+      }
+    }
+
+    for (const name of Object.keys(declaredWorkflows)) {
+      if (!observedPermissions.has(name)) {
+        violations.push(
+          `.github/workflow-permissions.json declares ${name}, which does not exist in .github/workflows.`
+        );
+      }
+    }
+    for (const key of Object.keys(writes)) {
+      if (!writeGrants.includes(key)) {
+        violations.push(
+          `.github/workflow-permissions.json justifies the write grant \`${key}\`, which the tree does not have. ` +
+            "A reason for a scope nobody holds is how the file stops being read."
+        );
+      }
+    }
+  }
+}
+
 // --- --update: resolve every tag to a SHA and rewrite in place ---------------
 
 if (UPDATE) {
@@ -471,6 +695,12 @@ if (pinnedCount < RATCHET.pinned) {
   );
 }
 
+// P10 — the blast radius, printed. Seven write grants across four workflows is
+// not a number anybody would have known without reading nine files.
+say("");
+say(`  write grants: ${writeGrants.length}, each declared and justified in .github/workflow-permissions.json`);
+for (const key of writeGrants) say(`    · ${key}`);
+
 if (reported.length) {
   say("");
   say(`⚠ ${reported.length} first-party action(s) on a version tag — allowed today, see scripts/actions-pin.mjs.`);
@@ -494,7 +724,8 @@ if (SUMMARY_FILE) {
 if (violations.length) process.exit(1);
 say("");
 say(
-  `✓ actions policy: permissions declared, none of the ${Object.keys(PRIVILEGED_TRIGGERS).length} privileged ` +
+  `✓ actions policy: permissions declared and matching .github/workflow-permissions.json scope for scope, ` +
+    `none of the ${Object.keys(PRIVILEGED_TRIGGERS).length} privileged ` +
     "triggers, no moving-branch refs, " +
     "third-party actions pinned, container images digest-pinned, and no attacker-shaped context anywhere in a " +
     "workflow — not spliced into a `run:` script, a `with:` input or an `if:`, and not bound in `env:` either. " +

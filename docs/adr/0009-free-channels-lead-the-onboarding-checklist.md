@@ -95,6 +95,22 @@ tempt a later edit into making optional steps stop counting.
   the LP variants, `PRODUCT.md`, and no public feature page while every other
   pillar has one). A tenant who never creates a project still cannot discover it.
 
+## Revisit when
+
+This one is explicitly a reversible default, so its triggers are the cheapest to
+state and the most likely to fire:
+
+- **The types where `channels` is required start skipping it anyway.** A required
+  step a tenant routes around is not required, it is noise at the top of the list
+  — and the checklist's first row is the most expensive place to be wrong.
+- **A type in the required set gains an ad budget by default.** The split follows
+  what each type can reach; `app`, `content` and `leadgen` are there because free
+  channels are their only route to a first visitor. Change that premise and the
+  map is stale, not the decision.
+- **A second self-serve step arrives.** `selfServe` and its "Open" verb were
+  introduced for one row. Two rows make it a category, and a category belongs in
+  the step definition rather than in an override map.
+
 ## Consequences observed
 
 _Read back 2026-08-31 against the tree, not against intentions._

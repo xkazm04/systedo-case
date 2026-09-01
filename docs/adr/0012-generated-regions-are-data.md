@@ -71,6 +71,21 @@ regex's.
 - `test-unit/agent-surface-instructions.test.mjs` holds all of it: the classifier's
   behaviour, the gate's wiring to it, and the tree passing it today.
 
+## Revisit when
+
+- **A generator emits a region this repo cannot classify.** The rule rests on
+  `scripts/lib/generated-instructions.mjs` being able to tell an imperative from a
+  fact. A vendor block written as narrative prose, or in a second language, would
+  make the classifier's answer a guess — and a guess that blocks is worse than an
+  honest "unclassifiable, read it yourself".
+- **The accepted content in `.github/agent-surface.lock.json` outgrows one
+  sitting.** Acceptance is a human reading a sentence. A lock nobody can read end
+  to end has turned `--accept-instructions` back into a flag that turns the rule
+  off, which is the exact thing this record says does not exist.
+- **A second vendor starts writing into the guidance surface.** One generator is a
+  boundary; two are a protocol, and the answer then is a declared region format
+  rather than markers this repo recognises one tool by.
+
 ## Consequences observed
 
 _Not yet due — this record has no successors. It will fall due once three

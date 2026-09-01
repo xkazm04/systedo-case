@@ -49,6 +49,21 @@ browser automation.
   *alongside* the local one rather than instead of it: `gitleaks` in CI backs the
   local secret scanner, and Semgrep's registry packs back `scripts/sast.mjs`.
 
+## Revisit when
+
+- **A repo-local script has to reimplement something with a real specification.**
+  A YAML parser, a semver range resolver, a diff with rename detection: at that
+  point hand-rolled code is a correctness surface, not a saving, and the built-in
+  argument has been stretched past what it was making.
+- **A hand-rolled primitive gets its second wrong answer in production.** One bug
+  is a bug; two in the same script is the vendor's rules being better than ours,
+  which is the exception this record already allows for the framework and the
+  SDKs.
+- **`scripts/lib/` grows extracted primitives that still have one caller each.**
+  The observed section already records that. If the reuse never arrives, the
+  "cost is written code" trade was paid for a benefit nobody collected, and the
+  answer is to inline them rather than to keep extracting.
+
 ## Consequences observed
 
 _Read back 2026-08-30 against the tree, not against intentions._
