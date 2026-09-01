@@ -2,76 +2,15 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "5a2c9b69-40cf-465d-8a64-c562a3d77070",
+      "recommendationId": "5e4d30e5-c8a0-41d1-98d2-68207e718759",
       "verdict": "skipped",
-      "reason": "Needs network: resolving a tag to the SHA it points at right now is a GitHub round trip and an invented SHA breaks the workflow rather than pinning it. The whole close is already implemented — `npm run actions:pin` (scripts/actions-pin.mjs --update) rewrites every ref to its digest and writes STRICT = true and RATCHET.pinned = <count> back into the same file in one pass; it needs one networked run by an operator.",
+      "reason": "Everything this item names already operates (blocking repo SAST + Actions policy in sast.yml and check:ci, blocking full-history gitleaks and reporting npm audit in supply-chain.yml, a blocking lockfile-provenance test, a pre-commit secret scan, and a top-level least-privilege permissions block in all 11 workflows); the one genuinely open piece — pinning the 52 first-party actions/* refs to commit SHAs — cannot be done offline because resolving a tag to a SHA needs the GitHub API, and inventing one breaks the workflow rather than pinning it.",
       "files": []
-    },
-    {
-      "recommendationId": "b95b8ac3-8efc-4e19-b953-0e78fb93accb",
-      "verdict": "skipped",
-      "reason": "The premise is already satisfied and the remainder is not narrowable: the only broad grant is `contents: write` in .github/workflows/issue-dispatch.yml, and it was already cut into three jobs on exactly the agent-review.yml pattern the item names — `propose` holds the model key and can write nothing, `push` holds the ref token and no secret and cannot open or comment, `open` holds `pull-requests: write` with no checkout at all. `contents: write` is GitHub's narrowest scope for pushing a ref, so no further split removes it; .github/workflow-permissions.json already declares it scope-for-scope with `why`, `separatedFrom` and `runsRepositoryCode`, and rule P10 in `npm run actions:check` blocks a widening.",
-      "files": []
-    },
-    {
-      "recommendationId": "0cae1bb0-fd7e-448a-9ae6-6de77d92a7d1",
-      "verdict": "skipped",
-      "reason": "Already covered another way and the scan's premise is out of date: .github/workflows/llm-drift.yml runs `npm run llm:drift` every Wednesday against the CONFIGURED provider (NODE_ENV=production selects the Gemini path production serves with), walks the whole registry through the real chokepoint, and publishes a dated verdict into a durable trail issue rewritten each week — the same shape agent-review-history.yml uses. With no key it records `skipped` rather than a green it did not earn, the injection drill and `llm:candidate` ride the same schedule, and the verdicts are kept as artifacts for 90 days.",
-      "files": []
-    },
-    {
-      "recommendationId": "2a9b297c-e186-4a1c-886e-bac81e55fa72",
-      "verdict": "resolved",
-      "reason": "Added a per-context test census: `npm run context:coverage` ranks every one of the 117 contexts by how many of its src/ files any test NAMES (by repo path or `@/` specifier — derived from the tests, and deliberately stricter than test-fast's selector, which also matches a bare filename and would report the whole App Router as covered by whichever test says `route`). The blocking half is .github/context-test-floors.json — five contexts on money, credential and tenancy seams may not fall to zero, and a floor naming a context a rescan renamed is red too — run by test-unit/context-coverage.test.mjs inside test:unit → check:ci → .husky/pre-push. The total is reporting with `accepted: null`, because nothing has run the census yet and a baseline invented without measuring is what tsconfig.strict.json forbids; a new context starts with no floor, so a Personas rescan cannot turn master red on its own.",
-      "files": [
-        "scripts/context-coverage.mjs",
-        ".github/context-test-floors.json",
-        "test-unit/context-coverage.test.mjs",
-        ".github/test-tiers.json",
-        ".github/constraint-map.json",
-        ".github/guidance-budget.json",
-        "docs/task-index.md",
-        "package.json",
-        "AGENTS.md"
-      ]
-    },
-    {
-      "recommendationId": "ac673eb1-77b8-410b-9191-ea6747557907",
-      "verdict": "skipped",
-      "reason": "Already covered another way: .github/context-conventions.json is the join between AGENTS.md and context-map.json, asked with the thing an agent actually holds — `npm run context:conventions -- --path src/lib/llm/index.ts` — routing by constraint id (never re-explaining a rule) plus the LOCAL note that has no home in a global document, each flagged `unfenced` when nothing would tell you that you got it wrong. It is keyed by context NAME so a Personas rescan cannot silently detach a note, deliberately covers 7 of 117 contexts (a row for each would bury the ones that say something), and test-unit/context-conventions.test.mjs blocks on every build when a row stops resolving — which is the drift artefact the item asks for.",
-      "files": []
-    },
-    {
-      "recommendationId": "4fffed2b-31f0-4d81-9b13-d750b4f1bfa0",
-      "verdict": "skipped",
-      "reason": "The half this repository can own already shipped, and the half that is missing is not the repository's to add. .github/workflows/post-deploy.yml runs on the release event, waits for the deployment to answer, probes /api/health behind the CRON_SECRET guard and then measures four public routes and the probe against the ceilings in .github/post-deploy-budgets.json — a breach fails the run with the promote-previous rollback command printed next to it. What is still absent is a PAUSE, and it cannot be added here: Vercel's git integration ships master on push, so a promotion step is a change to the Vercel project (or a token that can write refs/heads/master, which AGENTS.md § Red refuses). Needs operator/platform access.",
-      "files": []
-    },
-    {
-      "recommendationId": "100febc9-5198-4a6f-b767-d08ab213d16e",
-      "verdict": "skipped",
-      "reason": "Needs a toolchain run: the item's first question — what is the current accepted count — has no answer, because `.github/typecheck-strict.json` holds `accepted: null`. Nothing has ever run `tsc -p tsconfig.strict.json` here, so `typecheck:strict:check` reports and does not yet stop the count growing, and a quarterly decrement target invented without the measurement is precisely what tsconfig.strict.json names as the thing that must not happen. One `npm run typecheck:strict:report` followed by `npm run typecheck:strict:accept -- --reason \"…\"` produces the number a declining target can be argued from; the per-seam pins the file already declares are where the permanent entries separate from the not-done-yet ones.",
-      "files": []
-    },
-    {
-      "recommendationId": "92813de5-637d-4a74-b32d-7d22dfe016da",
-      "verdict": "resolved",
-      "reason": "Added the `Decision:` trailer — the third fact after shape (conventional prefix) and origin (the authorship/provenance trailers). scripts/commit-decision.mjs DERIVES what may be cited from the ADR filenames and the rubric's own headings rather than a list, so a record that lands is citable without editing anything; `.husky/commit-msg` (via commit-check.mjs, which it already runs) refuses a citation that does not resolve while the message is still free to change, `npm run commit:check -- --range <range>` fails on one already in history and reports coverage, and `--decision ADR-0001` is the reverse query the log could not answer at all. Citing nothing stays correct and unblocked, because a rule demanding a citation would produce a log where every commit cites ADR-0007. Caveat stated plainly: no commit in history carries the trailer yet, so the reverse query answers `none` until commits start writing it.",
-      "files": [
-        "scripts/commit-decision.mjs",
-        "scripts/commit-check.mjs",
-        "test-unit/commit-decision.test.mjs",
-        ".github/constraint-map.json",
-        ".github/guidance-budget.json",
-        "docs/task-index.md",
-        "AGENTS.md"
-      ]
     }
   ],
   "lessons": [
-    "In this repository a new blocking rule has a fixed meta-cost that is larger than the rule: a row in .github/constraint-map.json AND a table row in AGENTS.md in the SAME ORDER (test-unit/constraint-map.test.mjs does a deepEqual on the id lists), a `statedIn.quote` that must still be a whitespace-flattened substring of the file it names, a `gapNote` whenever the rung is `partial`, a route in docs/task-index.md, and a line-ceiling raise in .github/guidance-budget.json for every guidance file you touched. Count lines with `wc -l` at the end and raise the per-file ceiling AND `maxTotalLines`.",
-    "Reach the blocking rung through `test-unit/*.test.mjs`, not through a new `check:ci` stage. A stage pulls in scripts/gate-remedy.mjs, the constraint map's 'every stage is attached to a rule' property, .github/gate-timings.json and the cheapest-first ordering check all at once; a unit test reaches the same rung via test:unit → check:ci → .husky/pre-push with none of that coupling. Registering it in .github/test-tiers.json `always` is the cheap way to make it part of the inner loop too.",
-    "When a lane has no shell, the highest-value work is a census over committed data — it needs no toolchain, no network and no credentials, and it is exactly the class of gap a mature harness still has. What it CANNOT produce is a ratchet baseline, so write the registry with `accepted: null` and let the FLOORS (verified by grep before you write them) carry the blocking rung. That is also this repository's own stated discipline, not a workaround.",
-    "Several Ascent findings here are already closed and the scan is reading a stale tree: the LLM drift prove (weekly llm-drift.yml with a durable trail issue), the per-context guidance join (.github/context-conventions.json), the post-deploy health-and-perf probe (post-deploy.yml + post-deploy-budgets.json) and the three-job split of the one `contents: write` grant all exist. Check the tree before building; the honest verdict for those is `skipped — already covered`, and saying which artefact covers it is what stops the item being re-dispatched."
+    "This repository already encodes its own D9 posture as machine-checked policy (scripts/actions-pin.mjs rules P1-P10, .github/workflow-permissions.json, .github/contract-ledger.json), and it records WHY a rule is still exempt plus the exact command that would close it — read .github/contract-ledger.json before proposing a supply-chain change, because the open item and its remedy are usually already written down there (P4/P6 explicitly say 'no offline session can do this').",
+    "Adding a fix here is a two-part diff by construction: a new workflow, job or token scope must land together with its entry in .github/workflow-permissions.json, and any exception or threshold must land with the ceiling/floor in .github/contract-ledger.json — a one-part diff turns `npm run actions:check` / `contract:ledger:check` red, so an offline agent that 'helpfully' adds a workflow breaks the build it cannot run.",
+    "Scanner 'missing' lines can contradict the scanner's own observations (here it asked for top-level `permissions:` blocks it had just measured as 11/11 present); check the tree before treating a recommendation's remedy list as the gap."
   ]
 }
