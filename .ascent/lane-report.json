@@ -2,78 +2,45 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "8553f390-eb41-4dbd-93bc-74bf1ab13c39",
+      "recommendationId": "3284ec5c-e9ec-470e-93c0-5150fac7e7a1",
       "verdict": "skipped",
-      "reason": "Pinning a tag to a digest means asking GitHub what that tag points at right now and this session has no network; the repository already ships the exact tool for it (`npm run actions:pin`, which resolves every ref AND flips STRICT/RATCHET in the same pass), so the honest remaining work is one networked run, not a code change.",
+      "reason": "Pinning a tag to a digest means asking GitHub what each tag points at right now and this session has no network; the two adjacent asks in the item are already done (dependabot.yml has a github-actions ecosystem entry, and every workflow declares top-level `contents: read` with write scopes split per job), and supply-chain.yml explicitly declares SBOM and signing out of scope, so the scan's premise about provenance assertion is stale.",
       "files": []
     },
     {
-      "recommendationId": "1a401aa1-a064-478f-bcff-2bbf9e9f2fa2",
-      "verdict": "resolved",
-      "reason": "issue-dispatch.yml's `draft` job held `contents: write` and `pull-requests: write` together; it is now `push` (contents: write, no checkout-independent speech) and `open` (pull-requests: write, no checkout at all), handing the branch name/subject/body between them as an artifact, with a unit test that fails any job in any workflow holding both scopes.",
-      "files": [
-        ".github/workflows/issue-dispatch.yml",
-        "test-unit/issue-dispatch.test.mjs"
-      ]
-    },
-    {
-      "recommendationId": "92d1fc32-f0a7-4999-8cb5-c96c6423242b",
-      "verdict": "resolved",
-      "reason": "The installed prepare-commit-msg hook now writes lane provenance beside the authorship trailer — `Agent-Harness` always (enforced at commit-msg time, `unknown` when nothing identifies itself) plus `Agent-Model`/`Agent-Spec`/`Agent-Session`/`Agent-Lane` when the environment states them and never guessed; `commit:check --range` reports coverage by harness, and issue-dispatch writes its own trailers because it commits where no hook runs.",
-      "files": [
-        "scripts/commit-attribution.mjs",
-        "scripts/commit-check.mjs",
-        "scripts/install-commit-hooks.mjs",
-        "scripts/issue-dispatch.mjs",
-        "test-unit/commit-attribution.test.mjs",
-        "AGENTS.md"
-      ]
-    },
-    {
-      "recommendationId": "6cc030cd-d9e0-498e-8f31-48c5c0987073",
+      "recommendationId": "092d9549-fff9-4bd8-9e48-e1db2feef99d",
       "verdict": "skipped",
-      "reason": "A performance budget's numbers have to be measured, and this session has no shell to run `next build` or Playwright; inventing thresholds gives either a budget that never fires or a red CI, which is the same error as inventing an action SHA. The measurement is one `npm run build` away and the repo's own docs:staleness ladder (registry shape blocks, count reports until accepted with `--accept --reason`) is the shape it should take.",
+      "reason": "The trailer hook already exists and writes both authorship and provenance (scripts/commit-attribution.mjs, installed by `prepare`); the reason it misses is that lane worktrees where `npm install` never ran execute no hooks, and closing that needs git/shell (a committed hooks dir plus `git config core.hooksPath`) or a CI rule that cannot distinguish a human's commit from an agent's without the very trailer it is checking for.",
       "files": []
     },
     {
-      "recommendationId": "ac8c0b67-ea38-46be-bf3e-0401257e406a",
-      "verdict": "resolved",
-      "reason": "The review's four surfaces were already fenced and drilled (scripts/injection-drill.mjs, 8 corpus cases, blocking containment + weekly live refusal), but the harness's OTHER model surface was not: issue-dispatch fenced an `issue` surface inline that no corpus case, no containment check and no live drill had ever seen — and its answer becomes files pushed by a job holding `contents: write`. That surface is now built through the shared fencing builder, covered by three hostile fixtures, and rehearsed under its own system prompt.",
-      "files": [
-        "scripts/lib/review-prompt.mjs",
-        "scripts/injection-drill.mjs",
-        "scripts/issue-dispatch.mjs",
-        "test-llm/injection/corpus.json",
-        "test-unit/prompt-injection.test.mjs"
-      ]
+      "recommendationId": "d7d8bc3c-e781-43d4-bb8a-aa8b10ef27fc",
+      "verdict": "skipped",
+      "reason": "A non-increasing ceiling needs the current violation count, and only `tsc -p tsconfig.strict.json` can produce it; tsconfig.strict.json's own header states the rule 'what must not happen is a ratchet baseline invented without running it', and this session has no shell to run the compiler.",
+      "files": []
     },
     {
-      "recommendationId": "7656766e-4836-4946-9c5b-60df0349596c",
+      "recommendationId": "b9a4345b-dd09-4ffb-8677-ee616b280572",
+      "verdict": "skipped",
+      "reason": "Every shape of performance budget here (route First Load JS, navigation timing in the key-free Playwright job, store round-trips per render) needs one measured run to choose the threshold, and ADR-0007 makes a gate blocking only once it has been measured to pass; the Playwright job is also a required check, so a threshold guessed offline would block merges rather than catch regressions.",
+      "files": []
+    },
+    {
+      "recommendationId": "a82d98d9-7fac-4703-9101-cccce45730bb",
+      "verdict": "skipped",
+      "reason": "Already covered another way: .github/workflows/llm-drift.yml re-proves the whole registry against the configured provider every Wednesday and publishes a dated pass/fail trail (recording `skipped`, not green, with no key), and the proved-against model surface is pinned in test-llm/model-pins.json with a 120-day max age, enforced by `llm:models:check` and test-unit/llm-model-pin.test.mjs on every build.",
+      "files": []
+    },
+    {
+      "recommendationId": "f671da78-2028-4416-afb3-e986d7f0f621",
       "verdict": "needs_human",
-      "reason": "The seam itself is easy; making it OPERATE is not. A flag registry with no flags is a stub, and every boolean env toggle already in src/ is either permanent integration config or sits in a CODEOWNERS law file (src/lib/plans.ts, src/lib/llm/) that this task did not ask me to touch. Choosing which shipped feature lands dark first — and therefore what the first registry entry gates — is a product call for the operator, not something to infer.",
+      "reason": "Progressive delivery here means Vercel deployment configuration plus an abort criterion the operator owns; AGENTS.md puts anything touching the release path and the CODEOWNERS-protected workflow files in the red zone (stop and ask), and a flag layer nothing routes through would be a stub rather than a rollout.",
       "files": []
-    },
-    {
-      "recommendationId": "fa728100-e930-4377-96e7-fbddae1fa780",
-      "verdict": "resolved",
-      "reason": "Every fence blocked and none recorded ever blocking anything — the contract ledger's own `$breaches` note says every `breaches` array is empty because filling one needed a manual pass. The gates now append to a rolling trail on the way out (printRemedy for the check:ci chain, per-rule for the ten SAST rules), and `npm run fences` reads it back next to each fence's exception list and the git date that list last moved, published weekly into the review's existing trail issue.",
-      "files": [
-        "scripts/fence-firings.mjs",
-        "scripts/fence-census.mjs",
-        "scripts/gate-remedy.mjs",
-        "scripts/sast.mjs",
-        "test-unit/fence-census.test.mjs",
-        ".github/workflows/agent-review-history.yml",
-        ".gitignore",
-        "package.json",
-        "AGENTS.md"
-      ]
     }
   ],
   "lessons": [
-    "This repo's gates are heavily interlocked: adding a stage to `check:ci` also requires a gate-remedy CHAIN entry, a constraint-map row, and a gate-timings baseline, or three other gates go red. Enforcing a new invariant through a test-unit file instead is the repo's own lower-coupling precedent (test-unit/docs-staleness.test.mjs, test-unit/constraint-map.test.mjs) and is what an agent without a test runner should reach for.",
-    "Before building anything here, grep for the artefact first — the repository very often already has the tool and is missing only the one networked or measured run that would arm it. `scripts/actions-pin.mjs` pins every action AND flips its own STRICT flag in one pass and has simply never been run; `.github/contract-ledger.json` has had an empty `breaches` array per rule since it landed. Both read as absent practices in a scan and are actually unarmed ones.",
-    "A registry-shaped fix is only real if it has a first entry. A feature-flag seam, a perf budget or a golden with no measured baseline scores as a practice and operates as a stub — and in this repo the honest ladder for that is ADR-0007: the registry's SHAPE blocks from day one, the count reports until someone accepts a measured baseline with `--accept --reason`.",
-    "When splitting a workflow job for least privilege, check whether the narrow half needs a checkout at all. Dropping `actions/checkout` from the `pull-requests: write` job made it structurally unable to see the source tree, which is a stronger guarantee than any permission line — `gh` only needed `GH_REPO`."
+    "This repository encodes rung discipline (ADR-0007: a check blocks only once it has been measured to pass) and treats an invented ratchet baseline as a defect, so any Ascent item that asks for a numeric budget or ceiling is unresolvable in a session without a shell — the measurement, not the wiring, is the missing half.",
+    "Before reporting a gap here, check whether the repository already answers it under a different name: `.github/constraint-map.json` maps every stated rule to what enforces it and at which rung, and docs/task-index.md routes a task to the document that governs it. Several scan findings (SBOM/signing, broad write grants, unscheduled real-model proves) were already decided and documented against.",
+    "`.github/workflows/`, the ADRs and the agent instruction surface are CODEOWNERS law files that AGENTS.md places in the red zone; adding a new gate also means registering it in the constraint map, the contract ledger, the gate-remedy table and the fence census, each held by a unit test — so a 'small' new check is a multi-file change that cannot be validated without running `npm run test:unit`."
   ]
 }
