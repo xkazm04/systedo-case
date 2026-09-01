@@ -5417,10 +5417,12 @@
       "api_surface": null,
       "business_feature": "Tenant Docs & Annotations",
       "category": "lib",
+      "$comment": "cross_refs 2026-09-01: lead-management — integrations/status aggregates every integration's state for the tenant, including the conversion-upload mapping; same reason it already declares campaigns-core-lib for the ads connection.",
       "cross_refs": [
         "projects-core",
         "session-firebase-core",
-        "campaigns-core-lib"
+        "campaigns-core-lib",
+        "lead-management"
       ],
       "db_tables": [
         "tenant_docs",
