@@ -34,6 +34,7 @@
     "test-unit/typecheck-strict.test.mjs",
     "test-unit/workflow-permissions.test.mjs",
     "test-unit/failure-contract.test.mjs",
-    "test-unit/golden-held-out.test.mjs"
+    "test-unit/golden-held-out.test.mjs",
+    "test-unit/untrusted-surface-census.test.mjs"
   ]
 }

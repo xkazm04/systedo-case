@@ -1,0 +1,207 @@
+{
+  "schema": 1,
+
+  "$comment": "Every module that builds an LLM prompt, next to WHO WROTE the text it renders. Read on every build by test-unit/untrusted-surface-census.test.mjs, inside `npm run test:unit` → `npm run check:ci` → .husky/pre-push.",
+
+  "$why": "The adversarial corpus next door proves that the surfaces somebody THOUGHT of are quarantined. It cannot say anything about the ones nobody did — and that is the failure this repository actually had: `onboarding-scan` pasted the text of a website into a prompt (a site an anonymous visitor picks, through the public /sken mode), `local-page` pasted public review bodies into a prompt whose output is PUBLISHED, and `channel-research` grounded on profile prose the scan had derived from that same page text. Three unfenced third-party surfaces, none of them noticed by a green build, because nothing had ever enumerated the question. A census is what turns 'we quarantined the ones we remembered' into 'every builder has an answer on file'.",
+
+  "$howToChange": "Adding a tool means adding its row. If the row says `outside`, the module has to actually quarantine (src/lib/ai/untrusted.ts) and the corpus has to exercise one of its builders — the test refuses the row otherwise, so the declaration cannot be the cheap way out. If it says `tenant` or `none`, the `why` is the whole content of the row: name the fields and say where they come from, because that sentence is what a later reader checks against the code. Never move a row from `outside` to `tenant` to go green; the disagreement is the finding.",
+
+  "$origins": {
+    "outside": "renders text whose author is not the tenant — an ad account synced from Google Ads or Sklik, a public review, an inbound message from a stranger, a page fetched from a website, or profile prose derived from one of those.",
+    "tenant": "renders only text the tenant typed into this app, or text this app computed from the tenant's own account (numbers, labels, derived rollups). The tenant steering their own prompt is not a privilege boundary.",
+    "none": "renders no request text into a prompt at all — a fragment helper, a registry, or the provider adapter that transports a prompt somebody else built."
+  },
+
+  "$cannotSee": [
+    "WHETHER A CLASSIFICATION IS TRUE. This is a declaration, and the test holds it to the tree only where the tree can answer: an `outside` row must really quarantine, an exercised builder must really be exported, a named field must really appear in the module. A row that calls an outside field `tenant` is a wrong sentence, and the only thing that catches it is a reader — which is why the `why` names the fields rather than gesturing at them.",
+    "THE ROUTE. A field is classified by where its text comes FROM, not by which door it entered. `channel-research` is `outside` because its grounding is scan-derived even though a signed-in tenant triggers the call.",
+    "THE OUTPUT SIDE. Containment on the way in is one rung of three (src/lib/ai/untrusted.ts); an id the request never supplied being dropped and an out-of-vocabulary enum being coerced are the other two, and they live in each tool's normalizer."
+  ],
+
+  "modules": [
+    {
+      "path": "src/lib/campaigns/report-input.ts",
+      "origin": "outside",
+      "builders": ["buildOverallPrompt", "buildCampaignPrompt"],
+      "fields": [{ "name": "name", "containment": "inline", "from": "campaign and change-set names synced from a Google Ads / Sklik account — free text an advertiser types into their own console" }],
+      "why": "The portfolio and single-campaign evaluation prompts render every campaign's name; the numbers around them are computed here."
+    },
+    {
+      "path": "src/lib/ai/tools/ads-diagnosis.ts",
+      "origin": "outside",
+      "builders": ["buildAdsDiagnosisPrompt"],
+      "fields": [{ "name": "name", "containment": "inline", "from": "campaign names in the worst/best rows of a synced portfolio" }],
+      "why": "The diagnosis names the campaigns it is about, and its output opens a change-set the operator acts on."
+    },
+    {
+      "path": "src/lib/ai/tools/local-review-reply.ts",
+      "origin": "outside",
+      "builders": ["buildLocalReviewReplyPrompt"],
+      "fields": [
+        { "name": "reviewText", "containment": "block", "from": "a public Google Business review, written by a member of the public" },
+        { "name": "businessName", "containment": "inline", "from": "the tenant's own profile, folded alongside the review so one code path renders the whole block" }
+      ],
+      "why": "The reply this drafts is published under the business's name, so the review body is delimited as data."
+    },
+    {
+      "path": "src/lib/ai/tools/twin-reply.ts",
+      "origin": "outside",
+      "builders": ["buildTwinReplyPrompt"],
+      "fields": [
+        { "name": "inbound", "containment": "block", "from": "a message from a stranger — the line breaks are content, so it is delimited" },
+        { "name": "thread", "containment": "inline", "from": "earlier turns of the same conversation, one turn per ←/→ line" },
+        { "name": "contact", "containment": "inline", "from": "the name the sender gave" }
+      ],
+      "why": "The draft carries the confidence/risks pair decideDraft reads to decide whether a human sees it before it leaves."
+    },
+    {
+      "path": "src/lib/ai/tools/onboarding-scan.ts",
+      "origin": "outside",
+      "builders": ["buildOnboardingScanPrompt"],
+      "fields": [
+        { "name": "pageText", "containment": "block", "from": "the text of a website FETCHED by the route; the public `onboarding-scan-public` mode lets an anonymous visitor choose which website" },
+        { "name": "siteTitle", "containment": "inline", "from": "the fetched page's <title>" },
+        { "name": "siteDescription", "containment": "inline", "from": "the fetched page's meta description" },
+        { "name": "brand", "containment": "inline", "from": "a caller-supplied hint — anonymous on the public mode" },
+        { "name": "url", "containment": "inline", "from": "the caller's own URL, validated as http(s) and folded anyway because a path segment is free text" }
+      ],
+      "why": "The profile this returns seeds the competitor set and the grounding every other module reads, so owning it once is worth more to an attacker than owning any single answer."
+    },
+    {
+      "path": "src/lib/ai/tools/local-page.ts",
+      "origin": "outside",
+      "builders": ["buildLocalPagePrompt"],
+      "fields": [
+        { "name": "reviews", "containment": "inline", "from": "real public reviews quoted verbatim — one quote per line, so the surface is inline" }
+      ],
+      "why": "The text this produces is PUBLISHED at /m/{slug} under the business's own name, which makes it the highest-consequence third-party surface here."
+    },
+    {
+      "path": "src/lib/ai/tools/channel-research.ts",
+      "origin": "outside",
+      "builders": ["buildChannelResearchPrompt"],
+      "fields": [
+        { "name": "businessSummary", "containment": "inline", "from": "the applied onboarding scan — page text that has already been through one model" },
+        { "name": "audience", "containment": "inline", "from": "the applied onboarding scan" },
+        { "name": "offering", "containment": "inline", "from": "the catalog when there is one, else the scan profile" },
+        { "name": "keywords", "containment": "inline", "from": "catalog offering names topped up from the scan profile" },
+        { "name": "competitors", "containment": "inline", "from": "the competitor set the scan suggested" },
+        { "name": "localities", "containment": "inline", "from": "the project's localities" },
+        { "name": "brand", "containment": "inline", "from": "the project name, stripped of the sample marker at the wire door" }
+      ],
+      "why": "This is the LAUNDERED case: the grounding layer (src/lib/organic-channels/grounding.ts) trims and caps these fields and does nothing about line breaks, so third-party prose that survived the scan reaches a later prompt as a line of its own."
+    },
+
+    {
+      "path": "src/lib/ai/tools/ads.ts",
+      "origin": "tenant",
+      "why": "product, benefits, audience and tone are typed into the ad-brief form; the brand block and pattern block are computed from the tenant's own catalog and their own winning ads."
+    },
+    {
+      "path": "src/lib/ai/tools/analysis.ts",
+      "origin": "tenant",
+      "why": "the whole prompt is a snapshot (src/lib/snapshot.ts): computed metrics, deltas and significance, plus the client name/domain/segment from the tenant's own project settings."
+    },
+    {
+      "path": "src/lib/ai/tools/article-draft.ts",
+      "origin": "tenant",
+      "why": "the approved SEO brief — title, meta, outline, FAQ and keywords the tenant reviewed before this runs."
+    },
+    {
+      "path": "src/lib/ai/tools/brief.ts",
+      "origin": "tenant",
+      "why": "content type, topic, primary keyword and audience are typed by the tenant; the keyword block is Keyword Planner volume/competition numbers for words the tenant chose."
+    },
+    {
+      "path": "src/lib/ai/tools/campaign-eval.ts",
+      "origin": "tenant",
+      "why": "it renders no field itself — the prompt is built by src/lib/campaigns/report-input.ts, which is the `outside` row that owns the campaign names, plus platform and refine lines composed here."
+    },
+    {
+      "path": "src/lib/ai/tools/chat.ts",
+      "origin": "tenant",
+      "why": "the same snapshot as `analysis`, plus the tenant's own chat turns."
+    },
+    {
+      "path": "src/lib/ai/tools/cohort-diagnosis.ts",
+      "origin": "tenant",
+      "why": "computed CAC/LTV cohort economics; the only strings are month labels and a fixed trend vocabulary."
+    },
+    {
+      "path": "src/lib/ai/tools/comparison-outline.ts",
+      "origin": "tenant",
+      "why": "query, intent and an optional competitor name and positioning line, all typed by the tenant about a competitor they chose to write about."
+    },
+    {
+      "path": "src/lib/ai/tools/index.ts",
+      "origin": "none",
+      "why": "a re-export barrel; it builds no prompt and reads no request field."
+    },
+    {
+      "path": "src/lib/ai/tools/keyword-clusters.ts",
+      "origin": "tenant",
+      "why": "the keyword list the tenant researched and kept in their own Keywords module, plus the optional topic they typed; the model may only regroup them and normalize() drops anything that was not in the input set."
+    },
+    {
+      "path": "src/lib/ai/tools/lead-source-diagnosis.ts",
+      "origin": "tenant",
+      "why": "one source's computed lead-quality metrics; the source label and the drift alerts are produced by this app, not by the lead."
+    },
+    {
+      "path": "src/lib/ai/tools/local-diagnosis.ts",
+      "origin": "tenant",
+      "why": "coverage, ladder, review-sentiment and location ROLLUPS — counts, ratings and percentages. No review body reaches this prompt; that surface is local-review-reply and local-page."
+    },
+    {
+      "path": "src/lib/ai/tools/lp-variant-draft.ts",
+      "origin": "tenant",
+      "why": "the hand-authored landing-page variant the tenant is drafting from, plus their own page context."
+    },
+    {
+      "path": "src/lib/ai/tools/lp-variant-ideas.ts",
+      "origin": "tenant",
+      "why": "the LP experiment module's own variant strings and the tenant's page grounding."
+    },
+    {
+      "path": "src/lib/ai/tools/monthly-recap.ts",
+      "origin": "tenant",
+      "why": "the same snapshot as `analysis`, the tenant's business type, and the C2 grounding block computed from their own lead-quality figures."
+    },
+    {
+      "path": "src/lib/ai/tools/persona.ts",
+      "origin": "none",
+      "why": "the shared analyst system persona as a constant; no request field passes through it."
+    },
+    {
+      "path": "src/lib/ai/tools/refine.ts",
+      "origin": "tenant",
+      "why": "the re-run steering note, typed by the tenant asking for another attempt."
+    },
+    {
+      "path": "src/lib/ai/tools/repurpose.ts",
+      "origin": "tenant",
+      "why": "the tenant's own article title and body, plus the trained twin voice derived from messages their own business sent."
+    },
+    {
+      "path": "src/lib/ai/tools/social.ts",
+      "origin": "tenant",
+      "why": "topic, tone and platforms chosen by the tenant, grounded in their own catalog and trained voice."
+    },
+    {
+      "path": "src/lib/ai/tools/twin-style.ts",
+      "origin": "tenant",
+      "why": "sample messages the BUSINESS sent and the voice owner's own answers to the previous round's questions — the outbound half of the twin, where the twin-reply row owns the inbound one."
+    },
+    {
+      "path": "src/lib/ai/tools/voice.ts",
+      "origin": "none",
+      "why": "renders the stored voice directives as prompt lines; it reads no request field of its own."
+    },
+    {
+      "path": "src/lib/llm/claude.ts",
+      "origin": "none",
+      "why": "the dev provider adapter. It transports a prompt another module already built and classified, and introduces no field of its own."
+    }
+  ]
+}

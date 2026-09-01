@@ -6,10 +6,18 @@
  *  steered it — and a large share of what this app puts in a prompt is written
  *  by somebody who is not the tenant. A campaign name is free text an advertiser
  *  types into Google's console; a Google review is written by a member of the
- *  public; an inbound message is written by whoever sent it. All three reach
- *  `generateStructured`, and the answers open change-sets, get published, or (in
- *  the twin's case) carry the `confidence`/`risks` pair `decideDraft` reads to
- *  decide whether a human sees the draft before it leaves.
+ *  public; an inbound message is written by whoever sent it; the onboarding scan
+ *  fetches a whole PAGE, and its public `/sken` mode lets an anonymous visitor
+ *  choose which site that is. All of them reach `generateStructured`, and the
+ *  answers open change-sets, get published as a landing page, seed the profile the
+ *  rest of the app grounds on, or (in the twin's case) carry the
+ *  `confidence`/`risks` pair `decideDraft` reads to decide whether a human sees the
+ *  draft before it leaves.
+ *
+ *  WHICH builders those are is deliberately not decided here: this file rehearses
+ *  the surfaces the corpus names, and test-unit/untrusted-surface-census.test.mjs
+ *  enumerates every prompt builder in the tree so a new one cannot arrive without an
+ *  answer on file.
  *
  *  So this suite is the adversarial golden set: `test-llm/adversarial/corpus.json`
  *  holds the payloads and what each one is fishing for, and every case is placed
@@ -75,15 +83,29 @@ let M = {};
 
 before(async () => {
   register(JSON_HOOK, import.meta.url);
-  const [untrusted, reportInput, adsDiagnosis, reviewReply, twinReply, aiTypes] = await Promise.all([
-    import("@/lib/ai/untrusted"),
-    import("@/lib/campaigns/report-input"),
-    import("@/lib/ai/tools/ads-diagnosis"),
-    import("@/lib/ai/tools/local-review-reply"),
-    import("@/lib/ai/tools/twin-reply"),
-    import("@/lib/ai-types"),
-  ]);
-  M = { ...untrusted, ...reportInput, ...adsDiagnosis, ...reviewReply, ...twinReply, ...aiTypes };
+  const [untrusted, reportInput, adsDiagnosis, reviewReply, twinReply, scan, localPage, channels, aiTypes] =
+    await Promise.all([
+      import("@/lib/ai/untrusted"),
+      import("@/lib/campaigns/report-input"),
+      import("@/lib/ai/tools/ads-diagnosis"),
+      import("@/lib/ai/tools/local-review-reply"),
+      import("@/lib/ai/tools/twin-reply"),
+      import("@/lib/ai/tools/onboarding-scan"),
+      import("@/lib/ai/tools/local-page"),
+      import("@/lib/ai/tools/channel-research"),
+      import("@/lib/ai-types"),
+    ]);
+  M = {
+    ...untrusted,
+    ...reportInput,
+    ...adsDiagnosis,
+    ...reviewReply,
+    ...twinReply,
+    ...scan,
+    ...localPage,
+    ...channels,
+    ...aiTypes,
+  };
 });
 
 // --- fixtures: the smallest real request each builder accepts ----------------
@@ -148,6 +170,21 @@ const TWIN_BASE = {
   contact: "Jan Novák",
 };
 
+/** The onboarding scan's own third-party fields. `url` is the only one a caller
+ *  supplies; `pageText` / `siteTitle` are fetched from that site by the route
+ *  (src/app/api/ai/modes.ts), and the `onboarding-scan-public` mode lets an
+ *  anonymous visitor pick the site. */
+const SCAN_BASE = { url: "https://dentalis.cz" };
+
+const LOCAL_PAGE_BASE = {
+  service: "Montáž klimatizací",
+  area: "Brno",
+  businessType: "klimatizace",
+  brand: "Klima Profi",
+};
+
+const CHANNELS_BASE = { projectType: "local", brand: "Dentalis" };
+
 /** Place one corpus payload in the field it would really arrive through.
  *
  *  The twin has both shapes and the corpus distinguishes them by `containment`,
@@ -174,6 +211,20 @@ function buildPrompt(c) {
             inbound: "Dobrý den, kolik to stojí?",
             thread: [{ direction: "in", content: c.payload }],
           });
+    // The scan has both shapes for the same reason the twin does: the fetched PAGE
+    // TEXT is the block surface (its line breaks are content) while the page's
+    // <title> is the inline one (it is rendered as a single labelled line).
+    case "buildOnboardingScanPrompt":
+      return c.containment === "block"
+        ? M.buildOnboardingScanPrompt({ ...SCAN_BASE, pageText: c.payload })
+        : M.buildOnboardingScanPrompt({ ...SCAN_BASE, siteTitle: c.payload });
+    case "buildLocalPagePrompt":
+      return M.buildLocalPagePrompt({
+        ...LOCAL_PAGE_BASE,
+        reviews: [{ author: "Jana K.", rating: 5, text: c.payload }],
+      });
+    case "buildChannelResearchPrompt":
+      return M.buildChannelResearchPrompt({ ...CHANNELS_BASE, businessSummary: c.payload });
     default:
       throw new Error(`corpus case ${c.id} names an unknown builder: ${c.builder}`);
   }
@@ -214,6 +265,9 @@ test("the corpus is wired, complete, and covers every quarantined builder", () =
     "buildAdsDiagnosisPrompt",
     "buildLocalReviewReplyPrompt",
     "buildTwinReplyPrompt",
+    "buildOnboardingScanPrompt",
+    "buildLocalPagePrompt",
+    "buildChannelResearchPrompt",
   ]) {
     assert.ok(builders.has(b), `no corpus case exercises ${b}, so its quarantine is unchecked.`);
   }

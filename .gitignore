@@ -97,6 +97,12 @@ next-env.d.ts
 /flake-drill.json
 /flake-drill.md
 
+# setup-walk verdicts — written by a RUN of scripts/setup-walk.mjs, which follows
+# docs/open-source/self-hosting.md § Quick start on whatever machine it is on. Same
+# rule as the two above: the measurement stays local, and the published artefact is
+# the dated verdict .github/workflows/setup-walk.yml keeps for 90 days.
+/setup-walk.json
+
 # which fences have actually fired — the rolling trail scripts/fence-firings.mjs
 # appends to whenever a gate goes red (npm run fences reads it back). Same rule as
 # the timings above: written by a RUN rather than by a change, and specific to the

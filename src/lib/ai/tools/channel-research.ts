@@ -30,6 +30,15 @@ import {
 } from "@/lib/organic-channels/types";
 import { baseChannelPlan } from "@/lib/organic-channels/sample";
 import { generateStructured } from "../../llm";
+// `businessSummary`, `offering`, `audience`, `keywords` and `competitors` are the
+// fields the applied website scan contributes (src/lib/organic-channels/grounding.ts),
+// so their ultimate author is whoever wrote the scanned page — not the tenant. The
+// grounding layer trims and caps them and does nothing about line breaks or control
+// characters, which is exactly the shape that turns a stored profile field into a
+// line of this prompt. They are folded on the way in (src/lib/ai/untrusted.ts); on
+// benign values that is a byte-for-byte no-op, which is why the gate fixture in
+// test-llm/registry.mjs is unchanged.
+import { inlineUntrusted, untrustedFirewallLines } from "../untrusted";
 import { cleanList, slugify, txt } from "./_shared";
 import { antiFabrication, demoTail } from "./_fragments";
 import { withObjectGuard, missingStrFields } from "./_validate";
@@ -94,19 +103,24 @@ export function buildChannelResearchPrompt(req: ChannelResearchRequest): string 
     "Sestav plán bezplatných (organických) kanálů viditelnosti pro tuto firmu.",
     "",
     `Typ podnikání: ${TYPE_FRAMING[type]}`,
-    `Značka / firma: ${req.brand}`,
+    // Every cap below sits ABOVE the wire validator's own bound for the field
+    // (src/lib/ai/validation.ts, validateChannelResearchRequest), so folding can
+    // never truncate a value the door already accepted.
+    `Značka / firma: ${inlineUntrusted(req.brand, 160)}`,
   ];
-  if (req.businessSummary) lines.push(`Čím se firma zabývá: ${req.businessSummary}`);
-  if (req.offering) lines.push(`Nabídka: ${req.offering}`);
-  if (req.audience) lines.push(`Cílové publikum: ${req.audience}`);
+  const list = (items: readonly string[]): string =>
+    items.map((i) => inlineUntrusted(i, 160)).join(", ");
+  if (req.businessSummary) lines.push(`Čím se firma zabývá: ${inlineUntrusted(req.businessSummary, 640)}`);
+  if (req.offering) lines.push(`Nabídka: ${inlineUntrusted(req.offering, 400)}`);
+  if (req.audience) lines.push(`Cílové publikum: ${inlineUntrusted(req.audience, 400)}`);
   if (req.localities && req.localities.length > 0) {
-    lines.push(`Lokality: ${req.localities.join(", ")}`);
+    lines.push(`Lokality: ${list(req.localities)}`);
   }
   if (req.competitors && req.competitors.length > 0) {
-    lines.push(`Konkurence (jen pro rámec, nevymýšlej si o ní čísla): ${req.competitors.join(", ")}`);
+    lines.push(`Konkurence (jen pro rámec, nevymýšlej si o ní čísla): ${list(req.competitors)}`);
   }
   if (req.keywords && req.keywords.length > 0) {
-    lines.push(`Klíčová slova, která publikum hledá: ${req.keywords.join(", ")}`);
+    lines.push(`Klíčová slova, která publikum hledá: ${list(req.keywords)}`);
   }
   // MEASURED OUTCOMES (WP W2-A). Everything above this line is CONTEXT the model
   // reasons from; these are the only NUMBERS in the prompt, and they were counted,
@@ -133,7 +147,20 @@ export function buildChannelResearchPrompt(req: ChannelResearchRequest): string 
     `Vrať „summary" (jedna věta o největší bezplatné příležitosti) a „channels" — 6–9 kanálů seřazených podle „fit" sestupně, každý s poli name, category, fit, effort, rationale, payoff, firstActions (volitelně url, contentAngle).`
   );
   lines.push(...refineLines(req.refine));
-  return lines.filter((l) => l !== "").join("\n");
+  const body = lines.filter((l) => l !== "").join("\n");
+  // Conditional by construction: a profile with nothing instruction-shaped in it
+  // produces the prompt this builder has always produced, so the notice appearing
+  // IS the finding (src/lib/ai/untrusted.ts).
+  const firewall = untrustedFirewallLines([
+    req.businessSummary,
+    req.offering,
+    req.audience,
+    req.brand,
+    ...(req.keywords ?? []),
+    ...(req.competitors ?? []),
+    ...(req.localities ?? []),
+  ]);
+  return firewall.length > 0 ? `${body}\n${firewall.join("\n")}` : body;
 }
 
 /** The production response schema. EXPORTED for the same reason as the system

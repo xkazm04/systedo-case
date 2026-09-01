@@ -64,6 +64,12 @@
         "publish": { "issues": "write" }
       }
     },
+    "setup-walk.yml": {
+      "top": { "contents": "read" },
+      "jobs": {
+        "walk": { "contents": "read" }
+      }
+    },
     "sast.yml": {
       "top": { "contents": "read" },
       "jobs": {

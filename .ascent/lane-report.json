@@ -2,80 +2,73 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "a1b48742-79de-4094-8a2a-d8b5cf5d53b8",
+      "recommendationId": "9361f219-6806-4084-b5ea-a8cdef1e799f",
       "verdict": "skipped",
-      "reason": "Pinning a tag to a SHA means asking GitHub what the tag points at right now, and this session has no network; the repository already ships the one networked command that closes it (`npm run actions:pin`, which rewrites the workflows AND flips STRICT/RATCHET in the same pass), so inventing SHAs or adding another burn-down job would be worse than leaving it.",
+      "reason": "Pinning an action to a SHA means asking GitHub what a tag points at right now, and this session has no network; the repo already has scripts/actions-pin.mjs --update, which resolves every tag AND flips its own STRICT/RATCHET in the same pass, so the close is one networked command plus the ledger floor.",
       "files": []
     },
     {
-      "recommendationId": "bcb23a3c-e230-4d06-8d0e-3e3a317337d8",
+      "recommendationId": "fb04e305-cbff-45e3-9326-dbb85c2cde05",
       "verdict": "skipped",
-      "reason": "The half that is still open is history — measuring and re-attributing past subjects needs git, which this session cannot run; the forward half is already fenced (rubric A5 blocks via review:agent:gate inside check:ci and the pre-push hook, with a known-bad fixture in test-unit/gate-bite.test.mjs, and scripts/commit-attribution.mjs writes the authorship and provenance trailers from the commit hooks).",
+      "reason": "The rule, the checker (scripts/commit-subject.mjs, rubric A5) and the provenance trailers all exist and run in .husky/prepare-commit-msg; what breaks it is an outer lane harness committing its report's first line in a throwaway worktree with no hooks installed, which is not fixable from inside the repository and not measurable here without git history.",
       "files": []
     },
     {
-      "recommendationId": "1dcd34c0-eb9a-4df6-8d8e-6abb9c1e326d",
+      "recommendationId": "872511bb-ea33-4758-bc5d-d4ee5005979c",
       "verdict": "skipped",
-      "reason": "Already closed before this cycle: .github/guidance-budget.json declares the seven read-first documents with a line ceiling on each and on the total, scripts/guidance-budget.mjs measures it, and test-unit/guidance-budget.test.mjs blocks on every build — this session paid the ceiling honestly (126 → 127 for docs/task-index.md) rather than editing around it.",
+      "reason": "Already covered: .github/guidance-budget.json declares the seven READ-FIRST documents with a per-file and total line ceiling (AGENTS.md 934, total 1602), npm run guidance:budget prints it and test-unit/guidance-budget.test.mjs blocks on every build; I deliberately added no line to AGENTS.md or docs/task-index.md, both of which sit exactly on their ceilings.",
       "files": [".github/guidance-budget.json"]
     },
     {
-      "recommendationId": "18ac2a25-53f3-49b1-8417-977e14397bea",
-      "verdict": "skipped",
-      "reason": "Already closed before this cycle: scripts/lib/review-prompt.mjs fences every untrusted surface with a per-run nonce, test-llm/injection/corpus.json holds the hostile cases for both model surfaces (the review and the issue dispatch), test-unit/prompt-injection.test.mjs blocks on containment with an unfenced negative control, and the live refusal drill runs weekly in llm-drift.yml.",
-      "files": []
-    },
-    {
-      "recommendationId": "602a87d4-1df2-409f-a4d5-9504c3bf19e4",
+      "recommendationId": "39d2d2f7-d6ac-4d25-83fd-3461b0600a55",
       "verdict": "resolved",
-      "reason": "Every credential flow in docs/security/threat-model.md now carries a TM-nn id, fourteen of the fifteen are claimed by the suite that asserts the fence the row names, and test-unit/threat-flows.test.mjs blocks when a flow is unclaimed, a citation rots, or a cited path has moved.",
+      "reason": "Found and fenced three unquarantined third-party surfaces (fetched page text in onboarding-scan, public review quotes in local-page, scan-derived profile prose in channel-research), added four adversarial corpus cases that exercise them, and added a census that enumerates every prompt builder so a fourth cannot arrive unnoticed.",
       "files": [
-        "docs/security/threat-model.md",
-        "scripts/threat-flows.mjs",
-        "test-unit/threat-flows.test.mjs",
-        "test-unit/cron-auth.test.mjs",
-        "test-unit/token-crypto-v2.test.mjs",
-        "test-unit/byom-keys.test.mjs",
-        "test-unit/catalog-connection.test.mjs",
-        "test-unit/sklik-connection.test.mjs",
-        "test-unit/campaigns-tenant-keys.test.mjs",
-        "test-unit/campaigns-mutator.test.mjs",
-        "test-unit/outbound-stores-local.test.mjs",
-        "test-unit/lint-fence-firing.test.mjs",
-        "test-unit/api-surface.test.mjs",
-        "test-unit/gate-bite.test.mjs",
-        "docs/task-index.md",
-        "package.json"
+        "src/lib/ai/tools/onboarding-scan.ts",
+        "src/lib/ai/tools/local-page.ts",
+        "src/lib/ai/tools/channel-research.ts",
+        "test-llm/adversarial/corpus.json",
+        "test-llm/adversarial/surfaces.json",
+        "test-unit/llm-adversarial.test.mjs",
+        "test-unit/untrusted-surface-census.test.mjs",
+        ".github/test-tiers.json"
       ]
     },
     {
-      "recommendationId": "fbd89fc7-85c9-49cd-90df-ffd023f4e332",
+      "recommendationId": "43e68bd0-e600-481b-8b2b-9707decfb409",
       "verdict": "needs_human",
-      "reason": "Staged exposure is a deployment-platform change (Vercel skew/aliases or a flag SDK) plus a halt signal nobody has agreed on; AGENTS.md puts anything that changes what production runs on the operator's side, and there is nothing offline in this repository that would make a canary real rather than declared.",
-      "files": []
+      "reason": "A staged rollout on Vercel is platform configuration (skew protection, alias promotion) plus a token that can move a deployment, and .github/workflows/post-deploy.yml already argues in writing that arming an automatic abort is the operator's decision because it needs a token that can write master; the repository half (a dated, automatic health verdict after every release) is already there.",
+      "files": [".github/workflows/post-deploy.yml"]
     },
     {
-      "recommendationId": "145c1582-e1ec-4856-afaa-01a163e6cc87",
+      "recommendationId": "1c667705-689b-4957-a0f2-e88736358841",
+      "verdict": "skipped",
+      "reason": "Already covered: test-llm/model-pins.json pins the model surface every golden/budget/bake was accepted against, test-llm/model-candidates.json declares the successor, npm run llm:candidate rehearses every registered operation against it through the real wrapper weekly in llm-drift.yml, and test-unit/model-candidate-census.test.mjs blocks when a candidate row stops naming the model actually being served.",
+      "files": ["test-llm/model-candidates.json", "test-llm/model-pins.json"]
+    },
+    {
+      "recommendationId": "0f1d9ab0-dc69-4371-ad3c-686ec8f11994",
       "verdict": "resolved",
-      "reason": "scripts/guidance-commands.mjs resolves every `npm run …` quoted in the read-first set, the documents task-index routes to and the five entry points against package.json, blocking through test-unit/guidance-commands.test.mjs, and reports the scripts no guidance names.",
+      "reason": "scripts/setup-walk.mjs now follows docs/open-source/self-hosting.md § Quick start on a clean machine (asserts the page still gives the commands, copies .env.example, builds under SELF_HOSTED+LOCAL_DB, boots and fetches /, parses the compose file) and .github/workflows/setup-walk.yml runs it weekly and on every change to the files it walks, keeping a dated verdict for 90 days.",
       "files": [
-        "scripts/guidance-commands.mjs",
-        "test-unit/guidance-commands.test.mjs",
-        "docs/task-index.md",
-        ".github/guidance-budget.json",
-        "package.json"
+        "scripts/setup-walk.mjs",
+        ".github/workflows/setup-walk.yml",
+        ".github/workflow-permissions.json",
+        "docs/open-source/self-hosting.md",
+        "package.json",
+        ".gitignore"
       ]
     },
     {
-      "recommendationId": "917fcb5d-c755-4aca-abc7-ce2525df2cbe",
+      "recommendationId": "1f6a40f2-e3ae-40de-b4f8-aaf52c3efccd",
       "verdict": "skipped",
-      "reason": "Already closed before this cycle: test-unit/gate-bite.test.mjs gives every stage of check:ci a known-bad fixture, a delegated suite or a written exemption, and the COVERAGE list is held closed against the CHAIN in scripts/gate-remedy.mjs, so a gate added to the chain without a proof that it bites turns the unit suite red.",
-      "files": []
+      "reason": "Already covered: .github/constraint-map.json is exactly that artefact — one row per never/always rule AGENTS.md states, with a rung of blocking | reporting | partial | honour, a mitigation field on the honour rows and a gapNote on the partial ones, summarised as a table in AGENTS.md and held to the tree (and to the check:ci chain) by test-unit/constraint-map.test.mjs.",
+      "files": [".github/constraint-map.json"]
     }
   ],
   "lessons": [
-    "This repository's gates are mostly cheap file-reading checks wired through test-unit/*.test.mjs rather than as new check:ci stages — adding a stage drags in a gate-remedy entry, a gate-bite fixture row, a constraint-map rule and a timing baseline, so a new fence is cheapest and most conventional as a unit test that spawns its own script.",
-    "Ascent findings here can be several cycles stale: four of the eight items named gaps that prior work had already closed (the injection corpus, the gate-bite fixtures, the guidance budget). Read the tree before writing anything — the honest answer for those is a skip that names the existing artefact, not a second implementation of it.",
-    "Anything added to AGENTS.md or docs/task-index.md is priced: .github/guidance-budget.json pins both at their exact current line count, so a paragraph costs a ceiling raise with a written reason. Routing a new tool from the task index (one line) rather than describing it in the canonical document (seven) is the move the budget's own $howToChange asks for."
+    "In this repository every fence is paired with a pin, a ceiling or a census, and the meta-tests enforce the pairing: adding an exception without its ceiling, a check:ci stage without a constraint-map row, or a line to AGENTS.md without raising .github/guidance-budget.json all turn the unit suite red. Read the pin file before the source file — the two-line diff is the house style, and half of one is a red build.",
+    "The scan's 'missing' bullets are worth verifying before acting on them: three of eight items here (guidance budget, model-candidate rehearsal, the unfenced-rule map) were already implemented as first-class artefacts with blocking tests, and the honest move was to name the artefact rather than build a second one next to it.",
+    "A prompt-injection corpus can only cover the builders somebody remembered. Enumerating the builders instead — every module under the AI seam, with the ORIGIN of the text it renders — is what found three unfenced third-party surfaces that eight hand-written adversarial cases had walked past for months."
   ]
 }

@@ -25,6 +25,21 @@ docker compose up -d --build
 
 Or without Docker: `SELF_HOSTED=true LOCAL_DB=true SYSTEDO_DB_FILE=/abs/path/systedo.db npm run build && npm start`.
 
+**Those three commands are WALKED, not just written.** `npm run setup:walk`
+(`scripts/setup-walk.mjs`) follows this section on a clean machine: it asserts this
+page still gives the commands it is about to run, copies `.env.example`, builds in
+self-hosted mode, starts the app and asks it for the page you are told to open, and
+parses `docker-compose.yml` for the port and the data volume promised above.
+`.github/workflows/setup-walk.yml` runs it weekly and on every change to this page,
+the Dockerfile, the compose file or `.env.example`, and keeps the dated verdict as an
+artifact — so a quick start that has quietly stopped working shows up as a failed step
+with a date on it rather than as a confused newcomer. Reporting rung
+([ADR-0007](../adr/0007-gate-rung-discipline.md)) until it has been seen green: the
+`continue-on-error` in that workflow is the whole of that claim, and deleting the line
+is the promotion. **Editing the commands above therefore means editing `DOCUMENTED` in
+`scripts/setup-walk.mjs` in the same diff** — the walk fails loudly rather than
+following instructions this page has stopped giving.
+
 The rest of this document is the agreed design, kept as the reference for the
 open items above; original context in
 [`impact.md` §2](./impact.md#2-the-five-blocking-gaps-ranked).

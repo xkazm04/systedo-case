@@ -1,0 +1,88 @@
+name: Setup walk
+
+# The documented deploy shape, FOLLOWED on a clean machine.
+#
+# `npm run docs:parity` holds the bilingual pages to the same claims and
+# `npm run docs:staleness` measures whether a page has been re-read since the code
+# under it moved. Neither of them, and nothing else here, has ever RUN a documented
+# instruction — so docs/open-source/self-hosting.md § Quick start, the page a
+# stranger follows on a machine that has never seen this app, could stop working at
+# any commit and the first report would be a confused newcomer rather than a red
+# build. `check:ci` proves the repository builds; it says nothing about whether the
+# sentences that tell somebody how to RUN it are still true.
+#
+# scripts/setup-walk.mjs walks the page: it asserts the page still gives the
+# commands it is about to run, copies .env.example, builds under SELF_HOSTED=true
+# LOCAL_DB=true, starts the app and asks it for the page the reader is told to open,
+# and parses the compose file for the port and volume the page promises.
+#
+# RUNG (docs/adr/0007-gate-rung-discipline.md): REPORTING, and the `continue-on-error`
+# below is the whole of that claim. Nothing has ever measured this walk, and a check
+# that has never been seen green may not decide a build. What it produces every run is
+# dated evidence: a row per step in the job summary and in setup-walk.json, kept for
+# 90 days. PROMOTE IT by deleting the `continue-on-error:` line once the walk has been
+# green — that is the same one-line promotion every reporting rung here gets, and the
+# artifact history is what earns it.
+#
+# It is deliberately NOT in .github/required-checks.json: a documentation defect
+# should be visible and dated, not a thing that blocks a security fix from landing.
+on:
+  schedule:
+    # Weekly, next to the other drills — a doc rots with the code around it, not with
+    # the diff that touched it, so the useful cadence is the calendar.
+    - cron: "0 5 * * 2"
+  push:
+    paths:
+      - "docs/open-source/self-hosting.md"
+      - ".env.example"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "scripts/setup-walk.mjs"
+      - ".github/workflows/setup-walk.yml"
+  workflow_dispatch:
+
+# Least privilege, declared rather than inherited (rule P1) and matched scope for
+# scope against .github/workflow-permissions.json (rule P10). This workflow writes
+# nothing: its verdict is an artifact, a job summary and the run's own status.
+permissions:
+  contents: read
+
+jobs:
+  walk:
+    name: Follow the self-hosting quick start
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.14.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Reporting rung — see the header. No expression enters a `run:` body (rule P5)
+      # and no attacker-shaped context appears anywhere in this file (P7/P9); the walk
+      # takes no input at all.
+      - name: Walk docs/open-source/self-hosting.md
+        continue-on-error: true
+        run: node scripts/setup-walk.mjs --out setup-walk.json --summary "$GITHUB_STEP_SUMMARY"
+
+      # The verdict outlives the run, in the same 90-day window as the review's report
+      # and the post-deploy probe. "Did the setup page work in September?" is asked
+      # well after a run's logs stop being convenient.
+      - name: Keep the verdict
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: setup-walk-verdict
+          path: setup-walk.json
+          if-no-files-found: ignore
+          retention-days: 90
