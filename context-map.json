@@ -51,10 +51,12 @@
       "api_surface": null,
       "business_feature": "Account & Project Settings",
       "category": "ui",
+      "$comment": "cross_refs 2026-09-01: lead-management — the project settings page hosts ConversionUploadCard, the conversion-upload feature's settings surface; the same page-hosts-a-feature-card pattern as byom-api and platform-ops-api already declared here.",
       "cross_refs": [
         "byom-api",
         "platform-ops-api",
-        "app-shell"
+        "app-shell",
+        "lead-management"
       ],
       "db_tables": [],
       "description": "Account-level management pages available to every project type: project settings (name, type, delete) plus per-user BYOM key management; user account page; project-wide activity timeline that streams from the live Firestore feed with a seeded fallback; and integration status board showing connector readiness across environment + project config. These pages share no project-type gate and render inside the standard AppShell.",
