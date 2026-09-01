@@ -626,6 +626,46 @@ remedy all turn the unit suite red.
   arrives transitively under something else — is a decision somebody makes in a
   diff, with the reason next to the name. Adding a runtime dependency also needs an
   `Ack:` (rubric A4); these are different questions and both are asked.
+- **The tests prove the answer is right; a budget is what notices it got slow.**
+  The unit suite, the mutation drill and the e2e lane all ask whether a change made
+  the answer WRONG. None of them asks whether it made the answer late, so a change
+  that doubles a route's server time is green everywhere and the first thing that
+  reports it is somebody waiting for a page — which, on a loop where an agent
+  optimises for a green gate, is a regression nothing argues with.
+  [`.github/perf-budgets.json`](.github/perf-budgets.json) is the declaration: five
+  key-free routes, each with the ceiling it may not pass and the reason it earns
+  one. `tests/perf-budget.spec.ts` measures them inside `npm run test:e2e` — the
+  `E2E smoke` job that `.github/required-checks.json` names as a check that may stop
+  a change — and a route over its ceiling fails it. **What is measured is the
+  DOCUMENT RESPONSE**, warm and best of three: the server answering the route, which
+  is the half this repository's code owns. `domcontentloaded` would mostly measure
+  the dev bundler, and a budget over noise is a gate that teaches people to re-run
+  the build. The ceilings are generous and **unmeasured** — `baseline` is null,
+  every run attaches its own numbers to the Playwright report, and the first green
+  run produces exactly what a tighter ceiling needs. Move one the way every
+  threshold here moves: with the reason, in the same diff. Raising one to make your
+  own change pass is rubric B3. The registry's shape blocks on every build
+  (`test-unit/perf-budget.test.mjs`): a budget naming a route that no longer exists
+  measures nothing and says so to nobody.
+- **What agents got wrong here is written down once, not rediscovered.** The rubric
+  review runs on every push and `agent-review-history.yml` publishes which rules
+  fire, so mistakes are caught — and then forgotten. The next lane arrives with the
+  same prior, makes the same call, and the guidance grows by accretion: one
+  paragraph per incident, written from the last one rather than from the count.
+  [`docs/agent-lessons.md`](docs/agent-lessons.md) is the ledger, keyed by the
+  MISTAKE rather than by the rule (data in
+  [`.github/agent-lessons.json`](.github/agent-lessons.json)). Read the rows whose
+  `standing` is `partial` or `unfenced` before a run: those are the traps where
+  nothing will tell you that you got it wrong, or where the fence is absent on
+  exactly the path you are on. A row earns its place with EVIDENCE — a subject in
+  the log, a paragraph written from the incident, an entry in
+  `docs/harness/harness-learnings.md` — never with a hazard somebody imagined; and
+  when a rubric rule fires constantly, the decision to keep it, redraw it or fence
+  it differently is recorded there rather than in a review comment nobody reads
+  twice. Held to the tree by `test-unit/agent-lessons.test.mjs` (blocking): a row
+  with no evidence or no correct call, a `constraintId` naming a rule the map does
+  not have, a cited path that has moved, or a lesson the readable page has quietly
+  dropped all turn the unit suite red.
 - Deploy/env questions (required env names, rollback, crons, host rename):
   `docs/deploy.md`.
 
@@ -701,6 +741,8 @@ would notice afterwards.
 | `strict-frontier` — the stricter type check is measured by a loop, not by memory | `typecheck:strict:check`, `test-unit/typecheck-strict.test.mjs` | reporting |
 | `model-candidate` — the model AFTER this one is rehearsed before the swap | `test-unit/model-candidate-census.test.mjs`, `llm:candidate` | partial |
 | `dependency-provenance` — every package comes from the registry, hashed, and the install-script set is pinned | `test-unit/dependency-lockfile.test.mjs` | blocking |
+| `perf-budget` — a budgeted route may not pass the cost it is allowed | `tests/perf-budget.spec.ts` (the required E2E job), `test-unit/perf-budget.test.mjs` | partial |
+| `agent-lessons` — a trap an agent hit is recorded once, with its evidence | `test-unit/agent-lessons.test.mjs`, `docs:staleness:check` | partial |
 
 `test-unit/constraint-map.test.mjs` holds this table and the JSON to each other,
 and both to the tree: a gate named here that `package.json` does not define, a

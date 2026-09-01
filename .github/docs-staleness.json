@@ -128,6 +128,12 @@
       "watches": ["scripts/agent-checkpoint.mjs"],
       "maxAgeDays": 180,
       "why": "How a stopped run hands off. Read by an agent that is already in trouble."
+    },
+    {
+      "doc": "docs/agent-lessons.md",
+      "watches": [".github/agent-lessons.json", "AGENTS.md", ".github/agent-review-rubric.md", ".github/constraint-map.json"],
+      "maxAgeDays": 120,
+      "why": "The record of what agents got wrong here, and the standing of each trap — whether a fence now refuses it, or nothing does. When the guidance surface moves under it, a row that says 'nothing catches this' may have become false, or a fence it names may have gone; both read as evidence and neither would be noticed otherwise."
     }
   ]
 }

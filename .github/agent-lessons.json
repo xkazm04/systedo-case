@@ -1,0 +1,176 @@
+{
+  "$comment": [
+    "What an agent got wrong here, and what the correct call was.",
+    "",
+    "THE GAP THIS CLOSES. Mistakes are caught in this repository — the rubric review runs",
+    "on every push, .github/workflows/agent-review-history.yml publishes which rules fire,",
+    "and fifteen gates refuse a change for a stated reason. What none of that does is",
+    "remember. A finding is a red build, the red build is fixed, and the next lane arrives",
+    "with the same prior and makes the same call again. The visible symptom is guidance",
+    "that grows by ACCRETION: every trap eventually becomes another paragraph in AGENTS.md,",
+    "written from the last incident rather than from the count.",
+    "",
+    "So this is the ledger, keyed by the MISTAKE rather than by the rule. It is not a",
+    "third copy of the constraint map (.github/constraint-map.json, keyed by the rule) or",
+    "of the contract ledger (.github/contract-ledger.json, keyed by the enforcement). Those",
+    "answer 'will anything stop me?' and 'what is this fence letting through?'. This one",
+    "answers the question you have BEFORE either: 'what has already gone wrong here, and",
+    "what should I do instead?'",
+    "",
+    "WHAT EARNS A ROW. Something that actually happened, at least once, with a citation a",
+    "reader can open — a commit subject in the log, a paragraph in AGENTS.md written from",
+    "the incident, an entry in docs/harness/harness-learnings.md, an ADR that exists",
+    "because of it. Not a hazard somebody imagined; those belong in the rule, not in the",
+    "record of what the rule cost to learn. `evidence` is required and is checked for",
+    "being there, never for being true — that part is on the writer.",
+    "",
+    "WHAT `standing` MEANS, and why it is the useful column:",
+    "  fenced   — something now refuses this on the machine that does it. Read the row for",
+    "             the shape of the correct call; the fence will tell you when you are wrong.",
+    "  partial  — a fence exists AND a known path around it does too (`gapNote` says which).",
+    "             These are the rows worth reading twice: the failure is invisible exactly",
+    "             where the fence is absent, which is usually a throwaway worktree or a lane",
+    "             that commits for itself.",
+    "  unfenced — nothing runs. Knowing is the only defence, `wouldNotice` says what (if",
+    "             anything) sees it afterwards, and the honest answer is sometimes nobody.",
+    "",
+    "WHEN A RUBRIC RULE FIRES CONSTANTLY, the decision to keep it, redraw it or fence it",
+    "differently is recorded HERE, as a row with the count in `evidence` — not in a comment",
+    "on the pull request that is about to be merged and forgotten. That is the whole point:",
+    "the review already produces the evidence (agent-review-history.yml), and until this",
+    "file nothing turned it into a decision anybody could read later.",
+    "",
+    "HELD HONEST BY test-unit/agent-lessons.test.mjs (blocking, inside `npm run test:unit`",
+    "→ `npm run check:ci` → `.husky/pre-push`): every row carries evidence and a correct",
+    "call, every `constraintId` names a rule the constraint map actually has, every path a",
+    "row cites still exists, and docs/agent-lessons.md names every row — a lesson the",
+    "readable ledger has quietly dropped is one no lane will ever read. The ledger is also",
+    "registered in .github/docs-staleness.json, so when the guidance surface it describes",
+    "moves, the page is flagged for re-reading rather than aging in silence."
+  ],
+  "lessons": [
+    {
+      "id": "commit-subject-narrates-the-run",
+      "trap": "The first line of the agent's REPORT becomes the commit subject — `fix: Done. Here's what I found and changed`, `chore: partial work from an interrupted lane session` — so the log records what the session felt like instead of what the change was, and `git log --oneline` stops being bisectable.",
+      "correctCall": "Write the report's first line AS A SUBJECT: a conventional-commit header naming the artefact and what happened to it, in one clause (`chore(registry-map): regenerate with priorNotApplicable ranking hint`). Everything about the run goes below a blank line, in the body, where no rule objects to it. Check it before exiting: `npm run commit:check -- --message \"<subject>\"`.",
+      "evidence": [
+        "AGENTS.md § 'A commit subject names the change, not the session' cites two subjects from this log verbatim and says both are now refused.",
+        "Three of the five commits before this ledger landed narrate the run: a019a437 'fix: I've finished. Here's what I found and changed', ae1a4bc9 'fix: Done. Two items closed with working fences…', 4cedfce9 'fix: I read the repo's canonical guidance (AGENTS.md), then verified'.",
+        "scripts/commit-subject.mjs was written for this, and scripts/install-commit-hooks.mjs wires it as a commit-msg hook on `npm install` so the subject is refused while the message can still be edited."
+      ],
+      "standing": "partial",
+      "constraintId": "commit-subject",
+      "nowCaughtBy": "rubric A5 (`npm run review:agent:gate`, inside check:ci) on a diff, and the commit-msg hook `npm install` writes, at the moment the message is still free to change.",
+      "gapNote": "An OUTER lane that takes the agent's report and commits for it runs in a throwaway worktree where nobody ran `npm install`, so no hook exists there at all — the same hole rubric A5 has. There is no repository-side fix for a harness that never runs a hook, which is why this row is addressed to the report's FIRST LINE rather than to the committer.",
+      "see": ["scripts/commit-subject.mjs", "scripts/install-commit-hooks.mjs", "AGENTS.md"]
+    },
+    {
+      "id": "interrupted-run-commits-instead-of-checkpointing",
+      "trap": "A run stopped by its wall clock leaves a commit that says it was stopped ('partial work from an interrupted lane session') and nothing the next run can pick up: no statement of what is now true, and no next step.",
+      "correctCall": "Open a checkpoint at the start of anything longer than a couple of steps and update `--next` BEFORE the step you might not survive. Read the open ones first (`npm run checkpoint`) instead of re-deriving what one already says. A run that produced no change owes the log no commit — it owes the next run a checkpoint.",
+      "evidence": [
+        "Two of the five commits before this ledger landed are 'chore: partial work from an interrupted lane session' (74aad4ce, 8915f287) — the shape .agent/README.md was written to replace.",
+        ".agent/README.md records that `endedAt` is stamped only on a clean exit, so a checkpoint without it belongs to a run that was stopped: the field exists because stopped runs are the normal case here."
+      ],
+      "standing": "partial",
+      "constraintId": "checkpoints",
+      "nowCaughtBy": "`npm run checkpoint:check` (inside check:ci) fails when a checkpoint stops being readable.",
+      "gapNote": "Nothing can fail because a checkpoint was never opened — an absent handoff looks exactly like a run that had nothing to hand off.",
+      "see": [".agent/README.md", "scripts/agent-checkpoint.mjs"]
+    },
+    {
+      "id": "server-only-module-in-a-client-component",
+      "trap": "A `\"use client\"` component imports a runtime value from a module that reaches Node — `firebase-admin`, `node:sqlite`, a helper that does `readFileSync` at module scope — and `tsc` and the unit suite both pass. The client/server boundary is a bundler concern, not a type one, so the failure arrives from `next build` as a chunk-codegen error that names nothing useful.",
+      "correctCall": "Split the pure half into a framework-free module both sides import (`*-types.ts` beside the store), keep the Node I/O in the sibling, and import types with `import type` so nothing survives to runtime. Any wave that creates or edits a `\"use client\"` component runs a full `next build`, not just `tsc` and the unit tests.",
+      "evidence": [
+        "docs/harness/harness-learnings.md § 'Conventions enforced' (2026-07-09): hit in F2, then applied preemptively in F5/M2/M4/M5.",
+        "docs/harness/harness-learnings.md § 'Anti-patterns to avoid (new)' (2026-06-25): the T2 swatch island imported `readableInkOn` from src/lib/design-tokens.ts and dragged node:fs into the client chunk — `next build` failed, tsc and unit tests passed.",
+        "The 2026-07-02 run added `server-only` poisoning to the Node-bound modules precisely because the error was unreadable twice."
+      ],
+      "standing": "partial",
+      "constraintId": "store-seam",
+      "nowCaughtBy": "`server-only` on the Node-bound modules turns it into a clear dev-time error, and the lint fence `adamant/seams` refuses a driver import outside src/lib/.",
+      "gapNote": "Neither sees a NEW Node-bound helper that nobody poisoned — the module you are about to write. For that, `next build` is still the only check that fails.",
+      "see": ["eslint.config.mjs", "docs/harness/harness-learnings.md"]
+    },
+    {
+      "id": "pathspec-sweep-takes-another-agents-work",
+      "trap": "`git add -A` (or a bare `git commit`) in a checkout a second agent is also writing to, so somebody else's half-finished work lands inside your commit — and, when it does not build on its own, breaks master under your subject.",
+      "correctCall": "`git add <paths>` then `git commit <same paths>`, always. Check `git status` for files you did not touch BEFORE the first commit rather than after, and when the checkout is shared, verify the commit builds in isolation. Never stash or reset work that is not yours: the stash stack is shared with every worktree.",
+      "evidence": [
+        "docs/harness/harness-learnings.md § 'Process note (this run)' (2026-06-16): foreign `feat(social)`/`patterns` commits interleaved with the run's own, and the work was moved to an isolated worktree because of it.",
+        "docs/harness/harness-learnings.md § 'Anti-patterns to avoid (new)' (2026-07-02): 'Committing from a checkout a ship-loop/second agent is writing to' — foreign WIP appeared mid-scan a second time."
+      ],
+      "standing": "unfenced",
+      "constraintId": "pathspec-commits",
+      "nowCaughtBy": "nothing — no hook can tell a legitimate `git add .` in a clean tree from one that swept up a concurrent agent's work.",
+      "wouldNotice": "The other agent, when their work turns up in somebody else's commit — usually after the push that shipped it.",
+      "see": ["AGENTS.md"]
+    },
+    {
+      "id": "gate-softened-instead-of-finding-fixed",
+      "trap": "A gate is in the way, so the number moves: a `continue-on-error` 'for now', a ratchet baseline raised by one, an exception added to an allowlist, a threshold constant edited in the script that enforces it. Each is one line, each is honestly labelled at the time, and each outlives its reason.",
+      "correctCall": "Fix the finding, or bring the operator the reason it should not be a finding. When an exception genuinely is right, the entry and the ceiling that pays for it go in the SAME diff, next to each other where a reviewer reads both. Never raise a ratchet you could have lowered.",
+      "evidence": [
+        "AGENTS.md § 'Security rules are a gate, not a review note' records the worked example: the rule was documented as blocking in three places while sast.yml ran it under `continue-on-error: true` and check:ci did not run it at all. Four security findings accumulated where nobody was looking, and the softening outlived its reason by months (fixed 2026-09-01).",
+        ".github/contract-ledger.json exists because a ratchet baseline, a floor and an exception list are the three cheapest greens in this repository."
+      ],
+      "standing": "fenced",
+      "constraintId": "no-gate-loosening",
+      "nowCaughtBy": "`npm run contract:ledger:check` fails when a list grows past its ceiling or a threshold crosses its pin — or carries no pin at all — and `npm run merge-gate` fails when a required check gains an undeclared `continue-on-error`.",
+      "see": [".github/contract-ledger.json", "scripts/merge-gate.mjs"]
+    },
+    {
+      "id": "editing-a-generated-region",
+      "trap": "The vendor block at the top of AGENTS.md (or the context map in CLAUDE.md) reads like guidance, so an agent edits it, deletes it, or accepts a reworded one inside an unrelated diff. `next dev` writes it straight back, so the deletion only re-creates an uncommitted change — and a reworded generated block carries instructions nobody on the team wrote into the file every agent obeys.",
+      "correctCall": "Leave the region alone; if the change is legitimate, accept it deliberately and on its own: `npm run agents:surface -- --accept \"what changed and why it is fine\"`. Guidance you actually want gets written by you, BELOW the markers.",
+      "evidence": [
+        "docs/adr/0012-generated-regions-are-data.md exists for this, and .github/agent-surface.lock.json pins both regions so a generator reword fails the gate instead of riding along in an unrelated diff.",
+        "AGENTS.md states the failure mode in the block itself: 'Removing it from a diff only re-creates the uncommitted change'."
+      ],
+      "standing": "fenced",
+      "constraintId": "generated-regions",
+      "nowCaughtBy": "`npm run agents:surface` (inside check:ci) fails on any drift from the accepted lock content, and refuses to pin a newly arrived instruction-shaped line without `--accept-instructions`.",
+      "see": ["docs/adr/0012-generated-regions-are-data.md", ".github/agent-surface.lock.json"]
+    },
+    {
+      "id": "writing-the-chokepoint-call-in-prose",
+      "trap": "The LLM gate finds call sites by text, so writing the wrapper's name followed by a parenthesis inside a COMMENT registers as an untagged call site and blocks the commit — a red build caused by a sentence about the code.",
+      "correctCall": "Say 'the wrapper call site' in prose. Keep the literal spelling for actual calls, each with its `// llm-tool: <id>` tag and a registered test.",
+      "evidence": [
+        "docs/harness/harness-learnings.md § 'Anti-patterns to avoid' (2026-06-18): 'Cost one blocked commit in M5'."
+      ],
+      "standing": "fenced",
+      "constraintId": "llm-tool-tag",
+      "nowCaughtBy": "`npm run llm:gate:check` (pre-commit and inside check:ci) — which is also what fires the false positive, so the fence and the trap are the same mechanism.",
+      "see": ["scripts/llm-gate.mjs"]
+    },
+    {
+      "id": "assuming-a-documented-list-is-current",
+      "trap": "A document names a list — the LLM gate's hashed files, the exception entries, the routes a budget covers — and a run plans around the list as written. The list has grown since, and the surprise arrives as an expensive real-model run at pre-commit, or as a gate nobody expected to fire.",
+      "correctCall": "Read the list in the SOURCE before a run that depends on it, not in the prose about the source. For gate-adjacent work, bundle every hashed edit into one commit and prove it once, deliberately.",
+      "evidence": [
+        "docs/harness/harness-learnings.md § 'Anti-patterns to avoid (new)' (2026-07-02): W6 paid a surprise ~5-minute real run because HASHED_FILES had grown past the list documented in the 2026-06-18 notes.",
+        "The same file's 2026-07-02 entry corrects its own 2026-06-18 five-file list as stale — the document was wrong about itself within three weeks."
+      ],
+      "standing": "unfenced",
+      "constraintId": null,
+      "nowCaughtBy": "nothing — a document that describes a list accurately today and inaccurately next month is exactly what `npm run docs:staleness` measures, and that gate reports rather than blocks.",
+      "wouldNotice": "The run that paid for it, at the moment it pays.",
+      "see": ["scripts/llm-gate.mjs", ".github/docs-staleness.json"]
+    },
+    {
+      "id": "a-test-that-enshrines-the-bug",
+      "trap": "A previous run's test asserts the behaviour that is now understood to be the defect, so fixing the code turns the suite red and the obvious next move — make the code match the test — restores the bug and calls it a regression fix.",
+      "correctCall": "When a test blocks a fix, read what it asserts and why it was written. A test that pins a fabricated claim is fixed by asserting the absence of it, in the same commit as the code. Deleting the test instead needs an `Ack:` and is almost never the right answer.",
+      "evidence": [
+        "docs/harness/harness-learnings.md § 'Anti-patterns to avoid (new)' (2026-07-10): the 365-day `historyGroundingText` test asserted the exact fabricated '12 měsíců' claim, and fixing the bug required fixing the test to assert silence."
+      ],
+      "standing": "partial",
+      "constraintId": "test-deletion-ack",
+      "nowCaughtBy": "rubric A3 blocks a DELETED test without an `Ack:` line.",
+      "gapNote": "Nothing sees a test that was weakened rather than deleted — an assertion loosened until it passes leaves the file, and the count, exactly where they were.",
+      "see": [".github/agent-review-rubric.md", "docs/harness/harness-learnings.md"]
+    }
+  ]
+}

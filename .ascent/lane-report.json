@@ -2,36 +2,66 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "782eee22-fda5-4ddb-90f5-4f9fb777e14b",
+      "recommendationId": "04c63b18-4aee-4474-943a-7733dbbf0fea",
+      "verdict": "skipped",
+      "reason": "Pinning a tag to a commit SHA means asking GitHub what the tag points at right now, and this session has no network; the repo already has the one-command close (`npm run actions:pin`, which also flips STRICT and the P6 ratchet in the same pass), and every workflow's permissions are already job-scoped least privilege, so there was nothing left to do offline.",
+      "files": []
+    },
+    {
+      "recommendationId": "9d47c811-66eb-4b6e-ab88-7299614f437e",
+      "verdict": "skipped",
+      "reason": "Already covered another way: .github/branch-ruleset.json declares the ruleset, scripts/branch-protection.mjs reconciles it against .github/required-checks.json offline and blocks through `npm run merge-gate` inside check:ci, and `npm run protection:verify` reads GitHub's live rules weekly in agent-review-history.yml and publishes the answer into the trail issue.",
+      "files": []
+    },
+    {
+      "recommendationId": "37e4481c-ed8e-4165-ad90-d8575ac033d4",
       "verdict": "resolved",
-      "reason": "The repo's SAST gate was decoration — `continue-on-error: true` in sast.yml and absent from check:ci, while AGENTS.md, SECURITY.md and the constraint map all called it blocking — so nothing here could go red for a security finding; I closed the four findings behind that line (two SQL interpolations fixed by enumerating the statements, one allowlisted with a reason and a raised ceiling, and the decrypted BYOM key moved behind a lib seam so no route imports it), deleted the softening, added `npm run sast` to check:ci and the job to required-checks/branch-ruleset, proved it bites with a known-bad fixture in gate-bite, and added a blocking lockfile-provenance suite; SHA-pinning the Actions remains open because it needs the network.",
+      "reason": "Added a lessons ledger keyed by the mistake — nine traps with evidence, the correct call and whether anything now stops them — routed from AGENTS.md and the task index, held to the tree by a blocking unit test and given an age budget so it is re-read when the guidance moves.",
       "files": [
-        ".github/workflows/sast.yml",
-        "package.json",
-        "scripts/gate-remedy.mjs",
-        "scripts/sast.mjs",
-        "src/lib/campaigns/store/local-docs.ts",
-        "src/lib/llm/keys/validate.ts",
-        "src/app/api/byom/keys/route.ts",
-        "src/app/api/byom/validate/route.ts",
-        ".github/security/sast-allowlist.json",
-        ".github/contract-ledger.json",
-        ".github/required-checks.json",
-        ".github/branch-ruleset.json",
+        ".github/agent-lessons.json",
+        "docs/agent-lessons.md",
+        "test-unit/agent-lessons.test.mjs",
         ".github/constraint-map.json",
-        ".github/workflows/ci.yml",
-        "test-unit/gate-bite.test.mjs",
-        "test-unit/dependency-lockfile.test.mjs",
-        "AGENTS.md",
-        "SECURITY.md"
+        ".github/docs-staleness.json",
+        "docs/task-index.md",
+        "AGENTS.md"
       ]
+    },
+    {
+      "recommendationId": "66b9e2dc-5eaa-46d2-b366-0f2eb5c8b9e8",
+      "verdict": "resolved",
+      "reason": "Added a performance budget: five key-free routes with declared ceilings, measured as the warm document response (best of three) by a Playwright spec in the required E2E job, with the registry's shape held by a blocking unit test.",
+      "files": [
+        ".github/perf-budgets.json",
+        "tests/perf-budget.spec.ts",
+        "test-unit/perf-budget.test.mjs",
+        ".github/constraint-map.json",
+        "docs/task-index.md",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "recommendationId": "bd0e663a-4be0-4f81-a621-28007b68b18a",
+      "verdict": "skipped",
+      "reason": "Already covered another way: test-llm/model-pins.json records which model surface every golden, bake and budget was accepted against, `llm:models:check` and test-unit/llm-model-pin.test.mjs block when src/lib/llm/models.ts declares a model the pins do not, llm-drift.yml re-proves the whole registry against the configured provider weekly, and test-llm/model-candidates.json rehearses the successor before a swap.",
+      "files": []
+    },
+    {
+      "recommendationId": "5a7feff1-8d92-4951-81d7-455b9a135c97",
+      "verdict": "needs_human",
+      "reason": "Progressive delivery is a platform and release decision, not a repo file: the deploy target is already declared as data (.github/environments.json, diffed against the tree on every build), and staged exposure on Vercel plus any rollout gate would change how a push reaches users — which AGENTS.md puts squarely on the operator, and which no test here could hold.",
+      "files": []
+    },
+    {
+      "recommendationId": "716842d3-ee4c-4ca5-9534-6224fcf282f1",
+      "verdict": "needs_human",
+      "reason": "The provenance mechanism is already complete (scripts/commit-attribution.mjs writes Agent-Harness/Model/Spec/Session/Lane, install-commit-hooks.mjs wires it on `npm install`, commit:check reports coverage); the one repo-side lever left was committing the two managed hooks so worktree lanes inherit them without an install, and this session was refused write access to .husky/ — a maintainer should decide whether to track them, given the installer deliberately never overwrites a human-owned hook.",
+      "files": []
     }
   ],
   "lessons": [
-    "In this repository the interesting security question is never 'is there a gate?' but 'can it fail?'. Four documents (AGENTS.md, SECURITY.md, .github/constraint-map.json, .github/required-checks.json) called the SAST gate blocking while one `continue-on-error: true` line and an omission from `check:ci` meant it could not stop anything. Grep every claimed-blocking gate for `continue-on-error` and check it is actually a stage of `check:ci` before believing the prose — and note that `.github/constraint-map.json` is the file that is SUPPOSED to answer this, so a wrong row there is the highest-value thing to fix.",
-    "A softening that is honestly labelled and explicitly temporary is the kind that survives longest: sast.yml carried a well-written paragraph saying exactly which three findings had to be fixed before the line came out, and the line outlived it by months while a fourth finding accumulated behind it. A temporary exception is worth more when it names the count it is absorbing, so the count can be ratcheted, than when it names the fix.",
-    "Adding a stage to `check:ci` here is never a one-line diff: `test-unit/constraint-map.test.mjs` (a rule must claim the stage), `test-unit/gate-remedy.test.mjs` (a CHAIN entry, in the same order, whose script calls printRemedy), `test-unit/gate-bite.test.mjs` (a known-bad fixture or a written exemption), `test-unit/gate-timings.test.mjs` and the fence census all bind to that chain. Read those five before proposing a new gate — and note that `scripts/agent-surface.mjs`'s unmapped-file ratchet only counts `src/`, so new files under `scripts/` and `test-unit/` are free.",
-    "The contract ledger's `comesOffWhen` fields are executable design advice, not decoration. `plaintext-key-in-route` said the exception comes off 'when validation moves behind a lib-side seam that takes the user and returns a verdict' and that 'a second route needing the plaintext key is the signal to do that, not to add a line here' — which was exactly the situation, and following it turned an allowlist entry into a ceiling of 0. Read the ceiling's `comesOffWhen` before adding an entry to the list it caps.",
-    "An offline lane can still verify a lot about this tree with grep alone: the SAST rule set is ten regexes, so each one can be re-run by hand over `src/` to establish, before promoting the gate, that it is actually green — 88 API routes minus 83 with a guard is exactly the 5 allowlisted ones, and 860 of 866 lockfile entries carrying sha512 integrity turned out to be the 6 `inBundle` packages. Establish the count first; a promotion made on a guess is what makes a gate get switched off again."
+    "This repository's convention is that every new fence arrives as a trio — the declaration as data in .github/, the thing that measures it, and a census test that fails when the declaration stops describing the tree. Matching that shape matters more than the fence itself: test-unit/constraint-map.test.mjs refuses a check:ci stage with no rule attached, so a gate added without its row turns the suite red.",
+    "Rung discipline (ADR-0007) is the load-bearing idea here: a check blocks only once somebody has measured that it passes. An offline session cannot measure, so anything it adds should either block on SHAPE (which is checkable from committed data) or ship with a null baseline and the command that pins it — never with an invented threshold.",
+    "An isolated worktree session may be denied writes to hook directories like .husky/, so plans that depend on committing a git hook need a human step; check that before designing a fix around one."
   ]
 }

@@ -532,6 +532,50 @@
         }
       ],
       "rung": "blocking"
+    },
+    {
+      "id": "perf-budget",
+      "rule": "A budgeted route answers within the ceiling .github/perf-budgets.json declares for it, and a ceiling moves only with the reason, in the same diff.",
+      "statedIn": {
+        "file": "AGENTS.md",
+        "quote": "The tests prove the answer is right; a budget is what notices it got slow."
+      },
+      "enforcement": [
+        {
+          "kind": "test",
+          "name": "tests/perf-budget.spec.ts",
+          "note": "measures the document response for each budgeted route — warm, best of three — inside `npm run test:e2e`, the `E2E smoke (Playwright, key-free)` job that .github/required-checks.json names as a check that may stop a change"
+        },
+        {
+          "kind": "test",
+          "name": "test-unit/perf-budget.test.mjs",
+          "note": "the registry's shape, on every build: a budgeted route with no page behind it, a ceiling outside the defensible range, an undeclared metric, or a spec that has stopped reading the file"
+        }
+      ],
+      "rung": "partial",
+      "gapNote": "Only the routes in the registry are measured, and only their SERVER answer: client bundle size, hydration cost, API latency under load and production latency are all outside it, and the file's own `notCovered` list says so. The ceilings are argued rather than observed (`baseline` is null), so they are generous enough today to catch a route that broke rather than one that drifted — every run attaches its numbers, and the first tightening is what makes it sharp."
+    },
+    {
+      "id": "agent-lessons",
+      "rule": "A trap an agent has actually hit here is recorded once — with its evidence, the correct call, and whether anything would now stop it — instead of being rediscovered by the next lane.",
+      "statedIn": {
+        "file": "AGENTS.md",
+        "quote": "What agents got wrong here is written down once, not rediscovered."
+      },
+      "enforcement": [
+        {
+          "kind": "test",
+          "name": "test-unit/agent-lessons.test.mjs",
+          "note": "every row carries evidence and a correct call, every `constraintId` names a rule this map has, every cited path still exists, and docs/agent-lessons.md names every row"
+        },
+        {
+          "kind": "gate",
+          "name": "docs:staleness:check",
+          "note": "the ledger is watched against AGENTS.md, the rubric and this map, so a row whose standing has quietly become false is flagged for re-reading"
+        }
+      ],
+      "rung": "partial",
+      "gapNote": "Nothing can fail because a lesson was never WRITTEN — an unrecorded trap looks exactly like a trap nobody hit. What blocks is the shape of what is there: a row with no evidence, a fence it names that does not exist, or a lesson the readable page has dropped. The staleness half reports rather than blocks (ADR-0007), because its baseline has never been measured."
     }
   ]
 }

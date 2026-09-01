@@ -1,0 +1,94 @@
+{
+  "$comment": [
+    "What a route may cost before the build refuses it.",
+    "",
+    "THE GAP THIS CLOSES. The suite here notices WRONG behaviour from several angles —",
+    "the unit suite, the mutation drill (would a wrong answer be killed?), the flake drill",
+    "(does the suite answer twice the same way?) and a key-free Playwright lane that loads",
+    "whole pages. Not one of them notices SLOW behaviour. A change that doubles a route's",
+    "server time passes every gate in `npm run check:ci`, and the first thing that reports",
+    "it is a person waiting for a page. An agent optimising for a green gate has, until",
+    "this file, had no signal at all that a change cost anything.",
+    "",
+    "WHAT IS MEASURED, stated so a green line is not over-read. `metric.what` is the",
+    "DOCUMENT RESPONSE: the wall clock from `page.goto` to the navigation committing, i.e.",
+    "the server answering the route with the HTML document. That is the number a server",
+    "change moves — a store read that stopped being deduped, an await added above a",
+    "Suspense boundary, a fan-out that used to be one query. It is deliberately NOT",
+    "DOMContentLoaded: in `next dev` the deferred chunks are unminified and megabytes wide,",
+    "so that number measures the dev bundler far more than it measures this repository's",
+    "code, and a budget over it would be noise with a threshold on it.",
+    "",
+    "WARM, AND BEST OF THREE. The first hit on a route in `next dev` compiles it, which is",
+    "a fact about Turbopack and not about the page, so `metric.warmups` navigations are",
+    "thrown away before `metric.samples` are kept and the MINIMUM is compared. A shared CI",
+    "runner stalls; a route that is genuinely twice as slow is slow in all three samples.",
+    "That choice buys robustness at the price of sensitivity, and it is the right trade for",
+    "a gate that must not teach anyone to re-run a red build.",
+    "",
+    "THE NUMBERS ARE CEILINGS, NOT TARGETS. Each `budgetMs` is what this repository is",
+    "willing to defend as BROKEN rather than as slow, on the e2e lane's own dev server.",
+    "They are generous on purpose (ADR-0007: a check blocks only where it passes), and",
+    "they are unmeasured — `baseline` is null because nothing has run the suite and",
+    "recorded what these routes actually cost. Every run attaches its measurements to the",
+    "Playwright report, so the first green CI run produces exactly the numbers a tighter",
+    "ceiling needs. TIGHTEN THEM WITH THE REASON IN THE SAME DIFF, the way every other",
+    "threshold in this repository moves; never raise one to make your own change pass —",
+    "that is rubric B3, and a perf budget is the easiest number in the tree to buy a green",
+    "with.",
+    "",
+    "WHERE IT RUNS. tests/perf-budget.spec.ts, inside `npm run test:e2e` — the",
+    "`E2E smoke (Playwright, key-free)` job, which .github/required-checks.json names as a",
+    "check that may stop a change. A route over its ceiling fails that job. The registry's",
+    "own shape is held on every build by test-unit/perf-budget.test.mjs (blocking, inside",
+    "`npm run test:unit`), because a budget naming a route that no longer exists measures",
+    "nothing and says so to nobody."
+  ],
+  "metric": {
+    "what": "document-response",
+    "waitUntil": "commit",
+    "warmups": 1,
+    "samples": 3,
+    "statistic": "min",
+    "cacheBusting": true,
+    "why": "The server's answer for the route, warm, best of three — the half of a page's cost this repository's code is responsible for."
+  },
+  "baseline": null,
+  "notCovered": [
+    "Client bundle size and hydration cost. The dev server serves unminified chunks, so measuring them here would report on Turbopack; the honest place for that number is a budget over `next build` output, which nothing produces yet.",
+    "API route latency under load. These are single sequential navigations on an idle runner — a smoke budget, not a load test.",
+    "Production latency. The e2e lane runs the dev server; `BASE_URL=<deployment> npm run test:e2e` points the same budgets at a real deployment, where they are very generous."
+  ],
+  "routes": [
+    {
+      "path": "/",
+      "label": "Homepage",
+      "budgetMs": 2500,
+      "why": "The marketing entry point and the most-linked page in the product. It renders the demo walkthrough, the module registry and the FAQ from fixtures — no store, no model — so a second and a half of server time here is a regression in the render path, not in the data."
+    },
+    {
+      "path": "/dashboard",
+      "label": "Demo app shell — portfolio overview",
+      "budgetMs": 3000,
+      "why": "The product's shop window: the whole authed shell, rendered for the anonymous sample tenant. It is the heaviest composition on the public side, and the one a visitor judges the product by."
+    },
+    {
+      "path": "/kampane",
+      "label": "Campaign triage",
+      "budgetMs": 3000,
+      "why": "The heaviest READ on the public side — the campaign store under LOCAL_DB, plus the triage ranking. A store change that stops deduping its reads shows up here first."
+    },
+    {
+      "path": "/knihovna",
+      "label": "Winning-patterns library",
+      "budgetMs": 3000,
+      "why": "The pattern analysis runs over the same synced series on every request. It is the page where an accidental O(n²) in a pure compute helper would land."
+    },
+    {
+      "path": "/kanaly-zdarma",
+      "label": "Free channels",
+      "budgetMs": 2500,
+      "why": "The seeded free-channel plan — the curated catalog joined to a scored plan. Cheap today, and the page most often extended by an agent adding another derived column."
+    }
+  ]
+}
