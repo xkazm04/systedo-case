@@ -86,6 +86,15 @@ npm run dev:local     # DEV_AUTH=true LOCAL_DB=true next dev — fully offline /
 npm run seed:local    # once: dev user + sample projects into .data/systedo.db
 npm run dev           # real auth mode (needs Google OAuth + Firestore creds)
 npm run check         # typecheck + lint + build
+npm run check:fast    # THE INNER LOOP: the same chain minus the two stages that cost
+                      #   minutes. Every "seconds" gate from scripts/gate-remedy.mjs,
+                      #   then typecheck, lint and test:fast — no `next build`, no full
+                      #   suite. NOT a gate: it prints what it skipped, every time
+npm run lint:fences   # do the three seam fences still FIRE? Lints deliberate violations
+                      #   through the real ESLint against this repo's own config, and the
+                      #   code each fence deliberately ALLOWS. Blocking, through
+                      #   test-unit/lint-fence-firing.test.mjs — because a rule that has
+                      #   stopped matching reads exactly like a tree with nothing wrong
 npm run typecheck:strict # the two strictness flags `strict: true` does NOT turn on
                       #   (noUncheckedIndexedAccess + exactOptionalPropertyTypes).
                       #   AN INSTRUMENT, NOT A GATE, and deliberately so: nothing in
@@ -226,6 +235,11 @@ npm run docs:staleness # what parity CANNOT see: a doc that is perfectly consist
                       #   the paths a doc names (.github/docs-staleness.json), not in
                       #   days alone. REPORTING until the count is accepted once with
                       #   `-- --accept --reason "…"`; the registry's shape blocks today
+npm run adr:owner     # WHICH DECISION governs this file — the reverse of
+                      #   docs/task-index.md, asked with a path instead of with a task
+                      #   (.github/adr-ownership.json). `-- --unmapped` reports the
+                      #   subtrees no record claims; `adr:owner:check` blocks when an ADR
+                      #   has no row, or a row names a path that has moved
 npm run commit:check  # commit-subject rules (rubric A5): --range <range> | <msgfile>
 npm run checkpoint    # open checkpoints an interrupted run left — READ THIS FIRST;
                       #   -- --start/--next/--done/--close writes one (.agent/README.md)

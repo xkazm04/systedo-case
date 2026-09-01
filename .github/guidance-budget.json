@@ -11,14 +11,14 @@
 
   "schema": 1,
   "routedBy": "docs/task-index.md",
-  "maxTotalLines": 1586,
+  "maxTotalLines": 1601,
 
   "readFirst": [
     {
       "file": "AGENTS.md",
-      "maxLines": 920,
+      "maxLines": 934,
       "why": "canonical. Every command, every seam, every rule about what may be done unattended. Read late, an agent has already picked the wrong store, the wrong prompt path or the wrong commit subject.",
-      "$raised": "883 → 920 on 2026-09-01, in one diff: nineteen lines turning § 'What you may do unattended' from a paragraph into `.github/agent-permissions.json` plus its table row, and eighteen for the API-conformance paragraph and its row — the derived half of docs/api/openapi.json, which an agent needs before it changes a route rather than after the check refuses it. Paid for here rather than routed to a lookup for the same reason the section itself is read-first: the population it addresses is an agent deciding whether to run a command, and that decision is taken before — and instead of — reading anything else. Previously 874 → 883 on 2026-09-01, for the nine lines that say a pin carries `accepted: { on, reviewBy }`."
+      "$raised": "920 → 934 on 2026-09-01, for three commands rather than three paragraphs: `check:fast` (the inner loop — the same chain without `next build` and the full suite, which is the difference between consulting the gate after each step and satisfying it once at the end), `lint:fences` (whether the three seam fences still FIRE, as opposed to still being written down) and `adr:owner` (which decision governs the file already open). All three are paid for HERE rather than routed to a lookup because each is a command a run reaches for BEFORE its first edit rather than after a red build — which is the test this ceiling exists to force, and the reason the fourth candidate in the same diff, the reverse index's own data file, is a lookup instead. Previously 883 → 920 on 2026-09-01, in one diff: nineteen lines turning § 'What you may do unattended' from a paragraph into `.github/agent-permissions.json` plus its table row, and eighteen for the API-conformance paragraph and its row — the derived half of docs/api/openapi.json, which an agent needs before it changes a route rather than after the check refuses it. Paid for here rather than routed to a lookup for the same reason the section itself is read-first: the population it addresses is an agent deciding whether to run a command, and that decision is taken before — and instead of — reading anything else. Previously 874 → 883 on 2026-09-01, for the nine lines that say a pin carries `accepted: { on, reviewBy }`."
     },
     {
       "file": "CLAUDE.md",
@@ -37,9 +37,9 @@
     },
     {
       "file": "docs/task-index.md",
-      "maxLines": 125,
+      "maxLines": 126,
       "why": "the routing table that makes every OTHER document a lookup. It is read first precisely so the ADRs, runbooks and contracts do not have to be.",
-      "$raised": "123 → 125 on 2026-09-01, for two routes rather than two documents: `docs/security/threat-model.md` (which credential a change is about to touch, and which fence stands on it) and `test-unit/contract.mjs` (what a seam assertion's failure must SAY). Both are lookups — the whole point of paying two lines here is that neither page is read before every edit, only before the edits that need them."
+      "$raised": "125 → 126 on 2026-09-01, for the route this table did not have: the REVERSE lookup (`.github/adr-ownership.json`). Every other row here is keyed by a task the reader has already framed; this one is keyed by a path, which is all a reader three files into a change actually holds. Previously 123 → 125 on 2026-09-01, for two routes rather than two documents: `docs/security/threat-model.md` (which credential a change is about to touch, and which fence stands on it) and `test-unit/contract.mjs` (what a seam assertion's failure must SAY). Both are lookups — the whole point of paying two lines here is that neither page is read before every edit, only before the edits that need them."
     },
     {
       "file": "docs/agent-index.md",
@@ -57,6 +57,7 @@
 
   "lookups": [
     { "file": "docs/adr/README.md", "why": "the decision records, routed to by the seam being changed" },
+    { "file": ".github/adr-ownership.json", "why": "which record governs a given path — the reverse lookup, read through `npm run adr:owner` when a file turns out to sit on a seam" },
     { "file": ".github/constraint-map.json", "why": "which rules actually stop you — read when a rule is in question, and summarised in AGENTS.md's own table" },
     { "file": ".github/contract-ledger.json", "why": "what each fence is absorbing and the pin it may not cross — read when moving one" },
     { "file": "context-map.json", "why": "which files belong to the context being edited; an index, consulted per task" },

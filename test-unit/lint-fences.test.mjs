@@ -13,6 +13,15 @@
  *  that quietly dropping a restricted name (the cheapest way to make a red build
  *  green) turns the unit suite red instead. Same shape and same reason as
  *  test-unit/delivery-contract.test.mjs.
+ *
+ *  WHAT IT CANNOT SEE, and where that half lives. Every assertion below is about the
+ *  config's TEXT, so it passes unchanged when the fence is still written down and has
+ *  stopped MATCHING — a `files:` glob that no longer covers the tree, a block order
+ *  that lets a later rule replace an earlier one's options, an upstream change to how
+ *  `allowImportNames` behaves. test-unit/lint-fence-firing.test.mjs asks the other
+ *  question by running the linter over deliberate violations
+ *  (`npm run lint:fences`). Keep the two together: this one says the fence is
+ *  declared, that one says it still fires.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";

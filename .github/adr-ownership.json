@@ -1,0 +1,112 @@
+{
+  "$comment": "The REVERSE lookup: from a file to the decision that governs it. docs/task-index.md routes from a TASK to its ADR, which works when the reader already knows what task it is on. An agent that opens src/lib/db.ts cold knows only the file, and nothing in the tree told it that ADR-0001 decides how that file may change. This is that mapping, read by `npm run adr:owner -- <path>` and held to the tree on every build by test-unit/adr-ownership.test.mjs.",
+
+  "$why": "A decision record that nobody finds is prose. The forward index (docs/task-index.md § Every ADR, by the seam it governs) is written for a reader who has already framed the task as 'I am changing the store seam'; the failure it cannot help with is the common one, where the reader is three files into a change and has never framed it at all. The cost lands as a re-derivation — the change is made against reasoning that was written down, argued, and then not read.",
+
+  "$howItIsHeldTrue": "Two blocking properties, both in test-unit/adr-ownership.test.mjs. (1) Every record in docs/adr/ has a row here, so a new ADR cannot land unmapped. (2) Every path a row claims still EXISTS, so a record whose seam was renamed goes red — which is the same property `npm run adr:check` gives to the paths an ADR cites in prose, extended to the ones it governs. A record that genuinely governs no code says so with `whyNothing` rather than being left out; that is the honest answer for a decision about process rather than about code, and it keeps 'this ADR governs nothing' a stated fact instead of an absence.",
+
+  "$whatItCannotSee": "The other direction — code that a record quietly came to govern and nobody mapped. There is no way to derive that: whether a new store module is 'under ADR-0001' is a judgment, not a fact about the file. `npm run adr:owner -- --unmapped` therefore REPORTS the subtrees no record claims, and nothing goes red for it (docs/adr/0007-gate-rung-discipline.md). It is a list to read, not a count to satisfy.",
+
+  "$matching": "Prefix, on path segments: a file is governed by a row when its repo-relative path equals an entry or begins with `<entry>/`. No globs — `npm run adr:check` already proves an ADR's cited paths exist, and this file is read by the same kind of check, so both stay on plain paths that a reader can open.",
+
+  "schema": 1,
+  "index": "docs/task-index.md",
+
+  "records": [
+    {
+      "adr": "docs/adr/0001-dual-store-seam.md",
+      "seam": "One store interface over two backends — Firestore in the cloud, node:sqlite locally",
+      "why": "Every one of these either IS the seam or crosses it. A change here decides whether the pair stays env-switched behind one interface, or whether a caller has quietly picked a backend and stopped working under LOCAL_DB.",
+      "governs": [
+        "src/lib/db.ts",
+        "src/lib/firebase.ts",
+        "src/lib/local-mode.ts",
+        "src/lib/projects",
+        "src/lib/campaigns",
+        "src/lib/leads",
+        "src/lib/catalog",
+        "eslint.config.mjs"
+      ]
+    },
+    {
+      "adr": "docs/adr/0002-tenant-key-embeds-user-id.md",
+      "seam": "The tenant key `u_{userId}_proj_{projectId}` — cross-user access impossible by construction, not by a check",
+      "why": "These are the modules that MINT or read the key. A change that moves the key out of the store, or builds a document path without it, turns a structural guarantee back into a check somebody has to remember.",
+      "governs": ["src/lib/tenant-docs", "src/lib/session.ts", "src/lib/projects", "src/lib/users"]
+    },
+    {
+      "adr": "docs/adr/0003-single-llm-chokepoint.md",
+      "seam": "One `generateStructured()`, and the tag gate that proves every call site goes through it",
+      "why": "The chokepoint is where the provider order, BYOM keys, the demo fallback, metering, telemetry and the language check live. Anything here either is that wrapper, calls it, or is the fence that keeps a second one from being built.",
+      "governs": ["src/lib/llm", "src/lib/ai", "scripts/llm-gate.mjs", "test-llm", "eslint.config.mjs"]
+    },
+    {
+      "adr": "docs/adr/0004-self-hosted-third-deploy-mode.md",
+      "seam": "`SELF_HOSTED` as a third deploy mode rather than dev guards loosened in production",
+      "why": "Each of these reads or decides the mode. The failure this record exists to prevent is a change that makes SELF_HOSTED reachable by relaxing `DEV_AUTH`/`LOCAL_DB` instead of by naming a third mode.",
+      "governs": [
+        "src/lib/deploy-mode.ts",
+        "src/lib/local-mode.ts",
+        "src/lib/env.ts",
+        "docs/open-source/self-hosting.md"
+      ]
+    },
+    {
+      "adr": "docs/adr/0005-container-base-and-standalone-output.md",
+      "seam": "Node 24 Alpine, and `output: \"standalone\"` only under `ADAMANT_DOCKER_BUILD`",
+      "why": "The build output shape is decided in exactly these two files, and the conditional is the whole decision: a standalone build turned on unconditionally changes what Vercel ships.",
+      "governs": ["Dockerfile", "next.config.ts"]
+    },
+    {
+      "adr": "docs/adr/0006-colocated-i18n-dictionaries.md",
+      "seam": "Colocated `TDict`s typed for parity — and deliberately no parity script",
+      "why": "The type system is the parity check. These are the modules that make it one, plus the audit that measures what typecheck cannot see. A change here is usually somebody about to invent the second parity mechanism this record refuses.",
+      "governs": ["src/lib/i18n", "scripts/i18n-audit.mjs", "scripts/i18n-gate.mjs", "docs/i18n/contract.md"]
+    },
+    {
+      "adr": "docs/adr/0007-gate-rung-discipline.md",
+      "seam": "Blocking only if it passes today; everything else reports against a ratchet",
+      "why": "Every file here decides what red means. Adding a gate, moving one between rungs, or editing a number a gate compares against is this record's subject — which is why the ledger and the remedy table are listed next to it.",
+      "governs": [
+        "scripts/gate-remedy.mjs",
+        "scripts/gate-timings.mjs",
+        ".github/contract-ledger.json"
+      ]
+    },
+    {
+      "adr": "docs/adr/0008-zero-dependency-tooling.md",
+      "seam": "Node built-ins and repo-local scripts before a dependency; no formatter",
+      "why": "The manifest is where a dependency arrives and `scripts/` is what the record says to write instead. It also governs the absence that surprises people: there is no Prettier or Biome config here, and that is a decision rather than an omission.",
+      "governs": ["package.json", "scripts"]
+    },
+    {
+      "adr": "docs/adr/0009-free-channels-lead-the-onboarding-checklist.md",
+      "seam": "Free channels lead the onboarding checklist, and are required for the project types with no ad budget",
+      "why": "The checklist's order is a product decision with a record behind it, and it lives in these two modules. Reordering it 'because ads are the main flow' is the exact change this ADR was written against.",
+      "governs": ["src/lib/onboarding", "src/lib/organic-channels"]
+    },
+    {
+      "adr": "docs/adr/0010-project-reads-union-of-account-tenants.md",
+      "seam": "A project reads the union of its per-account tenants; the key stays per-account and sources are tagged",
+      "why": "These are the readers that blend. The rejected alternative was a key migration, so a change here that starts writing a project-scoped key is the one to stop and read the record for.",
+      "governs": ["src/lib/projects", "src/lib/campaigns", "src/lib/report", "src/lib/report-metrics"]
+    },
+    {
+      "adr": "docs/adr/0011-required-checks-are-enumerated-in-the-repo.md",
+      "seam": "What may stop a change is enumerated in the repository and verified by a gate, not remembered in a settings page",
+      "why": "A workflow rename, a `continue-on-error`, or a job that stops running on pull requests all reach this decision. The ruleset payload is listed because GitHub's half of the enforcement is written down here too.",
+      "governs": [
+        ".github/required-checks.json",
+        ".github/branch-ruleset.json",
+        ".github/workflows",
+        "scripts/merge-gate.mjs"
+      ]
+    },
+    {
+      "adr": "docs/adr/0012-generated-regions-are-data.md",
+      "seam": "A generated region of the guidance surface carries data; an instruction inside one is accepted by a human before an agent obeys it",
+      "why": "The two files an agent reads first are also the two a generator writes into. Everything here is either that surface or the lock that decides what has been accepted into it.",
+      "governs": ["AGENTS.md", "CLAUDE.md", ".github/agent-surface.lock.json", "scripts/agent-surface.mjs"]
+    }
+  ]
+}
