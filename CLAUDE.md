@@ -29,7 +29,7 @@ Taxonomy: each context has a `category` (ui · api · lib · data · test · con
 ### Groups
 
 - **Site & Marketing** _(domain: feature · 8 contexts)_
-- **Authenticated Product Shell** _(domain: feature · 6 contexts)_
+- **Authenticated Product Shell** _(domain: shared · 6 contexts)_
 - **Campaign Management** _(domain: feature · 8 contexts)_
 - **AI & Content Engine** _(domain: feature · 13 contexts)_
 - **Social Media** _(domain: feature · 2 contexts)_

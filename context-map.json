@@ -5792,7 +5792,8 @@
     {
       "color": "blue",
       "context_count": 6,
-      "domain": "feature",
+      "$comment": "Domain feature→shared on 2026-09-01. This group is the tenant seam: projects-core (project identity, context, guards, store) is imported by 28 contexts in 14 of the 16 groups, and projects-lifecycle's project-state store by ~40. A boundary every group crosses is not a boundary; the decay script's own header names 'the store seams' as what a shared group is. Its sibling App Shell & Site was already shared.",
+      "domain": "shared",
       "id": "e8028227-6d96-42a5-8d3a-fc7741b799a4",
       "name": "Authenticated Product Shell"
     },
