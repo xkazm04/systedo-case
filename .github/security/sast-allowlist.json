@@ -11,10 +11,7 @@
 
   "sql-template-interpolation": {
     "src/lib/db.ts": "PRAGMA table_info(${table}) — PRAGMA takes no bound parameters, so this cannot be written with a placeholder. `table` is only ever a literal from SCHEMA/MIGRATIONS in this same file; no caller-supplied value reaches it.",
-    "src/lib/leads/store.local.ts": "DELETE FROM ${t} — a table NAME cannot be bound. `t` iterates a literal array of three table names written inline in clearProjectLeads(); the project id in the same statement IS bound (WHERE project_id = ?)."
-  },
-
-  "plaintext-key-in-route": {
-    "src/app/api/byom/validate/route.ts": "The one route that legitimately needs the decrypted key: 'test connection' calls the vendor with it. The key is passed to validateVendorKey and never reaches the response — the handler returns getPublicByomConfig() plus the validation verdict. Behind requireByomUser and the per-user probe floor."
+    "src/lib/leads/store.local.ts": "DELETE FROM ${t} — a table NAME cannot be bound. `t` iterates a literal array of three table names written inline in clearProjectLeads(); the project id in the same statement IS bound (WHERE project_id = ?).",
+    "src/lib/projects/orphan-walk.local.ts": "SELECT DISTINCT tenant FROM ${quoted(table)} — a table NAME cannot be bound, and unlike the two entries above the name is NOT a literal from this file: the dependent-side orphan walk enumerates the live schema from sqlite_master on purpose, so a per-project table nobody registered is still walked. The value is therefore the database's own catalogue rather than anything a request reaches, and it goes through quoted(), which applies SQLite identifier quoting with \"\" doubling. The statement is read-only and selects no caller-supplied value."
   }
 }

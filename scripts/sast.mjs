@@ -26,6 +26,7 @@ import { appendFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { recordFiring } from "./fence-firings.mjs";
+import { printRemedy } from "./gate-remedy.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(ROOT, "src");
@@ -377,4 +378,9 @@ if (SUMMARY_FILE) {
   }
 }
 
-process.exit(blocking.length || overRatchet.length ? 1 : 0);
+// The next command, printed by the gate itself on the way out (scripts/gate-remedy.mjs)
+// — a finding names the rule and the file, and the reader meeting this gate for the
+// first time needs to know that the answer is the seam and not the allowlist.
+const failed = Boolean(blocking.length || overRatchet.length);
+if (failed) printRemedy("sast");
+process.exit(failed ? 1 : 0);

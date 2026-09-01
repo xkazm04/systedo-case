@@ -2,79 +2,36 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "69acc138-17e0-410c-bcdf-3d794a91bc41",
-      "verdict": "skipped",
-      "reason": "Pinning 47 action refs to commit SHAs requires resolving each tag against the GitHub API and this session has no network; the repo already has the tooling (`npm run actions:pin` rewrites and self-enforces in one pass), a Dependabot github-actions ecosystem to keep pins fresh, and a ledger row recording the exemption, and the 'broad write' half is already split job-by-job in issue-dispatch.yml/agent-review.yml.",
-      "files": []
-    },
-    {
-      "recommendationId": "8ad785c2-58cf-4a2e-a761-c61627e8083b",
-      "verdict": "skipped",
-      "reason": "Already covered another way: prepare-commit-msg + commit-msg hooks are auto-installed by `npm install` and write Co-Authored-By plus Agent-Harness/Model/Spec/Session/Lane, commit:check --range reports coverage, and the rubric review lists unattributed commits on every push — the residual is history that cannot be rewritten and hookless throwaway worktrees, which no repository-side change reaches; I did extend the review to also name agent commits that carry no Agent-Harness, which the repo's own guidance calls the field that matters.",
-      "files": ["scripts/agent-review.mjs"]
-    },
-    {
-      "recommendationId": "bc2060c1-fc29-4e5f-b912-8d25781b5553",
+      "recommendationId": "782eee22-fda5-4ddb-90f5-4f9fb777e14b",
       "verdict": "resolved",
-      "reason": "MUTANT_FLOOR (7) and per-seam SEAM_FLOORS now fail `npm run test:unit` when the mutation catalogue shrinks, pinned in the contract ledger so lowering either is a two-line reviewed diff rather than a digit — closing the one direction in which the sensitivity measure could get worse with every build staying green.",
+      "reason": "The repo's SAST gate was decoration — `continue-on-error: true` in sast.yml and absent from check:ci, while AGENTS.md, SECURITY.md and the constraint map all called it blocking — so nothing here could go red for a security finding; I closed the four findings behind that line (two SQL interpolations fixed by enumerating the statements, one allowlisted with a reason and a raised ceiling, and the decrypted BYOM key moved behind a lib seam so no route imports it), deleted the softening, added `npm run sast` to check:ci and the job to required-checks/branch-ruleset, proved it bites with a known-bad fixture in gate-bite, and added a blocking lockfile-provenance suite; SHA-pinning the Actions remains open because it needs the network.",
       "files": [
-        "scripts/mutation-catalogue.mjs",
-        "test-unit/mutation-census.test.mjs",
+        ".github/workflows/sast.yml",
+        "package.json",
+        "scripts/gate-remedy.mjs",
+        "scripts/sast.mjs",
+        "src/lib/campaigns/store/local-docs.ts",
+        "src/lib/llm/keys/validate.ts",
+        "src/app/api/byom/keys/route.ts",
+        "src/app/api/byom/validate/route.ts",
+        ".github/security/sast-allowlist.json",
         ".github/contract-ledger.json",
-        ".github/constraint-map.json",
-        "AGENTS.md"
-      ]
-    },
-    {
-      "recommendationId": "9012d44d-b46d-4e50-9277-4f49831060a3",
-      "verdict": "resolved",
-      "reason": "`npm run llm:candidate` rehearses every registered operation against the successor declared in test-llm/model-candidates.json through the real wrapper (BYOM context, no change to the chokepoint), runs weekly in llm-drift.yml, records `skipped` with no key, and is held to the tree by a census test that goes red the moment GEMINI_MODEL moves and the candidate row does not follow.",
-      "files": [
-        "scripts/llm-candidate.mjs",
-        "test-llm/model-candidates.json",
-        "test-unit/model-candidate-census.test.mjs",
-        ".github/workflows/llm-drift.yml",
-        "scripts/harness-degradation.mjs",
-        "package.json"
-      ]
-    },
-    {
-      "recommendationId": "b566c4fa-2f37-443f-bafa-b5e392522376",
-      "verdict": "resolved",
-      "reason": "The deploy target is now declared as data in .github/environments.json (runtime, six cron schedules, all 74 environment variables classified by what their absence costs and whether they reach the browser) and diffed against vercel.json/package.json/next.config.ts/.env.example/docs/deploy.md/the workflows on every build by test-unit/environment-manifest.test.mjs; it is explicit that it reads the repository and not the Vercel project.",
-      "files": [
-        ".github/environments.json",
-        "scripts/env-manifest.mjs",
-        "test-unit/environment-manifest.test.mjs",
-        "docs/deploy.md",
-        "docs/task-index.md",
-        ".github/constraint-map.json",
-        "AGENTS.md",
-        "package.json"
-      ]
-    },
-    {
-      "recommendationId": "c0759fd7-bc1e-4604-8d5b-74d82e562f42",
-      "verdict": "resolved",
-      "reason": "`npm run typecheck:strict:check` now runs on every push and pull request as a reporting step of ci.yml and puts the error count, the ten worst files and the failing rules into the job summary; the baseline in .github/typecheck-strict.json is deliberately unaccepted (no offline session can run tsc) so one `typecheck:strict:accept --reason` promotes it to a one-way ratchet.",
-      "files": [
-        "scripts/typecheck-strict.mjs",
-        ".github/typecheck-strict.json",
-        ".github/workflows/ci.yml",
         ".github/required-checks.json",
-        "tsconfig.strict.json",
-        "test-unit/typecheck-strict.test.mjs",
+        ".github/branch-ruleset.json",
         ".github/constraint-map.json",
+        ".github/workflows/ci.yml",
+        "test-unit/gate-bite.test.mjs",
+        "test-unit/dependency-lockfile.test.mjs",
         "AGENTS.md",
-        "package.json"
+        "SECURITY.md"
       ]
     }
   ],
   "lessons": [
-    "This repository's gates are interlocked by meta-tests, and that is the fact to learn before editing anything: adding a stage to `check:ci` obliges you to add a row to scripts/gate-remedy.mjs (in the same position), a constraint to .github/constraint-map.json AND its table row to AGENTS.md in the same order, and possibly a pin to .github/contract-ledger.json — test-unit/gate-remedy.test.mjs and test-unit/constraint-map.test.mjs fail otherwise. When you cannot run the suite, prefer landing a new blocking check as a unit test (test:unit is already a stage) rather than as a fourteenth stage: same blocking rung, none of the interlocks.",
-    "Adding a `continue-on-error: true` step to a job named in .github/required-checks.json is refused by `npm run merge-gate` unless the step's exact `name:` is listed in that job's `softenedSteps`. Reporting-rung steps are welcome; silent ones are not.",
-    "A key-gated workflow step cannot be added without declaring it: `npm run harness:degradation:check` fails on any `secrets.NAME` no capability in scripts/harness-degradation.mjs declares, and a non-announcing capability must name a `recordedBy` file that literally contains its `marker` (e.g. `status: \"skipped\"`).",
-    "The LLM chokepoint can be pointed at an arbitrary model from a script WITHOUT touching src/lib: `runWithByomContext({ vendor, apiKey, model, fastModel, reasoning }, () => generateStructured(...))` is how test-llm/quality/run.mjs benchmarks a roster. That is the seam to use for any model experiment here — editing src/lib/llm/models.ts is a CODEOWNERS law-file change and would trip test-unit/llm-model-pin.test.mjs.",
-    "`npm run agents:surface` ratchets unmapped files under `src/` only, so new scripts/, test-unit/ and .github/ files do not push that count over its ceiling — but anything you add under src/ does, and the ledger ceiling (159) turns that into a red `contract:ledger:check`."
+    "In this repository the interesting security question is never 'is there a gate?' but 'can it fail?'. Four documents (AGENTS.md, SECURITY.md, .github/constraint-map.json, .github/required-checks.json) called the SAST gate blocking while one `continue-on-error: true` line and an omission from `check:ci` meant it could not stop anything. Grep every claimed-blocking gate for `continue-on-error` and check it is actually a stage of `check:ci` before believing the prose — and note that `.github/constraint-map.json` is the file that is SUPPOSED to answer this, so a wrong row there is the highest-value thing to fix.",
+    "A softening that is honestly labelled and explicitly temporary is the kind that survives longest: sast.yml carried a well-written paragraph saying exactly which three findings had to be fixed before the line came out, and the line outlived it by months while a fourth finding accumulated behind it. A temporary exception is worth more when it names the count it is absorbing, so the count can be ratcheted, than when it names the fix.",
+    "Adding a stage to `check:ci` here is never a one-line diff: `test-unit/constraint-map.test.mjs` (a rule must claim the stage), `test-unit/gate-remedy.test.mjs` (a CHAIN entry, in the same order, whose script calls printRemedy), `test-unit/gate-bite.test.mjs` (a known-bad fixture or a written exemption), `test-unit/gate-timings.test.mjs` and the fence census all bind to that chain. Read those five before proposing a new gate — and note that `scripts/agent-surface.mjs`'s unmapped-file ratchet only counts `src/`, so new files under `scripts/` and `test-unit/` are free.",
+    "The contract ledger's `comesOffWhen` fields are executable design advice, not decoration. `plaintext-key-in-route` said the exception comes off 'when validation moves behind a lib-side seam that takes the user and returns a verdict' and that 'a second route needing the plaintext key is the signal to do that, not to add a line here' — which was exactly the situation, and following it turned an allowlist entry into a ceiling of 0. Read the ceiling's `comesOffWhen` before adding an entry to the list it caps.",
+    "An offline lane can still verify a lot about this tree with grep alone: the SAST rule set is ten regexes, so each one can be re-run by hand over `src/` to establish, before promoting the gate, that it is actually green — 88 API routes minus 83 with a guard is exactly the 5 allowlisted ones, and 860 of 866 lockfile entries carrying sha512 integrity turned out to be the 6 `inBundle` packages. Establish the count first; a promotion made on a guess is what makes a gate get switched off again."
   ]
 }

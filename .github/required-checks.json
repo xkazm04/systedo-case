@@ -23,10 +23,12 @@
     "",
     "Rung discipline (docs/adr/0007-gate-rung-discipline.md) decides what belongs here: a",
     "check is required only if it passes today. The reporting-rung jobs — sast.yml's",
-    "`repo-rules` and `semgrep`, supply-chain.yml's `audit`, agent-review.yml's `judgment`,",
-    "and agent-review-history.yml's `history` and `publish` — are deliberately absent, and",
+    "`semgrep`, supply-chain.yml's `audit`, agent-review.yml's `judgment`, and",
+    "agent-review-history.yml's `history` and `publish` — are deliberately absent, and",
     "each one's workflow says why. Promoting one means fixing its findings, dropping its",
-    "`continue-on-error`, and adding it here in the same commit.",
+    "`continue-on-error`, and adding it here in the same commit. sast.yml's `repo-rules`",
+    "was promoted that way on 2026-09-01: four findings closed, the softening line deleted,",
+    "and `npm run sast` added to check:ci so the push path is covered too.",
     "",
     "The `check` string below is also read back by scripts/agent-review-history.mjs, which",
     "uses it to find the blocking job's annotations when it aggregates what the review has",
@@ -64,6 +66,13 @@
       "workflow": "sast.yml",
       "job": "workflow-policy",
       "why": "Token scope, no privileged trigger (pull_request_target, workflow_run, issue_comment, pull_request_review, pull_request_review_comment — each one starts a job in the base repo's context on an outsider's event), no moving-branch action refs, third-party actions pinned, container images digest-pinned, and no attacker-controlled context outside an `env:` binding — not in a `run:` script, not in a `with:` input, not in an `if:`. This repository's secrets are advertiser OAuth tokens.",
+      "softenedSteps": []
+    },
+    {
+      "check": "Repo security rules (blocking)",
+      "workflow": "sast.yml",
+      "job": "repo-rules",
+      "why": "The ten rules in scripts/sast.mjs encode what an off-the-shelf pack cannot see here: every route under src/app/api establishes caller identity (ADR-0002 — an unverified projectId does not 401, it mints an empty tenant that reads as 'no data yet'), no \"use client\" module reads a server env var, no route imports the decrypted BYOM key, no SQL is built by interpolation, nothing credential-shaped reaches console. ~97% of commits here are agent-written and the process holds live Google Ads, Sklik and Resend credentials, so a security finding has to be able to stop a change rather than annotate one.",
       "softenedSteps": []
     },
     {

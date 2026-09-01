@@ -306,7 +306,11 @@
       "rule": "A new API route establishes caller identity; no client module reads a server env var; no SQL by interpolation. Exceptions carry a written reason in the allowlist.",
       "statedIn": { "file": "AGENTS.md", "quote": "Security rules are a gate, not a review note." },
       "enforcement": [
-        { "kind": "gate", "name": "sast", "note": "blocking in CI (.github/workflows/sast.yml)" },
+        {
+          "kind": "gate",
+          "name": "sast",
+          "note": "blocking, in both places: a required check on a pull request (.github/workflows/sast.yml, job repo-rules) and a stage of check:ci, therefore of .husky/pre-push. Promoted from continue-on-error on 2026-09-01, when the four findings behind that line were closed — before then this row said blocking and nothing could go red."
+        },
         { "kind": "test", "name": "test-unit/cost-and-boundary-gates.test.mjs" }
       ],
       "rung": "blocking"
@@ -515,6 +519,19 @@
       ],
       "rung": "partial",
       "gapNote": "Only the candidate row's shape blocks. The rehearsal needs a key, money and the network, so it runs weekly and off the landing path; it is a SHAPE verdict and not a quality one (that is `npm run llm:quality`); and it cannot see a model that changes behind its own id, which is the same limit test-llm/model-pins.json records in its `unpinnable` list."
+    },
+    {
+      "id": "dependency-provenance",
+      "rule": "Every package in the lockfile comes from the public npm registry over https with a sha512 integrity hash, the manifest and the lockfile agree, and the set of packages that run code at install time is a pinned list.",
+      "statedIn": { "file": "AGENTS.md", "quote": "A dependency's provenance is asserted, not assumed." },
+      "enforcement": [
+        {
+          "kind": "test",
+          "name": "test-unit/dependency-lockfile.test.mjs",
+          "note": "reads package-lock.json — committed data, no network, no install — inside test:unit → check:ci → .husky/pre-push, so it holds on the push that ships master"
+        }
+      ],
+      "rung": "blocking"
     }
   ]
 }

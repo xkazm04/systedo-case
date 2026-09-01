@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   repo-rules:
-    name: Repo security rules (reporting — see note)
+    name: Repo security rules (blocking)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,23 +46,32 @@ jobs:
       # Zero-dependency: no npm ci. Every finding is either fixed or written down,
       # with a reason, in .github/security/sast-allowlist.json.
       #
-      # REPORTING, NOT BLOCKING — deliberately, and temporarily. The scanner
-      # arrived with three PRE-EXISTING findings it did not cause, so landing it
-      # blocking would have turned CI red on a tree nobody had changed:
+      # BLOCKING since 2026-09-01. It was `continue-on-error` before that, for a
+      # stated and temporary reason — the scanner arrived with pre-existing
+      # findings it had not caused, and landing it blocking would have turned CI
+      # red on a tree nobody had changed. The reason expired without the state
+      # changing: SECURITY.md, AGENTS.md and .github/constraint-map.json all
+      # described this rule as blocking while this line meant nothing in this
+      # repository could go red for a security finding at all. The four findings
+      # were closed in the same change that deleted the line:
       #
-      #   src/lib/campaigns/store/local-docs.ts:108  sql-template-interpolation
-      #   src/lib/campaigns/store/local-docs.ts:153  sql-template-interpolation
-      #                                              (`ORDER BY doc_id ${…}`)
-      #   src/app/api/byom/keys/route.ts:1           plaintext-key-in-route
+      #   src/lib/campaigns/store/local-docs.ts  ×2  sql-template-interpolation
+      #                       fixed — the eight statements those two reads used to
+      #                       assemble are now enumerated as complete constants
+      #   src/lib/projects/orphan-walk.local.ts      sql-template-interpolation
+      #                       allowlisted with a reason (a table name out of
+      #                       sqlite_master cannot be bound), and the ceiling that
+      #                       pays for it raised in .github/contract-ledger.json
+      #   src/app/api/byom/keys/route.ts             plaintext-key-in-route
+      #                       fixed — the probe moved behind a lib seam, so NO
+      #                       route imports the decrypted key now and that rule's
+      #                       ceiling went from 1 to 0
       #
-      # They are not allowlisted, because an allowlist entry means "reviewed and
-      # accepted" and these are none of the three: unreviewed, and at least the
-      # ORDER BY one looks real. The findings appear in this job's summary on
-      # every run. FIX THEM, then delete `continue-on-error` and restore the
-      # "(blocking)" name — a security gate that cannot fail is decoration, and
-      # this line is the only thing standing between the two states.
+      # The same script is also an early stage of `npm run check:ci`, which
+      # .husky/pre-push runs: on this repository's real landing path (direct push
+      # to master, Vercel ships on push) a required status check never gets a
+      # chance, so the push is where a security finding has to be refused.
       - name: Repo security rules
-        continue-on-error: true
         run: node scripts/sast.mjs --summary "$GITHUB_STEP_SUMMARY"
 
   workflow-policy:

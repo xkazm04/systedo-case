@@ -97,15 +97,25 @@ deliberately non-blocking.
   (`scripts/llm-gate.mjs`). **Blocking.** The gate is what prevents an
   un-reviewed model call site from reaching the tree.
 - **SAST — repo rules** — `scripts/sast.mjs`, run on every push and pull request
-  (`.github/workflows/sast.yml`, job `repo-rules`). Nine rules over the whole
-  `src/` tree, encoding the invariants an off-the-shelf pack cannot see: every
-  route under `src/app/api/` must establish caller identity, no `"use client"`
-  module may read a non-public env var, no route may import the decrypted BYOM
-  key, no SQL built by interpolation, no credential-shaped identifier passed to
-  `console`, no TLS verification disabled, no IV-less cipher, no dynamic code
-  execution. **Blocking.** Exceptions are enumerated with a written reason in
-  `.github/security/sast-allowlist.json` — three today — and the gate reports an
-  exception that no longer applies as stale.
+  (`.github/workflows/sast.yml`, job `repo-rules`) **and inside
+  `npm run check:ci`**, so the pre-push hook refuses a finding before the push
+  that ships master. Ten rules over the whole `src/` tree, encoding the
+  invariants an off-the-shelf pack cannot see: every route under `src/app/api/`
+  must establish caller identity, no `"use client"` module may read a non-public
+  env var, no route may import the decrypted BYOM key, no SQL built by
+  interpolation, no credential-shaped identifier passed to `console`, no TLS
+  verification disabled, no IV-less cipher, no dynamic code execution, and — on
+  the reporting rung with a ratchet — no store engine imported outside the
+  dual-store seam. **Blocking**, and enumerated in
+  `.github/required-checks.json`. It has not always been: until 2026-09-01 the
+  job carried `continue-on-error: true` and `check:ci` did not run it, so this
+  paragraph's "Blocking" was a claim about an intention. Four findings had
+  accumulated behind that line; they were fixed or reviewed-and-allowlisted in
+  the change that deleted it. Exceptions are enumerated with a written reason in
+  `.github/security/sast-allowlist.json` — eight today, across two rules (five
+  deliberately anonymous routes, three table names SQLite cannot bind), each rule's
+  list capped in `.github/contract-ledger.json` — and the gate reports an exception
+  that no longer applies as stale.
 - **SAST — Semgrep** — the registry packs (`p/javascript`, `p/typescript`,
   `p/react`, `p/nodejs`, `p/secrets`) over `src/` and `scripts/`, on every push
   and weekly. **Reporting**: it writes a job summary and uploads SARIF as an
@@ -179,6 +189,17 @@ deliberately non-blocking.
   advisory summary is the deliverable, the exit code is not, because a
   transitive advisory's timing is a third party's decision. Dependabot
   (`.github/dependabot.yml`) does the fixing, for npm and for Actions.
+- **Dependency provenance** — `test-unit/dependency-lockfile.test.mjs`, inside
+  `npm run test:unit` and therefore inside `check:ci` and the pre-push hook.
+  **Blocking**, and it is the half advisory scanning cannot see: every package in
+  `package-lock.json` must resolve to the public npm registry over https and carry
+  a sha512 integrity hash (an entry with neither is code `npm ci` cannot verify),
+  an entry with no download URL must be bundled inside a parent whose tarball is
+  hashed, the manifest and the lockfile must agree, and **the packages that run
+  code at install time are a named, pinned set** — six today, each with its reason
+  in the file. A seventh, including one arriving transitively, fails the suite and
+  has to be argued for in the diff that adds it. It reads committed data only: no
+  network, no install.
 - **Container image scanning / SBOM / signed artifacts** — still not applicable:
   the `Dockerfile` builds an image for an operator to run, but this repository
   publishes no image and no package for anyone to verify a signature against.

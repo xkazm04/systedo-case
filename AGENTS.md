@@ -83,11 +83,11 @@ npm run typecheck:strict # the two strictness flags `strict: true` does NOT turn
 npm run test:unit     # node:test suites in test-unit/
 npm run test:e2e      # Playwright — also runs in CI (the key-free `e2e-smoke` job)
 npm run check:ci      # what CI runs, CHEAPEST FIRST: adr:check + docs:parity
-                      #   + agents:surface + checkpoint:check + actions:check
+                      #   + agents:surface + checkpoint:check + actions:check + sast
                       #   + merge-gate + contract:ledger:check + context:decay:check
                       #   + review:agent:gate + llm:gate:check + llm:quality:check
                       #   + llm:budget:check + seed:check, THEN the slow half:
-                      #   check (typecheck/lint/build) + test:unit. The thirteen
+                      #   check (typecheck/lint/build) + test:unit. The fourteen
                       #   zero-dependency checks run before `next build`, so a wrong
                       #   change is refused in seconds rather than after a build
 npm run check:ci:timed # the SAME chain, with a clock on each stage — this is what
@@ -174,7 +174,10 @@ npm run llm:drift     # AMBER (spends money): every registered operation against
                       #   and publishes a dated pass/fail trail; never in check:ci
 npm run context:decay # cross-group imports the context map does not declare;
                       #   :check blocks a NEW crossing in the diff (--base <ref>)
-npm run sast          # repo security rules over src/ (blocking in CI)
+npm run sast          # repo security rules over src/. BLOCKING, in both places that
+                      #   matter: a required check on a PR (sast.yml, job repo-rules)
+                      #   and a cheap stage of check:ci, so the pre-push hook refuses
+                      #   a finding before the push that ships master
 npm run actions:check # workflow token scope, action pinning, no ${{ }} in a run: script
 npm run merge-gate    # the required checks named in .github/required-checks.json
                       #   still exist, still run on PRs, and can still fail
@@ -597,6 +600,32 @@ remedy all turn the unit suite red.
   module reading a server env var, a route importing the decrypted BYOM key, SQL
   built by interpolation, and five more. Exceptions live with a written reason in
   `.github/security/sast-allowlist.json`; there is no in-code opt-out.
+
+  **That sentence was not true until 2026-09-01, and the gap is the lesson.** The
+  rule was stated here, in SECURITY.md, and in `.github/constraint-map.json` as
+  *blocking* — while `sast.yml` ran it under `continue-on-error: true` and
+  `check:ci` did not run it at all. Nothing in this repository could go red for a
+  security finding, and four had accumulated where nobody was looking (two SQL
+  interpolations, a route holding a decrypted BYOM key, and one more that arrived
+  after the note in the workflow was written). The softening was honestly labelled
+  and temporary, and it outlived its reason by months, which is what a temporary
+  `continue-on-error` does. It is a required check now
+  (`.github/required-checks.json`) **and** a stage of `check:ci`, because master
+  ships on push and a required status check never sees that path.
+- **A dependency's provenance is asserted, not assumed.** `npm audit` and
+  Dependabot answer "is this version known-vulnerable?" — both are reporting rung,
+  and neither looks at the cheaper question that is worse to get wrong: where a
+  package came from and whether anything verifies its bytes.
+  `test-unit/dependency-lockfile.test.mjs` (blocking, inside `test:unit` → `check:ci`
+  → the pre-push hook, reading committed data with no network) fails when a package
+  resolves anywhere but the public npm registry over https, when one arrives with no
+  sha512 integrity hash, when the manifest and the lockfile disagree — and when the
+  set of packages that **run code at install time** changes. That last one is a
+  pinned list of six, not an allowlist: a `postinstall` executes with your
+  privileges before any gate here sees the tree, so a seventh — including one that
+  arrives transitively under something else — is a decision somebody makes in a
+  diff, with the reason next to the name. Adding a runtime dependency also needs an
+  `Ack:` (rubric A4); these are different questions and both are asked.
 - Deploy/env questions (required env names, rollback, crons, host rename):
   `docs/deploy.md`.
 
@@ -671,6 +700,7 @@ would notice afterwards.
 | `env-manifest` — the deploy target is declared, and diffed against the tree | `test-unit/environment-manifest.test.mjs`, `env:manifest:check` | partial |
 | `strict-frontier` — the stricter type check is measured by a loop, not by memory | `typecheck:strict:check`, `test-unit/typecheck-strict.test.mjs` | reporting |
 | `model-candidate` — the model AFTER this one is rehearsed before the swap | `test-unit/model-candidate-census.test.mjs`, `llm:candidate` | partial |
+| `dependency-provenance` — every package comes from the registry, hashed, and the install-script set is pinned | `test-unit/dependency-lockfile.test.mjs` | blocking |
 
 `test-unit/constraint-map.test.mjs` holds this table and the JSON to each other,
 and both to the tree: a gate named here that `package.json` does not define, a

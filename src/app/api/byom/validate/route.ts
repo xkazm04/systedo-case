@@ -4,9 +4,9 @@
  *  This is a REAL provider-call surface, so it runs the per-user probe floor
  *  (../probe-guard) before it spends anything — the entitlement alone left it
  *  unbounded, i.e. usable as a free provider probe. */
-import { getPublicByomConfig, markByomValidation, resolveByomKey } from "@/lib/llm/keys/store";
+import { getPublicByomConfig } from "@/lib/llm/keys/store";
 import { isByomVendor } from "@/lib/llm/keys/types";
-import { validateVendorKey } from "@/lib/llm/keys/validate";
+import { probeStoredByomKey } from "@/lib/llm/keys/validate";
 import { requireByomUser } from "../guard";
 import { guardByomProbe } from "../probe-guard";
 
@@ -22,15 +22,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "Neznámý poskytovatel.", code: "invalid" }, { status: 400 });
   }
 
-  const resolved = await resolveByomKey(u.userId, vendor);
-  if (!resolved) {
+  // The probe runs behind the lib seam: this handler never holds the decrypted key.
+  const check = await probeStoredByomKey(u.userId, vendor);
+  if (!check) {
     return Response.json(
       { error: "Pro tohoto poskytovatele není uložen žádný klíč.", code: "invalid" },
       { status: 400 }
     );
   }
 
-  const check = await validateVendorKey(vendor, resolved.apiKey, resolved.model, resolved.fastModel);
-  await markByomValidation(u.userId, vendor, check);
   return Response.json({ config: await getPublicByomConfig(u.userId), validation: check });
 }

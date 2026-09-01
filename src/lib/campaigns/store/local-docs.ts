@@ -23,6 +23,62 @@ interface Row {
   data: string;
 }
 
+/** SQLite cannot bind a sort DIRECTION or a WHERE shape as a parameter, so the two
+ *  ordered reads below used to interpolate them into the statement text. Nothing
+ *  caller-supplied ever reached that interpolation — both values came from a ternary
+ *  two lines above it — but "safe because of a nearby ternary" is a property a reader
+ *  has to re-derive, and it is the shape `sql-template-interpolation` (scripts/sast.mjs)
+ *  exists to refuse. The statements are enumerated instead: every SQL string this
+ *  module can execute is a complete constant, chosen by a lookup, so the question
+ *  "what SQL can run here?" is answered by reading this block. */
+type SqlDir = "ASC" | "DESC";
+
+/** listDocs — one complete statement per sort direction. */
+const LIST_DOCS_SQL: Record<SqlDir, string> = {
+  ASC:
+    "SELECT data FROM campaign_docs WHERE tenant = ? AND collection = ? " +
+    "ORDER BY json_extract(data, ?) ASC, rowid ASC",
+  DESC:
+    "SELECT data FROM campaign_docs WHERE tenant = ? AND collection = ? " +
+    "ORDER BY json_extract(data, ?) DESC, rowid DESC",
+};
+
+/** idRange — the four (gte?, lt?) shapes × the two directions. Parameter order is
+ *  tenant, collection, [gte], [lt], limit in every one of them, which is the order
+ *  `idRange` pushes them in. */
+type RangeShape = "plain" | "gte" | "lt" | "both";
+
+const ID_RANGE_SQL: Record<RangeShape, Record<SqlDir, string>> = {
+  plain: {
+    ASC: "SELECT doc_id, data FROM campaign_docs WHERE tenant = ? AND collection = ? ORDER BY doc_id ASC LIMIT ?",
+    DESC: "SELECT doc_id, data FROM campaign_docs WHERE tenant = ? AND collection = ? ORDER BY doc_id DESC LIMIT ?",
+  },
+  gte: {
+    ASC:
+      "SELECT doc_id, data FROM campaign_docs WHERE tenant = ? AND collection = ? AND doc_id >= ? " +
+      "ORDER BY doc_id ASC LIMIT ?",
+    DESC:
+      "SELECT doc_id, data FROM campaign_docs WHERE tenant = ? AND collection = ? AND doc_id >= ? " +
+      "ORDER BY doc_id DESC LIMIT ?",
+  },
+  lt: {
+    ASC:
+      "SELECT doc_id, data FROM campaign_docs WHERE tenant = ? AND collection = ? AND doc_id < ? " +
+      "ORDER BY doc_id ASC LIMIT ?",
+    DESC:
+      "SELECT doc_id, data FROM campaign_docs WHERE tenant = ? AND collection = ? AND doc_id < ? " +
+      "ORDER BY doc_id DESC LIMIT ?",
+  },
+  both: {
+    ASC:
+      "SELECT doc_id, data FROM campaign_docs WHERE tenant = ? AND collection = ? AND doc_id >= ? AND doc_id < ? " +
+      "ORDER BY doc_id ASC LIMIT ?",
+    DESC:
+      "SELECT doc_id, data FROM campaign_docs WHERE tenant = ? AND collection = ? AND doc_id >= ? AND doc_id < ? " +
+      "ORDER BY doc_id DESC LIMIT ?",
+  },
+};
+
 const nowIso = () => new Date().toISOString();
 
 /** The indexed period mirror: only a string `period` field is columned. */
@@ -134,16 +190,13 @@ export const localTenantStore: TenantDocStore = {
   },
 
   async listDocs(tenant, collection, orderBy) {
-    const dir = orderBy.dir === "desc" ? "DESC" : "ASC";
+    const dir: SqlDir = orderBy.dir === "desc" ? "DESC" : "ASC";
     // json_extract gives numeric affinity for a number field (position) and text
     // for an ISO string (created_at) → same ordering a Firestore orderBy yields.
     // rowid tie-breaks equal keys (two saves in the same millisecond share an ISO
     // createdAt) so "newest first" stays deterministic: later insert wins.
     const rows = getDb()
-      .prepare(
-        `SELECT data FROM campaign_docs WHERE tenant = ? AND collection = ?
-         ORDER BY json_extract(data, ?) ${dir}, rowid ${dir}`
-      )
+      .prepare(LIST_DOCS_SQL[dir])
       .all(tenant, collection, `$.${orderBy.field}`) as { data: string }[];
     return rows.map((r) => JSON.parse(r.data) as DocData);
   },
@@ -170,25 +223,21 @@ export const localTenantStore: TenantDocStore = {
   },
 
   async idRange(tenant, collection, opts) {
-    const dir = opts.dir === "desc" ? "DESC" : "ASC";
-    const clauses = ["tenant = ?", "collection = ?"];
+    const dir: SqlDir = opts.dir === "desc" ? "DESC" : "ASC";
     const params: (string | number)[] = [tenant, collection];
-    if (opts.gte !== undefined) {
-      clauses.push("doc_id >= ?");
-      params.push(opts.gte);
-    }
-    if (opts.lt !== undefined) {
-      clauses.push("doc_id < ?");
-      params.push(opts.lt);
-    }
+    if (opts.gte !== undefined) params.push(opts.gte);
+    if (opts.lt !== undefined) params.push(opts.lt);
     params.push(opts.limit);
+    // The bounds decide WHICH of the four statements runs; their values are still
+    // bound, in the order they were pushed above.
+    let shape: RangeShape = "plain";
+    if (opts.gte !== undefined && opts.lt !== undefined) shape = "both";
+    else if (opts.gte !== undefined) shape = "gte";
+    else if (opts.lt !== undefined) shape = "lt";
     // Binary (byte-wise) TEXT collation on doc_id matches Firestore's document-id
     // UTF-8 byte ordering for the ASCII + PUA () ids these stores build.
     const rows = getDb()
-      .prepare(
-        `SELECT doc_id, data FROM campaign_docs WHERE ${clauses.join(" AND ")}
-         ORDER BY doc_id ${dir} LIMIT ?`
-      )
+      .prepare(ID_RANGE_SQL[shape][dir])
       .all(...params) as unknown as Row[];
     return rows.map((r) => ({ id: r.doc_id, data: JSON.parse(r.data) as DocData }));
   },

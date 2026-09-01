@@ -187,6 +187,7 @@ const SANDBOXED = [
   { stage: "docs:parity", script: "docs-parity.mjs", args: [] },
   { stage: "checkpoint:check", script: "agent-checkpoint.mjs", args: ["--check"] },
   { stage: "actions:check", script: "actions-pin.mjs", args: [] },
+  { stage: "sast", script: "sast.mjs", args: [] },
   { stage: "merge-gate", script: "merge-gate.mjs", args: [] },
   { stage: "llm:gate:check", script: "llm-gate.mjs", args: ["--check"] },
   { stage: "llm:quality:check", script: "quality-gate.mjs", args: ["--check"] },
@@ -258,6 +259,37 @@ test("actions:check refuses a privileged trigger, an unscoped token and a splice
   assert.match(text, /pull_request_target/, "P2 (privileged trigger) no longer fires.");
   assert.match(text, /permissions/, "P1 (no top-level token scope) no longer fires.");
   assert.match(text, /github\.event\.\*/, "P9 (an attacker-shaped context in a workflow) no longer fires.");
+});
+
+// --- sast ---------------------------------------------------------------------
+
+test("sast fails on dynamic code execution and a server env var in a client module", () => {
+  const dir = sandbox();
+  // One file, two rules, both of them things an agent writes without meaning
+  // anything by it: a string turned into code, and a server secret read from a
+  // module that ships to the browser.
+  const fixtureSource = [
+    '"use client";',
+    "",
+    "// A gate-bite fixture. Nothing imports it; it exists to be scanned.",
+    "export function gateBiteFixture(input: string) {",
+    "  return eval(process.env.GOOGLE_ADS_DEVELOPER_TOKEN ?? input);",
+    "}",
+    "",
+  ].join("\n");
+  const res = withEdits(dir, [{ file: "src/lib/gate-bite-sast-fixture.ts", write: fixtureSource }], () =>
+    runGate(dir, "sast.mjs")
+  );
+  assert.equal(
+    res.status,
+    1,
+    "a security finding has to be able to fail the build — this gate spent months on `continue-on-error`, " +
+      "which is the state this fixture exists to make loud."
+  );
+  const text = output(res);
+  assert.match(text, /eval-sink/, "the dynamic-execution rule no longer fires.");
+  assert.match(text, /client-env/, "the client/server env boundary rule no longer fires.");
+  assert.match(text, /sast-allowlist\.json/, "the finding no longer says where a reviewed exception is written down.");
 });
 
 // --- merge-gate ---------------------------------------------------------------
@@ -515,6 +547,7 @@ const COVERAGE = [
     stage: "actions:check",
     fixture: "actions:check refuses a privileged trigger, an unscoped token and a spliced expression",
   },
+  { stage: "sast", fixture: "sast fails on dynamic code execution and a server env var in a client module" },
   { stage: "merge-gate", fixture: "merge-gate fails when a required check is softened so it cannot fail" },
   { stage: "contract:ledger:check", coveredBy: "test-unit/contract-ledger-ceiling.test.mjs" },
   {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** What to do when a gate goes red — one table, printed by the gate itself.
  *
- *  `npm run check:ci` chains fifteen first-party checks and every one of them
+ *  `npm run check:ci` chains sixteen first-party checks and every one of them
  *  states its finding well: which rule fired, on which file, and why the rule
  *  exists. What most of them did NOT state is the thing a reader who has never
  *  seen that gate before actually needs — the NEXT COMMAND. "`contract-ledger`:
@@ -18,7 +18,7 @@
  *  `check:ci` stage has no entry at all.
  *
  *  IT IS ALSO THE CHAIN'S ORDER, and that is not decoration. The stages run
- *  cheapest-first: eleven zero-dependency checks that read files and finish in
+ *  cheapest-first: fourteen zero-dependency checks that read files and finish in
  *  seconds run BEFORE `npm run check`, whose `next build` is minutes. A wrong
  *  change that trips `actions:check` used to cost a full build before saying so.
  *  `cost` records which rung of that ordering a stage sits on, and the test
@@ -106,6 +106,22 @@ export const CHAIN = [
       "A `github.event.*` field: read it from $GITHUB_EVENT_PATH — node scripts/workflow-event.mjs --get <field> --out <file>",
     ],
     records: null,
+  },
+  {
+    stage: "sast",
+    script: "scripts/sast.mjs",
+    cost: "seconds",
+    proves:
+      "this repository's own security rules over src/: caller identity on every API route, no server env var in a " +
+      "client module, no SQL by interpolation, no decrypted BYOM key in a route.",
+    next: [
+      "npm run sast               # the findings, each with the rule and why it exists",
+      "npm run sast:inventory     # the API route/guard table, when the finding is route-auth",
+      "A finding is FIXED at the seam. Only when the rule is right and the code is right anyway does it",
+      "become an entry in .github/security/sast-allowlist.json — with a written reason, and with the",
+      "ceiling that pays for it raised in .github/contract-ledger.json in the SAME diff.",
+    ],
+    records: ".github/security/sast-allowlist.json",
   },
   {
     stage: "merge-gate",
@@ -300,7 +316,7 @@ if (invokedDirectly) {
     console.log("");
   }
   console.log(
-    "Cheapest first: the eleven zero-dependency checks run before `next build`, so a wrong change is\n" +
+    "Cheapest first: the fourteen zero-dependency checks run before `next build`, so a wrong change is\n" +
       "refused in seconds rather than after a full build. Rungs: docs/adr/0007-gate-rung-discipline.md."
   );
 }

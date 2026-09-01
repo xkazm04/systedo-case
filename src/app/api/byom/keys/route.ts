@@ -1,16 +1,8 @@
 /** BYOM keys — add/replace a vendor's key (encrypted, then tested) and remove one.
  *  Per-user. Server-only. */
-import {
-  deleteByomKey,
-  getPublicByomConfig,
-  hasByomCrypto,
-  markByomValidation,
-  putByomKey,
-  resolveByomKey,
-  setActiveByomVendor,
-} from "@/lib/llm/keys/store";
+import { deleteByomKey, getPublicByomConfig, hasByomCrypto } from "@/lib/llm/keys/store";
 import { isByomVendor } from "@/lib/llm/keys/types";
-import { validateVendorKey } from "@/lib/llm/keys/validate";
+import { storeAndProbeByomKey } from "@/lib/llm/keys/validate";
 import { requireByomUser, requireUser } from "../guard";
 import { guardByomProbe } from "../probe-guard";
 
@@ -18,12 +10,10 @@ import { guardByomProbe } from "../probe-guard";
  *  show a validated check or an actionable error. Body: `{ vendor, apiKey }`.
  *  Requires the BYOM entitlement.
  *
- *  Store-then-test is deliberate (we test exactly what was persisted), but a key
- *  that fails its test must NOT become live routing state: putByomKey auto-activates
- *  the first key, so a failed test on a freshly-activated vendor turns BYOM back off
- *  (restoring the prior active vendor) rather than silently routing every generation
- *  through a known-bad key. The response stays 200 with `validation.ok: false` so the
- *  settings UI renders the actionable per-vendor error.
+ *  Store-then-test, and the undo of the auto-activation when the test fails, are
+ *  `storeAndProbeByomKey`'s (src/lib/llm/keys/validate.ts) — the seam exists so that
+ *  the decrypted key never enters a request handler. The response stays 200 with
+ *  `validation.ok: false` so the settings UI renders the actionable per-vendor error.
  *
  *  Because it ends in a provider call, this route SHARES the per-user probe floor
  *  with /api/byom/validate (../probe-guard): a separate budget here would be a
@@ -52,25 +42,11 @@ export async function POST(request: Request) {
     );
   }
 
-  // Remember the active vendor BEFORE putByomKey (which auto-activates a first key),
-  // so a failed test can undo that auto-activation.
-  const prevActive = (await getPublicByomConfig(u.userId)).activeVendor;
-  await putByomKey(u.userId, vendor, apiKey);
-  // Test the freshly-stored key with its chosen (or default) model.
-  const resolved = await resolveByomKey(u.userId, vendor);
-  const check = resolved
-    ? await validateVendorKey(vendor, resolved.apiKey, resolved.model, resolved.fastModel)
-    : { ok: false, error: "Uložený klíč se nepodařilo načíst." };
-  await markByomValidation(u.userId, vendor, check);
-
-  // A key that failed its test must not be left as the live routing target. If this
-  // vendor was auto-activated as the user's first key, turn BYOM back off (restore the
-  // prior active vendor) so generation doesn't silently route through a broken key.
-  // Re-keying an already-active vendor is left as-is (the user chose it and sees the
-  // failed-test notice).
-  if (!check.ok && prevActive !== vendor) {
-    await setActiveByomVendor(u.userId, prevActive ?? null);
-  }
+  // Store-then-test, the auto-activation undo, and the decrypted key all live behind
+  // the lib seam (src/lib/llm/keys/validate.ts): this handler sees a verdict, never a
+  // key. What comes back is the same 200 with `validation.ok: false` the settings UI
+  // renders as an actionable per-vendor error.
+  const check = await storeAndProbeByomKey(u.userId, vendor, apiKey);
 
   return Response.json({ config: await getPublicByomConfig(u.userId), validation: check });
 }

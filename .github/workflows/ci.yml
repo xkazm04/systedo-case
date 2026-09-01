@@ -51,14 +51,18 @@ jobs:
       #   adr:check → docs:parity (the shared claims in README.md and
       #   docs/README.cs.md still agree) → agents:surface → checkpoint:check →
       #   actions:check (workflow token scope, action pinning, no expression
-      #   spliced into a `run:` script) → merge-gate (every check that
+      #   spliced into a `run:` script) → sast (this repository's own security
+      #   rules over src/ — caller identity on every API route, no server env var
+      #   in a client module, no SQL by interpolation, no decrypted BYOM key in a
+      #   route; the same script sast.yml runs as a required check) →
+      #   merge-gate (every check that
       #   .github/required-checks.json says may stop a change still exists, still
       #   runs on PRs, and can still fail) → contract:ledger:check →
       #   context:decay:check → review:agent:gate (Part A of the rubric) →
       #   llm:gate:check (chokepoint coverage + contract goldens + the golden
       #   provenance ledger) → llm:quality:check (the baked scorecard's floor on
       #   the models we actually serve) → llm:budget:check → seed drift guard —
-      #   thirteen zero-dependency checks, seconds each — then the slow half:
+      #   fourteen zero-dependency checks, seconds each — then the slow half:
       #   check (typecheck && lint && build) → unit tests. All deterministic and
       #   key-free — zero model calls; the real-model run is on demand
       #   (npm run test:llm) and weekly (.github/workflows/llm-drift.yml).

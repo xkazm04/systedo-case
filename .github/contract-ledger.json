@@ -149,9 +149,9 @@
       "why": "SQL built by interpolation; the two exceptions are table NAMES, which cannot be bound",
       "measure": { "kind": "allowlist", "rule": "sql-template-interpolation" },
       "ceiling": {
-        "max": 2,
-        "reason": "Two statements interpolate a table NAME, which SQLite cannot bind as a parameter — a PRAGMA in src/lib/db.ts and a three-table sweep in the leads local store. In both, the name comes from a literal array written inline in the same file and every caller-supplied value in the statement is bound.",
-        "comesOffWhen": "When neither call site needs a dynamic table name — the PRAGMA when the schema check is generated per table, the sweep when leads live in one table. Any third entry is a different claim: it would be the first one where the interpolated value is not a literal from the same file."
+        "max": 3,
+        "reason": "Three statements interpolate a table NAME, which SQLite cannot bind as a parameter. Two of them take the name from a literal array written inline in the same file — a PRAGMA in src/lib/db.ts and the three-table sweep in the leads local store. The third, added when the SAST gate was promoted from continue-on-error to blocking (2026-09-01), is the different claim the line below anticipated: src/lib/projects/orphan-walk.local.ts enumerates tables from sqlite_master rather than from a literal, because walking a per-project table nobody registered is the whole point of the dependent-side orphan walk. Its source is the database's own catalogue, not a request, and the name goes through quoted() — SQLite identifier quoting with doubled quotes. In all three, every caller-supplied value in the statement is bound. The two campaign-store statements that were the fourth and fifth findings are NOT here: they were fixed in the same change, by enumerating the eight complete statements they used to assemble.",
+        "comesOffWhen": "Each entry comes off when its call site stops needing a dynamic table name — the PRAGMA when the schema check is generated per table, the leads sweep when leads live in one table, and the orphan walk when the schema is enumerated through a registry the code owns rather than through sqlite_master. A FOURTH entry is not a variation on these: two of the three are literal-sourced and one is catalogue-sourced, so the next one is either a repeat of a claim already made here (fix it the way the campaign store was fixed) or a new one that belongs in the diff that raises this number."
       },
       "breaches": []
     },
@@ -178,9 +178,9 @@
       "why": "a route importing the decrypted BYOM key can return it by accident",
       "measure": { "kind": "allowlist", "rule": "plaintext-key-in-route" },
       "ceiling": {
-        "max": 1,
-        "reason": "One route legitimately holds a decrypted BYOM key: 'test connection' has to call the vendor with it. It is behind requireByomUser and a per-user probe floor, and the key never reaches the response.",
-        "comesOffWhen": "When validation moves behind a lib-side seam that takes the user and returns a verdict, so no module under src/app/api imports the decrypted key at all. A second route needing the plaintext key is the signal to do that, not to add a line here."
+        "max": 0,
+        "reason": "Zero, as of 2026-09-01: the seam this row's `comesOffWhen` described was built. A second route (POST /api/byom/keys, which stores a key and then tests it) needed the plaintext, which was the signal to move the probe rather than to add a line here. probeStoredByomKey / storeAndProbeByomKey in src/lib/llm/keys/validate.ts take a userId and return a ProbeOutcome, so the decrypted key now exists only inside that module's frame and no module under src/app/api imports it at all.",
+        "comesOffWhen": "It is off. The ceiling stays at 0: a route that needs the plaintext key again means the seam is missing a case, and the fix is to widen the seam's verdict, never to hand a handler the key."
       },
       "breaches": []
     },
