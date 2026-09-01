@@ -2680,8 +2680,9 @@
         "src/lib/i18n/messages.ts",
         "src/lib/i18n/server.ts"
       ],
-      "group": "Site & Marketing",
-      "group_id": "0ca5ac6b-c9d8-4a90-94fb-6088a88a66b4",
+      "$comment": "Moved from Site & Marketing (feature) into the shared group on 2026-09-01: by its own description this context drives ALL UI copy, and the decay census showed every feature group crossing into it undeclared (~170 edges). A shared group is the map's mechanism for a seam everyone may import; a feature group was the wrong address, not a boundary.",
+      "group": "App Shell & Site",
+      "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
       "id": "27a7f158-c8bc-4554-859d-b54fddb66b03",
       "keywords": [
         "i18n",
@@ -5783,7 +5784,7 @@
   "groups": [
     {
       "color": "emerald",
-      "context_count": 9,
+      "context_count": 8,
       "domain": "feature",
       "id": "0ca5ac6b-c9d8-4a90-94fb-6088a88a66b4",
       "name": "Site & Marketing"
@@ -5888,7 +5889,7 @@
     },
     {
       "color": "pink",
-      "context_count": 13,
+      "context_count": 14,
       "domain": "shared",
       "id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
       "name": "App Shell & Site"
