@@ -253,6 +253,30 @@ pressure — see [Deploy + rollback (Vercel)](#deploy--rollback-vercel) below
 for the exact steps (`vercel promote <deployment-url>` / dashboard promote).
 Fix forward in git afterwards.
 
+**And something now asks whether the rollback is needed, instead of waiting for
+you to notice.** Every gate in this repository runs *before* the push, and the
+push is the release — so for the minutes that matter most nothing was looking.
+[`.github/workflows/post-deploy.yml`](../.github/workflows/post-deploy.yml) fires
+on the same push, polls `/api/health` (the readiness probe that already existed
+and that nothing was wired to) for up to five minutes through
+[`scripts/post-deploy-verify.mjs`](../scripts/post-deploy-verify.mjs), and fails
+the run when the release does not report `ok`, when Firestore is unreadable with
+credentials present, or when the guard answers 401 — the last of which is also a
+cron outage, since they share `CRON_SECRET`. The verdict is kept as a 90-day
+artifact, so "was the release on the 3rd healthy?" is answerable later.
+
+It needs two things configured and **says so loudly when they are not**: the
+deployment URL in the repository variable `ADAMANT_HEALTH_URL`, and `CRON_SECRET`
+as a repository secret. Without them it records `status: "skipped"` with the
+reason rather than a green it did not earn — declared as the `post-deploy-verify`
+capability in [`scripts/harness-degradation.mjs`](../scripts/harness-degradation.mjs).
+
+**It does not revert for you, on purpose.** An automatic revert needs a token that
+can write `refs/heads/master`, which on this topology is a release under the
+operator's name — `AGENTS.md` § Red. The job holds `contents: read`. What changed
+is that the rehearsed rollback below now starts from an automatic dated signal
+instead of from somebody opening the app.
+
 [`runbooks/revert-drill.md`](runbooks/revert-drill.md) is the rehearsal — a
 seeded fault on one of the seams that matter, timed from "applied" to "tree clean
 again", with the detection layers ranked by when they fire and what each one

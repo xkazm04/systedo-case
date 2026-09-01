@@ -11,7 +11,7 @@
 
   "schema": 1,
   "routedBy": "docs/task-index.md",
-  "maxTotalLines": 1584,
+  "maxTotalLines": 1586,
 
   "readFirst": [
     {
@@ -37,8 +37,9 @@
     },
     {
       "file": "docs/task-index.md",
-      "maxLines": 123,
-      "why": "the routing table that makes every OTHER document a lookup. It is read first precisely so the ADRs, runbooks and contracts do not have to be."
+      "maxLines": 125,
+      "why": "the routing table that makes every OTHER document a lookup. It is read first precisely so the ADRs, runbooks and contracts do not have to be.",
+      "$raised": "123 → 125 on 2026-09-01, for two routes rather than two documents: `docs/security/threat-model.md` (which credential a change is about to touch, and which fence stands on it) and `test-unit/contract.mjs` (what a seam assertion's failure must SAY). Both are lookups — the whole point of paying two lines here is that neither page is read before every edit, only before the edits that need them."
     },
     {
       "file": "docs/agent-index.md",
@@ -60,6 +61,7 @@
     { "file": ".github/contract-ledger.json", "why": "what each fence is absorbing and the pin it may not cross — read when moving one" },
     { "file": "context-map.json", "why": "which files belong to the context being edited; an index, consulted per task" },
     { "file": "docs/deploy.md", "why": "env names, crons, rollback — read when the change touches the deployment" },
+    { "file": "docs/security/threat-model.md", "why": "where each credential enters, rests and leaves, and the fence on each edge — read when the change touches one" },
     { "file": "docs/design-system.md", "why": "tokens and component conventions — read when the change is a UI one" },
     { "file": "docs/i18n/contract.md", "why": "the localisation contract — read during a localisation wave" },
     { "file": ".agent/README.md", "why": "how checkpoints work — read when a run is long enough to need one" }

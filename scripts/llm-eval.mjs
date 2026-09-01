@@ -29,6 +29,7 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync, existsSync, rea
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LLM_TOOLS } from "../test-llm/registry.mjs";
+import { heldOutRefusal, heldOutViolations } from "../test-llm/held-out.mjs";
 import { fingerprint } from "./lib/fingerprint.mjs";
 import { diffLines, formatDiff, sortKeysDeep } from "./lib/diff-lines.mjs";
 
@@ -85,6 +86,24 @@ function readGolden(id) {
 function schemaKeys(schema) {
   const props = schema && schema.properties ? Object.keys(schema.properties).sort() : [];
   return props;
+}
+
+// --- the tier a --reason does not reach --------------------------------------
+//
+// A reason distinguishes an intended contract change from a regression being
+// absorbed — as long as somebody can SEE which behaviour was traded away. Inside a
+// two-hundred-line prompt diff, a deleted sentence is invisible, and the sentences
+// that matter most here ("do not invent figures", "do not introduce external
+// benchmarks", "efficiency is not profit") are exactly the ones nobody is thinking
+// about while re-baking. Those are held out: checked before a byte is written, and
+// not absorbable by any reason. test-llm/held-out.mjs.
+if (UPDATE) {
+  const problems = heldOutViolations(LLM_TOOLS.map((t) => ({ id: t.id, system: t.system, schema: t.schema })));
+  if (problems.length) {
+    console.error(heldOutRefusal(problems));
+    console.error("  Nothing was written — the goldens and the ledger are untouched.\n");
+    process.exit(1);
+  }
 }
 
 if (UPDATE) mkdirSync(GOLDEN_DIR, { recursive: true });

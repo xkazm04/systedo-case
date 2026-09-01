@@ -134,6 +134,20 @@
       "watches": [".github/agent-lessons.json", "AGENTS.md", ".github/agent-review-rubric.md", ".github/constraint-map.json"],
       "maxAgeDays": 120,
       "why": "The record of what agents got wrong here, and the standing of each trap — whether a fence now refuses it, or nothing does. When the guidance surface moves under it, a row that says 'nothing catches this' may have become false, or a fence it names may have gone; both read as evidence and neither would be noticed otherwise."
+    },
+    {
+      "doc": "docs/security/threat-model.md",
+      "watches": [
+        "src/lib/llm/keys",
+        "src/lib/inventory/token-crypto.ts",
+        "src/lib/outbound/secret-crypto.ts",
+        "src/lib/cron-auth.ts",
+        "scripts/sast.mjs",
+        "eslint.config.mjs",
+        "SECURITY.md"
+      ],
+      "maxAgeDays": 120,
+      "why": "Where every credential enters, rests and leaves, mapped to the fence standing on each edge. It is the page a contributor reads BEFORE touching a key path, so a stale row does not misinform them about the seam — it tells them a fence exists where one has been removed."
     }
   ]
 }

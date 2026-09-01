@@ -157,6 +157,23 @@ export const CAPABILITIES = [
       "harness-status.json, and a `skipped` verdict in injection-drill.json — both kept as 90-day artifacts.",
     announces: true,
   },
+  {
+    id: "post-deploy-verify",
+    name: "Post-deploy health probe (the minutes after a release lands)",
+    needs: "CRON_SECRET",
+    workflow: ".github/workflows/post-deploy.yml",
+    absent:
+      "nothing asks the deployment whether it answers after the push that shipped it, so the rehearsed rollback " +
+      "goes back to waiting for a person to notice the symptom — and a release that never came up looks exactly " +
+      "like one that came up clean, because the gates that ran all ran BEFORE it.",
+    visible:
+      "scripts/post-deploy-verify.mjs writes `status: \"skipped\"` naming what was not configured, emits a " +
+      "::warning, says so in the job summary, and keeps the row as a 90-day artifact — instead of a green it did " +
+      "not earn.",
+    announces: false,
+    recordedBy: "scripts/post-deploy-verify.mjs",
+    marker: 'status: "skipped"',
+  },
 ];
 
 export const capabilityFor = (id) => CAPABILITIES.find((c) => c.id === id) ?? null;

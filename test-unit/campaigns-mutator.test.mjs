@@ -18,6 +18,14 @@
  *  as a fixture, so nothing here can reach the network. */
 import { test, mock, beforeEach } from "node:test";
 import assert from "node:assert/strict";
+import { contract } from "./contract.mjs";
+
+/** What a failure on rail 3 MEANS. `no-live-ad-writes` is the row in
+ *  .github/constraint-map.json for the one boundary in this repository where being
+ *  wrong spends an advertiser's budget, and this file is the fence it names — so a
+ *  red assertion below cites the rule, its rung and where it is stated, rather than
+ *  reporting that a boolean differed. See test-unit/contract.mjs. */
+const liveAdWrites = contract("no-live-ad-writes");
 
 let SYNC_SOURCE = "google";
 let GOOGLE_CONFIGURED = true;
@@ -100,20 +108,44 @@ beforeEach(() => {
 // --- rail 3: the global off switch ---------------------------------------------
 
 test("[S1 rail 3] the env name is SKLIK_WRITES_ENABLED and only the exact string \"1\" arms it", () => {
-  assert.equal(SKLIK_WRITES_ENV, "SKLIK_WRITES_ENABLED");
-  assert.equal(sklikWritesEnabled({}), false, "absent = off — the default everywhere");
-  assert.equal(sklikWritesEnabled({ SKLIK_WRITES_ENABLED: "" }), false);
-  assert.equal(sklikWritesEnabled({ SKLIK_WRITES_ENABLED: "0" }), false);
-  assert.equal(sklikWritesEnabled({ SKLIK_WRITES_ENABLED: "true" }), false, "an accidentally-truthy value must not arm real mutations");
-  assert.equal(sklikWritesEnabled({ SKLIK_WRITES_ENABLED: "yes" }), false);
-  assert.equal(sklikWritesEnabled({ SKLIK_WRITES_ENABLED: "1" }), true);
+  const armed = (value) =>
+    liveAdWrites(
+      `SKLIK_WRITES_ENABLED=${JSON.stringify(value)} ARMED real Sklik mutations. Only the exact string "1" ` +
+        "may, and every other value widens the guard — which is money leaving an advertiser's account"
+    );
+  assert.equal(
+    SKLIK_WRITES_ENV,
+    "SKLIK_WRITES_ENABLED",
+    liveAdWrites("the off switch has been renamed — every document, runbook and deny rule names the old one")
+  );
+  assert.equal(sklikWritesEnabled({}), false, armed("(absent)"));
+  assert.equal(sklikWritesEnabled({ SKLIK_WRITES_ENABLED: "" }), false, armed(""));
+  assert.equal(sklikWritesEnabled({ SKLIK_WRITES_ENABLED: "0" }), false, armed("0"));
+  assert.equal(sklikWritesEnabled({ SKLIK_WRITES_ENABLED: "true" }), false, armed("true"));
+  assert.equal(sklikWritesEnabled({ SKLIK_WRITES_ENABLED: "yes" }), false, armed("yes"));
+  assert.equal(
+    sklikWritesEnabled({ SKLIK_WRITES_ENABLED: "1" }),
+    true,
+    liveAdWrites('SKLIK_WRITES_ENABLED="1" no longer arms writes — the operator\'s live proof cannot be run')
+  );
 });
 
 test("[S1 rail 3] RED: with the flag off, a Sklik tenant resolves to a refusal — no client, no credential read", async () => {
   SYNC_SOURCE = "sklik";
   const res = await mutatorForTenant(USER, TENANT);
-  assert.equal(res.ok, false);
-  assert.equal(res.code, "sklik-writes-disabled");
+  assert.equal(
+    res.ok,
+    false,
+    liveAdWrites(
+      "with SKLIK_WRITES_ENABLED unset, a Sklik tenant resolved to a WORKING mutator. The default is off " +
+        "everywhere and this is the assertion that keeps it that way"
+    )
+  );
+  assert.equal(
+    res.code,
+    "sklik-writes-disabled",
+    liveAdWrites("the refusal no longer names the off switch, so a caller cannot tell why the write stopped")
+  );
   assert.equal(
     res.error,
     "Úpravy kampaní pro Sklik zatím nejsou podporované. Dostupné jsou jen pro Google Ads.",

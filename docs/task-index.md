@@ -43,7 +43,7 @@ is a red build, not a dead link somebody finds later.
 
 | The task | Open | What it settles |
 |---|---|---|
-| Adding or changing an AI operation | [`AGENTS.md`](../AGENTS.md) § Conventions that bite, then [`test-llm/budget.json`](../test-llm/budget.json) | The `// llm-tool:` tag contract, the golden's provenance ledger, and the input-cost ceiling a new operation must record |
+| Adding or changing an AI operation | [`AGENTS.md`](../AGENTS.md) § Conventions that bite, then [`test-llm/budget.json`](../test-llm/budget.json) and [`test-llm/held-out.mjs`](../test-llm/held-out.mjs) | The `// llm-tool:` tag contract, the golden's provenance ledger, the input-cost ceiling a new operation must record — and the held-out prompt rules no `--reason` can re-bake away |
 | Judging whether a model change made answers worse | [`docs/testing/llm-quality-matrix.md`](testing/llm-quality-matrix.md) | The LLM-as-judge benchmark, its cost, and the baked scorecard floor |
 | Touching anything that calls a model | [`docs/adr/0003-single-llm-chokepoint.md`](adr/0003-single-llm-chokepoint.md) | Why there is exactly one `generateStructured`, and why a lint fence guards it |
 | Reading or writing tenant data | [`docs/adr/0001-dual-store-seam.md`](adr/0001-dual-store-seam.md) and [`docs/adr/0002-tenant-key-embeds-user-id.md`](adr/0002-tenant-key-embeds-user-id.md) | One store interface over two backends; the tenant key that makes cross-user access structurally impossible |
@@ -82,6 +82,8 @@ is a red build, not a dead link somebody finds later.
 | Proving the model still behaves, off a schedule | [`scripts/llm-drift.mjs`](../scripts/llm-drift.mjs) | The weekly real-model prove, what it asserts, and where its dated verdicts are published |
 | Reporting a vulnerability | [`SECURITY.md`](../SECURITY.md) | Never a public issue; what is in scope |
 | Getting past a security rule you believe is wrong | [`.github/security/sast-allowlist.json`](../.github/security/sast-allowlist.json) | The only exception mechanism — an entry with a written reason. There is no in-code opt-out |
+| Touching anything that holds a credential — a key, a connector token, the cron guard | [`docs/security/threat-model.md`](security/threat-model.md) | Where each credential enters, rests and leaves, which contexts may see it, and which fence stands on each edge — including which of the lint seams are security and which is architecture |
+| Writing an assertion that protects a seam | [`test-unit/contract.mjs`](../test-unit/contract.mjs) | How a failure names the RULE that broke rather than the value that differed, cited out of `.github/constraint-map.json` so it cannot rot. Held by `test-unit/failure-contract.test.mjs` |
 | Adding or changing a required check | [`docs/adr/0011-required-checks-are-enumerated-in-the-repo.md`](adr/0011-required-checks-are-enumerated-in-the-repo.md) | Why the list lives in the repo and is verified by a gate |
 | Working out what a route is allowed to cost | [`.github/perf-budgets.json`](../.github/perf-budgets.json) | The ceiling each budgeted route may not pass, what is measured (the document response, warm, best of three) and what the budget deliberately does not see. Measured by `tests/perf-budget.spec.ts` in the e2e lane |
 | Judging whether a document is still TRUE, not just consistent | [`.github/docs-staleness.json`](../.github/docs-staleness.json) | Which documents carry an age budget, what each is watched against, and why. `npm run docs:staleness` measures it |

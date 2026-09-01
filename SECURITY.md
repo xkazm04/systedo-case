@@ -40,6 +40,12 @@ In scope: this repository's application code, the API route handlers under
 `src/app/api/`, the cron endpoints, the store seams, the LLM chokepoint and its
 BYOM key handling, and the default configuration they ship with.
 
+**The flows behind that list are drawn in
+[`docs/security/threat-model.md`](docs/security/threat-model.md)** — where each
+credential enters, where it rests, where it leaves, which contexts may see it, and
+which fence stands on each edge. This document is the policy; that one is the map,
+and it is what to read before changing a key path.
+
 Out of scope: findings that depend on a deliberately insecure configuration the
 docs already warn about (see below), vulnerabilities in third-party providers
 (Google Ads, Sklik, Gemini, Leonardo, Meta, LinkedIn, Resend), the deliberately

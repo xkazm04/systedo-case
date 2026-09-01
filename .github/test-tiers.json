@@ -30,6 +30,8 @@
     "test-unit/model-candidate-census.test.mjs",
     "test-unit/dependency-lockfile.test.mjs",
     "test-unit/typecheck-strict.test.mjs",
-    "test-unit/workflow-permissions.test.mjs"
+    "test-unit/workflow-permissions.test.mjs",
+    "test-unit/failure-contract.test.mjs",
+    "test-unit/golden-held-out.test.mjs"
   ]
 }

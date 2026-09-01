@@ -1,0 +1,89 @@
+name: Post-deploy verify
+
+# The half of the delivery contract that was missing.
+#
+# Vercel ships `master` on push, so the push IS the release act (docs/deploy.md
+# § Delivery contract). Everything this repository does about that happens BEFORE
+# the push: fifteen gates, a rubric review, and `.husky/pre-push` running the whole
+# chain because a required status check never gets a chance on this landing path.
+# Past the push there was nothing. The rollback path is documented and DRILLED
+# (`npm run revert:drill`, weekly), which is further than most repositories get —
+# and a rehearsed recovery that waits for a person to notice the symptom is a
+# rehearsal, not a control. The first signal that a release was bad was somebody
+# opening the app.
+#
+# So this runs on the same event as the release, waits for the deployment to become
+# the one answering, and asks the app itself: `/api/health` — the readiness matrix
+# that already exists (src/app/api/health/route.ts), behind the same constant-time
+# `CRON_SECRET` guard as the crons, reporting WHICH credentials are configured and
+# never a value. It is a probe designed to be wired to an uptime monitor and nothing
+# was wiring it.
+#
+# WHAT IT DOES NOT DO, ON PURPOSE. It does not revert. An automatic revert means a
+# token that can write `refs/heads/master`, on a repository where a push to master
+# is a release under the operator's name and AGENTS.md § Red says never — the
+# `contents: write` in issue-dispatch.yml is already described in
+# .github/workflow-permissions.json as the broadest token anything here holds. This
+# job holds `contents: read` and nothing else. What it produces is the thing the
+# rehearsed revert was always waiting for: a dated, automatic answer to "is the
+# release healthy?", with the exact command from docs/runbooks/revert-drill.md
+# printed next to the failure. Arming the revert leg is a decision an operator makes
+# with a token, not one a workflow makes on their behalf.
+#
+# DEGRADATION IS DECLARED. The probe needs `secrets.CRON_SECRET` and the deployment
+# URL in `vars.ADAMANT_HEALTH_URL`. With either absent it records `status: "skipped"`
+# with the reason rather than a green it did not earn, and says so as a ::warning —
+# the capability `post-deploy-verify` in scripts/harness-degradation.mjs, which
+# `npm run harness:degradation:check` (blocking, via test:unit) holds it to.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# Least privilege, declared rather than inherited (rule P1), and matched scope for
+# scope against .github/workflow-permissions.json (rule P10). This workflow writes
+# nothing anywhere: its verdict is an artifact, a job summary and the run's own
+# status.
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Health probe after the release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.14.0
+
+      # Zero-dependency, so no `npm ci`: the probe is `fetch` and a clock.
+      #
+      # No expression enters a `run:` body (rule P5) and neither value is an
+      # attacker-shaped context (P7/P9) — one is a repository variable, the other a
+      # secret, and both reach the script through `env:`.
+      - name: Probe /api/health until the release answers
+        env:
+          ADAMANT_HEALTH_URL: ${{ vars.ADAMANT_HEALTH_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: node scripts/post-deploy-verify.mjs --out post-deploy.json --summary "$GITHUB_STEP_SUMMARY"
+
+      # The verdict outlives the run, in the same 90-day window as the review's
+      # report and the gate timings. "Was the release on the 3rd healthy two minutes
+      # in?" is asked well after a run's logs stop being convenient — and a `skipped`
+      # row is the one worth keeping, because it is the shape a harness that quietly
+      # stopped verifying takes.
+      - name: Keep the verdict
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: post-deploy-verdict
+          path: post-deploy.json
+          if-no-files-found: ignore
+          retention-days: 90
