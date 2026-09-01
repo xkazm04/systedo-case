@@ -1,0 +1,155 @@
+{
+  "$comment": [
+    "How much may happen here without a human, and the switch that stops it.",
+    "",
+    "Every other control in this repository is about a CHANGE: fifteen gates, a rubric review, a",
+    "mutation drill, a revert drill, a flake drill, a post-deploy probe. All of them assume the same",
+    "unstated thing — that a maintainer reads the trail every week. That assumption is load-bearing",
+    "(~97% of commits are agent-written and Vercel ships master on push, so the weekly pass is the",
+    "only place a human sees the shape of what landed) and it was the one thing here that was never",
+    "written down, never measured, and never rehearsed. The drills cover a failing dependency and a",
+    "bad change. Nothing covered the maintainer being on holiday.",
+    "",
+    "This file states the assumption so it can be acted on: who the pass belongs to, how long the",
+    "loop may run without one, which lanes run unattended and what each of them can actually WRITE,",
+    "which change classes wait for a human read no matter how green the gate is — and the pause",
+    "switch, in the one form that is reviewable, diffable and revertible: a committed flag."
+  ],
+
+  "$whyAFlagAndNotASetting": [
+    "A repository variable or a disabled workflow is invisible in a diff, invisible in a clone, and",
+    "answers 'why is nothing running?' only to somebody who already has the settings page open. A",
+    "committed flag is read by the lane itself, shows up in `git log` with the reason attached, and",
+    "is undone by the same one-line diff that set it. It is also the shape the rest of this",
+    "repository already uses for a decision that must survive a person leaving."
+  ],
+
+  "$cannotSee": [
+    "whether the weekly pass actually HAPPENED — nothing here observes a human reading anything, and `lastTriage` below is a claim somebody types, not a measurement;",
+    "an agent running in a local checkout: this flag is read by the lanes named under `lanes`, and a person or a harness driving Claude Code by hand is governed by AGENTS.md § What you may do unattended and by .github/agent-permissions.json, not by a JSON file;",
+    "anything already merged — pausing stops the next dispatch, it does not unwind the last one. That is `npm run revert:drill` and docs/deploy.md § Deploy + rollback;",
+    "the read-only weekly drills, which are deliberately NOT pausable (see `lanes`): they write nothing to the repository, and stopping them during an absence would remove the only evidence of what happened while nobody was looking."
+  ],
+
+  "schema": 1,
+  "declaredOn": "2026-09-01",
+
+  "pause": {
+    "paused": false,
+    "reason": null,
+    "pausedOn": null,
+    "pausedBy": null,
+    "$howToPause": "Set `paused` to true with a `reason`, a `pausedOn` date and a `pausedBy` handle, and commit it. `scripts/issue-dispatch.mjs --gate` reads this file and refuses to dispatch while it is set, printing the reason into the job summary — so a labelled issue queues instead of becoming a draft pull request. `npm run autonomy` prints the current state. Un-pausing is the same one-line diff in reverse.",
+    "$whatItDoesNotStop": "A push to master still deploys, the gates still run, and the weekly drills still publish their trails. This stops the lane that WRITES — the only one that can turn a sentence somebody typed into a branch and a pull request."
+  },
+
+  "triage": {
+    "owner": "@xkazm04",
+    "cadence": "weekly",
+    "$cadence": "Monday, behind .github/workflows/agent-review-history.yml — which is what makes that workflow's trail issue the pass's agenda rather than a report nobody opens.",
+    "maxUnreadDays": 21,
+    "$maxUnreadDays": "Three missed passes. Not a limit anything enforces — nothing here can observe a human reading — but the number the paragraph above is worth arguing about, and the one a returning maintainer measures against: more than this, and the honest first step is `npm run review:agent -- --base <the last commit you read>` over the whole gap rather than a scroll through the log.",
+    "reads": [
+      "the rubric-review trail issue (which Part A rules actually fired, and on what)",
+      "the revert + mutation drill issue (did a seeded fault survive; did a mutant)",
+      "the flake-watch issue (did the suite give two answers)",
+      "the LLM drift + candidate issue (does today's model still hold; would tomorrow's)",
+      "`npm run owners:groups` — which context groups the week's changes landed in, in triage-rank order"
+    ]
+  },
+
+  "lanes": [
+    {
+      "id": "issue-dispatch",
+      "workflow": ".github/workflows/issue-dispatch.yml",
+      "trigger": "a maintainer applies the `agent:draft` label to an issue",
+      "writes": "a branch and a DRAFT pull request; file writes are fenced to src/, test-unit/ and docs/ (ALLOWED_ROOTS in scripts/issue-dispatch.mjs) and may never touch a workflow, a gate script or an ADR",
+      "pausable": true,
+      "$pausable": "The only lane that turns text into a change, so it is the only one where an absent maintainer changes the risk. Enforced in `gate()`, before the model is ever called."
+    },
+    {
+      "id": "agent-review-history",
+      "workflow": ".github/workflows/agent-review-history.yml",
+      "trigger": "weekly (Monday 08:00 UTC) and on demand",
+      "writes": "one GitHub issue, rewritten each run",
+      "pausable": false,
+      "$pausable": "It is the triage pass's agenda. Pausing it during an absence would delete exactly the record the returning maintainer needs."
+    },
+    {
+      "id": "supply-chain",
+      "workflow": ".github/workflows/supply-chain.yml",
+      "trigger": "weekly (Monday 06:00 UTC), on push and on demand",
+      "writes": "nothing — a job summary, an artifact and the run's own status",
+      "pausable": false,
+      "$pausable": "Read-only, and the one lane whose finding gets WORSE with time: a dependency advisory published during an absence is the thing you most want dated."
+    },
+    {
+      "id": "sast",
+      "workflow": ".github/workflows/sast.yml",
+      "trigger": "weekly (Monday 07:00 UTC), on push and pull request",
+      "writes": "nothing — it is a required check and a stage of check:ci",
+      "pausable": false,
+      "$pausable": "Blocking. A security gate that an absence can switch off is not a gate."
+    },
+    {
+      "id": "setup-walk",
+      "workflow": ".github/workflows/setup-walk.yml",
+      "trigger": "weekly (Tuesday 05:00 UTC), on a change to the quick-start surface, and on demand",
+      "writes": "nothing — a job summary and a 90-day artifact",
+      "pausable": false,
+      "$pausable": "Read-only; it follows docs/open-source/self-hosting.md on a clean runner."
+    },
+    {
+      "id": "llm-drift",
+      "workflow": ".github/workflows/llm-drift.yml",
+      "trigger": "weekly (Wednesday 06:00 UTC) and on demand",
+      "writes": "one GitHub issue, rewritten each run",
+      "pausable": false,
+      "$pausable": "It SPENDS money, which is the one argument for pausing it — and it is already keyed on a provider secret, so removing the key is the switch that exists, and `scripts/harness-degradation.mjs` makes the absence announce itself rather than read as a pass."
+    },
+    {
+      "id": "revert-drill",
+      "workflow": ".github/workflows/revert-drill.yml",
+      "trigger": "weekly (Thursday 05:00 UTC) and on demand",
+      "writes": "one GitHub issue, rewritten each run; it seeds and restores files inside the runner's own checkout and never pushes",
+      "pausable": false,
+      "$pausable": "Read-only with respect to this repository. It also carries the mutation drill."
+    },
+    {
+      "id": "flake-watch",
+      "workflow": ".github/workflows/flake-watch.yml",
+      "trigger": "weekly (Friday 05:00 UTC) and on demand",
+      "writes": "nothing — a job summary and an artifact",
+      "pausable": false,
+      "$pausable": "Read-only."
+    }
+  ],
+
+  "waitsForAHuman": [
+    {
+      "class": "arming or widening a live ad write",
+      "why": "SKLIK_WRITES_ENABLED spends an advertiser's budget. AGENTS.md § Red, rail 3 in src/lib/campaigns/mutator.ts, and two mutants in scripts/mutation-catalogue.mjs.",
+      "greenGateIsNotEnough": true
+    },
+    {
+      "class": "anything that leaves the machine under the operator's name",
+      "why": "a published post, mail through Resend, a conversion uploaded to Google Ads, a person contacted. Drafts go through the review gate in `schranka`; the operator presses send.",
+      "greenGateIsNotEnough": true
+    },
+    {
+      "class": "a credential moving anywhere",
+      "why": "including into a test fixture, a log line or a prompt. `.husky/pre-commit` scans and `npm run sast` blocks, and neither can see an intent.",
+      "greenGateIsNotEnough": true
+    },
+    {
+      "class": "an exception list or a ratchet baseline that grows",
+      "why": "each is legitimate sometimes and each is what a lane under a wall clock reaches for. `contract:ledger:check` makes it a two-line diff; only a human decides whether the finding was fixed or absorbed (rubric B3).",
+      "greenGateIsNotEnough": true
+    },
+    {
+      "class": "a change to a CODEOWNERS law file beyond what the task asked for",
+      "why": "the gates, the rubric, the ADRs and the instruction surface are what judge every other change. A lane editing them is a lane editing its own judge.",
+      "greenGateIsNotEnough": true
+    }
+  ]
+}

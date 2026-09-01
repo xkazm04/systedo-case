@@ -51,6 +51,15 @@
  *    • `proposal.json` is kept as a 90-day artifact, so what the model was asked
  *      and what it answered outlive the run.
  *
+ *  AND IT CAN BE TURNED OFF, which is the half a fence cannot supply. Every control
+ *  around this lane judges a change; none of them could stop the lane RUNNING, and
+ *  the whole design rests on a maintainer reading the trail weekly. `--gate` now
+ *  reads `.github/autonomy-budget.json` first (scripts/autonomy.mjs): while
+ *  `pause.paused` is set it emits `dispatch=no` with the reason, before the event is
+ *  parsed and before any model is called, so a labelled issue QUEUES during an
+ *  absence instead of becoming a branch. It fails CLOSED — an unreadable budget
+ *  pauses the lane. `npm run autonomy` prints the current state.
+ *
  *  THE COMMIT SUBJECT IS THE MODEL'S AND IS CHECKED LIKE ANYONE'S. It goes through
  *  scripts/commit-subject.mjs before it is used, and falls back to a subject this
  *  script writes when it fails. A lane that composes a subject from a model's first
@@ -69,6 +78,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildDispatchPrompt, newNonce, UNTRUSTED_RULES } from "./lib/review-prompt.mjs";
 import { checkSubject } from "./commit-subject.mjs";
+import { BUDGET_REL, pauseState } from "./autonomy.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -444,6 +454,35 @@ function gate() {
   const label = arg("--label") || "agent:draft";
   const out = arg("--out");
   if (!out) die("--gate needs --out FILE (normally \"$GITHUB_OUTPUT\").");
+
+  // The autonomy pause, read BEFORE the event is even parsed and long before the
+  // model is called. This is the front of the only lane here that turns somebody's
+  // text into a branch and a pull request, so it is the lane an absent maintainer
+  // actually changes the risk of (.github/autonomy-budget.json § lanes). While the
+  // flag is set a labelled issue QUEUES: the label stays on, nothing is lost, and the
+  // reason is printed where the run can be read. It fails CLOSED — an unreadable
+  // budget pauses the lane rather than waving it through.
+  const pause = pauseState();
+  if (pause.paused) {
+    appendFileSync(out, "dispatch=no\n");
+    console.log(`dispatch=no — ${pause.reason}`);
+    console.log(`(the switch is \`pause.paused\` in ${BUDGET_REL}; \`npm run autonomy\` prints the current state.)`);
+    const summary = process.env.GITHUB_STEP_SUMMARY;
+    if (summary) {
+      try {
+        appendFileSync(
+          summary,
+          `### Issue dispatch is paused\n\n${pause.reason}\n\n` +
+            `The label stays on the issue; nothing was dispatched and no model was called. ` +
+            `Un-pause by clearing \`pause.paused\` in \`${BUDGET_REL}\`.\n`
+        );
+      } catch {
+        // a summary that cannot be written must never be the reason a lane fails.
+      }
+    }
+    return 0;
+  }
+
   const path = process.env.GITHUB_EVENT_PATH;
   let event = {};
   try {

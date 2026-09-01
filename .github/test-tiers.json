@@ -24,6 +24,8 @@
     "test-unit/docs-staleness.test.mjs",
     "test-unit/docs-task-index.test.mjs",
     "test-unit/adr-ownership.test.mjs",
+    "test-unit/group-owners.test.mjs",
+    "test-unit/autonomy-budget.test.mjs",
     "test-unit/check-fast.test.mjs",
     "test-unit/agent-index.test.mjs",
     "test-unit/agent-lessons.test.mjs",

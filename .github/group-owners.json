@@ -1,0 +1,161 @@
+{
+  "$comment": [
+    "Who is on the hook for each of the 16 GROUPS in context-map.json — the join .github/CODEOWNERS",
+    "does not make.",
+    "",
+    "CODEOWNERS is drawn per FILE and deliberately narrow: it names ~15 law files where a change needs",
+    "the maintainer's eyes, and says in its own first line that everything else is open season. That is",
+    "the right shape for a review-routing rule and it answers a question nobody has: 'who owns this",
+    "line?'. The question this repository actually has is the other one — ~97% of commits are written by",
+    "an agent, agents create files inside contexts, and the system is described per GROUP. So a whole",
+    "group can drift, gain files, gain cross-group imports and gain unmapped source without anything",
+    "being able to say that nobody has read it. `npm run owners:groups` is that sentence.",
+    "",
+    "WHAT A ROW DOES AND DOES NOT DO. It does NOT request a review — GitHub reads .github/CODEOWNERS and",
+    "nothing else, and turning every group into a CODEOWNERS path would make one maintainer the required",
+    "reviewer of the whole tree, which is how a routing rule stops being read. A row records who ANSWERS",
+    "for the group when the weekly triage pass reaches it, and `triageRank` is the order that pass takes",
+    "them in: the groups where a wrong change is a bill or a breach are read before the ones where it is",
+    "a layout regression. That ordering is the artefact — before this file, the triage order was whatever",
+    "the reviewer happened to scroll past."
+  ],
+
+  "$howToChange": [
+    "A group added by a context scan needs a row here in the same diff, or `npm run owners:groups:check`",
+    "(blocking, via test-unit/group-owners.test.mjs inside test:unit → check:ci → .husky/pre-push) fails",
+    "with the group's name. A group a scan REMOVES takes its row with it, for the same reason a stale",
+    "CODEOWNERS path is worse than none: a declaration that has stopped describing the tree still reads",
+    "like a current one.",
+    "",
+    "`owner` must be a handle .github/CODEOWNERS already uses. An owner nobody can be routed to is a",
+    "name, not an owner — and if a group genuinely needs a second person, they arrive in CODEOWNERS",
+    "first, where GitHub can act on them."
+  ],
+
+  "$cannotSee": [
+    "whether the owner actually READ anything — this is a declaration of who answers, not evidence of a review;",
+    "whether a group's contexts still describe the tree — that is `npm run agents:surface` (mapped paths that moved) and the 159-file unmapped ratchet;",
+    "whether a change CROSSED a group boundary — that is `npm run context:decay:check`, which blocks on a new undeclared crossing;",
+    "GitHub's own review routing, which reads .github/CODEOWNERS and never this file."
+  ],
+
+  "schema": 1,
+  "measuredOn": "2026-09-01",
+  "map": "context-map.json",
+  "codeowners": ".github/CODEOWNERS",
+
+  "groups": [
+    {
+      "group": "Platform Operations",
+      "domain": "infrastructure",
+      "owner": "@xkazm04",
+      "triageRank": 1,
+      "why": "Cron auth, metering, the durable spend ceiling and the store drivers live here. A wrong change is a bill or an unauthenticated endpoint, and three of the five mutation-drill seams are in this group."
+    },
+    {
+      "group": "AI & Content Engine",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 2,
+      "why": "The LLM chokepoint's callers. A change here is a prompt that ships, and the golden, budget and model pins are all downstream of it."
+    },
+    {
+      "group": "AI & Content Generation",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 2,
+      "why": "The second AI group the 2026-07-30 scan produced. Same exposure as AI & Content Engine — every registered llm-tool sits in one of the two, and which one is an artefact of the scan rather than a decision."
+    },
+    {
+      "group": "Campaign Management",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 3,
+      "why": "The Sklik and Google write rails. SKLIK_WRITES_ENABLED is armed from this group's code and AGENTS.md § Red says an agent may never widen it."
+    },
+    {
+      "group": "Campaign & Ads Management",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 3,
+      "why": "The scan's second campaigns group, holding the tenant-key builder the whole store seam is made of (ADR-0002). A wrong key is a cross-project read that nothing 401s."
+    },
+    {
+      "group": "Lead & CRM Management",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 4,
+      "why": "Holds personal data and the conversion-upload path to Google Ads — one of the outbound edges AGENTS.md § Red reserves for the operator."
+    },
+    {
+      "group": "Social & Content Publishing",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 4,
+      "why": "Drafts that leave the machine under the operator's name. The review gate in `schranka` is what stands between a generated post and a published one."
+    },
+    {
+      "group": "Social Media",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 4,
+      "why": "The scan's smaller social group (2 contexts). Same outbound exposure as Social & Content Publishing."
+    },
+    {
+      "group": "Project & Catalog",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 5,
+      "why": "Project creation, deletion cascade and the Offering spine. A missed cascade leaves another tenant's rows addressable after a delete."
+    },
+    {
+      "group": "Catalog & Inventory",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 5,
+      "why": "The catalog feed and its public token. Small, and one of the few groups with an unauthenticated read surface."
+    },
+    {
+      "group": "Authenticated Product Shell",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 6,
+      "why": "Session and per-project tenancy resolution for /app. Correctness here is the difference between a project switcher and an IDOR."
+    },
+    {
+      "group": "Analytics & Reporting",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 7,
+      "why": "Reads and aggregates rather than writes. A wrong number is a wrong decision, not a wrong charge."
+    },
+    {
+      "group": "Performance & Analytics",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 7,
+      "why": "The scan's second analytics group. Same posture — read-side, and the place a spend figure is most likely to be quietly wrong."
+    },
+    {
+      "group": "Local SEO & Maps",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 8,
+      "why": "Imported rank data and the map surface. Self-contained; a regression is visible in the product before it is expensive."
+    },
+    {
+      "group": "Site & Marketing",
+      "domain": "feature",
+      "owner": "@xkazm04",
+      "triageRank": 9,
+      "why": "The public site. A regression is a bad first impression and is caught by the E2E smoke job, which is a required check."
+    },
+    {
+      "group": "App Shell & Site",
+      "domain": "shared",
+      "owner": "@xkazm04",
+      "triageRank": 9,
+      "why": "Shared chrome, tokens and the design system. Imports INTO it are always legal (context:decay treats shared/infrastructure that way), so it is the group most likely to accumulate other groups' code."
+    }
+  ]
+}

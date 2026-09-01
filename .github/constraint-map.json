@@ -473,7 +473,7 @@
         { "kind": "gate", "name": "contract:ledger:check", "note": "pins MUTANT_FLOOR, so lowering it is a two-line diff with the sentence next to it rather than a digit" }
       ],
       "rung": "partial",
-      "gapNote": "The catalogue's shape and its floors block; the SCORE does not. The measurement runs weekly and off the landing path, it covers three modules rather than the tree, and a property with no observable behaviour — a constant-time compare replaced by `===` — cannot be mutated into a test failure at all."
+      "gapNote": "The catalogue's shape and its floors block; the SCORE does not. The measurement runs weekly and off the landing path, it covers five modules rather than the tree, and a property with no observable behaviour — a constant-time compare replaced by `===` — cannot be mutated into a test failure at all. The two modules added on 2026-09-01 are the two this repository fences in the EDITOR (`llm-chokepoint`, `store-seam`): a lint rule proves the call goes through the chokepoint and the read goes through a key builder, and neither can see that the chokepoint's retry bound moved or that the tenant key stopped carrying the project."
     },
     {
       "id": "suite-determinism",

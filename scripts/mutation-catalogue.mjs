@@ -109,6 +109,60 @@ export const MUTANTS = [
       "off by two orders of magnitude on a real advertiser's spend.",
     killedBy: "sklikWritable is a full verdict × confirmed table",
   },
+  {
+    id: "byom-fault-absorbed",
+    seam: "LLM chokepoint — a user-side BYOM fault must not reach the app's own paid providers",
+    file: "src/lib/llm/index.ts",
+    tests: ["test-unit/fault-injection-llm.test.mjs"],
+    find: "      if (err instanceof ByomUserError) throw err;",
+    replace: "      if (err instanceof ByomUserError && idx > 0) throw err;",
+    why:
+      "the guard becomes conditional on having already fallen back, so a bad or expired USER key on the first " +
+      "provider falls straight through to the operator's own metered provider. The caller gets a plausible " +
+      "answer, the operator pays for it, and the user never learns their key is broken.",
+    killedBy: "a BYOM user fault surfaces instead of quietly moving onto the app's own provider",
+  },
+  {
+    id: "retry-bound-off-by-one",
+    seam: "LLM chokepoint — the bounded retry ladder (every attempt is a paid call)",
+    file: "src/lib/llm/index.ts",
+    tests: ["test-unit/fault-injection-llm.test.mjs"],
+    find: "      const first = await runWithRetry(provider, baseCall, 3);",
+    replace: "      const first = await runWithRetry(provider, baseCall, 4);",
+    why:
+      "the retry bound moves by one, so a provider having a bad day costs a third more model calls on every " +
+      "request that reaches it — across three providers and a self-repair re-prompt. It is the same edit that " +
+      "turns a bound into no bound at all, and nothing about the answer changes, so only a count can see it.",
+    killedBy: "the wrapper's bounded retry is three attempts — no more, and no fewer",
+  },
+  {
+    id: "tenant-key-loses-project-scope",
+    seam: "Store seam — the tenant key that makes cross-project reads impossible by construction (ADR-0002)",
+    file: "src/lib/campaigns/store-keys.ts",
+    tests: ["test-unit/campaigns-tenant-keys.test.mjs"],
+    find: "    ? `u_${safeKeyComponent(userId)}_proj_${safeKeyComponent(projectId)}`",
+    replace: "    ? `u_${safeKeyComponent(userId)}`",
+    why:
+      "the two ternary branches collapse into one — the shape a 'both sides are the same, simplify it' refactor " +
+      "actually produces — and every project a user owns starts sharing a single tenant. Nothing 401s and no " +
+      "query changes: one advertiser's campaigns, budgets and audit history are simply served under another " +
+      "project's view.",
+    killedBy: "buildTenantKey is per-user, per-project, per-account and composes in that order",
+  },
+  {
+    id: "tenant-key-unsanitised",
+    seam: "Store seam — key components are sanitised before they become a document path",
+    file: "src/lib/campaigns/store-keys.ts",
+    tests: ["test-unit/campaigns-tenant-keys.test.mjs"],
+    find: '  return s.replace(/[^A-Za-z0-9_-]/g, "_");',
+    replace: "  return s;",
+    why:
+      "a `/` in a userId, a projectId or a customerId survives into the tenant key, so the tenant escapes the " +
+      "document id and becomes a nested sub-collection path. The same class as `rate-doc-id-path-escape`, on " +
+      "the key ADR-0002 makes the whole tenancy boundary out of — and every builder here shares this one helper, " +
+      "so the read, sync and audit paths all escape together.",
+    killedBy: "every key component is sanitised so a '/' can't break out of the Firestore path",
+  },
 ];
 
 /** The number of mutants this catalogue must carry, and the floor no diff may take
@@ -128,7 +182,7 @@ export const MUTANTS = [
  *  moving it is a two-line diff with the sentence next to it, not a digit. It may
  *  rise freely — widening the measure is the point — and it may not fall.
  *  test-unit/mutation-census.test.mjs enforces it on every build. */
-export const MUTANT_FLOOR = 7;
+export const MUTANT_FLOOR = 11;
 
 /** …and PER SEAM, which is the honest shape. A repo-wide count can stay level while
  *  the coverage moves off the seam that matters: drop both Sklik mutants, add two
@@ -144,6 +198,12 @@ export const SEAM_FLOORS = {
   "src/lib/cron-auth.ts": 2,
   "src/lib/ai/durable-limit-core.ts": 3,
   "src/lib/campaigns/mutator.ts": 2,
+  // The two seams eslint.config.mjs draws a LINT FENCE around — the only two
+  // constraints in this repository important enough to be enforced in the editor.
+  // A fence says the call must go through here; it says nothing about whether
+  // "here" still behaves. Both were unmeasured by this drill until 2026-09-01.
+  "src/lib/llm/index.ts": 2,
+  "src/lib/campaigns/store-keys.ts": 2,
 };
 
 /** What a green drill still does NOT prove. Printed with every run, because a
@@ -151,7 +211,7 @@ export const SEAM_FLOORS = {
 export const CANNOT_SEE = [
   "a property with no observable behaviour — a constant-time compare replaced by `===` changes no answer, " +
     "so no unit test can kill it and no mutant here pretends otherwise",
-  "a seam with no mutant in the catalogue: this is three modules, not the tree",
+  "a seam with no mutant in the catalogue: this is five modules, not the tree",
   "anything that needs a real store, a real provider or a browser (that is test:e2e and llm:drift)",
   "a test that is vacuous about something no mutant touches — a kill proves THIS wrong answer is seen",
 ];

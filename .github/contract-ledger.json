@@ -594,10 +594,10 @@
         "unit": "mutant(s) the catalogue must carry"
       },
       "floor": {
-        "min": 7,
-        "reason": "Seven mutants over three seams — cron auth, the spend ceiling and per-IP limiter, and the Sklik write rails — which is what the catalogue holds today. Pinned as a floor rather than a ceiling because it counts COMPLIANCE: widening the measure is the point and may happen freely, while every way it gets worse is downward. Deleting the mutant that started surviving is the cheapest green in this repository — the census still passes and the drill still prints a perfect score, over less of the tree. The per-seam half of the same rule is SEAM_FLOORS in the same file, which stops a level total drifting off the seam that spends money.",
+        "min": 11,
+        "reason": "Eleven mutants over five seams — cron auth, the spend ceiling and per-IP limiter, the Sklik write rails, and (since 2026-09-01) the two seams eslint.config.mjs draws a lint fence around: the LLM chokepoint and the tenant-key builder the store seam is made of. The two additions close the gap the fences leave: a lint rule proves every call goes THROUGH generateStructured and every store read goes through a key builder, and neither can see that the chokepoint's retry bound moved, that its BYOM guard stopped surfacing a user fault, or that the tenant key stopped carrying the project. Pinned as a floor rather than a ceiling because it counts COMPLIANCE: widening the measure is the point and may happen freely, while every way it gets worse is downward. Deleting the mutant that started surviving is the cheapest green in this repository — the census still passes and the drill still prints a perfect score, over less of the tree. The per-seam half of the same rule is SEAM_FLOORS in the same file, which stops a level total drifting off the seam that spends money.",
         "risesWhen": "Whenever a seam gains a mutant, and whenever a new seam where wrong is a bill or a breach gets one — raise it in that diff. It falls only when a seam genuinely stops existing, and then the sentence in the commit says what now guards what it guarded.",
-        "accepted": { "on": "2026-08-30", "reviewBy": "2027-09-01" }
+        "accepted": { "on": "2026-09-01", "reviewBy": "2027-09-01" }
       },
       "breaches": []
     },

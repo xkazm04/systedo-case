@@ -2,67 +2,78 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "74dad7fd-302b-4b8a-884d-5c803ef9e557",
+      "recommendationId": "2a0a75ef-3ecb-4567-8199-993f144b57ae",
       "verdict": "skipped",
-      "reason": "Pinning the 53 action references means asking GitHub what each tag points at right now, and this session has no network; the broad-write half is already split and justified (issue-dispatch.yml push/open/propose in .github/workflow-permissions.json), and scripts/actions-pin.mjs already documents the exact one-command close.",
+      "reason": "Pinning a tag to a digest requires asking GitHub what each tag points at, and this session has no network; the repository already ships the exact tooling (`npm run actions:pin`, which rewrites the workflows AND flips STRICT/RATCHET in the same pass) plus a blocking `actions:check` inside check:ci, so the only missing step is one networked run.",
       "files": []
     },
     {
-      "recommendationId": "fee129a2-3262-4553-9c12-cecf7888aeb0",
+      "recommendationId": "acb376ec-c3cc-4669-80a4-005dce980e78",
       "verdict": "skipped",
-      "reason": "The repository side already exists — .github/branch-ruleset.json is the ruleset payload, merge-gate holds it to .github/required-checks.json, and protection:verify reads back what GitHub enforces — but applying or reading the ruleset needs the GitHub API and `gh`, which this session does not have.",
+      "reason": "Deciding which landing path those subjects took needs git history and CI run logs, neither of which this session has; A5 is wired in both places the repo lands changes (agent-review.yml on push/PR against `github.event.before`, and `review:agent:gate` inside check:ci via .husky/pre-push), and AGENTS.md already records the residual cause — an outer lane composing the subject from a report's first line in a hookless worktree — as having no repository-side fix.",
       "files": []
     },
     {
-      "recommendationId": "d7e01f62-146f-4393-897c-b4cdd2e11f25",
+      "recommendationId": "84c00e36-7df7-4f57-bd0d-796a8ada2f90",
       "verdict": "skipped",
-      "reason": "Already covered another way: test-llm/adversarial/corpus.json + test-unit/llm-adversarial.test.mjs place hostile payloads in the REAL product prompt builders (campaign names, Google reviews, twin inbound, fetched page text) and assert detection, containment and output-side refusal, blocking inside test:unit; test-unit/untrusted-surface-census.test.mjs stops a new builder arriving uncovered.",
+      "reason": "Already covered: .github/constraint-map.json plus the AGENTS.md table 'Which of these rules will actually stop you' is exactly that index (52 rules, each with a rung of blocking/reporting/partial/honour and the fence that backs it), and test-unit/constraint-map.test.mjs blocks when a claimed fence does not exist, when a quoted rule has moved, when the two halves disagree, or when a check:ci stage has no rule attached; the scan sampled CLAUDE.md and eslint.config.mjs rather than AGENTS.md.",
       "files": []
     },
     {
-      "recommendationId": "3fb627af-135f-454b-90b2-07b4d4de6f5a",
-      "verdict": "needs_human",
-      "reason": "The rule is not passing them — scripts/commit-subject.mjs already refuses both cited subjects (`first-person` and the full stop for one, `loop-mechanics` + `run-progress` for the other) — they land because the outer lane commits after the agent exits, in a throwaway worktree where no hook is installed; the fix is in the harness that writes the subject, not in this repository, and AGENTS.md already records that.",
-      "files": []
-    },
-    {
-      "recommendationId": "7ccd960f-28b8-43b4-9bd3-002cead9813a",
+      "recommendationId": "4b1e8cb5-ba7d-401f-91e0-795b9f1d18e9",
       "verdict": "resolved",
-      "reason": "docs/api/openapi.json now pins the failure contract (Error / RateLimited schemas, `content` and a closed `x-retryable` vocabulary on all 14 response classes) and compareErrorContract() in scripts/lib/api-surface-core.mjs blocks on every build when an operation documents only success, references a body inline, or points at a class that does not exist.",
+      "reason": "The mutation catalogue now covers the two seams the item names — the LLM chokepoint and the store seam — with four new mutants, per-seam floors, MUTANT_FLOOR raised 7 to 11 and the matching floor.min pinned in the contract ledger, so the floors block on every build via test-unit/mutation-census.test.mjs and a survivor fails the weekly drill.",
       "files": [
-        "docs/api/openapi.json",
-        "scripts/lib/api-surface-core.mjs",
-        "scripts/api-surface.mjs",
-        "test-unit/api-surface.test.mjs"
+        "scripts/mutation-catalogue.mjs",
+        ".github/contract-ledger.json",
+        ".github/constraint-map.json"
       ]
     },
     {
-      "recommendationId": "d843b7d1-04c4-4425-ab9f-c9b46a7e31da",
+      "recommendationId": "09a1fc37-e942-4169-b3d7-ef9b025b1824",
+      "verdict": "skipped",
+      "reason": "Already covered: .github/workflows/post-deploy.yml runs on the same push that releases, waits for the deployment to answer and probes /api/health behind the constant-time CRON_SECRET guard, records skipped-with-a-reason rather than an unearned green when a key or the URL is absent (declared in scripts/harness-degradation.mjs and drilled by harness:drill), keeps the verdict for 90 days, and deliberately does not hold a token that could revert.",
+      "files": []
+    },
+    {
+      "recommendationId": "24fcbe1c-6b63-48e4-94b5-cd97e7404e88",
       "verdict": "resolved",
-      "reason": "scripts/post-deploy-verify.mjs now times four public routes plus the health probe against ceilings in .github/post-deploy-budgets.json on the same push that ships the release, and a breach (or a public page not answering 2xx) fails that run with the promote-previous rollback command printed; it deliberately does not revert, because that needs a token AGENTS.md § Red refuses.",
+      "reason": "Added .github/autonomy-budget.json (the triage owner and cadence, a maxUnreadDays, all eight unattended lanes with what each can write, five change classes that wait for a human whatever the gate says) and scripts/autonomy.mjs, whose pauseState() is now read by scripts/issue-dispatch.mjs --gate before the event is parsed or a model is called — so the pause flag actually stops the one lane that writes, and fails closed on an unreadable budget.",
       "files": [
-        ".github/post-deploy-budgets.json",
-        "scripts/post-deploy-verify.mjs",
-        "test-unit/post-deploy-budget.test.mjs",
-        "docs/deploy.md"
+        ".github/autonomy-budget.json",
+        "scripts/autonomy.mjs",
+        "scripts/issue-dispatch.mjs",
+        "test-unit/autonomy-budget.test.mjs",
+        ".github/CODEOWNERS",
+        ".github/test-tiers.json",
+        "package.json"
       ]
     },
     {
-      "recommendationId": "ba49cd32-80f7-4707-b57a-ae65023afd31",
+      "recommendationId": "dfc61a60-aebb-4110-8883-53b161aa5352",
       "verdict": "skipped",
-      "reason": "Already covered another way: test-unit/fault-injection-ads-sync.test.mjs (9 scenarios: 5xx that clears, 5xx that does not, revoked token refreshed and retried, permanent 403, and a failure landing on the SECOND of a sync's two reads) and test-unit/fault-injection-sklik-sync.test.mjs (a rate limit signalled inside an HTTP 200, malformed/partial pages, a mid-sync stats failure) both monkey-patch fetch and assert the degraded path and its truth-in-labelling flags, blocking inside test:unit.",
+      "reason": "Already covered: scripts/setup-walk.mjs follows docs/open-source/self-hosting.md on a clean runner — it asserts the page still gives the commands it is about to run, copies .env.example, builds under SELF_HOSTED=true LOCAL_DB=true, starts the app and requests the page the reader is told to open, and parses the compose file — weekly and on any change to the quick-start surface (.github/workflows/setup-walk.yml), with a per-step verdict kept for 90 days.",
       "files": []
     },
     {
-      "recommendationId": "fa9eac1c-4fa5-4c1d-82ed-5235800c267b",
-      "verdict": "needs_human",
-      "reason": "The machine-readable policy already exists (.github/agent-permissions.json, 7 rules over deny/ask/allow, held to the AGENTS.md sentences by test-unit/agent-permissions.test.mjs); what is missing is only the ENFORCED half — .claude/settings.json carries no permissions block — and writing that file is itself refused in this session, so `npm run agent:permissions -- --install` is the one command a human runs.",
-      "files": []
+      "recommendationId": "fac8bb16-0590-4abf-9bd6-537cd26c359c",
+      "verdict": "resolved",
+      "reason": "Added .github/group-owners.json — one row per group in context-map.json with an owner CODEOWNERS already names, why a wrong change there costs something, and a triage rank — plus scripts/group-owners.mjs, which prints the join (which CODEOWNERS law files land inside which group, and which groups contain none) and whose G1..G5 checks block on every build via test-unit/group-owners.test.mjs, so a group a rescan adds cannot land unclaimed.",
+      "files": [
+        ".github/group-owners.json",
+        "scripts/group-owners.mjs",
+        "test-unit/group-owners.test.mjs",
+        ".github/CODEOWNERS",
+        ".github/test-tiers.json",
+        "package.json"
+      ]
     }
   ],
   "lessons": [
-    "This repository states, for every rule, whether anything actually enforces it (.github/constraint-map.json `rung` column) and what each fence is absorbing (.github/contract-ledger.json). Read those two before concluding a gap is open: three of the eight items dispatched here were already closed by blocking machinery the scan's sampled evidence did not reach.",
-    "Adding a gate here is never one file. A new blocking stage in check:ci needs a scripts/gate-remedy.mjs entry and a .github/constraint-map.json row; a new READ-FIRST paragraph in AGENTS.md needs its line ceiling raised in .github/guidance-budget.json; a new threshold needs a pin in the contract ledger. The cheapest safe shape for new enforcement is a test under test-unit/ (already inside check:ci) plus a registry JSON that carries its own reasons.",
-    "When a session cannot execute anything, prefer gaps whose closure is verifiable by READING committed data. The API error-contract rules were safe to make blocking because every one of the 164 documented operations could be enumerated with a single ripgrep over one-line-per-operation JSON; a change to runtime logic under the same constraints would not have been."
+    "This repository answers most maturity gaps before they are raised — post-deploy verification, a cold setup walk, and an enforcement index for its prose rules all already exist and are wired. Read AGENTS.md, .github/constraint-map.json and the workflow list BEFORE assuming a gap is open; several of these items were closed by prior work the scanner did not sample.",
+    "Its house idiom for a new control is a triple, and copying it is what makes a change land: a declaration in .github/*.json (with a $cannotSee list saying what it does not prove), a zero-dependency script in scripts/ that prints the join, and a blocking test-unit census that fails when the declaration stops describing the tree. The measurement reports; the inventory blocks.",
+    "Every number that decides what red means is pinned twice — in the script that enforces it and in .github/contract-ledger.json with a dated reason — so raising a floor is a two-file diff or the build goes red. Budget for that whenever widening a measure.",
+    "Adding a stage to check:ci is expensive here: test-unit/constraint-map.test.mjs demands a matching rule row in the map AND the AGENTS.md table, gate-remedy.test.mjs demands a remedy entry, and gates:timings:check re-checks cheapest-first ordering. Wiring a new check through test:unit instead avoids all three and is equally blocking.",
+    "An offline lane cannot establish a baseline, and this repository forbids inventing one (tsconfig.strict.json, .github/typecheck-strict.json). Prefer changes whose green-on-arrival state is verifiable by reading committed files — a catalogue anchor, a declaration's shape — over anything that needs a count somebody has to measure first."
   ]
 }

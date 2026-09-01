@@ -23,6 +23,11 @@
 # Shrinking either one is a governance change, not a cleanup.
 /.github/required-checks.json    @xkazm04
 /scripts/merge-gate.mjs          @xkazm04
+# Who answers for each of the 16 context groups, and how much may land between two
+# triage passes. Both are declarations ABOUT the maintainer's attention, so an agent
+# widening either one is the one edit nobody would be reviewing.
+/.github/group-owners.json       @xkazm04
+/.github/autonomy-budget.json    @xkazm04
 
 # Security policy and its enumerated exceptions
 /SECURITY.md                    @xkazm04
