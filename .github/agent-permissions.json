@@ -1,0 +1,140 @@
+{
+  "$comment": "The tool-permission policy AGENTS.md § 'What you may do unattended' states in prose, in the form the harness actually reads. `.claude/settings.json` § permissions is the ENFORCED half — Claude Code refuses a `deny` rule outright and stops on an `ask` rule before the command runs. This file is the REASON half: which sentence of AGENTS.md each pattern comes from, and what the pattern cannot see. `npm run agent:permissions:check` compares the two in BOTH directions, and test-unit/agent-permissions.test.mjs runs the same comparison on every build, inside `npm run test:unit` → `check:ci` → .husky/pre-push.",
+
+  "$why": "AGENTS.md already turned most of its prose into fences: the seams are lint rules, the security rules are `npm run sast`, the token scopes are `.github/workflow-permissions.json`, the exception lists are the contract ledger. The one paragraph that stayed prose is the one about what an agent may run WITHOUT ASKING — in a repository holding live Google Ads, Sklik, Resend, Leonardo and provider credentials, where ~97% of commits are written by an agent working alone. A permission policy the harness reads is the difference between a rule an agent remembers and a boundary it cannot cross. Nothing here replaces the prose: the sentences stay canonical and this is derived from them, which is exactly why the drift between the two is what gets measured.",
+
+  "$rungs": "`red` → `deny` (AGENTS.md says never). `amber` → `ask` (allowed, and it costs something, so a human sees it happen). `green` → `allow` (offline, free, and reversible). A red rule whose prose is 'stop and ask the operator' is still `deny` here when the prose also says 'never': `ask` on a command that must not run is a prompt somebody clicks through at the end of a long run.",
+
+  "$cannotSee": [
+    "INTENT. A pattern matches a command string, not a purpose. `npm run llm:quality` is amber because it spends money; a `node` one-liner that calls the same wrapper is not matched by anything here, and the chokepoint (`npm run llm:gate:check`) is what catches that shape instead.",
+    "A SHELL. `deny` matches the command as written, so `git push` is refused and `sh -c 'git push'` is a different string. This raises the cost of the mistake an agent makes by accident, which is the population it exists for; it is not a sandbox and must not be read as one.",
+    "THE OTHER TWO RED ITEMS. 'Anything that leaves the machine under the operator's name' and 'touching a CODEOWNERS law file beyond what the task asked' are judgements about the CONTENT of an action, not about the command that performs it. They stay honour rules, they stay in the prose, and this file says so rather than implying the list is complete.",
+    "A HARNESS THAT IS NOT CLAUDE CODE. `.claude/settings.json` is read by one tool. Another lane running in this tree gets no boundary from it — which is why the prose remains canonical and why `npm run agent:permissions` prints the policy for a reader rather than only for a program."
+  ],
+
+  "$howToChange": "The same two-part diff as every pin here: the pattern, and the entry that pays for it, next to each other. A pattern added to `.claude/settings.json` and not declared below fails the gate; a rule declared below whose patterns are not in the settings file fails it too. A maintainer who needs to step outside the policy on their own machine does it in `.claude/settings.local.json`, which is git-ignored and personal, rather than by widening this.",
+
+  "schema": 1,
+  "enforcedIn": ".claude/settings.json",
+  "statedIn": "AGENTS.md § What you may do unattended",
+
+  "rules": [
+    {
+      "id": "offline-gates",
+      "rung": "green",
+      "list": "allow",
+      "rule": "Reading the tree and running the offline, key-free gates needs no permission at all.",
+      "quote": "All of them are offline and free: with no provider configured every AI operation falls back to its deterministic `demo`",
+      "patterns": [
+        "Bash(npm run dev:local:*)",
+        "Bash(npm run seed:local:*)",
+        "Bash(npm run check:*)",
+        "Bash(npm run test:unit:*)",
+        "Bash(npm run test:fast:*)",
+        "Bash(npm run test:e2e:*)",
+        "Bash(npm run lint:*)",
+        "Bash(npm run typecheck:*)",
+        "Bash(npm run sast:*)",
+        "Bash(npm run gates:*)",
+        "Bash(npm run checkpoint:*)",
+        "Bash(npm run contract:ledger:*)",
+        "Bash(npm run merge-gate:*)",
+        "Bash(npm run actions:check:*)",
+        "Bash(npm run docs:parity:*)",
+        "Bash(npm run guidance:budget:*)",
+        "Bash(npm run agent:permissions:*)",
+        "Bash(npm run commit:check:*)",
+        "Bash(git status:*)",
+        "Bash(git diff:*)",
+        "Bash(git log:*)",
+        "Bash(git show:*)"
+      ],
+      "why": "These are the loop. Prompting for them teaches a reader to click through prompts, which is how the two lists below stop being read."
+    },
+    {
+      "id": "pathspec-commits",
+      "rung": "red",
+      "list": "deny",
+      "rule": "Commit by pathspec. Never `-A`, never a bare `git commit`, never stash or reset work that is not yours.",
+      "quote": "Never `-A`, never a bare `git commit`, never stash or reset work that is not yours; the checkout is shared with other agents.",
+      "patterns": [
+        "Bash(git add -A:*)",
+        "Bash(git add --all:*)",
+        "Bash(git add .:*)",
+        "Bash(git commit -a:*)",
+        "Bash(git commit -am:*)",
+        "Bash(git commit --all:*)",
+        "Bash(git stash:*)",
+        "Bash(git reset --hard:*)",
+        "Bash(git checkout -- .:*)",
+        "Bash(git clean:*)"
+      ],
+      "why": "The checkout is shared with concurrent agents, so a wide `add` or a `stash` takes somebody else's uncommitted work with it — and unlike a bad commit, that loss is not in the log to be found later. This was an `honour` row in .github/constraint-map.json with nothing behind it; these ten patterns are the part of it a command string can carry."
+    },
+    {
+      "id": "no-push",
+      "rung": "red",
+      "list": "deny",
+      "rule": "Never push, and especially never to master.",
+      "quote": "`git push`, and especially any push to `master` — Vercel ships master on push, so the push *is* the release.",
+      "patterns": ["Bash(git push:*)"],
+      "why": "Vercel ships master on push, so a push is a release under the operator's name. `.husky/pre-push` runs `check:ci` and verifies; it does not prevent, and `SYSTEDO_SKIP_GATE=1` is the operator's escape hatch rather than the agent's. Denied here so the release act is one an operator performs deliberately, in their own shell or through `.claude/settings.local.json`."
+    },
+    {
+      "id": "no-secret-movement",
+      "rung": "red",
+      "list": "deny",
+      "rule": "Never edit `.env*`, print a secret, or move a credential anywhere.",
+      "quote": "Editing `.env*`, printing a secret, or moving a credential anywhere — including into a test fixture, a log line, or a prompt.",
+      "patterns": [
+        "Read(./.env)",
+        "Read(./.env.*)",
+        "Edit(./.env)",
+        "Edit(./.env.*)",
+        "Write(./.env)",
+        "Write(./.env.*)",
+        "Bash(cat .env:*)",
+        "Bash(cat .env.local:*)"
+      ],
+      "why": "A credential that reaches a transcript has left the machine. `.env.example` is deliberately not matched — it holds names, not values, and `npm run env:manifest` reads it."
+    },
+    {
+      "id": "no-live-ad-writes",
+      "rung": "red",
+      "list": "deny",
+      "rule": "Never arm or widen `SKLIK_WRITES_ENABLED`, and never run the write path against a real token.",
+      "quote": "Never set it, never widen the guard, never add a second one modelled on it, and never run the write path against a real token to \"check\".",
+      "patterns": ["Bash(SKLIK_WRITES_ENABLED=1:*)", "Bash(export SKLIK_WRITES_ENABLED:*)"],
+      "why": "This is the one boundary in the repository where being wrong spends an advertiser's money. `test-unit/campaigns-mutator.test.mjs` fences the code path; these two patterns fence the shell that would arm it for a run. Neither can see a change to the guard itself — that is the rubric's and the reviewer's half."
+    },
+    {
+      "id": "real-model-runs",
+      "rung": "amber",
+      "list": "ask",
+      "rule": "A real-model run spends money — it is allowed, and a human sees it happen.",
+      "quote": "Real-model runs: `npm run test:llm`, `npm run llm:quality`, and any `generateStructured` call against a configured provider. These spend money",
+      "patterns": [
+        "Bash(npm run test:llm:*)",
+        "Bash(npm run llm:quality:*)",
+        "Bash(npm run llm:drift:*)",
+        "Bash(npm run llm:candidate:*)"
+      ],
+      "why": "Amber, not red: these are the runs that keep the goldens honest, and making them expensive to reach is how a static gate quietly becomes the only gate. The prompt is the 'say so in the change's own words' half, arriving before the spend rather than after it."
+    },
+    {
+      "id": "accepting-a-pin",
+      "rung": "amber",
+      "list": "ask",
+      "rule": "Accepting a golden, a baseline or a ratchet absorbs a finding instead of fixing it — a human sees that happen.",
+      "quote": "Accepting a golden (`npm run llm:eval:update -- --reason \"…\"`), accepting a regenerated instruction block (`npm run agents:surface -- --accept \"…\"`)",
+      "patterns": [
+        "Bash(npm run llm:eval:update:*)",
+        "Bash(npm run llm:quality:baseline:*)",
+        "Bash(npm run llm:models:*)",
+        "Bash(npm run typecheck:strict:accept:*)",
+        "Bash(npm run actions:pin:*)"
+      ],
+      "why": "Every one of these is legitimate sometimes and every one is what an agent under time pressure reaches for — rubric B3 exists to ask, after the fact, whether the finding was fixed or absorbed. An `ask` asks first. `npm run llm:models:check` is matched by this prefix and that is the conservative direction: a prompt on a read-only check costs a keystroke, a silent re-pin costs the corpus."
+    }
+  ]
+}

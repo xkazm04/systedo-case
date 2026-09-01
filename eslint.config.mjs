@@ -29,6 +29,16 @@ import nextTs from "eslint-config-next/typescript";
  *  step earlier — in the editor, on the file being typed, before a commit exists —
  *  which is where an agent can still choose the other design cheaply.
  *
+ *  WHAT A MESSAGE HAS TO SAY. A fence going red is the one moment the constraint has
+ *  the reader's full attention, and an agent that has just been refused does exactly
+ *  one of two things next: it finds the design the rule wanted, or it reaches for a
+ *  disable comment. Which of those happens is decided by the message. So every
+ *  message below names three things — what was refused, WHICH DESIGN to use instead,
+ *  and the record that argued for it — the same shape `scripts/gate-remedy.mjs` gives
+ *  every gate in `check:ci`. `test-unit/lint-fences.test.mjs` holds them to it: a
+ *  message that stops naming a decision record a reader can open turns the suite red,
+ *  because a fence that only says "no" is the one that gets switched off.
+ *
  *  ON FORMATTING, since it is the obvious next question: there is deliberately no
  *  Prettier or Biome. ADR-0008 keeps repo tooling on Node built-ins and repo-local
  *  scripts before it takes a dependency, and a formatter would be a build-time
@@ -73,28 +83,37 @@ const eslintConfig = defineConfig([
               message:
                 "Construct the Gemini client only in src/lib/llm/. Every LLM text call goes through " +
                   "generateStructured() in src/lib/llm/index.ts — a client built outside it skips the provider " +
-                  "order, BYOM keys, demo fallback, metering and telemetry. (The `Type` schema enum is fine.)",
+                  "order, BYOM keys, demo fallback, metering and telemetry. (The `Type` schema enum is fine.) " +
+                  "INSTEAD: call generateStructured() with a `// llm-tool: <id>` tag and register the tool " +
+                  "(`npm run llm:new`). If the chokepoint cannot express what you need, widen it there rather " +
+                  "than around it — docs/adr/0003-single-llm-chokepoint.md.",
             },
             {
               name: "@/lib/llm/gemini",
               allowImportNames: ["geminiAvailable"],
               message:
                 "src/lib/llm/gemini.ts is a provider adapter, not an entry point. Call generateStructured() " +
-                  "from src/lib/llm — only the availability probe may be read from outside.",
+                  "from src/lib/llm — only the availability probe may be read from outside. INSTEAD: import " +
+                  "`generateStructured` from `@/lib/llm`, which picks the provider for you; if you need this " +
+                  "one specifically, the reason belongs in docs/adr/0003-single-llm-chokepoint.md, not here.",
             },
             {
               name: "@/lib/llm/claude",
               allowImportNames: ["claudeAvailable"],
               message:
                 "src/lib/llm/claude.ts is a provider adapter, not an entry point. Call generateStructured() " +
-                  "from src/lib/llm — only the availability probe may be read from outside.",
+                  "from src/lib/llm — only the availability probe may be read from outside. INSTEAD: import " +
+                  "`generateStructured` from `@/lib/llm`, which picks the provider for you; if you need this " +
+                  "one specifically, the reason belongs in docs/adr/0003-single-llm-chokepoint.md, not here.",
             },
             {
               name: "@/lib/llm/codex",
               allowImportNames: ["codexAvailable"],
               message:
                 "src/lib/llm/codex.ts is a provider adapter, not an entry point. Call generateStructured() " +
-                  "from src/lib/llm — only the availability probe may be read from outside.",
+                  "from src/lib/llm — only the availability probe may be read from outside. INSTEAD: import " +
+                  "`generateStructured` from `@/lib/llm`, which picks the provider for you; if you need this " +
+                  "one specifically, the reason belongs in docs/adr/0003-single-llm-chokepoint.md, not here.",
             },
           ],
           patterns: [
@@ -110,7 +129,10 @@ const eslintConfig = defineConfig([
               message:
                 "Routes and components go through a store seam in src/lib/, never a driver. Prod is Firestore " +
                   "and local dev is node:sqlite behind the same interface; importing one here picks a backend, " +
-                  "breaks LOCAL_DB, and bypasses the tenant key the store applies.",
+                  "breaks LOCAL_DB, and bypasses the tenant key the store applies. INSTEAD: call a store module " +
+                  "in src/lib/ (or add a function to the one that owns this data — that is the layer allowed to " +
+                  "hold both drivers), and let it apply the `u_{userId}_proj_{projectId}` key. " +
+                  "docs/adr/0001-dual-store-seam.md, and docs/adr/0002-tenant-key-embeds-user-id.md for the key.",
             },
           ],
         },
@@ -134,22 +156,30 @@ const eslintConfig = defineConfig([
               importNames: ["GoogleGenAI"],
               message:
                 "Construct the Gemini client only in src/lib/llm/. Every LLM text call goes through " +
-                  "generateStructured() in src/lib/llm/index.ts.",
+                  "generateStructured() in src/lib/llm/index.ts. INSTEAD: import it from `@/lib/llm`, or — if " +
+                  "this module IS the provider layer — move it under src/lib/llm/, which is the one directory " +
+                  "the fence exempts. docs/adr/0003-single-llm-chokepoint.md.",
             },
             {
               name: "@/lib/llm/gemini",
               allowImportNames: ["geminiAvailable"],
-              message: "Provider adapter — call generateStructured() from src/lib/llm instead.",
+              message:
+                "Provider adapter — import `generateStructured` from `@/lib/llm` instead. A lib module is no " +
+                  "more entitled to pick a provider than a route is: docs/adr/0003-single-llm-chokepoint.md.",
             },
             {
               name: "@/lib/llm/claude",
               allowImportNames: ["claudeAvailable"],
-              message: "Provider adapter — call generateStructured() from src/lib/llm instead.",
+              message:
+                "Provider adapter — import `generateStructured` from `@/lib/llm` instead. A lib module is no " +
+                  "more entitled to pick a provider than a route is: docs/adr/0003-single-llm-chokepoint.md.",
             },
             {
               name: "@/lib/llm/codex",
               allowImportNames: ["codexAvailable"],
-              message: "Provider adapter — call generateStructured() from src/lib/llm instead.",
+              message:
+                "Provider adapter — import `generateStructured` from `@/lib/llm` instead. A lib module is no " +
+                  "more entitled to pick a provider than a route is: docs/adr/0003-single-llm-chokepoint.md.",
             },
           ],
         },
@@ -182,6 +212,35 @@ const eslintConfig = defineConfig([
         "error",
         {
           restrictedNamedExports: ["dynamic", "runtime", "revalidate", "fetchCache", "dynamicParams"],
+        },
+      ],
+      // TWO RULES, TWO JOBS: one refuses the export, the other says what to write
+      // instead. `no-restricted-exports` takes no `message` option: all it can print is
+      // "'dynamic' is restricted from being exported", which names the rule and not
+      // the design — and of the fences here, this is the one whose correct
+      // alternative is least guessable from the refusal alone. An agent that reads
+      // only that message deletes the export, loses the dynamic read it was there
+      // for, and ships a route that renders stale. So the SENTENCE is attached with
+      // `no-restricted-syntax`, which does take one. Both fire on
+      // `export const dynamic = …`; only this one says what to write instead.
+      //
+      // `no-restricted-exports` stays because it also catches the re-export spelling
+      // (`export { dynamic } from "./config"`) that the selector below does not.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "ExportNamedDeclaration > VariableDeclaration > " +
+            "VariableDeclarator[id.name=/^(dynamic|runtime|revalidate|fetchCache|dynamicParams)$/]",
+          message:
+            "Route segment config un-caches this whole route. `cacheComponents` is on (next.config.ts), so " +
+            "`export const dynamic`/`runtime`/`revalidate`/`fetchCache`/`dynamicParams` is a whole-route " +
+            "opt-out bought to serve one dynamic read. INSTEAD: leave the route cached and wrap the dynamic " +
+            "read — `cookies()`, `headers()`, `searchParams`, a per-request fetch — in its own <Suspense> " +
+            "boundary with a skeleton fallback, so only that subtree is dynamic. Rubric A2 refuses this in a " +
+            "diff too (.github/agent-review-rubric.md), and there is no `eslint-disable` for it: the fix is " +
+            "the boundary. `maxDuration` and `preferredRegion` are Vercel function settings, not caching " +
+            "opt-outs, and are deliberately allowed.",
         },
       ],
     },

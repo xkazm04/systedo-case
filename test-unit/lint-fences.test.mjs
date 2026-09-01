@@ -16,7 +16,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -89,4 +89,32 @@ test("route segment config is refused at full width", () => {
   // opt-outs, and the repo uses both. Restricting them would be a false positive
   // that gets the whole rule switched off.
   assert.doesNotMatch(config, /restrictedNamedExports:[^\]]*"maxDuration"/);
+});
+
+test("a fence says which design it wanted, not only that it said no", () => {
+  // The failure message is the one moment the constraint has the reader's full
+  // attention, and an agent that has just been refused does one of two things:
+  // finds the design the rule wanted, or reaches for a disable comment. Which one
+  // happens is decided by the message — so every fence here names an ALTERNATIVE
+  // and the record that argued for it, the same way scripts/gate-remedy.mjs makes
+  // every gate in check:ci print its next command.
+  for (const adr of ["docs/adr/0003-single-llm-chokepoint.md", "docs/adr/0001-dual-store-seam.md"]) {
+    assert.ok(
+      config.includes(adr),
+      `no fence message points at ${adr} any more. A message that names the rule and not the decision leaves ` +
+        "the reader to re-derive it, which is the cost eslint.config.mjs exists to stop paying."
+    );
+    assert.ok(existsSync(join(ROOT, adr)), `a fence message points at ${adr}, and that file does not exist.`);
+  }
+  // The segment-config fence is the one whose right answer is least guessable from
+  // the refusal: `no-restricted-exports` can only print "'dynamic' is restricted
+  // from being exported", and deleting the export is the wrong fix. The sentence
+  // that names <Suspense> rides on `no-restricted-syntax`, which takes a message.
+  assert.match(
+    config,
+    /"no-restricted-syntax"/,
+    "the route segment-config fence no longer carries a message, so all it can tell an agent is the name of " +
+      "the rule it broke — and the obvious next move from there is to delete the dynamic read."
+  );
+  assert.match(config, /Suspense/, "the segment-config message no longer names the boundary that replaces it.");
 });

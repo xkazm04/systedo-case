@@ -594,6 +594,22 @@ remedy all turn the unit suite red.
   fails when a claim declared in `docs/parity.json` stops being stated on either
   side, or is stated with different values. Never delete a rule to go green: the
   rule firing IS the drift being caught.
+- **And the API document is held to the routes, not to a reviewer.**
+  [`docs/api/openapi.json`](docs/api/openapi.json) is the boundary an integrator and
+  an agent both read, and a spec that drifts is worse than none, because it is
+  confidently wrong. Half of it is DERIVED and pinned — the path template, the
+  exported verbs, the path parameters, the identity posture the handler establishes,
+  and `maxDuration` — read out of `src/app/api/` by
+  `scripts/lib/api-surface-core.mjs`; half is WRITTEN and required — one sentence per
+  operation, which the check refuses to accept as `TODO`. The posture is classified by
+  the SAME regex `scripts/sast.mjs` uses for `route-auth`, so the document and the
+  security gate cannot hold two opinions about whether a handler knows who is calling.
+  `test-unit/api-surface.test.mjs` runs the comparison on every build (blocking — 88
+  handlers, 88 documented paths today), and `npm run api:surface` prints it. **Never
+  hand-edit the derived half to go green**: the disagreement is the change being
+  caught. `npm run api:surface:write` re-derives it, keeps every written sentence, and
+  leaves a diff. Request and response BODIES are deliberately not pinned, and the
+  document says so in its own description rather than implying otherwise.
 - **And parity is not freshness — a page can be consistent, routed to, spelled the
   same in both languages, and describe a seam that moved six months ago.** Nothing
   went red for that, so `.github/docs-staleness.json` gives the documents whose age
@@ -784,6 +800,8 @@ would notice afterwards.
 | `perf-budget` — a budgeted route may not pass the cost it is allowed | `tests/perf-budget.spec.ts` (the required E2E job), `test-unit/perf-budget.test.mjs` | partial |
 | `agent-lessons` — a trap an agent hit is recorded once, with its evidence | `test-unit/agent-lessons.test.mjs`, `docs:staleness:check` | partial |
 | `guidance-budget` — what must be read before the first edit has a ceiling | `test-unit/guidance-budget.test.mjs`, `guidance:budget:check` | blocking |
+| `tool-permissions` — what may run unattended is a policy the harness reads, not a paragraph | `test-unit/agent-permissions.test.mjs`, `agent:permissions:check` | partial |
+| `api-conformance` — the published HTTP contract describes the routes that exist | `test-unit/api-surface.test.mjs`, `api:surface:check` | partial |
 
 `test-unit/constraint-map.test.mjs` holds this table and the JSON to each other,
 and both to the tree: a gate named here that `package.json` does not define, a
@@ -858,6 +876,25 @@ Two of these are enforced rather than trusted, which is the point: `npm run sast
 blocks a route with no caller identity and a client module reading a server env
 var, and `npm run actions:check` blocks a workflow that would splice an
 expression into a shell. The rest are load-bearing on you.
+
+**And the list itself is now a boundary, not only a paragraph.** Every rule around
+this section grew a fence — the seams are lint rules, the security rules are `npm
+run sast`, the token scopes are `.github/workflow-permissions.json` — while the one
+about what may run WITHOUT ASKING stayed prose, in a tree holding live Google Ads,
+Sklik, Resend, Leonardo and provider credentials.
+[`.github/agent-permissions.json`](.github/agent-permissions.json) states the same
+three rungs as patterns a harness can match: `deny` for the things above that say
+*never*, `ask` for the two that spend money or absorb a finding, `allow` for the
+offline gates — each carrying the sentence above that it comes from and, the half a
+permission list never carries, what the pattern **cannot** see (a shell, an intent,
+a harness that is not this one). `npm run agent:permissions -- --install` writes it
+into `.claude/settings.json`, which is where a denied command is refused rather than
+remembered; `npm run agent:permissions:check` says whether your checkout is wired.
+The prose stays canonical and the drift is what is measured:
+`test-unit/agent-permissions.test.mjs` blocks when a rule's quote is no longer a
+sentence here, when a rung sits on the wrong list, or when the settings file
+enforces a pattern the declaration does not — so the two cannot become two
+different answers to "may I run this?".
 
 ## AI registry (knowledge + skills)
 

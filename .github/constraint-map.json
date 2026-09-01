@@ -598,6 +598,50 @@
         }
       ],
       "rung": "blocking"
+    },
+    {
+      "id": "tool-permissions",
+      "rule": "What may be run unattended is declared as patterns a harness matches, not only as prose an agent is trusted to have read.",
+      "statedIn": {
+        "file": "AGENTS.md",
+        "quote": "And the list itself is now a boundary, not only a paragraph."
+      },
+      "enforcement": [
+        {
+          "kind": "test",
+          "name": "test-unit/agent-permissions.test.mjs",
+          "note": "blocking on every build: a rule whose AGENTS.md quote has moved, a rung on the wrong list, a pattern declared twice, or a settings file enforcing a pattern the declaration does not"
+        },
+        {
+          "kind": "gate",
+          "name": "agent:permissions:check",
+          "note": "reports the other half — whether this checkout has actually wired the policy into .claude/settings.json (npm run agent:permissions -- --install)"
+        }
+      ],
+      "rung": "partial",
+      "gapNote": "Three gaps, and they are the reason this is not blocking. (1) The enforced half lives in .claude/settings.json, which one harness reads — another lane running in this tree gets no boundary from it, and a checkout that has not run `--install` has none either, which is why the installer's absence is reported rather than red. (2) A pattern matches a command STRING: `git push` is refused and `sh -c 'git push'` is a different string, so this raises the cost of the accidental mistake rather than sandboxing the deliberate one. (3) Two of the red rules — anything that leaves the machine under the operator's name, and touching a CODEOWNERS law file beyond the task — are judgements about the CONTENT of an action and no command pattern can carry them; they stay honour, and .github/agent-permissions.json § $cannotSee says so rather than implying the list is complete."
+    },
+    {
+      "id": "api-conformance",
+      "rule": "The published OpenAPI document describes the routes src/app/api actually serves — path, verbs, parameters and identity posture.",
+      "statedIn": {
+        "file": "AGENTS.md",
+        "quote": "And the API document is held to the routes, not to a reviewer."
+      },
+      "enforcement": [
+        {
+          "kind": "test",
+          "name": "test-unit/api-surface.test.mjs",
+          "note": "blocking on every build: a route the spec does not describe, a spec path the router no longer serves, a verb list that has moved, a renamed path parameter, a changed auth posture, a changed maxDuration, or an operation left with a TODO summary"
+        },
+        {
+          "kind": "gate",
+          "name": "api:surface:check",
+          "note": "the same comparison on demand; `npm run api:surface:write` re-derives the pinned half and keeps every written sentence"
+        }
+      ],
+      "rung": "partial",
+      "gapNote": "Request and response BODIES are not pinned. Every operation states its posture's response codes and those are indicative — the comparison does not read them out of the handler, so a route that starts returning a different shape under the same status code is a breaking change nothing here sees. Pinning them means a schema per route hand-written from 88 modules (stale within a week) or a type extractor (a bigger project than the gap it closes); the honest position, recorded in the document's own description, is that the SHAPE of the surface is pinned and the bodies are not. The seam to extend is `compareSurface()` in scripts/lib/api-surface-core.mjs."
     }
   ]
 }

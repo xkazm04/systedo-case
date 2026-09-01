@@ -11,14 +11,14 @@
 
   "schema": 1,
   "routedBy": "docs/task-index.md",
-  "maxTotalLines": 1547,
+  "maxTotalLines": 1584,
 
   "readFirst": [
     {
       "file": "AGENTS.md",
-      "maxLines": 883,
+      "maxLines": 920,
       "why": "canonical. Every command, every seam, every rule about what may be done unattended. Read late, an agent has already picked the wrong store, the wrong prompt path or the wrong commit subject.",
-      "$raised": "874 → 883 on 2026-09-01, for the nine lines that say a pin carries `accepted: { on, reviewBy }`. Paid for here rather than routed to a lookup because the population it addresses is an agent about to ADD an exception, and that decision is taken before the first edit — the same reason the ceiling paragraph above it is read-first."
+      "$raised": "883 → 920 on 2026-09-01, in one diff: nineteen lines turning § 'What you may do unattended' from a paragraph into `.github/agent-permissions.json` plus its table row, and eighteen for the API-conformance paragraph and its row — the derived half of docs/api/openapi.json, which an agent needs before it changes a route rather than after the check refuses it. Paid for here rather than routed to a lookup for the same reason the section itself is read-first: the population it addresses is an agent deciding whether to run a command, and that decision is taken before — and instead of — reading anything else. Previously 874 → 883 on 2026-09-01, for the nine lines that say a pin carries `accepted: { on, reviewBy }`."
     },
     {
       "file": "CLAUDE.md",
