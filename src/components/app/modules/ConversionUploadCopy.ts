@@ -1,0 +1,67 @@
+/** The cs/en copy table of ConversionUploadCard, lifted verbatim out of it so the
+ *  card stays under the 200-line component ceiling (rubric A1). Two locales of one
+ *  irreversible action's wording — kept together, and away from the choreography,
+ *  because it is the sentence an operator reads before approving a send that cannot
+ *  be taken back. Data only: no hooks, no handlers. */
+export const CONVERSION_UPLOAD_COPY = {
+  cs: {
+    title: "Nahrávání konverzí do Google Ads",
+    subtitle:
+      "Kvalifikované a uzavřené obchody z CRM pošleme do vaší konverzní akce v Google Ads. Odesíláme jen ID kliknutí (gclid), čas konverze, hodnotu a měnu — žádné jméno, e-mail ani telefon.",
+    actionLabel: "Konverzní akce",
+    pick: "— vyberte akci —",
+    kinds: "Typy konverzí",
+    qualified: "Kvalifikované",
+    won: "Uzavřené",
+    dryRun: "Zkušební běh",
+    dryRunning: "Počítám…",
+    approve: "Schválit nahrávání",
+    approving: "Schvaluji…",
+    pause: "Pozastavit",
+    pausing: "Pozastavuji…",
+    draft: "Neschváleno — nic se neodesílá",
+    "dry-run": "Po zkušebním běhu — čeká na schválení",
+    approved: "Aktivní — odesílá se každý den",
+    paused: "Pozastaveno",
+    irreversible:
+      "Nahrání konverze je nevratné a Google ji při dvojím odeslání započítá dvakrát. Proto se každý odeslaný řádek označí a už nikdy se neodešle znovu.",
+    lastDrain: "Poslední dávka {date}: {uploaded} nahráno, {failed} odmítnuto ({batch}).",
+    sklikNote: "Sklik zůstává ruční tabulkou — Seznam strojové nahrávání konverzí nezveřejňuje.",
+    "not-configured": "Server nemá Google Ads developer token, takže konverzní akce nelze načíst.",
+    "not-connected": "Nejdřív připojte účet Google Ads (Nastavení → Napojení Google Ads).",
+    "no-token": "Chybí autorizace Googlu — přihlaste se prosím znovu.",
+    unreachable: "Seznam konverzních akcí se z Google Ads nepodařilo načíst.",
+    loadError: "Nastavení nahrávání se nepodařilo načíst.",
+    retry: "Zkusit znovu",
+  },
+  en: {
+    title: "Conversion upload to Google Ads",
+    subtitle:
+      "Qualified and won deals from the CRM are sent to your Google Ads conversion action. We send only the click ID (gclid), the conversion time, the value and the currency — no name, e-mail or phone.",
+    actionLabel: "Conversion action",
+    pick: "— pick an action —",
+    kinds: "Conversion types",
+    qualified: "Qualified",
+    won: "Won",
+    dryRun: "Dry run",
+    dryRunning: "Computing…",
+    approve: "Approve uploading",
+    approving: "Approving…",
+    pause: "Pause",
+    pausing: "Pausing…",
+    draft: "Not approved — nothing is sent",
+    "dry-run": "Dry run done — awaiting approval",
+    approved: "Active — sent daily",
+    paused: "Paused",
+    irreversible:
+      "An uploaded conversion cannot be taken back, and Google counts it twice if it is sent twice. So every sent row is marked and is never sent again.",
+    lastDrain: "Last batch {date}: {uploaded} uploaded, {failed} rejected ({batch}).",
+    sklikNote: "Sklik stays a hand-filled sheet — Seznam publishes no machine conversion import.",
+    "not-configured": "The server has no Google Ads developer token, so conversion actions can't be listed.",
+    "not-connected": "Connect a Google Ads account first (Settings → Google Ads link).",
+    "no-token": "Google authorisation is missing — please sign in again.",
+    unreachable: "The conversion-action list couldn't be read from Google Ads.",
+    loadError: "Couldn't load the upload settings.",
+    retry: "Try again",
+  },
+} as const;
