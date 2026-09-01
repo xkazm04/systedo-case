@@ -483,6 +483,15 @@ remedy all turn the unit suite red.
   is allowed and sometimes right; adding the entry alone is not. Proven by
   `test-unit/contract-ledger-ceiling.test.mjs`, which runs the gate against a
   fixture whose list has outgrown its ceiling and requires it to be red.
+- **And every pin carries a DATE.** A `reason` reads identically on the day it
+  was argued and three years later, so the next agent cannot tell a considered
+  exception from a shortcut that outlived its cause, and reads both as
+  precedent. Every ceiling and floor therefore carries
+  `accepted: { on, reviewBy }` — required wherever the pin absorbs anything,
+  `null` on a ceiling of 0, never more than two years out. The SHAPE blocks (the
+  next exception cannot land undated); being PAST the date is printed with its
+  age and does not, because an expiry that turned master red on a morning nobody
+  chose would be re-dated rather than re-argued.
 - **And so does every number that decides what red means.** An exception list is
   not the only way a gate gets softer. `RATCHET.coverage` in
   `scripts/i18n-audit.mjs`, `RATCHET.unmapped` in `scripts/agent-surface.mjs`,

@@ -221,11 +221,12 @@
     },
     {
       "id": "exception-ceilings",
-      "rule": "An exception list may only grow together with the ceiling that pays for it — the entry and the ceiling in the same diff.",
+      "rule": "An exception list may only grow together with the ceiling that pays for it — the entry and the ceiling in the same diff — and every ceiling and floor is dated with the day it was accepted and the day it has to be argued again.",
       "statedIn": { "file": "AGENTS.md", "quote": "Adding an exception is therefore a two-line diff" },
       "enforcement": [
         { "kind": "gate", "name": "contract:ledger:check" },
-        { "kind": "test", "name": "test-unit/contract-ledger-ceiling.test.mjs", "note": "runs the gate against a fixture that has outgrown its ceiling and requires a red" }
+        { "kind": "test", "name": "test-unit/contract-ledger-ceiling.test.mjs", "note": "runs the gate against a fixture that has outgrown its ceiling and requires a red" },
+        { "kind": "test", "name": "test-unit/contract-ledger-expiry.test.mjs", "note": "the CLOCK on the same pin: an undated pin, a live exception with no review date, a review date before the day it was accepted, and one far enough away to be no date at all each require a red. Being PAST the date is reported with its age and deliberately does not block — an expiry that turned master red on a morning nobody chose would be re-dated rather than re-argued." }
       ],
       "rung": "blocking"
     },

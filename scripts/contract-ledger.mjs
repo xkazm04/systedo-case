@@ -86,6 +86,16 @@
  *  test-unit/contract-ledger-ceiling.test.mjs, which lowers a ceiling and raises a
  *  floor under the real tree and requires a red.
  *
+ *  AND THE FIELD ALL OF THAT WAS STILL MISSING: WHEN. `reason` and `comesOffWhen`
+ *  say what a pin allows and why, and they read identically on the day somebody
+ *  argued for them and three years later — so the next agent cannot tell a
+ *  considered exception from a shortcut that outlived its cause, and reads both as
+ *  precedent. Every pin therefore carries `accepted: { on, reviewBy }`. Section 5c
+ *  below blocks on the SHAPE (dated, ordered, inside a two-year horizon, and a
+ *  review date wherever the pin is absorbing anything) and REPORTS being past the
+ *  date, because an expiry that turned master red on a morning nobody chose would
+ *  be re-dated rather than re-argued. test-unit/contract-ledger-expiry.test.mjs.
+ *
  *  WHAT TO DO WITH IT. Two lists at the bottom of the report:
  *    • a FENCE that has never fired and absorbs nothing — ask whether the sentence
  *      in AGENTS.md that it came from is still describing this repository;
@@ -102,6 +112,8 @@
  *    node scripts/contract-ledger.mjs --record FILE    # fold in a review's --json
  *    node scripts/contract-ledger.mjs --ledger FILE    # read a different ledger
  *                                                      #   (test-unit uses it)
+ *    node scripts/contract-ledger.mjs --today DATE     # stand in front of a pin's
+ *                                                      #   review date (test-unit)
  *    node scripts/contract-ledger.mjs --summary FILE --out FILE
  */
 import { appendFileSync, existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -120,6 +132,9 @@ const CHECK = argv.includes("--check");
 const RECORD_FILE = arg("--record");
 const SUMMARY_FILE = arg("--summary");
 const OUT_FILE = arg("--out");
+/** The day this run calls "now", for the review dates in section 5c. Overridable
+ *  so a test can stand in front of a pin's expiry without waiting a year for it. */
+const TODAY = arg("--today") ?? new Date().toISOString().slice(0, 10);
 /** The ledger this run reads. Overridable so a test can point the REAL rules at a
  *  fixture and prove the ceiling actually refuses a grown list — a gate nobody has
  *  seen fail is a gate nobody knows is wired. */
@@ -529,6 +544,103 @@ for (const row of rows) {
   }
 }
 
+// --- 5c. the clock on a pin ---------------------------------------------------
+//
+// Every pin above says WHAT it allows and WHY, and none of them said WHEN. That is
+// the one field an accepted exception needs and never gets: a `reason` and a
+// `comesOffWhen` read exactly the same on the day somebody argued for them and
+// three years later, when the person who argued has gone and the cause has moved.
+// The next agent reading the list cannot tell a considered exception from a
+// shortcut that outlived its reason — so it treats both as precedent, and the list
+// only ever grows.
+//
+//     "accepted": { "on": "2026-08-30", "reviewBy": "2027-03-01" }
+//
+// `on` is the day the number was last argued for. `reviewBy` is the day it stops
+// being a decision and becomes a habit. Two rungs, the way everything else here is
+// split (ADR-0007):
+//
+//   BLOCKING — the SHAPE. Every pin carries `accepted.on`; every pin that is
+//     absorbing something carries a `reviewBy` after it and inside a two-year
+//     horizon. Green on arrival (every pin in the ledger is dated), and it means
+//     the next exception cannot land undated — which is the whole failure this
+//     closes, since an undated entry is indistinguishable from an old one.
+//   REPORTING — being PAST the date. It is printed with its age, under the table,
+//     and it never fails a build. An expiry that turned master red on a morning
+//     nobody chose would be re-dated in the hurry rather than re-argued, which is
+//     precisely the move this file exists to make visible.
+//
+// A ceiling of 0 on an exception list or a ratchet absorbs nothing, so it carries
+// `reviewBy: null`: there is no exception whose age matters, and inventing a review
+// date for one would be ceremony rather than a decision.
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** A pin nobody has to look at for three years is the thing the field refuses. */
+const REVIEW_HORIZON_DAYS = 730;
+const DAY_MS = 86_400_000;
+const asDate = (value) => (DATE_RE.test(String(value ?? "")) ? new Date(`${value}T00:00:00Z`) : null);
+const daysBetween = (from, to) => Math.round((to - from) / DAY_MS);
+
+const now = asDate(TODAY);
+/** Pins whose review date has passed: reported, never blocking. */
+const overdue = [];
+
+for (const row of rows) {
+  for (const [name, pin] of [
+    ["ceiling", row.ceiling],
+    ["floor", row.floor],
+  ]) {
+    if (!pin) continue;
+
+    const on = asDate(pin.accepted?.on);
+    if (!on) {
+      failures.push(
+        `${row.id}: the ${name} has no \`accepted.on\` date. A pin with a reason but no date reads the same on ` +
+          'the day it was argued for and three years later — add `"accepted": { "on": "YYYY-MM-DD", "reviewBy": ' +
+          '"YYYY-MM-DD" }` with the day this number was decided.'
+      );
+      continue;
+    }
+
+    // Nothing is being absorbed, so there is no exception whose age matters.
+    const absorbsNothing = name === "ceiling" && pin.max === 0 && CEILINGED_KINDS.has(row.measure?.kind);
+    const declared = pin.accepted?.reviewBy ?? null;
+
+    if (declared === null) {
+      if (!absorbsNothing) {
+        failures.push(
+          `${row.id}: the ${name} is absorbing something and records no \`accepted.reviewBy\`. An exception with ` +
+            "no review date is permanent by default — name the day this has to be argued again, or fix the cause."
+        );
+      }
+      continue;
+    }
+
+    const reviewBy = asDate(declared);
+    if (!reviewBy) {
+      failures.push(`${row.id}: the ${name}'s \`accepted.reviewBy\` is not a YYYY-MM-DD date.`);
+      continue;
+    }
+    if (reviewBy <= on) {
+      failures.push(
+        `${row.id}: the ${name}'s \`accepted.reviewBy\` (${declared}) is not after \`accepted.on\` (${pin.accepted.on}).`
+      );
+      continue;
+    }
+    if (daysBetween(on, reviewBy) > REVIEW_HORIZON_DAYS) {
+      failures.push(
+        `${row.id}: the ${name}'s review date is ${daysBetween(on, reviewBy)} days after it was accepted, past the ` +
+          `${REVIEW_HORIZON_DAYS}-day horizon. A date far enough away is the same as no date — pick one somebody ` +
+          "will actually be around for, and move it forward when the exception is argued again."
+      );
+      continue;
+    }
+    if (now && now > reviewBy) {
+      overdue.push({ id: row.id, pin: name, on: pin.accepted.on, reviewBy: declared, days: daysBetween(reviewBy, now) });
+    }
+  }
+}
+
 // --- 6. report ----------------------------------------------------------------
 
 const out = [];
@@ -549,8 +661,10 @@ say(
     `${rows.reduce((n, r) => n + breachCount(r), 0)} recorded breach(es)`
 );
 say("");
-say("| Rule | Enforced by | Absorbing now | Pinned at | Breaches recorded | Last |");
-say("| --- | --- | ---: | ---: | ---: | --- |");
+say("| Rule | Enforced by | Absorbing now | Pinned at | Accepted | Review by | Breaches recorded | Last |");
+say("| --- | --- | ---: | ---: | --- | --- | ---: | --- |");
+
+const overdueIds = new Set(overdue.map((o) => o.id));
 
 const sorted = [...rows].sort((a, b) => {
   const score = (r) => breachCount(r) * 100 + (measured.get(r.id)?.count ?? 0);
@@ -565,12 +679,40 @@ for (const row of sorted) {
       : typeof row.floor?.min === "number"
         ? `≥ ${row.floor.min}`
         : "—";
+  const accepted = (row.ceiling ?? row.floor)?.accepted;
+  const reviewBy = accepted?.reviewBy
+    ? `${overdueIds.has(row.id) ? "⚠ " : ""}${accepted.reviewBy}`
+    : accepted
+      ? "n/a — absorbs nothing"
+      : "—";
   say(
     `| \`${row.id}\` | ${row.enforcedBy ?? (row.source ? DISCOVERY[row.source].file : "nothing — prose")} | ` +
-      `${absorbing} | ${ceiling} | ${breachCount(row)} | ${lastBreach(row) ?? "—"} |`
+      `${absorbing} | ${ceiling} | ${accepted?.on ?? "—"} | ${reviewBy} | ` +
+      `${breachCount(row)} | ${lastBreach(row) ?? "—"} |`
   );
 }
 say("");
+
+if (overdue.length) {
+  say(`### ${overdue.length} pin(s) past their review date`);
+  say("");
+  say(
+    "Each of these was argued for on the date below and has not been argued for since. That is not a build " +
+      "failure and it is deliberately not treated as one — an expiry that turned master red would be re-dated " +
+      "in the hurry rather than re-argued. It is the question this ledger could not ask before: is the reason " +
+      "still true, or is this a shortcut that outlived its cause and is now being read as precedent?"
+  );
+  say("");
+  for (const o of overdue) {
+    say(`- \`${o.id}\` — ${o.pin} accepted ${o.on}, review was due ${o.reviewBy} (${o.days} day(s) ago).`);
+  }
+  say("");
+  say(
+    "Two honest answers, and re-dating without reading is neither: fix the cause and drop the pin, or argue it " +
+      "again and move `accepted.on` and `accepted.reviewBy` together, in the diff that says why."
+  );
+  say("");
+}
 
 const neverFired = rows.filter(
   (r) => r.surface !== "prose" && breachCount(r) === 0 && (measured.get(r.id)?.count ?? 0) === 0
@@ -622,8 +764,10 @@ say(
     "_Pinned at_ is the value that number may not cross without a reviewed diff moving the pin — `≤` a " +
     "ceiling for a list or a baseline that must not grow, `≥` a floor under a threshold that must not drop " +
     "(the quality floor, the SHA-pin count). Those are the measured numbers that DO fail the build; see the " +
-    "pins section in scripts/contract-ledger.mjs. _Breaches recorded_ come from `--record`, fed the JSON a " +
-    "rubric review writes, and never fail anything; the parity check above does."
+    "pins section in scripts/contract-ledger.mjs. _Accepted_ and _Review by_ are the day each pin was last " +
+    "argued for and the day it has to be argued again — the shape blocks (a pin cannot land undated), being " +
+    "past the date does not. _Breaches recorded_ come from `--record`, fed the JSON a rubric review writes, " +
+    "and never fail anything; the parity check above does."
 );
 
 if (SUMMARY_FILE) {

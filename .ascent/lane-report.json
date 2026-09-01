@@ -2,100 +2,59 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "d749c252-1b47-4ecb-99ae-046ba584d9ff",
-      "verdict": "skipped",
-      "reason": "Pinning a tag to a commit SHA means asking GitHub what the tag points at right now, and this session has no network; scripts/actions-pin.mjs --update already does the whole close (rewrite + STRICT=true + ratchet) in one networked run, and inventing a SHA would break the workflow rather than pin it.",
-      "files": []
-    },
-    {
-      "recommendationId": "b05bbac1-d3b7-432f-8cef-5003119ff337",
+      "recommendationId": "ee63c04b-9dce-4f9d-aaf9-06b275b407de",
       "verdict": "resolved",
-      "reason": "The read/write split the item asks for already existed (issue-dispatch.yml is three jobs: the one with the model key, the one that writes a ref, the one that can speak — none can do another's damage), and `contents: write` cannot be narrowed further because pushing a ref needs it; what was missing was that nothing bounded any grant, so rule P10 in scripts/actions-pin.mjs now compares every workflow's and job's permissions against .github/workflow-permissions.json in both directions and refuses a write with no recorded reason.",
+      "reason": "Every ceiling and floor in .github/contract-ledger.json now carries `accepted: { on, reviewBy }`; contract:ledger:check (blocking, inside check:ci and .husky/pre-push) refuses an undated pin, a live exception with no review date, a backwards date or one past a two-year horizon, and reports pins past their review date with their age.",
       "files": [
-        ".github/workflow-permissions.json",
-        "scripts/actions-pin.mjs",
-        "test-unit/workflow-permissions.test.mjs",
         ".github/contract-ledger.json",
+        "scripts/contract-ledger.mjs",
+        "test-unit/contract-ledger-expiry.test.mjs",
         ".github/constraint-map.json",
-        "scripts/gate-remedy.mjs",
-        "AGENTS.md"
-      ]
-    },
-    {
-      "recommendationId": "64853792-e2ea-4bf8-97a4-a4519bc8a968",
-      "verdict": "resolved",
-      "reason": "The rule does reach the path (A5 runs over the pushed range in agent-review.yml and over origin/master..HEAD in the pre-push hook) — it was drawn too narrow: `chore: partial work from an interrupted lane session` passed every existing narration rule and is in this log twice, so loop-mechanics now names lane/loop/harness/autopilot sessions and a new run-progress rule refuses a completeness word bound to a work noun.",
-      "files": ["scripts/commit-subject.mjs", "test-unit/commit-subject.test.mjs"]
-    },
-    {
-      "recommendationId": "4a5a7d25-bdcc-4e2a-9491-1475d009b861",
-      "verdict": "resolved",
-      "reason": "The read-first set is now declared and measured — seven documents, 1538 lines, a ceiling on each and on the total — with everything else declared a lookup routed to by docs/task-index.md, and test-unit/guidance-budget.test.mjs blocking on every build.",
-      "files": [
         ".github/guidance-budget.json",
-        "scripts/guidance-budget.mjs",
-        "test-unit/guidance-budget.test.mjs",
-        ".github/constraint-map.json",
-        "package.json",
         "AGENTS.md"
       ]
     },
     {
-      "recommendationId": "e46f7174-fae0-4717-a724-cdff816b4d0b",
+      "recommendationId": "b4c96011-2b54-4539-bca4-09adf96894e0",
       "verdict": "skipped",
-      "reason": "Already covered another way and better than the item assumes: test-llm/adversarial/corpus.json places hostile payloads in the real product prompt builders (campaign names from an advertiser's console, public Google reviews, inbound messages), test-unit/llm-adversarial.test.mjs asserts detection, containment and refusal on every build, and scripts/injection-drill.mjs does the same for the harness's own model surfaces with a weekly live run.",
+      "reason": "Needs network: pinning a tag to a digest means asking GitHub what the tag points at today, and inventing a SHA breaks the workflow rather than pinning it — the repository already ships `npm run actions:pin` (scripts/actions-pin.mjs --update), which resolves every ref, flips STRICT to true and raises the P6 floor in one networked run.",
       "files": []
     },
     {
-      "recommendationId": "2aa741a8-c742-4c68-830e-41329b01667c",
-      "verdict": "skipped",
-      "reason": "Already covered: .github/contract-ledger.json carries a `ceiling` for every eslint fence exception list (adamant/seams 3, seams-lib 3, chokepoint 1, route-segment-config 0) and every SAST allowlist, and scripts/contract-ledger.mjs --check (blocking inside check:ci) fails when a list grows past it OR when an exception list carries no ceiling at all.",
+      "recommendationId": "82e154f8-9ee2-45a6-beed-c7ce37488dee",
+      "verdict": "needs_human",
+      "reason": "The repository-side halves already exist and block (rubric A5 over the whole origin/master..HEAD range in agent-review.yml and check:ci; scripts/commit-attribution.mjs writes Agent-Harness/Model/Spec/Session/Lane trailers); what lets the narrating subjects through is an external lane committing in a throwaway worktree that never ran `npm install`, so no hook exists — closing it means the Ascent harness setting AGENT_HARNESS and running the hook, and diagnosing why the pushed lane commits were not refused needs CI history this session cannot read.",
       "files": []
     },
     {
-      "recommendationId": "baf865cc-fba6-46fe-9776-ad8414a30709",
-      "verdict": "resolved",
-      "reason": "`npm run test:fast` runs the suites that name the files you changed plus the always tier in .github/test-tiers.json, under the same node flags as the gate, reporting a changed file no test claims; it is deliberately outside check:ci and test-unit/test-tier-census.test.mjs blocks if the tier rots or if somebody wires the subset in as a gate.",
-      "files": [
-        "scripts/test-fast.mjs",
-        ".github/test-tiers.json",
-        "test-unit/test-tier-census.test.mjs",
-        "package.json",
-        "AGENTS.md"
-      ]
-    },
-    {
-      "recommendationId": "84b5fde0-4f84-43d2-a5e9-c5584e862e5b",
+      "recommendationId": "6949c045-3c95-4fc2-aafd-11b4eee31a28",
       "verdict": "skipped",
-      "reason": "A health-gated staged rollout is Vercel-side configuration plus a promotion workflow that has to observe live signals; this session has no network, no platform access and no way to verify an abort path, and a rollout config that has never aborted anything is exactly the artefact the brief says not to substitute.",
+      "reason": "Needs live provider credentials and network: a consumer-driven contract test only detects upstream drift by talking to Google Ads, Sklik and Meta, and every fixture here is inline in its test file with no recorded provenance to refresh against. The offline finding worth acting on: SearchRow (src/lib/google/ads.ts:122) and AdsMetricRow (src/lib/report-metrics/map.ts:11) are two independent hand-written declarations of the same Google row, cast between at src/lib/report-metrics/sync.ts:179-185, and four near-identical private num() coercers (ads.ts:534, keyword-planner.ts:16, sklik/client.ts:78, report-metrics/map.ts:22) silently turn a shape change into 0 rather than an error.",
       "files": []
     },
     {
-      "recommendationId": "dfe3a836-6e25-4c16-8998-5f2caff13423",
-      "verdict": "resolved",
-      "reason": "All twelve ADRs now carry a `## Revisit when` section naming falsifiable triggers (an observation, an event or a number — never a date), and scripts/adr-check.mjs rule 7 requires it on every record from the day it lands, blocking inside check:ci.",
-      "files": [
-        "scripts/adr-check.mjs",
-        "docs/adr/README.md",
-        "docs/adr/0001-dual-store-seam.md",
-        "docs/adr/0002-tenant-key-embeds-user-id.md",
-        "docs/adr/0003-single-llm-chokepoint.md",
-        "docs/adr/0004-self-hosted-third-deploy-mode.md",
-        "docs/adr/0005-container-base-and-standalone-output.md",
-        "docs/adr/0006-colocated-i18n-dictionaries.md",
-        "docs/adr/0007-gate-rung-discipline.md",
-        "docs/adr/0008-zero-dependency-tooling.md",
-        "docs/adr/0009-free-channels-lead-the-onboarding-checklist.md",
-        "docs/adr/0010-project-reads-union-of-account-tenants.md",
-        "docs/adr/0011-required-checks-are-enumerated-in-the-repo.md",
-        "docs/adr/0012-generated-regions-are-data.md"
-      ]
+      "recommendationId": "e9c17b7e-9541-4f92-912a-3450e3704189",
+      "verdict": "skipped",
+      "reason": "Needs platform access: a per-PR preview environment is a Vercel project setting plus a deploy token, neither of which exists in this worktree and neither of which can be verified from it.",
+      "files": []
+    },
+    {
+      "recommendationId": "58ab2679-0c73-41d9-9ae0-8054f9601e63",
+      "verdict": "skipped",
+      "reason": "Needs deployment credentials and a production URL: /api/health is behind the CRON_SECRET Bearer guard (src/app/api/health/route.ts:86), docs/deploy.md names the canonical origin only as an example, and a push-triggered probe would race the Vercel build with no deployment-status signal available here — a health window built on three guesses would be noise, and the auto-revert half is a push to master, which AGENTS.md § Red reserves for the operator.",
+      "files": []
+    },
+    {
+      "recommendationId": "753fea28-5f13-4253-8261-ee0711cba948",
+      "verdict": "skipped",
+      "reason": "Already covered another way: .github/workflows/llm-drift.yml runs npm run llm:drift weekly (Wed 06:00) against the CONFIGURED provider through the real chokepoint, records `skipped` rather than a green without a key, and publishes a dated pass/fail trail into a rewritten GitHub issue; the quality delta that counts as regression is FLOOR = 6.5 plus per-cell maxDrop in scripts/quality-gate.mjs, pinned in the contract ledger.",
+      "files": []
     }
   ],
   "lessons": [
-    "In this repository a new fence is never one file: a rule needs a row in .github/contract-ledger.json (with a ceiling or a floor if it measures anything), a row in .github/constraint-map.json AND the matching row in AGENTS.md's table in the same order, an entry in scripts/gate-remedy.mjs if it joins check:ci, and a test-unit file that points the real gate at a fixture and requires a red. test-unit/constraint-map.test.mjs and scripts/contract-ledger.mjs enforce all of it, so a half-landed fence is a red build rather than a quiet one.",
-    "Prefer blocking through a test-unit file over adding a stage to check:ci. A new stage drags in gate-remedy entries, the constraint-map's every-stage-has-a-rule assertion and the cheapest-first timing baseline in .github/gate-timings.json; a unit test blocks through the same check:ci and pre-push path with none of that coupling — which is how env-manifest, perf-budget and the model pins are already wired.",
-    "Scan findings about this repository's governance are often already closed, because the fence exists one layer deeper than a scanner looks: exception-list ratchets live in the contract ledger rather than next to the eslint rule, and the adversarial eval corpus lives in test-llm/adversarial rather than in test-llm/golden. Read the ledger and the constraint map before building anything a finding asks for.",
-    "The commit subjects an automation lane writes are the repository's most reliably broken rule, and the cause is structural: the lane takes the first line of the agent's report and uses it as the subject, in a worktree where no hook is installed. The fix that works is to write the report's first line AS a conventional-commit subject, and to keep extending scripts/commit-subject.mjs from the log rather than from imagination."
+    "This repository indexes its own guardrails: .github/constraint-map.json says whether a rule blocks or is honour-system, .github/contract-ledger.json says what each fence is absorbing and pins the number that decides red, and both are held to the tree by tests — read those two files before proposing a control, because the answer is often that the control exists and the gap is one field inside it.",
+    "Several rows in .github/contract-ledger.json already state their own closing condition, including that it needs the network (P4 action-sha-pin: 'Closing it is one networked run (npm run actions:pin), which no offline session can do'). An offline lane should grep the ledger's `verdict` fields before starting work on a supply-chain or ratchet item.",
+    "AGENTS.md is line-budgeted to the exact line (.github/guidance-budget.json, blocking via test-unit/guidance-budget.test.mjs), so adding guidance prose is a two-line diff: the paragraph, and the ceiling plus the total that pay for it.",
+    "Time is the field this repository's otherwise-excellent exception machinery was missing: a `reason` and a `comesOffWhen` cannot distinguish a considered exception from a two-year-old shortcut, and dating the pin is a cheaper fix than any new gate."
   ]
 }

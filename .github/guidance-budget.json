@@ -11,13 +11,14 @@
 
   "schema": 1,
   "routedBy": "docs/task-index.md",
-  "maxTotalLines": 1538,
+  "maxTotalLines": 1547,
 
   "readFirst": [
     {
       "file": "AGENTS.md",
-      "maxLines": 874,
-      "why": "canonical. Every command, every seam, every rule about what may be done unattended. Read late, an agent has already picked the wrong store, the wrong prompt path or the wrong commit subject."
+      "maxLines": 883,
+      "why": "canonical. Every command, every seam, every rule about what may be done unattended. Read late, an agent has already picked the wrong store, the wrong prompt path or the wrong commit subject.",
+      "$raised": "874 → 883 on 2026-09-01, for the nine lines that say a pin carries `accepted: { on, reviewBy }`. Paid for here rather than routed to a lookup because the population it addresses is an agent about to ADD an exception, and that decision is taken before the first edit — the same reason the ceiling paragraph above it is read-first."
     },
     {
       "file": "CLAUDE.md",

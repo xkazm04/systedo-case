@@ -3,6 +3,8 @@
 
   "$ceiling": "A row that measures an EXCEPTION LIST (a SAST allowlist, the names a lint fence waves through) or a RATCHET BASELINE carries `ceiling: { max, reason, comesOffWhen }`, and `--check` fails when the count grows past `max`. Why: both lists are the right shape — narrow, each entry read and accepted — and both are one entry away from being the wrong one, because an exception list that grows a line per inconvenient diff erodes its fence without a build ever going red. A baseline is the same thing counted differently: it is the number of findings a rule is living with rather than fixing, and it is one digit in the script that enforces the rule. `max` is what the list or the baseline holds today, so this is green on arrival (ADR-0007). `comesOffWhen` is the field an exemption list normally never has, and the reason exemptions become permanent. Raising a ceiling is fine and is the point: it is one reviewed line next to the change it pays for.",
 
+  "$accepted": "And the field every pin above was missing: WHEN. A ceiling and a floor each carry `accepted: { on, reviewBy }`. `on` is the day the number was last argued for; `reviewBy` is the day it stops being a decision somebody made and becomes a decision nobody has revisited. Why: a `reason` and a `comesOffWhen` read identically on day one and in year three, so the next agent cannot tell a considered exception from a shortcut that outlived its cause — and treats both as precedent. `reviewBy` is REQUIRED wherever the pin is absorbing something (any floor, any ceiling that allows more than zero) and is `null` where a ceiling of 0 on an exception list or a ratchet absorbs nothing, because there is no exception whose age matters. A review date must be after `on` and no more than 730 days past it: a pin nobody has to look at for three years is the thing this field exists to refuse. BLOCKING: the shape (every pin dated, dates parseable and ordered, inside the horizon), so the next exception cannot land undated. REPORTING (ADR-0007): being PAST the date, listed under the table with its age — an expiry that turned a build red on a Tuesday morning nobody chose would be re-dated rather than re-argued, which is the failure this whole file is about. `on` is 2026-08-30 for the pins that arrived with the ledger and 2026-09-01 for the two that moved when SAST was promoted to blocking; both are the days the tree recorded, not guesses. scripts/contract-ledger.mjs, proven by test-unit/contract-ledger-expiry.test.mjs.",
+
   "$floor": "The other direction. A row that measures a THRESHOLD inside a gate — `FLOOR = 6.5` in scripts/quality-gate.mjs, `COMPONENT_LOC_LIMIT = 200` in scripts/agent-review.mjs — or a ratchet that counts compliance rather than debt pins it with `floor: { min, reason, risesWhen }`, and `--check` fails when the number drops below `min`. Why: those numbers ARE what the gate calls failure. Lowering one turns a red gate green without changing a single answer the product gives, and nothing in a green build looks any different afterwards. Same rule as a ceiling: move it on purpose, in the diff that needs it, with the sentence next to it.",
 
   "schema": 1,
@@ -36,7 +38,8 @@
       "ceiling": {
         "max": 200,
         "reason": "200 lines, the number AGENTS.md, the rubric and docs/roadmap/component-debt.md all state. A1 is a ratchet on growth, so a component already over the line may sit there — which means raising this constant would not turn anything red anywhere, it would simply stop refusing the next overgrown component. That is the softening this pin refuses.",
-        "comesOffWhen": "It does not rise. It could fall, and a fall is the debt catalogue getting shorter — the pin is one-directional on purpose."
+        "comesOffWhen": "It does not rise. It could fall, and a fall is the debt catalogue getting shorter — the pin is one-directional on purpose.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-09-01" }
       },
       "breaches": []
     },
@@ -93,7 +96,8 @@
       "measure": { "kind": "allowlist", "rule": "raw-engine-outside-seam" },
       "ceiling": {
         "max": 0,
-        "reason": "Nothing has ever been allowlisted against the store seam: every caller reaches data through a store in src/lib, which is where the tenant key is applied. A ceiling of 0 records that, and makes the first exception a diff somebody argues about rather than a line somebody adds."
+        "reason": "Nothing has ever been allowlisted against the store seam: every caller reaches data through a store in src/lib, which is where the tenant key is applied. A ceiling of 0 records that, and makes the first exception a diff somebody argues about rather than a line somebody adds.",
+        "accepted": { "on": "2026-08-30", "reviewBy": null }
       },
       "breaches": []
     },
@@ -108,7 +112,8 @@
       "ceiling": {
         "max": 5,
         "reason": "Five anonymous routes, and each one's caller genuinely cannot sign in: a merchant-feed robot, a webhook from Meta or a mail forwarder, a signed-out visitor on the marketing site, a scan claimed before the sign-in redirect. None is unguarded — each is behind an unguessable 128-bit token in the path, an HMAC over the raw body, or a durable per-IP daily cap, and none spends AI units.",
-        "comesOffWhen": "An entry comes off when its caller gains a real identity: feed/[token] and twin/inbound/[token] when a machine caller can authenticate as the project rather than by holding a URL; images/upload-ref and sken/claim if the marketing site stops serving the signed-out flow they exist for. A sixth entry is not a variation on these — it is a product decision about anonymity, and it belongs in the diff that raises this number."
+        "comesOffWhen": "An entry comes off when its caller gains a real identity: feed/[token] and twin/inbound/[token] when a machine caller can authenticate as the project rather than by holding a URL; images/upload-ref and sken/claim if the marketing site stops serving the signed-out flow they exist for. A sixth entry is not a variation on these — it is a product decision about anonymity, and it belongs in the diff that raises this number.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-03-01" }
       },
       "breaches": []
     },
@@ -122,7 +127,8 @@
       "measure": { "kind": "allowlist", "rule": "client-env" },
       "ceiling": {
         "max": 0,
-        "reason": "No client module has ever needed a server env var: the shape that works is a server component reading it and passing a value down, and that shape has always been available. A ceiling of 0 keeps 'just this once' from being a one-line edit — the failure mode here is a secret shipped to a browser, which no reason survives."
+        "reason": "No client module has ever needed a server env var: the shape that works is a server component reading it and passing a value down, and that shape has always been available. A ceiling of 0 keeps 'just this once' from being a one-line edit — the failure mode here is a secret shipped to a browser, which no reason survives.",
+        "accepted": { "on": "2026-08-30", "reviewBy": null }
       },
       "breaches": []
     },
@@ -136,7 +142,8 @@
       "measure": { "kind": "allowlist", "rule": "eval-sink" },
       "ceiling": {
         "max": 0,
-        "reason": "Dynamic code execution has never been needed in a process that holds live advertiser credentials, and a model's output is the input most likely to reach one. A ceiling of 0 is the whole rule."
+        "reason": "Dynamic code execution has never been needed in a process that holds live advertiser credentials, and a model's output is the input most likely to reach one. A ceiling of 0 is the whole rule.",
+        "accepted": { "on": "2026-08-30", "reviewBy": null }
       },
       "breaches": []
     },
@@ -151,7 +158,8 @@
       "ceiling": {
         "max": 3,
         "reason": "Three statements interpolate a table NAME, which SQLite cannot bind as a parameter. Two of them take the name from a literal array written inline in the same file — a PRAGMA in src/lib/db.ts and the three-table sweep in the leads local store. The third, added when the SAST gate was promoted from continue-on-error to blocking (2026-09-01), is the different claim the line below anticipated: src/lib/projects/orphan-walk.local.ts enumerates tables from sqlite_master rather than from a literal, because walking a per-project table nobody registered is the whole point of the dependent-side orphan walk. Its source is the database's own catalogue, not a request, and the name goes through quoted() — SQLite identifier quoting with doubled quotes. In all three, every caller-supplied value in the statement is bound. The two campaign-store statements that were the fourth and fifth findings are NOT here: they were fixed in the same change, by enumerating the eight complete statements they used to assemble.",
-        "comesOffWhen": "Each entry comes off when its call site stops needing a dynamic table name — the PRAGMA when the schema check is generated per table, the leads sweep when leads live in one table, and the orphan walk when the schema is enumerated through a registry the code owns rather than through sqlite_master. A FOURTH entry is not a variation on these: two of the three are literal-sourced and one is catalogue-sourced, so the next one is either a repeat of a claim already made here (fix it the way the campaign store was fixed) or a new one that belongs in the diff that raises this number."
+        "comesOffWhen": "Each entry comes off when its call site stops needing a dynamic table name — the PRAGMA when the schema check is generated per table, the leads sweep when leads live in one table, and the orphan walk when the schema is enumerated through a registry the code owns rather than through sqlite_master. A FOURTH entry is not a variation on these: two of the three are literal-sourced and one is catalogue-sourced, so the next one is either a repeat of a claim already made here (fix it the way the campaign store was fixed) or a new one that belongs in the diff that raises this number.",
+        "accepted": { "on": "2026-09-01", "reviewBy": "2027-03-01" }
       },
       "breaches": []
     },
@@ -165,7 +173,8 @@
       "measure": { "kind": "allowlist", "rule": "secret-in-log" },
       "ceiling": {
         "max": 0,
-        "reason": "Nothing credential-shaped has ever had to reach console. Vercel's log retention outlives the incident, so an allowlisted entry here is a secret with a retention policy attached — the fix is always to log the identifier's shape rather than its value."
+        "reason": "Nothing credential-shaped has ever had to reach console. Vercel's log retention outlives the incident, so an allowlisted entry here is a secret with a retention policy attached — the fix is always to log the identifier's shape rather than its value.",
+        "accepted": { "on": "2026-08-30", "reviewBy": null }
       },
       "breaches": []
     },
@@ -180,7 +189,8 @@
       "ceiling": {
         "max": 0,
         "reason": "Zero, as of 2026-09-01: the seam this row's `comesOffWhen` described was built. A second route (POST /api/byom/keys, which stores a key and then tests it) needed the plaintext, which was the signal to move the probe rather than to add a line here. probeStoredByomKey / storeAndProbeByomKey in src/lib/llm/keys/validate.ts take a userId and return a ProbeOutcome, so the decrypted key now exists only inside that module's frame and no module under src/app/api imports it at all.",
-        "comesOffWhen": "It is off. The ceiling stays at 0: a route that needs the plaintext key again means the seam is missing a case, and the fix is to widen the seam's verdict, never to hand a handler the key."
+        "comesOffWhen": "It is off. The ceiling stays at 0: a route that needs the plaintext key again means the seam is missing a case, and the fix is to widen the seam's verdict, never to hand a handler the key.",
+        "accepted": { "on": "2026-09-01", "reviewBy": null }
       },
       "breaches": []
     },
@@ -194,7 +204,8 @@
       "measure": { "kind": "allowlist", "rule": "insecure-transport" },
       "ceiling": {
         "max": 0,
-        "reason": "TLS verification has never been switched off anywhere in this process, and the processes that talk to Google Ads and Sklik are the ones where it would matter most. A local certificate problem is a local problem — it does not earn an entry that ships."
+        "reason": "TLS verification has never been switched off anywhere in this process, and the processes that talk to Google Ads and Sklik are the ones where it would matter most. A local certificate problem is a local problem — it does not earn an entry that ships.",
+        "accepted": { "on": "2026-08-30", "reviewBy": null }
       },
       "breaches": []
     },
@@ -208,7 +219,8 @@
       "measure": { "kind": "allowlist", "rule": "public-env-secret" },
       "ceiling": {
         "max": 0,
-        "reason": "No secret-shaped value has ever been put behind NEXT_PUBLIC_. There is no reason that makes a published secret acceptable, so this ceiling has nothing to trade against — an entry here means the variable was misnamed or the value should not be in the browser."
+        "reason": "No secret-shaped value has ever been put behind NEXT_PUBLIC_. There is no reason that makes a published secret acceptable, so this ceiling has nothing to trade against — an entry here means the variable was misnamed or the value should not be in the browser.",
+        "accepted": { "on": "2026-08-30", "reviewBy": null }
       },
       "breaches": []
     },
@@ -222,7 +234,8 @@
       "measure": { "kind": "allowlist", "rule": "deprecated-cipher" },
       "ceiling": {
         "max": 0,
-        "reason": "The one thing encrypted here is a user's BYOM key, and it uses an explicit IV. A key-derived cipher with no IV is never the smaller change — it is a rewrite of stored data waiting to happen, so 0 is the only number that keeps that decision out of a hurried diff."
+        "reason": "The one thing encrypted here is a user's BYOM key, and it uses an explicit IV. A key-derived cipher with no IV is never the smaller change — it is a rewrite of stored data waiting to happen, so 0 is the only number that keeps that decision out of a hurried diff.",
+        "accepted": { "on": "2026-08-30", "reviewBy": null }
       },
       "breaches": []
     },
@@ -238,7 +251,8 @@
       "ceiling": {
         "max": 3,
         "reason": "Three names cross this fence, and they are the same name three times: `geminiAvailable`, `claudeAvailable`, `codexAvailable`. Each is a boolean about whether a provider is CONFIGURED — it cannot be used to make a call, which is the thing the fence exists to route through generateStructured().",
-        "comesOffWhen": "When the three probes are re-exported from src/lib/llm/index.ts. Callers would then import the entry point like everyone else and the fence would need no exception list at all. A fourth entry is not another probe — it would be the first symbol that lets a caller do something with a provider, and that is the fence failing, not the list growing."
+        "comesOffWhen": "When the three probes are re-exported from src/lib/llm/index.ts. Callers would then import the entry point like everyone else and the fence would need no exception list at all. A fourth entry is not another probe — it would be the first symbol that lets a caller do something with a provider, and that is the fence failing, not the list growing.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-03-01" }
       },
       "breaches": []
     },
@@ -253,7 +267,8 @@
       "ceiling": {
         "max": 3,
         "reason": "The same three availability probes as `adamant/seams`, restated because ESLint merges `no-restricted-imports` by rule id: a narrower block REPLACES the wider one's options rather than adding to them, so the exception list has to be written twice or the chokepoint half is silently dropped for src/lib.",
-        "comesOffWhen": "Together with the copy in `adamant/seams` — re-export the probes from src/lib/llm/index.ts and both lists go to zero. Until then the two counts must move together; one of them growing alone means the fences have drifted apart."
+        "comesOffWhen": "Together with the copy in `adamant/seams` — re-export the probes from src/lib/llm/index.ts and both lists go to zero. Until then the two counts must move together; one of them growing alone means the fences have drifted apart.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-03-01" }
       },
       "breaches": []
     },
@@ -268,7 +283,8 @@
       "ceiling": {
         "max": 1,
         "reason": "One waiver: `no-restricted-imports` is off inside src/lib/llm/**, because that directory is the chokepoint — it is where the clients are constructed and the provider order, BYOM keys, demo fallback, metering and telemetry live. A fence has to exempt its own implementation or it cannot be implemented.",
-        "comesOffWhen": "It does not; this one IS the fence's definition. The ceiling is here so a SECOND directory cannot join it quietly — the whole value of a chokepoint is that there is exactly one place the rule does not apply."
+        "comesOffWhen": "It does not; this one IS the fence's definition. The ceiling is here so a SECOND directory cannot join it quietly — the whole value of a chokepoint is that there is exactly one place the rule does not apply.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-09-01" }
       },
       "breaches": []
     },
@@ -282,7 +298,8 @@
       "measure": { "kind": "exemptions", "file": "eslint.config.mjs", "block": "adamant/route-segment-config" },
       "ceiling": {
         "max": 0,
-        "reason": "This fence has no exception list and never needed one: the shape that works under cacheComponents is a <Suspense> boundary around the dynamic read, which is available on every route. `maxDuration` and `preferredRegion` are not exemptions — they were never restricted, because they are Vercel function settings rather than caching opt-outs."
+        "reason": "This fence has no exception list and never needed one: the shape that works under cacheComponents is a <Suspense> boundary around the dynamic read, which is available on every route. `maxDuration` and `preferredRegion` are not exemptions — they were never restricted, because they are Vercel function settings rather than caching opt-outs.",
+        "accepted": { "on": "2026-08-30", "reviewBy": null }
       },
       "breaches": []
     },
@@ -316,7 +333,8 @@
       "ceiling": {
         "max": 9,
         "reason": "Nine registry tools carry no baked quality score. Every one of them is a tool that landed with its contract golden and whose quality cells are measured on the next full `npm run llm:quality` bake — a bake costs money and runs across six models, so it is deliberately not run per tool. Nine is what the file holds today; raising it means another tool shipped unbaked, which is a decision rather than a digit.",
-        "comesOffWhen": "The next full bake: every tool in the registry gets a cell, and this drops to 0. It has never legitimately gone up except by a tool landing, so a raise that is not accompanied by a new `// llm-tool:` tag in the same diff is a finding being absorbed."
+        "comesOffWhen": "The next full bake: every tool in the registry gets a cell, and this drops to 0. It has never legitimately gone up except by a tool landing, so a raise that is not accompanied by a new `// llm-tool:` tag in the same diff is a finding being absorbed.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-03-01" }
       },
       "breaches": []
     },
@@ -331,7 +349,8 @@
       "ceiling": {
         "max": 1,
         "reason": "One: `lead-reply`, retired when the twin absorbed it, whose score is still on the public scorecard. A stale cell is a published number about something the product no longer does, so one is already one more than the right answer — it is here because removing it means re-baking.",
-        "comesOffWhen": "The next full bake, which drops the retired cell. A second entry means a second operation was removed without the scorecard following, which is the drift this counts."
+        "comesOffWhen": "The next full bake, which drops the retired cell. A second entry means a second operation was removed without the scorecard following, which is the drift this counts.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-03-01" }
       },
       "breaches": []
     },
@@ -345,7 +364,8 @@
       "measure": { "kind": "ratchet", "file": "scripts/quality-gate.mjs", "key": "unbaselined" },
       "ceiling": {
         "max": 0,
-        "reason": "Zero, and it should stay zero: a freshly baked operation has just been measured, so there is no reason not to record what it scored. `npm run llm:quality:baseline -- --reason \"…\"` records every cell in a bake at once, which makes any non-zero number here a step somebody skipped rather than a cost somebody could not pay."
+        "reason": "Zero, and it should stay zero: a freshly baked operation has just been measured, so there is no reason not to record what it scored. `npm run llm:quality:baseline -- --reason \"…\"` records every cell in a bake at once, which makes any non-zero number here a step somebody skipped rather than a cost somebody could not pay.",
+        "accepted": { "on": "2026-08-30", "reviewBy": null }
       },
       "breaches": []
     },
@@ -360,7 +380,8 @@
       "floor": {
         "min": 6.5,
         "reason": "Both serving columns sit at 7.0 or above on every baked operation, so 6.5 leaves half a point of run-to-run variance and still fails a real drop. It is one digit in the file that enforces it, and lowering it would make the gate green without changing a single answer the product gives — which is the whole shape of softening a gate to pass.",
-        "risesWhen": "After a fresh full matrix shows the serving columns are comfortably higher, per the note above the constant. Raising it is a decision to make on measurement; lowering it is what this floor exists to refuse."
+        "risesWhen": "After a fresh full matrix shows the serving columns are comfortably higher, per the note above the constant. Raising it is a decision to make on measurement; lowering it is what this floor exists to refuse.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-09-01" }
       },
       "breaches": []
     },
@@ -374,7 +395,8 @@
       "measure": { "kind": "listLength", "file": ".github/flaky-tests.json", "key": "quarantined", "unit": "quarantined test(s)" },
       "ceiling": {
         "max": 0,
-        "reason": "Empty, because nothing had ever measured whether these 482 test files agree with themselves — there is no history of flakes to seed it from, and the first weekly run of .github/workflows/flake-watch.yml is what will say. A ceiling of 0 makes the FIRST accepted flake a decision somebody takes on purpose, which is the right shape for the most expensive exception list here: `npm run test:unit` is what stands between a change and master."
+        "reason": "Empty, because nothing had ever measured whether these 482 test files agree with themselves — there is no history of flakes to seed it from, and the first weekly run of .github/workflows/flake-watch.yml is what will say. A ceiling of 0 makes the FIRST accepted flake a decision somebody takes on purpose, which is the right shape for the most expensive exception list here: `npm run test:unit` is what stands between a change and master.",
+        "accepted": { "on": "2026-08-30", "reviewBy": null }
       },
       "breaches": []
     },
@@ -448,7 +470,8 @@
       "ceiling": {
         "max": 7,
         "reason": "Seven write grants across four workflows, and every one is a job that was split off from the job that reads: `pull-requests: write` for the review's judgment half and for the dispatch's PR opener, `issues: write` for the four weekly trail publishers, and the one broad grant — `contents: write` on issue-dispatch's `push` job, which writes a ref and holds no key and can neither comment nor open anything. This counts the GRANTS rather than the exception list, because in a workflow the grant IS the exception: it is the line that says this job may do more than read.",
-        "comesOffWhen": "A publisher stops needing to write an issue (a trail that lands as an artifact or a commit instead of a comment), or the dispatch's push job is replaced by something that proposes a change without writing a ref. It rises only for a capability this pipeline does not have today — a release job, a container push — and that is a decision, not a digit."
+        "comesOffWhen": "A publisher stops needing to write an issue (a trail that lands as an artifact or a commit instead of a comment), or the dispatch's push job is replaced by something that proposes a change without writing a ref. It rises only for a capability this pipeline does not have today — a release job, a container push — and that is a decision, not a digit.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-03-01" }
       },
       "breaches": []
     },
@@ -479,7 +502,8 @@
       "floor": {
         "min": 0,
         "reason": "The one ratchet here that counts COMPLIANCE rather than debt, so it is pinned with a floor rather than a ceiling: it may only rise. It is 0 today because every `uses:` in this repository is first-party and exempt (STRICT = false), which is the exemption `npm run actions:pin` closes in one networked pass — that command resolves every tag to its digest and writes STRICT = true and the new baseline back into the script itself. Be exact about what a floor of 0 buys while the count is 0: nothing yet. It records the DIRECTION before the number moves, so that the raise below is a step somebody takes rather than a convention somebody remembers.",
-        "risesWhen": "In the same diff as `npm run actions:pin` — that command needs the network, so no offline session can do it, and it prints this as its closing instruction. Raise `min` to the count it reports, and the pin can no longer be undone by a Dependabot bump, a copy-pasted step, or an agent 'simplifying' a 40-character ref back to `@v4`."
+        "risesWhen": "In the same diff as `npm run actions:pin` — that command needs the network, so no offline session can do it, and it prints this as its closing instruction. Raise `min` to the count it reports, and the pin can no longer be undone by a Dependabot bump, a copy-pasted step, or an agent 'simplifying' a 40-character ref back to `@v4`.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-03-01" }
       },
       "breaches": []
     },
@@ -503,7 +527,8 @@
       "ceiling": {
         "max": 38,
         "reason": "Thirty-eight hardcoded cs strings still sit outside any T table. The audit cannot be zeroed today, which is why it is on the reporting rung — the baseline is the honest population, and it has only ever moved down (40 → 38 when the /lp variants were retired).",
-        "comesOffWhen": "When the remaining strings move into their component's own T dict and this reaches 0, at which point the audit's coverage half can be promoted to blocking. Every legitimate move so far has been downward; a raise means a new hardcoded string was accepted rather than localised."
+        "comesOffWhen": "When the remaining strings move into their component's own T dict and this reaches 0, at which point the audit's coverage half can be promoted to blocking. Every legitimate move so far has been downward; a raise means a new hardcoded string was accepted rather than localised.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-09-01" }
       },
       "breaches": []
     },
@@ -518,7 +543,8 @@
       "ceiling": {
         "max": 40,
         "reason": "Forty cs values are still byte-identical to their en source, minus the do-not-translate list. This is the count typecheck structurally cannot see: the key exists in both columns, so parity holds and the Czech reader gets English. Forty is what the tree holds; the number has moved down twice and never up.",
-        "comesOffWhen": "As the localization waves transcreate the remaining values. The `RATCHET` comment in scripts/i18n-audit.mjs records that origin/master once measured 44 here — that is exactly the kind of quiet drift a ceiling in a reviewed file makes visible."
+        "comesOffWhen": "As the localization waves transcreate the remaining values. The `RATCHET` comment in scripts/i18n-audit.mjs records that origin/master once measured 44 here — that is exactly the kind of quiet drift a ceiling in a reviewed file makes visible.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-09-01" }
       },
       "breaches": []
     },
@@ -532,7 +558,8 @@
       "measure": { "kind": "ratchet", "file": "scripts/i18n-audit.mjs", "key": "register" },
       "ceiling": {
         "max": 0,
-        "reason": "Clean today, and the only one of the three i18n counts that is. A register slip is a one-word edit to fix and a one-digit edit to absorb, which is precisely the asymmetry a ceiling of 0 removes."
+        "reason": "Clean today, and the only one of the three i18n counts that is. A register slip is a one-word edit to fix and a one-digit edit to absorb, which is precisely the asymmetry a ceiling of 0 removes.",
+        "accepted": { "on": "2026-08-30", "reviewBy": null }
       },
       "breaches": []
     },
@@ -547,7 +574,8 @@
       "ceiling": {
         "max": 159,
         "reason": "159 tracked source files that no context in context-map.json claims, measured at the 2026-07-30 scan. The map is honest about being an index rather than an inventory, and this is the size of the gap. It is also the single easiest number in the repository to raise: a scan that maps nothing new still passes if the baseline moves with it.",
-        "comesOffWhen": "As context scans claim the unmapped files. It may only fall — a rise means new source landed outside every context, which is a scoping question for the change that added it, not a baseline question."
+        "comesOffWhen": "As context scans claim the unmapped files. It may only fall — a rise means new source landed outside every context, which is a scoping question for the change that added it, not a baseline question.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-09-01" }
       },
       "breaches": []
     },
@@ -568,7 +596,8 @@
       "floor": {
         "min": 7,
         "reason": "Seven mutants over three seams — cron auth, the spend ceiling and per-IP limiter, and the Sklik write rails — which is what the catalogue holds today. Pinned as a floor rather than a ceiling because it counts COMPLIANCE: widening the measure is the point and may happen freely, while every way it gets worse is downward. Deleting the mutant that started surviving is the cheapest green in this repository — the census still passes and the drill still prints a perfect score, over less of the tree. The per-seam half of the same rule is SEAM_FLOORS in the same file, which stops a level total drifting off the seam that spends money.",
-        "risesWhen": "Whenever a seam gains a mutant, and whenever a new seam where wrong is a bill or a breach gets one — raise it in that diff. It falls only when a seam genuinely stops existing, and then the sentence in the commit says what now guards what it guarded."
+        "risesWhen": "Whenever a seam gains a mutant, and whenever a new seam where wrong is a bill or a breach gets one — raise it in that diff. It falls only when a seam genuinely stops existing, and then the sentence in the commit says what now guards what it guarded.",
+        "accepted": { "on": "2026-08-30", "reviewBy": "2027-09-01" }
       },
       "breaches": []
     },
