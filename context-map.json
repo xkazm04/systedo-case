@@ -1473,10 +1473,12 @@
       "api_surface": null,
       "business_feature": "Campaign Reporting Config",
       "category": "lib",
+      "$comment": "cross_refs 2026-09-01: ai-tools-shared — report-input builds the AI report's prompt grounding from campaign names and change notes, so it applies the untrusted-text firewall (inlineUntrusted/untrustedFirewallLines) that every prompt builder uses.",
       "cross_refs": [
         "campaigns-core-lib",
         "report-engine",
-        "metrics-core"
+        "metrics-core",
+        "ai-tools-shared"
       ],
       "db_tables": [],
       "description": "Report configuration and input assembly for campaign performance reports: defines which metrics appear in each report view, builds the input payload from live or historical data, and provides the shared-report abstraction used by both the AI recap and the UI report module. Includes activity-log events and campaign sample fixtures.",
