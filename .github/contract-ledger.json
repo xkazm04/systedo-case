@@ -85,6 +85,15 @@
       "why": "the log is what a future agent bisects; 'fix: Done. Here's what I found' is well-formed and useless",
       "breaches": []
     },
+    {
+      "id": "A6 pin-loosening",
+      "source": "agent-review",
+      "surface": "fence",
+      "enforcedBy": "scripts/agent-review.mjs (Part A, blocking)",
+      "guidance": "this file — the pins every gate is measured against, and the $accepted note above",
+      "why": "a gate cannot see its own pin move: once the number changes the tree agrees with it again, so the cheapest green was never editing a fence but editing the digit the fence is measured against. Tightening stays free; a pin that got looser, or vanished, is refused unless the same diff re-dates it, which turns 'somebody edited a number' into 'somebody re-argued it today'",
+      "breaches": []
+    },
 
     {
       "id": "raw-engine-outside-seam",
