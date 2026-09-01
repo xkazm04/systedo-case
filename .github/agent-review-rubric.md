@@ -104,6 +104,37 @@ place that sees every subject on the way in, and on this repo's landing path
 `git commit --amend` is still free. There is no `Ack:` escape hatch: unlike A3
 and A4, nothing about a change makes a bad subject the right call.
 
+### A6 · A pin may be tightened silently, never loosened
+
+*Scope: `ceiling.max` and `floor.min` in
+[`.github/contract-ledger.json`](contract-ledger.json), compared against the base
+revision.* Fails when a ceiling rose, a floor fell, or a pin disappeared —
+**unless the same diff moves that pin's `accepted.on` and rewrites its `reason`.**
+A ceiling that falls, a floor that rises and an unchanged pin are all free and
+need no sentence: the asymmetry is the rule.
+
+Why blocking: every fence here is a file the agents it constrains can edit, and
+this is the file holding the numbers those fences are measured against.
+`contract:ledger:check` compares the *tree* against each pin on every build and
+therefore cannot see a pin move, because once it has moved the tree agrees with
+it again. So the cheapest green in this repository was never editing a gate — it
+was editing the number the gate is measured against, in a diff whose entire
+visible change is one digit. B3 asks about that in a comment, on a run that has a
+model key; this is its mechanical half, and it is mechanical because "did this
+number move, and in which direction?" is not a judgement.
+
+Why re-dating rather than an `Ack:`: a `reason` reads identically on the day it
+was argued and three years later, which is exactly the failure `accepted.on`
+exists to prevent. Requiring the date and the argument to move together means the
+diff a reviewer reads contains the number *and* the sentence that pays for it —
+the same two-line shape every other pin in this repository moves by.
+
+What this rule cannot do is require a human. Master ships by push, so a required
+status check and a CODEOWNERS review bite only on the paths that go through a
+pull request. A6 makes a loosening a named, blocking finding on every push and
+leaves a dated record next to the number; deciding it was the right call stays
+the maintainer's.
+
 ---
 
 ## Part B — judgment, commented

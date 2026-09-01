@@ -27,7 +27,7 @@
  *
  *  Why it exists: almost every commit here is written by an agent and triaged by
  *  one person weekly, so for most of a change's life the only thing that has read
- *  it is CI. These five rules are the invariants where "a reviewer will probably
+ *  it is CI. These six rules are the invariants where "a reviewer will probably
  *  notice" is not good enough — each one is a way a green build can be bought
  *  rather than earned, or (A5) a way the log stops being bisectable. The judgment half of the rubric is a model's job and only
  *  comments; see scripts/agent-review-llm.mjs.
@@ -125,8 +125,60 @@ if (!BASE) {
 }
 
 const range = `${BASE}...HEAD`;
+
+/** A5 over `${BASE}..HEAD`, as [{ sha, subject, problems }]. Hoisted out of the
+ *  rule below because it has to run on BOTH sides of the empty-diff exit. */
+function subjectFindings() {
+  const log = git(["log", "--no-merges", "--format=%H %s", `${BASE}..HEAD`], { allowFail: true }) ?? "";
+  const found = [];
+  for (const raw of log.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const at = line.indexOf(" ");
+    const sha = at === -1 ? line : line.slice(0, at);
+    const subject = at === -1 ? "" : line.slice(at + 1);
+    const problems = checkSubject(subject);
+    if (problems.length) found.push({ sha, subject, problems });
+  }
+  return found;
+}
+
 const nameStatus = (git(["diff", "--name-status", range]) ?? "").trim();
 if (!nameStatus) {
+  // AN EMPTY DIFF IS NOT AN EMPTY RANGE, and A5 still has to run.
+  //
+  // This early exit is what makes the same command correct in CI's shallow
+  // `check` job, where `origin/master` IS the pushed commit — there the range is
+  // empty too and there is genuinely nothing to say. But a diff can be empty
+  // while the range is not: a change and its revert, a commit made with
+  // `--allow-empty`, or a lane that committed a narration and then took the code
+  // back out. Every one of those leaves a SUBJECT on master.
+  //
+  // And those are exactly the subjects this rule was drawn around. "The run
+  // produced no change" is the situation that produces `fix: Agent session
+  // exceeded 20 min and was stopped` — so returning early before the subject
+  // check meant the one case A5 exists for was the one case it skipped, on a
+  // repository where master ships on push. Nothing else here needs the diff, so
+  // the rule runs and the rest does not.
+  const findings = subjectFindings();
+  if (findings.length) {
+    console.error("");
+    console.error(`✗ agent review — ${findings.length} blocking finding(s) [A5 commit-subject]`);
+    console.error("");
+    for (const f of findings) {
+      console.error(`  • (commit ${f.sha.slice(0, 8)}) "${f.subject}"`);
+      for (const p of f.problems) console.error(`      ${p}`);
+    }
+    console.error("");
+    console.error(
+      `The diff against ${BASE} is empty, so there is nothing else to review — but the subject reaches master ` +
+        "either way, and a commit that changed nothing is the one a bisect can least afford to be lied to about. " +
+        "Reword it (`git commit --amend`), or drop the commit: a run that produced no change does not owe the " +
+        "log one."
+    );
+    printRemedy("review:agent:gate");
+    process.exit(1);
+  }
   console.log(`agent review: no changes against ${BASE} — nothing to review.`);
   process.exit(0);
 }
@@ -271,6 +323,106 @@ if (deletedTests.length && !hasAck) {
   }
 }
 
+// --- A6 · a pin may be tightened silently, never loosened --------------------
+//
+// THE ASYMMETRY IS THE RULE. Every fence in this repository is a file the agents
+// it constrains can edit, and .github/contract-ledger.json is the one that holds
+// the numbers: the ceiling on each exception list, the floor under each threshold,
+// the baseline each ratchet may not pass. `contract:ledger:check` compares the
+// TREE against those pins on every build — and it cannot see the pin itself move,
+// because after the move the tree agrees with it again. So the cheapest green in
+// this repository was never editing a gate; it was editing the number the gate is
+// measured against, in a diff whose whole visible change is one digit.
+//
+// Nothing went red for that. Rubric B3 asks the question — and B3 is the JUDGMENT
+// half, which needs a model key to be written at all and never blocks, so on a
+// keyless run the question is not asked. This is B3's mechanical half, and it is
+// mechanical precisely because "did this number move, and in which direction?" is
+// not a judgement.
+//
+// TIGHTENING IS FREE, and that asymmetry is deliberate: a ceiling that falls is
+// debt being paid and a floor that rises is a gate getting sharper, and neither
+// should cost anybody a sentence. What is refused is a pin that got LOOSER — or
+// that disappeared, which is the same thing with nothing left to read — unless
+// the diff also re-dates it. Re-dating is what turns "somebody edited a digit"
+// into "somebody re-argued the number today", which is the record this rule
+// exists to leave behind: `accepted.on` is what a reader six months from now uses
+// to tell a considered exception from a shortcut that outlived its cause.
+//
+// WHAT IT CANNOT DO: require a human. On a repository that ships master by push,
+// nothing an automated gate does can. What it does is make the loosening a NAMED,
+// BLOCKING finding on the review that runs on every push, every pull request and
+// inside check:ci — and leave a dated record next to the number, where CODEOWNERS
+// puts the file in front of the maintainer on any path that goes through a PR.
+{
+  const LEDGER = ".github/contract-ledger.json";
+  const parse = (text) => {
+    if (!text) return null;
+    try {
+      const rules = JSON.parse(text).rules ?? [];
+      return new Map(rules.filter((r) => r.id).map((r) => [r.id, r]));
+    } catch {
+      return null;
+    }
+  };
+  const after = parse(existsSync(join(ROOT, LEDGER)) ? readFileSync(join(ROOT, LEDGER), "utf8") : "");
+  const before = parse(git(["show", `${BASE}:${LEDGER}`], { allowFail: true }));
+
+  if (after && before) {
+    /** A pin's number and the argument attached to it, or null when it has none. */
+    const pinOf = (rule, kind) => {
+      const pin = rule?.[kind];
+      if (!pin) return null;
+      const value = kind === "ceiling" ? pin.max : pin.min;
+      return typeof value === "number"
+        ? { value, on: pin.accepted?.on ?? null, reason: String(pin.reason ?? "") }
+        : null;
+    };
+
+    for (const [id, wasRule] of before) {
+      const isRule = after.get(id);
+      for (const kind of ["ceiling", "floor"]) {
+        const was = pinOf(wasRule, kind);
+        if (!was) continue;
+        const is = isRule ? pinOf(isRule, kind) : null;
+
+        // The pin is gone — the rule was deleted, or its number was. A fence whose
+        // pin nobody can read is a fence with no pin.
+        if (!is) {
+          blocking.push({
+            rule: "A6 pin-loosening",
+            path: LEDGER,
+            detail:
+              `\`${id}\` had a ${kind} of ${was.value} and no longer has one. Removing a pin is the widest ` +
+              "loosening available here: the number it refused can now be anything. Restore it, or say in the " +
+              "same diff what replaced the rule it pinned.",
+          });
+          continue;
+        }
+
+        const looser = kind === "ceiling" ? is.value > was.value : is.value < was.value;
+        if (!looser) continue; // tightening, or unchanged — free, and deliberately so
+
+        const reDated = is.on && is.on !== was.on;
+        const reArgued = is.reason && is.reason !== was.reason;
+        if (reDated && reArgued) continue; // the number was re-argued today, with a date on it
+
+        blocking.push({
+          rule: "A6 pin-loosening",
+          path: LEDGER,
+          detail:
+            `\`${id}\`: the ${kind} moved from ${was.value} to ${is.value}, which is the loosening direction, ` +
+            `and ${!reDated ? "`accepted.on` did not move" : "the `reason` did not change"}. ` +
+            "Tightening a pin costs nothing and needs no sentence; loosening one is a decision, and the two " +
+            "things that make it readable later are the date it was taken and the argument it was taken on. " +
+            "Move `accepted.on` to today and rewrite `reason` to say what changed — or fix the finding the " +
+            "gate was reporting instead of raising the number it reports against.",
+        });
+      }
+    }
+  }
+}
+
 // --- A5 · a commit subject describes the change, not the session -------------
 //
 // The log is the artifact a future agent bisects, and ~97% of the subjects in it
@@ -284,22 +436,14 @@ if (deletedTests.length && !hasAck) {
 // checkout that installed it, and this repository's commits arrive from several
 // (agents, worktrees, CI). Rules: scripts/commit-subject.mjs. Merge, revert and
 // fixup subjects are exempt — git writes those.
-{
-  const log = git(["log", "--no-merges", "--format=%H %s", `${BASE}..HEAD`], { allowFail: true }) ?? "";
-  for (const raw of log.split(/\r?\n/)) {
-    const line = raw.trim();
-    if (!line) continue;
-    const at = line.indexOf(" ");
-    const sha = at === -1 ? line : line.slice(0, at);
-    const subject = at === -1 ? "" : line.slice(at + 1);
-    const problems = checkSubject(subject);
-    if (!problems.length) continue;
-    blocking.push({
-      rule: "A5 commit-subject",
-      path: `(commit ${sha.slice(0, 8)})`,
-      detail: `"${subject}" — ${problems.join(" ")} Reword it before pushing (\`git commit --amend\`).`,
-    });
-  }
+// One definition of the check, used here and by the empty-diff branch above —
+// because the two used to disagree about whether the rule applied at all.
+for (const { sha, subject, problems } of subjectFindings()) {
+  blocking.push({
+    rule: "A5 commit-subject",
+    path: `(commit ${sha.slice(0, 8)})`,
+    detail: `"${subject}" — ${problems.join(" ")} Reword it before pushing (\`git commit --amend\`).`,
+  });
 }
 
 // --- notes (reported, never blocking) ---------------------------------------

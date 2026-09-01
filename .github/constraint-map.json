@@ -248,12 +248,13 @@
       "rule": "Never loosen a gate to make your own change pass. Fix the finding, or bring the operator the reason it should not be a finding.",
       "statedIn": { "file": "AGENTS.md", "quote": "Loosening a gate to make your own change pass." },
       "enforcement": [
+        { "kind": "review", "name": "A6", "note": "mechanical and BLOCKING, on the diff: a ceiling raised, a floor lowered or a pin removed in .github/contract-ledger.json fails unless the same diff re-dates `accepted.on` and rewrites `reason`. Tightening is free and silent — the asymmetry is the rule" },
         { "kind": "review", "name": "B3" },
         { "kind": "gate", "name": "merge-gate", "note": "catches the specific case of a required check being renamed, de-triggered, or made continue-on-error" },
         { "kind": "gate", "name": "contract:ledger:check", "note": "catches the numbers: every exception list has a ceiling, every ratchet baseline has a ceiling, and every threshold a gate compares against (FLOOR = 6.5, COMPONENT_LOC_LIMIT = 200, the SHA-pin count) has a ceiling or a floor" }
       ],
       "rung": "partial",
-      "gapNote": "Three of the four ways to soften a gate now go red: renaming or de-triggering a required check (merge-gate), widening an exception list, and editing the number a gate compares against (contract:ledger:check). The fourth — relaxing an assertion inside a gate script or a test, so the rule still runs and stops catching things — is caught only by B3, which comments. `npm run mutation:drill` is the nearest measurement of it, and it is weekly and reporting-rung."
+      "gapNote": "Three of the four ways to soften a gate go red, and the fourth is now half-caught. Renaming or de-triggering a required check is merge-gate; widening an exception list or editing the number a gate compares against is contract:ledger:check — which compares the TREE against the pin and therefore cannot see the PIN move, because after the move the tree agrees with it again. A6 closes that: it reads the ledger at the base revision and blocks a ceiling that rose, a floor that fell or a pin that vanished unless the diff re-dates and re-argues it. What no automated rule here can do is REQUIRE A HUMAN — master ships by push, so a required status check and a CODEOWNERS review only bite on the paths that go through a pull request; A6 makes the loosening a named blocking finding and leaves a dated record, and the maintainer's eyes remain the operator's own. And the last gap is unchanged: relaxing an assertion INSIDE a gate script or a test, so the rule still runs and stops catching things, is caught only by B3, which comments. `npm run mutation:drill` is the nearest measurement of it, and it is weekly and reporting-rung."
     },
     {
       "id": "docs-parity",
@@ -642,6 +643,77 @@
       ],
       "rung": "partial",
       "gapNote": "Request and response BODIES are not pinned. Every operation states its posture's response codes and those are indicative — the comparison does not read them out of the handler, so a route that starts returning a different shape under the same status code is a breaking change nothing here sees. Pinning them means a schema per route hand-written from 88 modules (stale within a week) or a type extractor (a bigger project than the gap it closes); the honest position, recorded in the document's own description, is that the SHAPE of the surface is pinned and the bodies are not. The seam to extend is `compareSurface()` in scripts/lib/api-surface-core.mjs."
+    },
+    {
+      "id": "a11y-budget",
+      "rule": "A budgeted page keeps the accessibility invariants .github/a11y-budgets.json declares for it — a language, a title, one main landmark, a skip link that resolves, no positive tabindex and no zoom lock.",
+      "statedIn": {
+        "file": "AGENTS.md",
+        "quote": "A perf budget notices a page that got slow; nothing noticed a page that stopped being usable."
+      },
+      "enforcement": [
+        {
+          "kind": "test",
+          "name": "tests/a11y-budget.spec.ts",
+          "note": "queries the settled DOM of each budgeted route inside `npm run test:e2e`, the `E2E smoke (Playwright, key-free)` job that .github/required-checks.json names as a check that may stop a change; the six blocking rules fail it, the six counted ones are attached to the report"
+        },
+        {
+          "kind": "test",
+          "name": "test-unit/a11y-budget.test.mjs",
+          "note": "the registry's shape on every build: a route with no page behind it, a rule with no rung or no reason, a rule the spec never evaluates, an invariant the root layout has stopped establishing, or a spec that has stopped asserting"
+        }
+      ],
+      "rung": "partial",
+      "gapNote": "Six invariants on five public routes, evaluated with the DOM APIs the browser already has — deliberately not an audit, and the registry's own `notCovered` list says so. Colour contrast, the accessibility tree beyond an element's NAME, motion and reduced-motion, zoom reflow, pointer-target size and the whole authed /app shell are all outside it. The six COUNTED rules (image alt, control names, form labels, heading order, link text, anchor targets) fail nothing at all yet: `baseline` is null because nothing has measured them, so every run attaches its counts and the first ratchet is one accepted number away."
+    },
+    {
+      "id": "interruption-handoff",
+      "rule": "A lane killed mid-task leaves a handoff the next lane can resume from, and the interruption itself is rehearsed rather than inferred from the commits it produced.",
+      "statedIn": {
+        "file": "AGENTS.md",
+        "quote": "The checkpoint gate reads what is on disk; nothing ever produced the interruption."
+      },
+      "enforcement": [
+        {
+          "kind": "test",
+          "name": "test-unit/interrupt-census.test.mjs",
+          "note": "blocking on every build: a scenario whose anchor has drifted off the code it claims to exercise, a scenario that no longer kills anything, a drill that has stopped using the real checkpoint CLI or its scratch directory, or the drill appearing in check:ci"
+        },
+        {
+          "kind": "gate",
+          "name": "interrupt:drill",
+          "note": "reporting rung, weekly in .github/workflows/revert-drill.yml: SIGKILLs a real writer mid-session, tears a write in half, and reads what survived against a scratch checkpoint directory"
+        },
+        {
+          "kind": "gate",
+          "name": "checkpoint:check",
+          "note": "the blocking half that was already there — a checkpoint on disk that has stopped parsing fails check:ci"
+        }
+      ],
+      "rung": "partial",
+      "gapNote": "The drill kills a process and reads the file it left; it cannot rehearse the half that lives outside this repository — whether the harness driving the lane calls `--stamp` on the way out at all, or whether the agent wrote a `--next` before the step it did not survive. So a run whose checkpoint says nothing useful is indistinguishable here from a run that was never going to. What the drill does establish is that the mechanism itself survives the kill: the file is readable, it reads as STOPPED rather than finished, a torn neighbour does not take the briefing down, and the commit hook does not invent an interruption nobody had."
+    },
+    {
+      "id": "context-conventions",
+      "rule": "A context whose local conventions are not derivable from the global rules says so, in a routing table that resolves from the file being edited.",
+      "statedIn": {
+        "file": "AGENTS.md",
+        "quote": "Guidance here is repository-wide and the code is not."
+      },
+      "enforcement": [
+        {
+          "kind": "test",
+          "name": "test-unit/context-conventions.test.mjs",
+          "note": "blocking on every build, through the real resolver: a context name context-map.json no longer has, a `constraints` id .github/constraint-map.json does not define, a cited path that has moved, a note with no consequence or no fenced/unfenced verdict, or a path that resolves to a row it does not belong to"
+        },
+        {
+          "kind": "gate",
+          "name": "context:conventions:check",
+          "note": "the same resolution on demand; `npm run context:conventions -- --path <file>` is the read an agent actually makes"
+        }
+      ],
+      "rung": "partial",
+      "gapNote": "It holds a note to a CONTEXT and to the paths it cites, which catches the note whose code moved. It cannot see a note whose code stayed and changed its mind — that is a reader's job, and the reason the notes are kept short and consequence-first. And it is deliberately incomplete: seven of 117 contexts carry a row, because most are governed entirely by the global rules and a row for each would bury the ones that say something. Coverage is printed by the command and floored by the test, never required."
     }
   ]
 }

@@ -736,6 +736,46 @@ remedy all turn the unit suite red.
   with no evidence or no correct call, a `constraintId` naming a rule the map does
   not have, a cited path that has moved, or a lesson the readable page has quietly
   dropped all turn the unit suite red.
+- **A perf budget notices a page that got slow; nothing noticed a page that
+  stopped being usable.** Every spec in `tests/` drives the page by CSS selector,
+  and a selector does not care whether a human could have reached the element — so
+  a change that drops `lang`, loses the `<main>` landmark, strands the skip link or
+  ships an icon button nothing can name is green in every lane.
+  [`.github/a11y-budgets.json`](.github/a11y-budgets.json) is the floor:
+  `tests/a11y-budget.spec.ts` queries the settled DOM of five key-free routes inside
+  `npm run test:e2e` — the required `E2E smoke` job — and six invariants the root
+  layout establishes structurally BLOCK, while six counted ones (image alt, control
+  names, form labels, heading order, link text, anchor targets) attach their numbers
+  to the report with `baseline` still null. There is deliberately no axe-core: the
+  gate layer is zero-dependency (ADR-0008) and the file's own `notCovered` list says
+  what a DOM query cannot see, so a green run is not read as "this page is
+  accessible". Reclassifying a blocking rule to go green is rubric B3; the shape
+  blocks on every build (`test-unit/a11y-budget.test.mjs`).
+- **The checkpoint gate reads what is on disk; nothing ever produced the
+  interruption.** `npm run checkpoint:check` is inside `check:ci` and passes happily
+  in a checkout where nothing was ever killed — so "does a stopped lane leave a tree
+  the next lane can resume?" was answered by the commits the stopped lanes produced
+  (`chore: partial work from an interrupted lane session`, more than once).
+  `npm run interrupt:drill` produces it: it SIGKILLs a real writer mid-session, tears
+  a write in half, and reads what survived — against a scratch directory
+  (`ADAMANT_CHECKPOINT_DIR`, which exists for this and nothing else), never against
+  `.agent/checkpoints/`. Reporting rung, weekly next to the revert and mutation
+  drills; the blocking half is the catalogue (`test-unit/interrupt-census.test.mjs`),
+  because a scenario whose anchor has drifted can never fail and keeps scoring.
+- **Guidance here is repository-wide and the code is not.** This file states
+  never/always rules for 117 contexts at once, which is not mainly a reading cost: a
+  rule that is load-bearing in one directory and irrelevant in fifteen has to be
+  written weakly enough to be true everywhere, and the sharp local ones stay tacit.
+  [`.github/context-conventions.json`](.github/context-conventions.json) is the join
+  — for the contexts where it matters, the global rules that reach them (by id, never
+  re-explained) plus the LOCAL note that has no home in a global document, each
+  flagged `unfenced` when nothing would tell you that you got it wrong. Ask it with a
+  path, which is what you actually have: `npm run context:conventions -- --path
+  src/lib/llm/index.ts`. It is deliberately incomplete — most contexts need no row
+  and one per context would bury the seven that say something — and it lives outside
+  `context-map.json` because the scan regenerates that file. Held to the tree by
+  `test-unit/context-conventions.test.mjs`: a context the map no longer has, a rule
+  id that does not exist, or a cited path that moved is a red build.
 - Deploy/env questions (required env names, rollback, crons, host rename):
   `docs/deploy.md`.
 
@@ -816,6 +856,9 @@ would notice afterwards.
 | `guidance-budget` — what must be read before the first edit has a ceiling | `test-unit/guidance-budget.test.mjs`, `guidance:budget:check` | blocking |
 | `tool-permissions` — what may run unattended is a policy the harness reads, not a paragraph | `test-unit/agent-permissions.test.mjs`, `agent:permissions:check` | partial |
 | `api-conformance` — the published HTTP contract describes the routes that exist | `test-unit/api-surface.test.mjs`, `api:surface:check` | partial |
+| `a11y-budget` — a budgeted page keeps the invariants that make it usable | `tests/a11y-budget.spec.ts` (the required E2E job), `test-unit/a11y-budget.test.mjs` | partial |
+| `interruption-handoff` — a killed lane leaves a handoff, and the kill is rehearsed | `test-unit/interrupt-census.test.mjs`, `interrupt:drill`, `checkpoint:check` | partial |
+| `context-conventions` — a context whose local rules are not derivable says so | `test-unit/context-conventions.test.mjs`, `context:conventions:check` | partial |
 
 `test-unit/constraint-map.test.mjs` holds this table and the JSON to each other,
 and both to the tree: a gate named here that `package.json` does not define, a

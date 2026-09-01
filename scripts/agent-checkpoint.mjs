@@ -54,7 +54,7 @@
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname, join, relative, isAbsolute } from "node:path";
+import { dirname, join, relative, resolve, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { printRemedy } from "./gate-remedy.mjs";
 
@@ -73,7 +73,15 @@ import {
 } from "./lib/agent-checkpoint-core.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const DIR = join(ROOT, ".agent", "checkpoints");
+/** Where the handoffs live. Overridable ONLY so the interruption itself can be
+ *  rehearsed: `npm run interrupt:drill` kills a real writer mid-session and reads
+ *  what survived, and it must do that against a scratch directory rather than
+ *  against the checkpoints of whoever is working in this checkout. It is not a
+ *  configuration knob — nothing in the product, the hooks or `check:ci` sets it,
+ *  and scripts/interrupt-drill.mjs is the only caller. */
+const DIR = process.env.ADAMANT_CHECKPOINT_DIR
+  ? resolve(process.env.ADAMANT_CHECKPOINT_DIR)
+  : join(ROOT, ".agent", "checkpoints");
 
 const argv = process.argv.slice(2);
 const has = (flag) => argv.includes(flag);

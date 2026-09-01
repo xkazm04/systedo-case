@@ -523,6 +523,50 @@ test("review:agent:gate fails on an oversized component, a route opt-out and a n
   assert.match(text, /A5 commit-subject/);
 });
 
+test("review:agent:gate still checks the subject when the diff nets out to nothing", () => {
+  // THE HOLE THIS CLOSES. The reviewer returns early when `BASE...HEAD` has no
+  // changed files — correctly, because CI's shallow `check` job diffs the pushed
+  // commit against itself. But an empty DIFF is not an empty RANGE: a change and
+  // its revert, or an `--allow-empty` commit, leave subjects on master with no
+  // net change behind them. Those are precisely the subjects A5 was drawn around
+  // — "the run produced no change" is what produces `fix: Agent session exceeded
+  // 20 min and was stopped` — so the one case the rule exists for was the one
+  // case it skipped, on a repository where master ships on push.
+  const dir = gitRepo("gate-bite-review-empty-");
+  const base = commit(
+    dir,
+    {
+      "package.json": `${JSON.stringify({ name: "gate-bite-fixture", private: true, dependencies: {} }, null, 2)}\n`,
+      "src/lib/thing.ts": "export const THING = 1;\n",
+    },
+    "chore(fixture): add a module to change and change back"
+  );
+  commit(dir, { "src/lib/thing.ts": "export const THING = 2;\n" }, "fix(fixture): bump the sample constant");
+  commit(dir, { "src/lib/thing.ts": "export const THING = 1;\n" }, "fix: Agent session exceeded 20 min and was stopped");
+
+  const res = runGate(dir, "agent-review.mjs", ["--base", base]);
+  const text = output(res);
+  assert.equal(
+    res.status,
+    1,
+    `a narrating subject must fail Part A even when the diff nets out to nothing — it reaches master either ` +
+      `way, and a bisect landing on it learns only that somebody's clock ran out:\n${text}`
+  );
+  assert.match(text, /A5 commit-subject/);
+  assert.match(text, /exceeded 20 min/);
+
+  // And the control, which is the half that makes the early exit still correct:
+  // an empty range says nothing and exits 0, the way CI's shallow checkout does.
+  const head = git(dir, ["rev-parse", "HEAD"]).stdout.trim();
+  const empty = runGate(dir, "agent-review.mjs", ["--base", head]);
+  assert.equal(
+    empty.status,
+    0,
+    `a range with no commits in it must stay a no-op — that is what makes one command correct in CI's shallow ` +
+      `check job as well as in the full review:\n${output(empty)}`
+  );
+});
+
 // --- the list is closed -------------------------------------------------------
 
 /** One row per `check:ci` stage. `fixture` names the test above that proves it

@@ -1,0 +1,167 @@
+{
+  "$comment": [
+    "What a budgeted page owes a keyboard and a screen reader before the build refuses it.",
+    "",
+    "THE GAP THIS CLOSES, and it is the twin of .github/perf-budgets.json. The suite here is",
+    "strong on WRONG (the unit suite, the mutation drill, the flake drill) and, since the perf",
+    "budgets landed, on SLOW. Nothing asked whether the page could still be USED. A change that",
+    "drops the `lang` attribute, loses the `<main>` landmark, breaks the skip link, or ships a",
+    "control nothing can name is green in `npm run check:ci`, green in the rubric review, and",
+    "green in every Playwright spec beside this one — because those specs drive the page by CSS",
+    "selector and a selector does not care whether a human could have reached the element.",
+    "Under heavy agent authorship these degrade one component at a time, and the first thing",
+    "that reports it is somebody using the product with a keyboard.",
+    "",
+    "WHY THERE IS NO axe-core HERE. This repository is deliberately zero-dependency in its gate",
+    "layer (ADR-0008), and a11y-rule engines are a large runtime dependency behind rubric A4.",
+    "Everything below is evaluated in the page with the DOM APIs the browser already has, which",
+    "is why the rule set is SMALL and each rule says exactly what it looks at. It is not an audit",
+    "and it does not pretend to be one — `notCovered` is the honest half of this file.",
+    "",
+    "TWO RUNGS, the same discipline as everything else here (docs/adr/0007-gate-rung-discipline.md).",
+    "",
+    "  enforcement: \"blocking\"  — the rule PASSES TODAY on every budgeted route, because the",
+    "    root layout (src/app/layout.tsx) establishes it structurally: `<html lang>`, the metadata",
+    "    title template, one `<main id=\"obsah\">`, the skip link that targets it. So a red here is",
+    "    a regression THIS change introduced, and it fails `npm run test:e2e` — the",
+    "    `E2E smoke (Playwright, key-free)` job that .github/required-checks.json names as a check",
+    "    that may stop a change.",
+    "",
+    "  enforcement: \"reporting\" — the rule COUNTS findings and nothing here has ever measured",
+    "    them, so `baseline` is null and a count fails nothing. Every run attaches its counts to",
+    "    the Playwright report and annotates them, which is exactly what a first ratchet needs.",
+    "    Promoting one is the same two-part diff as every threshold in this repository: the",
+    "    measured number, and the reason it is now the ceiling. Never raise a baseline you could",
+    "    have lowered by fixing the finding (rubric B3).",
+    "",
+    "WHAT IS MEASURED, stated so a green line is not over-read. The page is loaded, the run waits",
+    "until the streamed `<main>` has replaced the Suspense fallback, and the DOM is then queried",
+    "ONCE. That means the assertions are about the settled document — the same thing a screen",
+    "reader would walk — and not about the shell. The root layout's fallback is a placeholder",
+    "`<main aria-hidden>`, so waiting for a main that is NOT aria-hidden is what makes 'exactly",
+    "one <main>' a statement about the page rather than a race with the stream. `networkidle`",
+    "would be the intuitive wait and it is the wrong one here: `next dev` keeps talking to the",
+    "browser, and a gate that fails on a bundler's chatter teaches people to re-run the build.",
+    "",
+    "WHERE IT RUNS. tests/a11y-budget.spec.ts, inside `npm run test:e2e`. The registry's own",
+    "shape is held on every build by test-unit/a11y-budget.test.mjs (blocking, inside",
+    "`npm run test:unit` → `check:ci` → .husky/pre-push), because a budget naming a route that",
+    "no longer exists checks nothing and says so to nobody."
+  ],
+  "schema": 1,
+  "metric": {
+    "what": "settled-dom",
+    "waitUntil": "load, then a <main> that is not the aria-hidden Suspense fallback",
+    "why": "The DOM a screen reader and a keyboard actually walk, after the streamed shell has been replaced by the real page. Asserting against the shell would be asserting against Suspense fallbacks."
+  },
+  "baseline": null,
+  "notCovered": [
+    "Colour contrast. It needs computed backgrounds resolved through the token cascade and a WCAG contrast implementation; docs/design-system.md owns the tokens and the design specs cover the palette. A wrong answer here would be worse than none.",
+    "Screen-reader semantics beyond the accessible NAME — reading order, live-region politeness, table header association. Those need an accessibility tree, which is a different instrument.",
+    "Motion and vestibular safety. `prefers-reduced-motion` handling for the framer-motion surfaces is a design review, not a DOM query.",
+    "Zoom reflow at 400% and pointer-target size. Both need viewport manipulation and a layout oracle this budget does not have.",
+    "The authed product at /app. Every route below is key-free and account-free; the authed shell is covered by tests/first-run.spec.ts for behaviour and by nothing for accessibility yet.",
+    "Anything a rule below does not name. This is a floor with six blocking invariants and six counted ones, not an audit — do not read a green run as 'this page is accessible'."
+  ],
+  "rules": [
+    {
+      "id": "html-lang",
+      "label": "the document declares a language",
+      "enforcement": "blocking",
+      "why": "Without `lang` a screen reader pronounces Czech with an English voice and a translation layer guesses. The root layout sets `lang=\"en\"` statically and a before-paint script upgrades it to `cs` from the locale cookie, so an empty value means one of those two broke."
+    },
+    {
+      "id": "document-title",
+      "label": "the document has a title",
+      "enforcement": "blocking",
+      "why": "The title is the first thing a screen reader announces on navigation and the only label a tab, a bookmark and a history entry get. The metadata template in src/app/layout.tsx guarantees one, so an empty title means a route exported metadata that overrode it away."
+    },
+    {
+      "id": "main-landmark",
+      "label": "exactly one main landmark",
+      "enforcement": "blocking",
+      "why": "`<main>` is the target of every 'skip to content' affordance the browser and the assistive technology provide. The root layout renders exactly one; zero means the chrome swallowed it, and two means a page nested its own — both leave the landmark navigation ambiguous."
+    },
+    {
+      "id": "skip-link",
+      "label": "the skip link resolves",
+      "enforcement": "blocking",
+      "why": "A keyboard user tabbing into a page with a full navigation pays for every link in it before reaching the content. The layout's `<a href=\"#obsah\">` is the way out and it is only a way out while `#obsah` still exists — renaming the main's id is a one-word diff that silently strands it."
+    },
+    {
+      "id": "no-positive-tabindex",
+      "label": "no positive tabindex",
+      "enforcement": "blocking",
+      "why": "A `tabindex` above zero moves an element to the FRONT of the whole document's tab order, ahead of the skip link. This tree uses only 0 and -1 (roving tab stops in AiAssistant, CommandPalette, AppSidebar and Modal), so the first positive one is a decision somebody should have to defend."
+    },
+    {
+      "id": "viewport-zoom",
+      "label": "pinch zoom is not disabled",
+      "enforcement": "blocking",
+      "why": "`user-scalable=no` or a `maximum-scale` under 2 stops a low-vision user magnifying the page on a phone, and it is the single most common accessibility regression a copy-pasted viewport meta introduces. The `viewport` export in src/app/layout.tsx sets neither."
+    },
+    {
+      "id": "image-alt",
+      "label": "images carry alt text",
+      "enforcement": "reporting",
+      "why": "An `<img>` with no `alt` attribute at all is announced by its filename. An empty `alt=\"\"` is a valid and deliberate answer (decoration) and is NOT counted here — only the missing attribute is, because that is the one nobody chose."
+    },
+    {
+      "id": "control-name",
+      "label": "interactive controls have an accessible name",
+      "enforcement": "reporting",
+      "why": "An icon-only button with no `aria-label` is announced as 'button'. This is where a design system that leans on iconography loses a keyboard user, and it is the finding an agent adding one more toolbar button is most likely to introduce."
+    },
+    {
+      "id": "form-label",
+      "label": "form controls are labelled",
+      "enforcement": "reporting",
+      "why": "A `<label for>`, a wrapping label, `aria-label` or `aria-labelledby` — any of them. A placeholder is not a label: it disappears the moment the field has a value, which is exactly when a user re-checks what they are filling in."
+    },
+    {
+      "id": "heading-order",
+      "label": "one h1, and no skipped heading levels",
+      "enforcement": "reporting",
+      "why": "Headings are how a screen reader user skims. Two h1s make the outline ambiguous and an h2→h4 jump makes a section look nested under something it is not — both are what happens when a component is moved between pages."
+    },
+    {
+      "id": "link-text",
+      "label": "link text says where it goes",
+      "enforcement": "reporting",
+      "why": "Assistive technology can list a page's links out of context, where 'click here', 'zde' and 'more' identify nothing. Bilingual on purpose: cs is the home-market locale and the same filler exists on both sides."
+    },
+    {
+      "id": "anchor-targets",
+      "label": "in-page anchors resolve",
+      "enforcement": "reporting",
+      "why": "A `href=\"#id\"` pointing at nothing does not move focus, so a table of contents becomes a set of controls that appear to do nothing. tests/clanek-anchors.spec.ts covers the article pages; this counts the same failure everywhere else."
+    }
+  ],
+  "routes": [
+    {
+      "path": "/",
+      "label": "Homepage",
+      "why": "The marketing entry point and the most-linked page in the product — the page a visitor arriving from anywhere lands on, and the one where the skip link and the landmark structure are load-bearing because the navigation above them is long."
+    },
+    {
+      "path": "/dashboard",
+      "label": "Demo app shell — portfolio overview",
+      "why": "The product's shop window and the heaviest composition on the public side: charts, stat tiles and icon-dense controls, which is exactly the family of markup where an accessible name goes missing."
+    },
+    {
+      "path": "/kampane",
+      "label": "Campaign triage",
+      "why": "A dense table surface with row-level actions (src/lib/a11y/rowActivation.ts exists because of it). Tables and roving tab stops are where keyboard reachability breaks first."
+    },
+    {
+      "path": "/knihovna",
+      "label": "Winning-patterns library",
+      "why": "A filter-and-cards surface: the page most likely to grow a control that is reachable by mouse and by nothing else."
+    },
+    {
+      "path": "/kanaly-zdarma",
+      "label": "Free channels",
+      "why": "The seeded free-channel plan — a long list of headed sections, which makes it the page where a heading-order regression is both most likely and least visible."
+    }
+  ]
+}

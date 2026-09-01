@@ -149,9 +149,11 @@ Two more things run on your PR that are not in `check:ci`:
   Semgrep's registry packs (reporting).
 - **`.github/workflows/agent-review.yml`** — an automated review of your diff
   against [`.github/agent-review-rubric.md`](.github/agent-review-rubric.md). Its
-  mechanical half blocks; two of its five rules are unblocked by writing a
+  mechanical half blocks; two of its six rules are unblocked by writing a
   sentence rather than changing code — put `Ack: <why>` in a commit message or
-  the PR body when you delete a test or add a runtime dependency. You do not have
+  the PR body when you delete a test or add a runtime dependency. A sixth (A6)
+  refuses a pin in `.github/contract-ledger.json` that got looser without being
+  re-dated and re-argued in the same diff; tightening one costs nothing. You do not have
   to go digging for the verdict: it arrives as a named check, as annotations on
   the lines it is about, and as a comment on the PR.
 

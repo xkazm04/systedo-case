@@ -97,6 +97,21 @@ jobs:
             --report mutation-drill.md \
             --summary "$GITHUB_STEP_SUMMARY"
 
+      # And the THIRD question in the same family, which this repository's own log
+      # kept answering the expensive way. The two drills above ask what happens to
+      # a bad change; this one asks what happens to a STOPPED RUN. Five of thirty
+      # sampled commits read `chore: partial work from an interrupted lane session`
+      # — the harness has `.agent/` and `npm run checkpoint:check` inside check:ci,
+      # and neither of them ever exercised the interruption, so "does a killed lane
+      # leave a tree the next lane can resume?" was learned from the commits the
+      # killed lanes produced. scripts/interrupt-drill.mjs kills a real writer
+      # mid-session, tears a write in half, and reads what survived, against a
+      # scratch checkpoint directory that is never .agent/checkpoints/. Red means
+      # the handoff did not survive, or a scenario's anchor moved. Reporting rung,
+      # like both drills above; its blocking half is test-unit/interrupt-census.test.mjs.
+      - name: Run the interruption drill
+        run: node scripts/interrupt-drill.mjs --summary "$GITHUB_STEP_SUMMARY"
+
       # `if: always()` because the run a reader most wants to see is the one that
       # went red.
       - name: Keep the verdict
