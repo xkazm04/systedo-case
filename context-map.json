@@ -5524,10 +5524,13 @@
       "api_surface": null,
       "business_feature": "AI Digital Twin",
       "category": "ui",
+      "$comment": "cross_refs 2026-09-01: twin-assistant-core + twin-store-voice — the twin UI (channels, outbox, voice studio, channel delivery) renders the twin model: TwinChannel/TwinChannelConfig types and the connector registry. Same product feature, split across Social and Lead & CRM by the scan.",
       "cross_refs": [
         "social-media-management",
         "ai-assistant-core",
-        "content-engine"
+        "content-engine",
+        "twin-assistant-core",
+        "twin-store-voice"
       ],
       "db_tables": [],
       "description": "The AI digital twin that learns a brand's voice and autonomously drafts, queues, and manages social content. TwinModule is the module entry; TwinChannelsModule and TwinInboxModule manage channel routing and inbox triage; the twin/ subdirectory contains TwinChannels, TwinOutbox (with history), TwinVoiceStudio for voice training, and useArchivedRejects/useTwinState hooks that maintain draft/rejection memory.",
