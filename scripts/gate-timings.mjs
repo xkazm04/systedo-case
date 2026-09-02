@@ -22,11 +22,17 @@
  *      rolling, last 20 runs) so the numbers accumulate without anyone
  *      remembering to collect them, and prints the table — with each stage's share
  *      of the total — to stdout and to `--summary` (the CI job summary);
- *    • ASSERTS THE ORDERING it just measured. A stage that finishes in seconds may
- *      not run after one that does not, and a stage the remedy table calls
- *      "seconds" may not measure slower than that. Both are red. That is the same
- *      invariant test-unit/gate-remedy.test.mjs states over the labels — this one
- *      states it over the clock, so the label cannot quietly stop being true.
+ *    • ASSERTS THE ORDERING it just measured, at every rung rather than only at the
+ *      top. No stage may run after one that measures in a SLOWER bucket than it
+ *      does, and a stage the remedy table calls "seconds" may not measure slower
+ *      than that. Both are red. That is the same invariant
+ *      test-unit/gate-remedy.test.mjs states over the labels — this one states it
+ *      over the clock, so the label cannot quietly stop being true.
+ *
+ *      The rule used to stop at the seconds boundary, and the step below it was
+ *      where the cost actually was: the 517-file unit suite ran AFTER `npm run
+ *      check`, so a broken test was reported only once `next build` had finished,
+ *      and both stages measured "not seconds" so nothing could go red for it.
  *
  *  RUNG (docs/adr/0007-gate-rung-discipline.md): blocking, and it passes today —
  *  the chain is already in the right order, so a red here is a change that put an
@@ -55,6 +61,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { CHAIN } from "./gate-remedy.mjs";
+import { stagesFrom } from "./lib/chain.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const LOG = join(ROOT, ".gate-timings.json");
@@ -70,28 +77,46 @@ export const MINUTE_MAX_MS = 90_000;
 
 export const bucketFor = (ms) => (ms < SECONDS_MAX_MS ? "seconds" : ms < MINUTE_MAX_MS ? "a minute" : "minutes");
 
+/** Cheap → expensive. The ordering rule is monotonicity over THIS, so it holds at
+ *  every step of the chain rather than only at the seconds boundary. */
+export const BUCKETS = ["seconds", "a minute", "minutes"];
+const rankOf = (ms) => BUCKETS.indexOf(bucketFor(ms));
+
 export const fmt = (ms) => (ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`);
 
-/** The chain, from the one place it is declared. */
-export const stagesFrom = (script) => [...String(script ?? "").matchAll(/npm run ([\w:-]+)/g)].map((m) => m[1]);
+/** The chain, from the one place it is declared, through the one parser
+ *  (scripts/lib/chain.mjs). Re-exported because the tests and every other reader
+ *  already ask this module for it. */
+export { stagesFrom };
 
 /** The cheapest-first rule, over measurements rather than labels.
+ *
+ *  Monotonic over the whole chain, not only over the seconds boundary. The
+ *  narrower rule — "no seconds-long gate after a slow one" — was the one that
+ *  mattered while the cheap half was the whole question, and it could not see the
+ *  step below it: the unit suite sat behind `npm run check`, so a broken test cost
+ *  a `next build` before anything said so, and both stages measured "not seconds"
+ *  so nothing was ever going to go red for it. A stage may now not run after one
+ *  that measures in a SLOWER bucket than it does, at any rung.
  *
  *  rows: [{ stage, ms, label }]. `label` is the `cost` the remedy table claims for
  *  that stage, or null for a stage the table does not know. */
 export function orderingProblems(rows) {
   const problems = [];
-  const firstSlow = rows.findIndex((r) => bucketFor(r.ms) !== "seconds");
-  if (firstSlow !== -1) {
-    const blocker = rows[firstSlow];
-    for (const row of rows.slice(firstSlow + 1)) {
-      if (bucketFor(row.ms) !== "seconds") continue;
+  // The slowest stage seen so far. A row that is already a finding does not become
+  // the new blocker: it is the one out of place, not the chain's new floor.
+  let blocker = null;
+  for (const row of rows) {
+    if (blocker && rankOf(row.ms) < rankOf(blocker.ms)) {
       problems.push(
-        `\`${row.stage}\` measures ${fmt(row.ms)} and runs AFTER \`${blocker.stage}\`, which measures ` +
-          `${fmt(blocker.ms)}. A change that trips it therefore pays for ${blocker.stage} first. Move it up the ` +
-          "chain in package.json's `check:ci`, and move its entry in scripts/gate-remedy.mjs with it."
+        `\`${row.stage}\` measures ${fmt(row.ms)} ("${bucketFor(row.ms)}") and runs AFTER \`${blocker.stage}\`, ` +
+          `which measures ${fmt(blocker.ms)} ("${bucketFor(blocker.ms)}"). A change that trips it therefore pays ` +
+          `for ${blocker.stage} first. Move it up the chain in package.json's \`check:ci\`, and move its entry in ` +
+          "scripts/gate-remedy.mjs with it."
       );
+      continue;
     }
+    if (!blocker || rankOf(row.ms) > rankOf(blocker.ms)) blocker = row;
   }
   for (const row of rows) {
     if (!row.label) continue;
@@ -371,7 +396,7 @@ function check() {
     return 1;
   }
   say("");
-  say("✓ every stage that measures in seconds runs before every stage that does not.");
+  say("✓ no stage runs after one that measures in a slower bucket than it does.");
   flushSummary();
   return 0;
 }

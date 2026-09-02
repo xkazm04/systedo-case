@@ -54,18 +54,18 @@ export const cheapStages = (chain = CHAIN) => chain.filter((s) => s.cost === "se
  *  caught — a lane that lists its omissions as bare names teaches nobody. */
 export const OMITTED = [
   {
+    stage: "test:unit",
+    instead: ["test:fast"],
+    missing:
+      "the whole unit suite. `test:fast` runs the tests that NAME a file you changed, plus the always tier — a " +
+      "subset, which can be green while the suite is red.",
+  },
+  {
     stage: "check",
     instead: ["typecheck", "lint"],
     missing:
       "`next build` — a server/client boundary error, a route that imports something it may not, a page that " +
       "only fails when it is compiled. Nothing below runs it.",
-  },
-  {
-    stage: "test:unit",
-    instead: ["test:fast"],
-    missing:
-      "the 499-file suite. `test:fast` runs the tests that NAME a file you changed, plus the always tier — a " +
-      "subset, which can be green while the suite is red.",
   },
 ];
 

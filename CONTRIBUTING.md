@@ -84,7 +84,8 @@ npm run check:ci   # cheapest first: adr:check + docs:parity + agents:surface
                    #   + contract:ledger:check + context:decay:check
                    #   + review:agent:gate + llm:gate:check + llm:quality:check
                    #   + llm:budget:check + seed:check, then the slow half:
-                   #   typecheck + lint + build + test:unit
+                   #   test:unit, then typecheck + lint + build. Cheapest first all
+                   #   the way down: a broken test is reported before the build runs
 ```
 
 Every one of them prints the **next command** when it fails — the command that

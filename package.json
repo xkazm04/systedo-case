@@ -22,7 +22,7 @@
     "typecheck:strict:accept": "node scripts/typecheck-strict.mjs --accept",
     "check": "npm run typecheck && npm run lint && npm run build",
     "check:fast": "node scripts/check-fast.mjs",
-    "check:ci": "npm run adr:check && npm run docs:parity && npm run agents:surface && npm run checkpoint:check && npm run actions:check && npm run sast && npm run merge-gate && npm run contract:ledger:check && npm run context:decay:check && npm run review:agent:gate && npm run llm:gate:check && npm run llm:quality:check && npm run llm:budget:check && npm run seed:check && npm run check && npm run test:unit",
+    "check:ci": "npm run adr:check && npm run docs:parity && npm run agents:surface && npm run checkpoint:check && npm run actions:check && npm run sast && npm run merge-gate && npm run contract:ledger:check && npm run context:decay:check && npm run review:agent:gate && npm run llm:gate:check && npm run llm:quality:check && npm run llm:budget:check && npm run seed:check && npm run test:unit && npm run check",
     "check:ci:timed": "node scripts/gate-timings.mjs",
     "gates": "node scripts/gate-remedy.mjs",
     "gates:timings": "node scripts/gate-timings.mjs --report",

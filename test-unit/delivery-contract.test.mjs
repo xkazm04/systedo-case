@@ -22,6 +22,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { chainStages } from "../scripts/lib/chain.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
@@ -88,8 +89,8 @@ test("the pre-push hook still runs the full gate before a master push", () => {
 test("every check:ci stage is a real npm script", () => {
   // A typo in the chain is a stage that never runs; `npm run` would fail loudly
   // on it, but only on the machine that got that far. Catch it here instead.
-  for (const name of (scripts["check:ci"] ?? "").matchAll(/npm run ([\w:-]+)/g)) {
-    assert.ok(scripts[name[1]], `check:ci runs \`npm run ${name[1]}\`, which package.json does not define.`);
+  for (const stage of chainStages(pkg)) {
+    assert.ok(scripts[stage], `check:ci runs \`npm run ${stage}\`, which package.json does not define.`);
   }
 });
 

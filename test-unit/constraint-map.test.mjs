@@ -32,6 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { chainStages } from "../scripts/lib/chain.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
@@ -178,8 +179,9 @@ test("where a rule is in both files, the two do not disagree about it", () => {
   }
 });
 
-/** The stages `check:ci` actually runs, in order. */
-const stages = [...(scripts["check:ci"] ?? "").matchAll(/npm run ([\w:-]+)/g)].map((m) => m[1]);
+/** The stages `check:ci` actually runs, in order — through the one parser
+ *  (scripts/lib/chain.mjs). */
+const stages = chainStages(pkg);
 
 test("every gate in the chain is attached to a rule it enforces", () => {
   // The ratchet that keeps the map alive: a check added to check:ci has to name the

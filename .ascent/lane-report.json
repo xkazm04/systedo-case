@@ -2,15 +2,50 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "5e4d30e5-c8a0-41d1-98d2-68207e718759",
+      "recommendationId": "85509574-0be9-467e-b494-bfccd2af195b",
       "verdict": "skipped",
-      "reason": "Everything this item names already operates (blocking repo SAST + Actions policy in sast.yml and check:ci, blocking full-history gitleaks and reporting npm audit in supply-chain.yml, a blocking lockfile-provenance test, a pre-commit secret scan, and a top-level least-privilege permissions block in all 11 workflows); the one genuinely open piece — pinning the 52 first-party actions/* refs to commit SHAs — cannot be done offline because resolving a tag to a SHA needs the GitHub API, and inventing one breaks the workflow rather than pinning it.",
+      "reason": "Pinning by digest means asking GitHub what each tag points at right now and this session has no network; `npm run actions:pin` already does the whole close (resolve, rewrite, flip STRICT=true and RATCHET.pinned) in one networked run, and the broad-write half is already narrow and justified in .github/workflow-permissions.json.",
       "files": []
+    },
+    {
+      "recommendationId": "6ce43724-74ea-4057-971e-d9da264a7213",
+      "verdict": "skipped",
+      "reason": "The `<name>` / `<name>:check` / `<name>:drill` shape is this repository's uniform convention across ~40 gate scripts rather than three one-off aliases, and the specific names are pinned by blocking tests (test-unit/typecheck-strict.test.mjs, test-unit/gate-timings.test.mjs, test-unit/api-surface.test.mjs) plus .github/constraint-map.json, so collapsing three families would break the suite and make the surface less predictable, not more; the same class of duplication one layer down — five hand-copied `check:ci` chain parsers — was collapsed into scripts/lib/chain.mjs instead.",
+      "files": [
+        "scripts/lib/chain.mjs",
+        "scripts/gate-timings.mjs",
+        "test-unit/gate-remedy.test.mjs",
+        "test-unit/constraint-map.test.mjs",
+        "test-unit/typecheck-strict.test.mjs",
+        "test-unit/delivery-contract.test.mjs"
+      ]
+    },
+    {
+      "recommendationId": "ab81860c-d9ab-4f0d-95ea-1bebb14b7ad1",
+      "verdict": "skipped",
+      "reason": "The trailer is produced by .husky/prepare-commit-msg (installed by `npm install` via scripts/install-commit-hooks.mjs) and the bypass is structural — a lane that commits in a throwaway worktree where nobody ran `npm install` runs no hooks at all, which is exactly how this Ascent lane commits — so closing it needs the commit-producing harness to set AGENT_HARNESS/COMMIT_ATTRIBUTION or write the trailers itself (scripts/issue-dispatch.mjs is the in-repo worked example); confirming which paths actually bypass needs git history this session cannot read, and ADR-0007 forbids promoting the coverage report to a gate at 53%.",
+      "files": []
+    },
+    {
+      "recommendationId": "baded17f-cdcd-41bd-ac24-8e77646d1306",
+      "verdict": "resolved",
+      "reason": "`check:ci` now runs `test:unit` before `npm run check`, so the suite's verdict arrives before `next build` instead of after it, and scripts/gate-timings.mjs's cheapest-first rule was generalised from the seconds boundary to full bucket monotonicity so this class of ordering defect can go red at all.",
+      "files": [
+        "package.json",
+        "scripts/gate-remedy.mjs",
+        "scripts/gate-timings.mjs",
+        "scripts/check-fast.mjs",
+        "test-unit/gate-timings.test.mjs",
+        "AGENTS.md",
+        "CONTRIBUTING.md",
+        ".github/workflows/ci.yml"
+      ]
     }
   ],
   "lessons": [
-    "This repository already encodes its own D9 posture as machine-checked policy (scripts/actions-pin.mjs rules P1-P10, .github/workflow-permissions.json, .github/contract-ledger.json), and it records WHY a rule is still exempt plus the exact command that would close it — read .github/contract-ledger.json before proposing a supply-chain change, because the open item and its remedy are usually already written down there (P4/P6 explicitly say 'no offline session can do this').",
-    "Adding a fix here is a two-part diff by construction: a new workflow, job or token scope must land together with its entry in .github/workflow-permissions.json, and any exception or threshold must land with the ceiling/floor in .github/contract-ledger.json — a one-part diff turns `npm run actions:check` / `contract:ledger:check` red, so an offline agent that 'helpfully' adds a workflow breaks the build it cannot run.",
-    "Scanner 'missing' lines can contradict the scanner's own observations (here it asked for top-level `permissions:` blocks it had just measured as 11/11 present); check the tree before treating a recommendation's remedy list as the gap."
+    "This repository's own blocking tests pin the shape of its tooling — script names, chain order, remedy table, constraint map — so a 'simple' package.json or gate-chain edit ripples into ~6 test files; read test-unit/gate-remedy.test.mjs, gate-timings.test.mjs, constraint-map.test.mjs and delivery-contract.test.mjs BEFORE touching package.json scripts.",
+    "A gate whose rule stops one notch short of where the cost is reads as fully enforced: cheapest-first was checked only across the seconds boundary, so the 517-file unit suite sat behind `next build` for months with every check green. When auditing an ordering or ratchet rule here, ask which adjacent step the rule cannot see.",
+    "Ceilings in .github/guidance-budget.json are EXACT line counts of the read-first documents, so any edit to AGENTS.md must be line-neutral or arrive with the ceiling raised in the same diff.",
+    "An offline session cannot close D9 action-pinning here, and the repository already knows it: scripts/actions-pin.mjs --update resolves, rewrites, and flips its own STRICT/RATCHET in one pass. The honest dispatch for that row is a human running one command, not another agent cycle."
   ]
 }

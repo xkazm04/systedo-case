@@ -120,9 +120,9 @@ npm run check:ci      # what CI runs, CHEAPEST FIRST: adr:check + docs:parity
                       #   + merge-gate + contract:ledger:check + context:decay:check
                       #   + review:agent:gate + llm:gate:check + llm:quality:check
                       #   + llm:budget:check + seed:check, THEN the slow half:
-                      #   check (typecheck/lint/build) + test:unit. The fourteen
-                      #   zero-dependency checks run before `next build`, so a wrong
-                      #   change is refused in seconds rather than after a build
+                      #   test:unit, then check (typecheck/lint/build). Cheapest
+                      #   first ALL THE WAY DOWN — the suite's verdict arrives
+                      #   before `next build`, the stage that dominates the chain
 npm run check:ci:timed # the SAME chain, with a clock on each stage — this is what
                       #   CI runs. Per-gate durations + each stage's share of the
                       #   total into the job summary and .gate-timings.json, and a

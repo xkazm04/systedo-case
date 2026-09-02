@@ -63,7 +63,9 @@ jobs:
       #   provenance ledger) → llm:quality:check (the baked scorecard's floor on
       #   the models we actually serve) → llm:budget:check → seed drift guard —
       #   fourteen zero-dependency checks, seconds each — then the slow half:
-      #   check (typecheck && lint && build) → unit tests. All deterministic and
+      #   unit tests → check (typecheck && lint && build). Cheapest first all the
+      #   way down: the suite is a minute and `next build` is minutes, so a broken
+      #   test is reported before the build spends its time. All deterministic and
       #   key-free — zero model calls; the real-model run is on demand
       #   (npm run test:llm) and weekly (.github/workflows/llm-drift.yml).
       #
