@@ -87,6 +87,8 @@
     "actions:check": "node scripts/actions-pin.mjs",
     "actions:pin": "node scripts/actions-pin.mjs --update",
     "merge-gate": "node scripts/merge-gate.mjs",
+    "delivery:chain": "node scripts/delivery-chain.mjs",
+    "delivery:chain:write": "node scripts/delivery-chain.mjs --write",
     "env:manifest": "node scripts/env-manifest.mjs",
     "env:manifest:check": "node scripts/env-manifest.mjs --check",
     "protection:check": "node scripts/branch-protection.mjs",

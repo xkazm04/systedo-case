@@ -19,10 +19,12 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chainStages } from "../scripts/lib/chain.mjs";
+import { deliveryDrift } from "../scripts/lib/delivery.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
@@ -91,6 +93,72 @@ test("every check:ci stage is a real npm script", () => {
   // on it, but only on the machine that got that far. Catch it here instead.
   for (const stage of chainStages(pkg)) {
     assert.ok(scripts[stage], `check:ci runs \`npm run ${stage}\`, which package.json does not define.`);
+  }
+});
+
+/** THE THREE-WAY ALIGNMENT. ci.yml opened by asking the reader to keep itself,
+ *  the `check:ci` script and .husky/pre-push pointing at each other — the one
+ *  claim of that shape in this repository with no gate behind it, and it had
+ *  drifted: docs/deploy.md listed eleven of sixteen stages and never mentioned
+ *  `sast`. scripts/lib/delivery.mjs is the reader; these are its teeth. */
+test("the three definitions of the gate still name the same gate", () => {
+  assert.deepEqual(
+    deliveryDrift(),
+    [],
+    "ci.yml, package.json's `check:ci` and .husky/pre-push have stopped describing one gate. " +
+      "`npm run delivery:chain` prints the chain; `-- --write` regenerates the copy in docs/deploy.md."
+  );
+});
+
+test("the drift check is wired into a gate that runs, not only into this test", () => {
+  const gate = read("scripts/merge-gate.mjs");
+  assert.match(
+    gate,
+    /deliveryDrift/,
+    "scripts/merge-gate.mjs no longer reads the delivery chain, so the alignment is proven only by the unit " +
+      "suite and no longer by the gate that runs before a master push."
+  );
+  assert.match(scripts["delivery:chain"] ?? "", /scripts\/delivery-chain\.mjs/);
+  assert.match(scripts["delivery:chain:write"] ?? "", /--write/);
+});
+
+/** And the fence is watched firing. A check whose only evidence is a green tree
+ *  cannot be told from one that has stopped comparing anything — the same reason
+ *  test-unit/contract-ledger-ceiling.test.mjs runs its gate against a fixture
+ *  whose list has outgrown its ceiling. */
+test("it refuses a tree where the three have drifted apart", () => {
+  const dir = mkdtempSync(join(tmpdir(), "delivery-drill-"));
+  const write = (rel, body) => {
+    mkdirSync(join(dir, dirname(rel)), { recursive: true });
+    writeFileSync(join(dir, rel), body);
+  };
+  const workflow = (names) => `on:\n  push:\njobs:\n  check:\n    steps:\n      - run: npm run check:ci\n# ${names}\n`;
+  const doc = (list) =>
+    `## Delivery contract\n<!-- BEGIN:check-ci-chain -->\n  ${list.map((s) => `\`${s}\``).join(" → ")}\n<!-- END:check-ci-chain -->\n`;
+  const hook = "case $remote_ref in refs/heads/master) ;; esac\nnpm run check:ci\n";
+
+  try {
+    write("package.json", JSON.stringify({ scripts: { "check:ci": "npm run alpha && npm run beta", alpha: "x", beta: "x" } }));
+    write(".husky/pre-push", hook);
+    write(".github/workflows/ci.yml", workflow("stages: alpha beta"));
+    write("docs/deploy.md", doc(["alpha", "beta"]));
+    assert.deepEqual(deliveryDrift(dir), [], "the aligned fixture must be green, or the drill proves nothing.");
+
+    // A gate the workflow runs but never names — the cost nobody argued.
+    write(".github/workflows/ci.yml", workflow("stages: alpha"));
+    assert.match(deliveryDrift(dir).join("\n"), /never names 1 stage.*beta/s);
+
+    // A human-readable copy that fell behind the declaration.
+    write(".github/workflows/ci.yml", workflow("stages: alpha beta"));
+    write("docs/deploy.md", doc(["alpha"]));
+    assert.match(deliveryDrift(dir).join("\n"), /missing: beta/);
+
+    // A hook that assembles its own subset instead of running the chain.
+    write("docs/deploy.md", doc(["alpha", "beta"]));
+    write(".husky/pre-push", `${hook}npm run alpha\n`);
+    assert.match(deliveryDrift(dir).join("\n"), /runs alpha directly/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });
 

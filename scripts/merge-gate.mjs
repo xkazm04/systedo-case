@@ -44,6 +44,22 @@
  *       status checks are exactly the `check` strings enumerated here — no more,
  *       no fewer, no drifted wording.
  *
+ *  And step 7 is the question underneath all six: whether the three files that
+ *  DEFINE the gate still define the same one. `.github/workflows/ci.yml` opens by
+ *  asking the reader to keep itself, the `check:ci` script and `.husky/pre-push`
+ *  pointing at each other — every other claim of that shape in this repository has
+ *  a gate behind it, and this one had a comment. It had drifted: `docs/deploy.md`
+ *  § Delivery contract listed eleven of the sixteen stages and never mentioned
+ *  `sast`, the stage that stops a route shipping without caller identity.
+ *
+ *    7. every stage of `check:ci` is a real npm script; `.husky/pre-push` runs
+ *       the WHOLE chain on a push to master rather than a subset of its own;
+ *       ci.yml runs that same chain and NAMES every stage of it, since its
+ *       comment is what argues the cheapest-first order; and the enumeration a
+ *       human reads in docs/deploy.md is generated from the declaration rather
+ *       than typed next to it (scripts/lib/delivery.mjs, rewritten by
+ *       `npm run delivery:chain -- --write`).
+ *
  *  Usage:
  *    node scripts/merge-gate.mjs
  *    node scripts/merge-gate.mjs --summary FILE
@@ -53,6 +69,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { printRemedy } from "./gate-remedy.mjs";
 import { checkDeclaredRuleset } from "./branch-protection.mjs";
+import { deliveryDrift } from "./lib/delivery.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WF_DIR = join(ROOT, ".github", "workflows");
@@ -272,6 +289,27 @@ if (rulesetDrift.length) {
   failures.push(...rulesetDrift);
 } else {
   say("  ✓ .github/branch-ruleset.json declares exactly these checks to GitHub (apply: see that file's header)");
+}
+
+// --- the gate itself: three definitions, one chain ---------------------------
+//
+// The enumeration above answers "which jobs may stop a change". It cannot answer
+// the question underneath it: whether the three files that define the gate still
+// define the SAME gate. ci.yml's own header asks the reader to keep itself, the
+// `check:ci` script and .husky/pre-push pointing at each other — the one alignment
+// here maintained by good intentions, and it had already drifted twice. Now it is
+// read: scripts/lib/delivery.mjs.
+
+const chainDrift = deliveryDrift();
+say("");
+if (chainDrift.length) {
+  say("  ✗ the delivery chain — ci.yml, `check:ci` and .husky/pre-push no longer name the same gate");
+  failures.push(...chainDrift);
+} else {
+  say(
+    "  ✓ the delivery chain is declared once (package.json `check:ci`): ci.yml runs and names every stage, " +
+      ".husky/pre-push proves the whole of it, docs/deploy.md lists it (`npm run delivery:chain -- --write`)"
+  );
 }
 
 // --- note: jobs that could block but are not enumerated ----------------------

@@ -4,12 +4,15 @@ name: CI
 # command that reproduces this gate locally (check = typecheck && lint && build,
 # then seed drift guard, unit suite, and the key-free LLM gate check: chokepoint
 # coverage + contract goldens). The hash-cached real-model re-prove was retired
-# 2026-08-05 (static gate only; prove on demand via `npm run test:llm`). Keep
-# ci.yml, the `check:ci` script, and .husky/pre-push (which runs check:ci
-# before any push to master — see docs/deploy.md § Delivery contract) pointing
-# at each other so the three can never drift. `next build` runs only here and
-# in the pre-push gate — so a green local commit can still fail CI on build
-# unless you ran `npm run check:ci` yourself.
+# 2026-08-05 (static gate only; prove on demand via `npm run test:llm`).
+#
+# ci.yml, the `check:ci` script and .husky/pre-push (which runs check:ci before
+# any push to master — see docs/deploy.md § Delivery contract) must all name the
+# same gate. That used to be a request to the reader and is now a check: `npm run
+# merge-gate`, blocking inside check:ci and therefore inside the hook, reads all
+# three (scripts/lib/delivery.mjs). `next build` runs only here and in the
+# pre-push gate — so a green local commit can still fail CI on build unless you
+# ran `npm run check:ci` yourself.
 on:
   push:
   pull_request:
@@ -61,13 +64,22 @@ jobs:
       #   context:decay:check → review:agent:gate (Part A of the rubric) →
       #   llm:gate:check (chokepoint coverage + contract goldens + the golden
       #   provenance ledger) → llm:quality:check (the baked scorecard's floor on
-      #   the models we actually serve) → llm:budget:check → seed drift guard —
-      #   fourteen zero-dependency checks, seconds each — then the slow half:
-      #   unit tests → check (typecheck && lint && build). Cheapest first all the
-      #   way down: the suite is a minute and `next build` is minutes, so a broken
-      #   test is reported before the build spends its time. All deterministic and
-      #   key-free — zero model calls; the real-model run is on demand
-      #   (npm run test:llm) and weekly (.github/workflows/llm-drift.yml).
+      #   the models we actually serve) → llm:budget:check → seed:check (the seed
+      #   drift guard) — fourteen zero-dependency checks, seconds each — then the
+      #   slow half: test:unit → check (typecheck && lint && build). Cheapest
+      #   first all the way down: the suite is a minute and `next build` is
+      #   minutes, so a broken test is reported before the build spends its time.
+      #   All deterministic and key-free — zero model calls; the real-model run is
+      #   on demand (npm run test:llm) and weekly
+      #   (.github/workflows/llm-drift.yml).
+      #
+      #   EVERY STAGE ABOVE IS NAMED HERE ON PURPOSE, and that is now checked. The
+      #   chain is declared once — package.json's `check:ci` — and this comment is
+      #   what argues its order, so a gate missing from it is a gate whose cost
+      #   nobody argued. `npm run merge-gate` fails when a stage of the chain is
+      #   not named in this file, when .husky/pre-push runs less than the whole
+      #   chain, or when docs/deploy.md's list of it has fallen behind
+      #   (scripts/lib/delivery.mjs; `npm run delivery:chain` prints the chain).
       #
       #   Each stage prints the next command when it fails — one table, in
       #   scripts/gate-remedy.mjs; `npm run gates` shows it before anything fires.

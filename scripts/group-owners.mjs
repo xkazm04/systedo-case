@@ -8,13 +8,13 @@
  *  season — which is the right shape for a rule GitHub acts on, and it answers a
  *  question nobody has ("who owns this line?"). The question this repository has is
  *  the other one: ~97% of commits are agent-written, agents create files inside
- *  contexts, and 117 contexts are organised into 16 groups. A whole group can gain
+ *  contexts, and 117 contexts are organised into 12 groups. A whole group can gain
  *  files, gain cross-group imports and gain source no context maps, and nothing here
  *  could say that NOBODY has read it — because there was no list of groups with a
  *  name next to each.
  *
  *  WHAT IT IS NOT. It does not request a review: GitHub reads .github/CODEOWNERS and
- *  nothing else. Turning all 16 groups into CODEOWNERS paths would make one
+ *  nothing else. Turning all 12 groups into CODEOWNERS paths would make one
  *  maintainer the required reviewer of the whole tree, which is how a routing rule
  *  stops being read — and it would delete the signal CODEOWNERS currently carries,
  *  which is that these particular fifteen paths are different. A row here records who

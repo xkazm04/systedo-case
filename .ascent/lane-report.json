@@ -2,50 +2,46 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "85509574-0be9-467e-b494-bfccd2af195b",
-      "verdict": "skipped",
-      "reason": "Pinning by digest means asking GitHub what each tag points at right now and this session has no network; `npm run actions:pin` already does the whole close (resolve, rewrite, flip STRICT=true and RATCHET.pinned) in one networked run, and the broad-write half is already narrow and justified in .github/workflow-permissions.json.",
-      "files": []
-    },
-    {
-      "recommendationId": "6ce43724-74ea-4057-971e-d9da264a7213",
-      "verdict": "skipped",
-      "reason": "The `<name>` / `<name>:check` / `<name>:drill` shape is this repository's uniform convention across ~40 gate scripts rather than three one-off aliases, and the specific names are pinned by blocking tests (test-unit/typecheck-strict.test.mjs, test-unit/gate-timings.test.mjs, test-unit/api-surface.test.mjs) plus .github/constraint-map.json, so collapsing three families would break the suite and make the surface less predictable, not more; the same class of duplication one layer down — five hand-copied `check:ci` chain parsers — was collapsed into scripts/lib/chain.mjs instead.",
-      "files": [
-        "scripts/lib/chain.mjs",
-        "scripts/gate-timings.mjs",
-        "test-unit/gate-remedy.test.mjs",
-        "test-unit/constraint-map.test.mjs",
-        "test-unit/typecheck-strict.test.mjs",
-        "test-unit/delivery-contract.test.mjs"
-      ]
-    },
-    {
-      "recommendationId": "ab81860c-d9ab-4f0d-95ea-1bebb14b7ad1",
-      "verdict": "skipped",
-      "reason": "The trailer is produced by .husky/prepare-commit-msg (installed by `npm install` via scripts/install-commit-hooks.mjs) and the bypass is structural — a lane that commits in a throwaway worktree where nobody ran `npm install` runs no hooks at all, which is exactly how this Ascent lane commits — so closing it needs the commit-producing harness to set AGENT_HARNESS/COMMIT_ATTRIBUTION or write the trailers itself (scripts/issue-dispatch.mjs is the in-repo worked example); confirming which paths actually bypass needs git history this session cannot read, and ADR-0007 forbids promoting the coverage report to a gate at 53%.",
-      "files": []
-    },
-    {
-      "recommendationId": "baded17f-cdcd-41bd-ac24-8e77646d1306",
+      "recommendationId": "16c97aa0-af6c-4f5f-a8d7-9f800841fb3b",
       "verdict": "resolved",
-      "reason": "`check:ci` now runs `test:unit` before `npm run check`, so the suite's verdict arrives before `next build` instead of after it, and scripts/gate-timings.mjs's cheapest-first rule was generalised from the seconds boundary to full bucket monotonicity so this class of ordering defect can go red at all.",
+      "reason": "Merged the four twinned group pairs the scan produced (16 groups -> 12), gave every surviving group a $scope and a $notTo for each name it shares a word with, and added test-unit/context-map-groups.test.mjs so a rescan that reintroduces an undecidable name is a red build.",
       "files": [
-        "package.json",
-        "scripts/gate-remedy.mjs",
-        "scripts/gate-timings.mjs",
-        "scripts/check-fast.mjs",
-        "test-unit/gate-timings.test.mjs",
+        "context-map.json",
+        "test-unit/context-map-groups.test.mjs",
+        "CLAUDE.md",
+        ".github/agent-surface.lock.json",
+        ".github/group-owners.json",
+        ".github/context-conventions.json",
         "AGENTS.md",
-        "CONTRIBUTING.md",
-        ".github/workflows/ci.yml"
+        "scripts/group-owners.mjs",
+        "test-unit/group-owners.test.mjs"
       ]
+    },
+    {
+      "recommendationId": "d8e12622-c1ba-4197-96bd-32d422436a64",
+      "verdict": "resolved",
+      "reason": "The ci.yml / check:ci / pre-push alignment is now read by scripts/lib/delivery.mjs from inside npm run merge-gate (blocking in check:ci and therefore in the pre-push hook), the enumeration in docs/deploy.md is generated from the one declaration, and the fence is watched firing against a fixture tree in test-unit/delivery-contract.test.mjs.",
+      "files": [
+        "scripts/lib/delivery.mjs",
+        "scripts/delivery-chain.mjs",
+        "scripts/merge-gate.mjs",
+        "test-unit/delivery-contract.test.mjs",
+        "docs/deploy.md",
+        ".github/workflows/ci.yml",
+        "package.json"
+      ]
+    },
+    {
+      "recommendationId": "2d47a132-a672-46f2-90b9-50386c1be1df",
+      "verdict": "skipped",
+      "reason": "Rehearsing the rotation runbook means revoking and reissuing a live Google Ads / Sklik / Resend credential in its issuing console, which AGENTS.md classifies as a RED action an agent may not perform, and this session has no shell, no network and no credentials; the dated rehearsal log the item asks for already exists as the lastDrilled column in .github/credential-rotation.json, waiting for the operator to fill it.",
+      "files": ["docs/runbooks/credential-rotation.md", ".github/credential-rotation.json"]
     }
   ],
   "lessons": [
-    "This repository's own blocking tests pin the shape of its tooling — script names, chain order, remedy table, constraint map — so a 'simple' package.json or gate-chain edit ripples into ~6 test files; read test-unit/gate-remedy.test.mjs, gate-timings.test.mjs, constraint-map.test.mjs and delivery-contract.test.mjs BEFORE touching package.json scripts.",
-    "A gate whose rule stops one notch short of where the cost is reads as fully enforced: cheapest-first was checked only across the seconds boundary, so the 517-file unit suite sat behind `next build` for months with every check green. When auditing an ordering or ratchet rule here, ask which adjacent step the rule cannot see.",
-    "Ceilings in .github/guidance-budget.json are EXACT line counts of the read-first documents, so any edit to AGENTS.md must be line-neutral or arrive with the ceiling raised in the same diff.",
-    "An offline session cannot close D9 action-pinning here, and the repository already knows it: scripts/actions-pin.mjs --update resolves, rewrites, and flips its own STRICT/RATCHET in one pass. The honest dispatch for that row is a human running one command, not another agent cycle."
+    "When this repository has already diagnosed a defect in prose, the prose is the strongest evidence for fixing it: .github/group-owners.json literally described four groups as 'the scan's second X group ... an artefact of the scan rather than a decision', and .claude/architect/config.md and .claude/explorer/config.md had both re-merged those pairs by hand in their menus. A taxonomy every consumer works around is one nobody is using.",
+    "Merging two context-map groups is decay-safe by construction and renaming or moving contexts between them is not: two groups becoming one can only remove cross-group crossings, never add one, so context:decay:check cannot go red for it. That asymmetry is what makes a merge a safe change to land without being able to run the gates.",
+    "AGENTS.md, CLAUDE.md and the other read-first documents have EXACT line ceilings in .github/guidance-budget.json, so a new rule cannot be documented by adding a paragraph there. Put the explanation in the artefact it governs (a $comment in the JSON, the gate script's own header) and change only words in the canonical file.",
+    "Some paths are unwritable in an Ascent worktree session: .husky/* and .claude/*/config.md are refused as sensitive. Design a check so its blocking half reads those files rather than needing to rewrite them, and generate only into files you can actually write."
   ]
 }

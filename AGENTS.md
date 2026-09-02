@@ -710,7 +710,7 @@ remedy all turn the unit suite red.
   the context it belongs to, or declare the crossing in `cross_refs` and let a
   reviewer see the line. `npm run context:decay` (no `--check`) is the census of
   what already crosses — inherited, printed, not blocked; it is where the "are
-  these 16 groups real?" question gets answered.
+  these 12 groups real?" question gets answered.
 - **And the suite is measured for the repository, while the work is done in a
   context.** 515 test files, a healthy ratio and a mutation drill on six seams are
   all TOTALS, and a whole context with no test pointing at it moves a total by a

@@ -113,8 +113,8 @@
         "src/components/ai/CreativeStudio.tsx",
         "src/components/ai/CreativeAttribution.tsx"
       ],
-      "group": "AI & Content Generation",
-      "group_id": "97d47bc6-a788-4677-8322-39adc8e7cc14",
+      "group": "AI & Content Engine",
+      "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
       "id": "eb9e97f3-8e66-4b26-b4e3-4ce87b9190d3",
       "keywords": [
         "ad",
@@ -249,8 +249,8 @@
         "src/components/ai/useAiStatus.ts",
         "src/components/ai/useAiTool.ts"
       ],
-      "group": "AI & Content Generation",
-      "group_id": "97d47bc6-a788-4677-8322-39adc8e7cc14",
+      "group": "AI & Content Engine",
+      "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
       "id": "5a8fbddc-b714-4c30-93a7-7021bca96c21",
       "keywords": [
         "ai",
@@ -802,8 +802,8 @@
         "src/lib/snapshot.ts",
         "src/lib/snapshot-to-article.ts"
       ],
-      "group": "AI & Content Generation",
-      "group_id": "97d47bc6-a788-4677-8322-39adc8e7cc14",
+      "group": "AI & Content Engine",
+      "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
       "id": "f76dcea0-2f27-4089-912e-aaa9a97e5dea",
       "keywords": [
         "article",
@@ -848,8 +848,8 @@
         "src/components/app/modules/LtvProjectionPanel.tsx",
         "src/components/app/modules/LtvReportButton.tsx"
       ],
-      "group": "Performance & Analytics",
-      "group_id": "ea5224b6-f0f5-4021-81d3-bf6ef5849d69",
+      "group": "Analytics & Reporting",
+      "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
       "id": "7aba6f33-02a7-4256-847d-543c4d0907f6",
       "keywords": [
         "audience",
@@ -948,8 +948,8 @@
         "src/lib/patterns/store.ts",
         "src/lib/patterns/types.ts"
       ],
-      "group": "AI & Content Generation",
-      "group_id": "97d47bc6-a788-4677-8322-39adc8e7cc14",
+      "group": "AI & Content Engine",
+      "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
       "id": "05f964a0-03f8-4e1d-bd6d-30cec36d5e62",
       "keywords": [
         "brand",
@@ -990,8 +990,8 @@
         "src/components/app/modules/ByomQualityOverview.tsx",
         "src/components/hooks/useByomConfig.ts"
       ],
-      "group": "AI & Content Generation",
-      "group_id": "97d47bc6-a788-4677-8322-39adc8e7cc14",
+      "group": "AI & Content Engine",
+      "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
       "id": "ed374616-ff33-4cfb-af7b-01bc9f2c2126",
       "keywords": [
         "BYOM",
@@ -1241,8 +1241,8 @@
         "src/app/api/campaigns/sklik/route.ts",
         "src/app/api/campaigns/state.ts"
       ],
-      "group": "Campaign Management",
-      "group_id": "e5d040ea-3527-41ae-965b-8f0c3d82564e",
+      "group": "Campaign & Ads Management",
+      "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
       "id": "88ea629d-eb97-41fc-abe3-0ae7a57aaa4d",
       "keywords": [
         "campaigns",
@@ -1292,8 +1292,8 @@
         "src/lib/campaigns/simulate.ts",
         "test-unit/campaigns-simulate-calibration.test.mjs"
       ],
-      "group": "Campaign Management",
-      "group_id": "e5d040ea-3527-41ae-965b-8f0c3d82564e",
+      "group": "Campaign & Ads Management",
+      "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
       "id": "855c339d-31d8-4527-a159-343da2a0ac9c",
       "keywords": [
         "alerts",
@@ -1405,8 +1405,8 @@
         "test-unit/campaigns-term-moves-apply.test.mjs",
         "test-unit/campaigns-search-terms-store.test.mjs"
       ],
-      "group": "Campaign Management",
-      "group_id": "e5d040ea-3527-41ae-965b-8f0c3d82564e",
+      "group": "Campaign & Ads Management",
+      "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
       "id": "67b653f8-91d5-47ea-919a-09b0d6315f76",
       "keywords": [
         "campaign",
@@ -1447,8 +1447,8 @@
         "src/app/app/[projectId]/experimenty-lp/page.tsx",
         "src/app/app/[projectId]/srovnani-seo/page.tsx"
       ],
-      "group": "Campaign Management",
-      "group_id": "e5d040ea-3527-41ae-965b-8f0c3d82564e",
+      "group": "Campaign & Ads Management",
+      "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
       "id": "915abd59-ba20-464d-9eca-b0a8a3048f50",
       "keywords": [
         "campaigns",
@@ -1495,8 +1495,8 @@
         "src/lib/campaigns/activity.ts",
         "src/lib/campaigns/sample.ts"
       ],
-      "group": "Campaign Management",
-      "group_id": "e5d040ea-3527-41ae-965b-8f0c3d82564e",
+      "group": "Campaign & Ads Management",
+      "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
       "id": "38515be8-7ca3-4483-a506-d5f6a2e9d0ee",
       "keywords": [
         "campaign report",
@@ -1546,8 +1546,8 @@
         "test-unit/campaigns-realize-run-local-store.test.mjs",
         "test-unit/campaigns-calibration.test.mjs"
       ],
-      "group": "Campaign Management",
-      "group_id": "e5d040ea-3527-41ae-965b-8f0c3d82564e",
+      "group": "Campaign & Ads Management",
+      "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
       "id": "fbc19c03-8bc8-4f0b-95db-3d4115dc7063",
       "keywords": [
         "Sklik",
@@ -1597,8 +1597,8 @@
         "src/lib/campaigns/store/tenant.ts",
         "src/lib/campaigns/store-keys.ts"
       ],
-      "group": "Campaign Management",
-      "group_id": "e5d040ea-3527-41ae-965b-8f0c3d82564e",
+      "group": "Campaign & Ads Management",
+      "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
       "id": "f476272b-f1dd-4c67-91ff-8de3485431bd",
       "keywords": [
         "campaign store",
@@ -1934,8 +1934,8 @@
         "src/components/ai/ContentPipeline.tsx",
         "src/components/ai/ArticleDraftPanel.tsx"
       ],
-      "group": "AI & Content Generation",
-      "group_id": "97d47bc6-a788-4677-8322-39adc8e7cc14",
+      "group": "AI & Content Engine",
+      "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
       "id": "7401830b-40e4-4950-be27-a91bba99198c",
       "keywords": [
         "content",
@@ -2120,8 +2120,8 @@
         "src/lib/ltv/sample.ts",
         "src/lib/margins.ts"
       ],
-      "group": "Performance & Analytics",
-      "group_id": "ea5224b6-f0f5-4021-81d3-bf6ef5849d69",
+      "group": "Analytics & Reporting",
+      "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
       "id": "2493c871-b977-4008-92e8-879d4bb47a54",
       "keywords": [
         "cost model",
@@ -2333,8 +2333,8 @@
         "src/components/dashboard/vykon/AdsDiagnosisPanel.tsx",
         "src/components/dashboard/vykon/AdsDiagnosisReading.tsx"
       ],
-      "group": "Performance & Analytics",
-      "group_id": "ea5224b6-f0f5-4021-81d3-bf6ef5849d69",
+      "group": "Analytics & Reporting",
+      "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
       "id": "2052fdcd-7bf0-4625-b8c4-748279361350",
       "keywords": [
         "KPI",
@@ -2384,8 +2384,8 @@
         "src/components/dashboard/vykon/insight-lines.ts",
         "src/components/dashboard/vykon/plural.ts"
       ],
-      "group": "Performance & Analytics",
-      "group_id": "ea5224b6-f0f5-4021-81d3-bf6ef5849d69",
+      "group": "Analytics & Reporting",
+      "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
       "id": "1e5b0d65-7109-481e-ad01-7dd1b7afc143",
       "keywords": [
         "vykon",
@@ -2742,8 +2742,8 @@
         "src/lib/leonardo/client.ts",
         "src/lib/leonardo/rate.ts"
       ],
-      "group": "AI & Content Generation",
-      "group_id": "97d47bc6-a788-4677-8322-39adc8e7cc14",
+      "group": "AI & Content Engine",
+      "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
       "id": "774bd300-8694-43db-9a93-2c44c27a843d",
       "keywords": [
         "image generation",
@@ -2883,8 +2883,8 @@
         "src/components/ai/SavedKeywordLists.tsx",
         "src/components/app/modules/KeywordsModule.tsx"
       ],
-      "group": "AI & Content Generation",
-      "group_id": "97d47bc6-a788-4677-8322-39adc8e7cc14",
+      "group": "AI & Content Engine",
+      "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
       "id": "f18d8e93-bf49-4fd6-b66a-8445d1669a00",
       "keywords": [
         "keyword",
@@ -3664,8 +3664,8 @@
         "src/lib/metrics/trends.ts",
         "src/lib/metrics/response-curve.ts"
       ],
-      "group": "Performance & Analytics",
-      "group_id": "ea5224b6-f0f5-4021-81d3-bf6ef5849d69",
+      "group": "Analytics & Reporting",
+      "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
       "id": "35f5fefa-1ec5-4180-8a2c-e83168576770",
       "keywords": [
         "anomaly",
@@ -3711,8 +3711,8 @@
         "src/lib/metrics/totals.ts",
         "src/lib/metrics/goal-history.ts"
       ],
-      "group": "Performance & Analytics",
-      "group_id": "ea5224b6-f0f5-4021-81d3-bf6ef5849d69",
+      "group": "Analytics & Reporting",
+      "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
       "id": "01e1efff-ad9f-4d4a-aed3-51e85452f80e",
       "keywords": [
         "metrics",
@@ -3985,8 +3985,8 @@
         "src/components/ai/useDiagnosisPersistence.ts",
         "src/components/ai/usePersistedForm.ts"
       ],
-      "group": "AI & Content Generation",
-      "group_id": "97d47bc6-a788-4677-8322-39adc8e7cc14",
+      "group": "AI & Content Engine",
+      "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
       "id": "847dc85e-4c6c-4eea-a9cd-c45c298cac63",
       "keywords": [
         "performance",
@@ -4249,8 +4249,8 @@
         "src/components/app/modules/profit/useProfitState.ts",
         "src/components/app/modules/profit/ReallocationTable.tsx"
       ],
-      "group": "Performance & Analytics",
-      "group_id": "ea5224b6-f0f5-4021-81d3-bf6ef5849d69",
+      "group": "Analytics & Reporting",
+      "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
       "id": "591346d5-8bec-44cc-bc20-75f1ea2a7454",
       "keywords": [
         "profit",
@@ -4304,8 +4304,8 @@
         "src/lib/profit/finance-inputs/store.local.ts",
         "src/lib/profit/finance-inputs/types.ts"
       ],
-      "group": "Performance & Analytics",
-      "group_id": "ea5224b6-f0f5-4021-81d3-bf6ef5849d69",
+      "group": "Analytics & Reporting",
+      "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
       "id": "1327d703-2851-41c0-b5c9-e135c7998cd6",
       "keywords": [
         "profit",
@@ -4904,8 +4904,8 @@
         "src/app/api/patterns/route.ts",
         "src/app/api/patterns/search/route.ts"
       ],
-      "group": "Campaign Management",
-      "group_id": "e5d040ea-3527-41ae-965b-8f0c3d82564e",
+      "group": "Campaign & Ads Management",
+      "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
       "id": "da8f5610-dcc6-4b60-a4c8-f81aa1b7a7f0",
       "keywords": [
         "keywords",
@@ -5159,8 +5159,8 @@
         "src/app/api/social/draft/route.ts",
         "src/app/api/social/messages/route.ts"
       ],
-      "group": "Social Media",
-      "group_id": "a8b2080a-0dc1-4833-9025-3622723bc7e8",
+      "group": "Social & Content Publishing",
+      "group_id": "79748803-cfff-4395-b8bd-69e33a473856",
       "id": "5aacbcb8-2cd7-4280-833b-d89f9ac8b718",
       "keywords": [
         "social media",
@@ -5274,8 +5274,8 @@
         "src/lib/social/performance-grounding.ts",
         "test-unit/social-readback.test.mjs"
       ],
-      "group": "Social Media",
-      "group_id": "a8b2080a-0dc1-4833-9025-3622723bc7e8",
+      "group": "Social & Content Publishing",
+      "group_id": "79748803-cfff-4395-b8bd-69e33a473856",
       "id": "e9ebd403-ae43-452e-a04a-5b0fa8ce5d98",
       "keywords": [
         "social media",
@@ -5399,8 +5399,8 @@
         "src/components/app/modules/ProvenanceChip.tsx",
         "src/components/app/modules/WarehouseSourceBar.tsx"
       ],
-      "group": "Performance & Analytics",
-      "group_id": "ea5224b6-f0f5-4021-81d3-bf6ef5849d69",
+      "group": "Analytics & Reporting",
+      "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
       "id": "4669bc3a-19ce-46c3-ab23-79f5dcf6a2dd",
       "keywords": [
         "spend",
@@ -5813,113 +5813,129 @@
       "context_count": 8,
       "domain": "feature",
       "id": "0ca5ac6b-c9d8-4a90-94fb-6088a88a66b4",
-      "name": "Site & Marketing"
+      "name": "Site & Marketing",
+      "$scope": "The PUBLIC, unauthenticated site: marketing pages, product demos, the landing-page experiments and the onboarding funnel that runs before there is a session. Nothing here reads a tenant.",
+      "$notTo": {
+        "App Shell & Site": "Chrome that renders on BOTH the public site and /app — header, footer, design tokens, i18n, demo mode — is shared and lives there. A page only an anonymous visitor ever sees lives here."
+      }
     },
     {
       "color": "blue",
       "context_count": 6,
-      "$comment": "Domain feature→shared on 2026-09-01. This group is the tenant seam: projects-core (project identity, context, guards, store) is imported by 28 contexts in 14 of the 16 groups, and projects-lifecycle's project-state store by ~40. A boundary every group crosses is not a boundary; the decay script's own header names 'the store seams' as what a shared group is. Its sibling App Shell & Site was already shared.",
+      "$comment": "Domain feature→shared on 2026-09-01. This group is the tenant seam: projects-core (project identity, context, guards, store) is imported by 28 contexts in 14 of the 16 groups the 2026-07-30 scan produced, and projects-lifecycle's project-state store by ~40. A boundary every group crosses is not a boundary; the decay script's own header names 'the store seams' as what a shared group is. Its sibling App Shell & Site was already shared.",
       "domain": "shared",
       "id": "e8028227-6d96-42a5-8d3a-fc7741b799a4",
-      "name": "Authenticated Product Shell"
-    },
-    {
-      "color": "amber",
-      "context_count": 8,
-      "domain": "feature",
-      "id": "e5d040ea-3527-41ae-965b-8f0c3d82564e",
-      "name": "Campaign Management"
+      "name": "Authenticated Product Shell",
+      "$scope": "The tenant seam: session resolution, project identity, and the per-project guards and stores every /app module reads through. Shared rather than feature, because a boundary every group crosses is not a boundary.",
+      "$notTo": {
+        "App Shell & Site": "This group is the DATA side of /app — who is signed in, which project is current, what a module may read. That one is the RENDERED side — sidebar, chrome, primitives. A change about permission or identity is here; a change about layout is there."
+      }
     },
     {
       "color": "violet",
-      "context_count": 13,
+      "context_count": 22,
+      "$comment": "Merged 2026-09-02: absorbed AI & Content Generation (9 contexts, id 97d47bc6-a788-4677-8322-39adc8e7cc14). The 2026-07-30 scan produced two AI groups whose names could not be told apart, and .github/group-owners.json already said so in writing — the second row read 'which one is an artefact of the scan rather than a decision'. Every consumer that has to PICK had re-merged them by hand (.claude/architect/config.md listed 'AI & Content (22 ctx)'; .claude/explorer/config.md offered them as one menu entry), which is the state a taxonomy is in when it has stopped deciding anything. A merge is decay-safe by construction: two groups becoming one can only remove cross-group crossings, never add one. No context changed hands.",
       "domain": "feature",
       "id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
-      "name": "AI & Content Engine"
-    },
-    {
-      "color": "pink",
-      "context_count": 2,
-      "domain": "feature",
-      "id": "a8b2080a-0dc1-4833-9025-3622723bc7e8",
-      "name": "Social Media"
+      "name": "AI & Content Engine",
+      "$scope": "Everything behind generateStructured(): the provider adapters, the chokepoint itself, dispatch, caching, per-operation limits and BYOM keys — AND the feature surfaces that call them (the assistant, the creative and image studios, content briefs, keyword research, brand patterns, the performance analyst).",
+      "$notTo": {
+        "Social & Content Publishing": "The operation that GENERATES a text is here; the module that drafts, schedules, reviews or publishes it to a channel is there. Rule of thumb: if the change adds or moves an `// llm-tool:` call site, it is here."
+      }
     },
     {
       "color": "orange",
-      "context_count": 6,
+      "context_count": 15,
+      "$comment": "Merged 2026-09-02: absorbed Performance & Analytics (9 contexts, id ea5224b6-f0f5-4021-81d3-bf6ef5849d69). Two read-side groups from the same scan, distinguishable only by which noun came first; .github/group-owners.json called the second 'the scan's second analytics group' and gave both the same triage rank and the same posture. No context changed hands.",
       "domain": "feature",
       "id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
-      "name": "Analytics & Reporting"
+      "name": "Analytics & Reporting",
+      "$scope": "The read side: metric collection and analysis, the KPI and Výkon dashboards, profit and spend reporting, the report engine, recaps and diagnoses. It aggregates what the other groups write, so a wrong change here is a wrong decision rather than a wrong charge."
     },
     {
       "color": "red",
       "context_count": 7,
       "domain": "feature",
       "id": "e4a4d67e-a44a-4b8d-9b59-6c6bd18ba324",
-      "name": "Project & Catalog"
+      "name": "Project & Catalog",
+      "$scope": "Project lifecycle and the catalog seam hanging off it: creation, the deletion cascade, the project-data API, catalog core, import/export and the catalog module pages. Owns the Offering spine.",
+      "$notTo": {
+        "Catalog & Inventory": "The catalog's own model, pages and API are here. The CONNECTOR to an external warehouse or ERP — its stored token, its sync run, the offering rows that run writes — is there."
+      }
     },
     {
       "color": "indigo",
       "context_count": 7,
       "domain": "infrastructure",
       "id": "e8e90ce7-36cb-446d-82fd-bceb635cfe12",
-      "name": "Platform Operations"
-    },
-    {
-      "color": "amber",
-      "context_count": 9,
-      "domain": "feature",
-      "id": "97d47bc6-a788-4677-8322-39adc8e7cc14",
-      "name": "AI & Content Generation"
+      "name": "Platform Operations",
+      "$scope": "The rails every feature runs on: cron auth and the six schedules, metering and the durable spend ceiling, the store drivers, the BYOM key API, the outbound event bus. Imports INTO it are always legal — that is what infrastructure means to scripts/context-decay.mjs."
     },
     {
       "color": "blue",
-      "context_count": 7,
+      "context_count": 15,
+      "$comment": "Merged 2026-09-02: absorbed Campaign Management (8 contexts, id e5d040ea-3527-41ae-965b-8f0c3d82564e). The scan's two campaigns groups split the same seam down the middle — the write rails in one, the tenant-key builder the whole store seam is made of in the other — and nothing in either name said which. .github/group-owners.json gave both triage rank 3 for the same reason. No context changed hands.",
       "domain": "feature",
       "id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
-      "name": "Campaign & Ads Management"
-    },
-    {
-      "color": "emerald",
-      "context_count": 9,
-      "domain": "feature",
-      "id": "ea5224b6-f0f5-4021-81d3-bf6ef5849d69",
-      "name": "Performance & Analytics"
+      "name": "Campaign & Ads Management",
+      "$scope": "Campaigns end to end: the Sklik and Google Ads read and write rails, the campaign store backend and the tenant-key builder under it (ADR-0002), budget alerts, the campaign tables, ad-platform integrations and ad-creative spend. SKLIK_WRITES_ENABLED is armed from this group's code and AGENTS.md § Red says an agent may never widen it.",
+      "$notTo": {
+        "Lead & CRM Management": "An ad that spends money is here; a person who answered it is there. The conversion UPLOAD back to Google Ads sits in that group, next to the data being uploaded."
+      }
     },
     {
       "color": "orange",
       "context_count": 3,
       "domain": "feature",
       "id": "4482834c-c869-45fe-be3e-75a535903bf1",
-      "name": "Catalog & Inventory"
+      "name": "Catalog & Inventory",
+      "$scope": "The external-inventory connector: the stored warehouse/ERP credential, the sync run that pulls stock and price, and the offering rows it writes. Small, and one of the few groups with an unauthenticated read surface (the catalog feed token).",
+      "$notTo": {
+        "Project & Catalog": "The catalog's own model, pages and API live there, next to the project that owns them. Only the connector and its sync live here — if your change does not touch a third-party credential or a sync run, it is probably there."
+      }
     },
     {
       "color": "indigo",
       "context_count": 6,
       "domain": "feature",
       "id": "0d89d569-2b9f-4778-a78c-c8b6ddd15333",
-      "name": "Local SEO & Maps"
+      "name": "Local SEO & Maps",
+      "$scope": "The `local` ProjectType: map-pack comparison, imported rank data, review and competitor signals, and the Leaflet surfaces that draw them. Self-contained — a regression here shows in the product before it costs anything."
     },
     {
       "color": "violet",
-      "context_count": 6,
+      "context_count": 8,
+      "$comment": "Merged 2026-09-02: absorbed Social Media (2 contexts, id a8b2080a-0dc1-4833-9025-3622723bc7e8). .github/group-owners.json described that group as 'the scan's smaller social group (2 contexts). Same outbound exposure' — a two-context group with the same posture and an indistinguishable name is a coin toss at the moment an agent is scoping its edits. No context changed hands.",
       "domain": "feature",
       "id": "79748803-cfff-4395-b8bd-69e33a473856",
-      "name": "Social & Content Publishing"
+      "name": "Social & Content Publishing",
+      "$scope": "Everything that leaves the machine under the operator's name: the twin's channel drafts, the schranka review gate, distribution channels, scheduling and publishing, and article engagement. That review gate is what stands between a generated post and a published one.",
+      "$notTo": {
+        "AI & Content Engine": "The operation that generates the text is there. Here is what happens to it afterwards — the draft, the channel, the queue, the gate. If the change is a prompt or a schema, it is not in this group."
+      }
     },
     {
       "color": "red",
       "context_count": 6,
       "domain": "feature",
       "id": "f1a820c1-0783-4550-b47c-133532ad7ea4",
-      "name": "Lead & CRM Management"
+      "name": "Lead & CRM Management",
+      "$scope": "People and their data: leads, lead-quality signals, speed-to-lead, the twin's stored voice, and the conversion upload back to Google Ads. Holds personal data and one of the outbound edges AGENTS.md § Red reserves for the operator.",
+      "$notTo": {
+        "Campaign & Ads Management": "A person and what is known about them is here. The campaign that reached them, and anything that spends on it, is there."
+      }
     },
     {
       "color": "pink",
       "context_count": 14,
       "domain": "shared",
       "id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
-      "name": "App Shell & Site"
+      "name": "App Shell & Site",
+      "$scope": "The shared RENDERED surface: /app chrome and sidebar, site chrome and brand landing, the design system and its tokens, i18n, demo mode, and the shared UI and lib primitives. Imports into it are always legal — that is what a shared group is for, and it is therefore the group most likely to accumulate other groups' code.",
+      "$notTo": {
+        "Site & Marketing": "A page only an anonymous visitor sees — a marketing page, a demo, a landing experiment — belongs there. Chrome and primitives that render on both sides belong here.",
+        "Authenticated Product Shell": "That group is the DATA side of /app (session, project identity, the guards a module reads through); this one is the rendered side. A change about who may read something is not in this group."
+      }
     }
   ],
   "project": {
@@ -5932,9 +5948,10 @@
     "git_commit_count": 1073
   },
   "stats": {
-    "contexts": 116,
+    "$comment": "Maintained by hand since the 2026-07-30 scan, like the boundary decisions above it. `contexts` said 116 while the array held 117 and CLAUDE.md's generated block claimed 117; `groups` said 16 before the 2026-09-02 merge of the four twinned groups. Held to the array on every build by test-unit/context-map-groups.test.mjs.",
+    "contexts": 117,
     "files": 874,
-    "groups": 16,
+    "groups": 12,
     "use_cases": 0
   },
   "taxonomy": {

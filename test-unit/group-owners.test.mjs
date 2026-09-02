@@ -3,7 +3,7 @@
  *  THE PROBLEM. .github/CODEOWNERS is drawn per FILE and deliberately narrow: about
  *  fifteen law files, with its own first line saying everything else is open season.
  *  That is the right shape for the rule GitHub acts on. The system, meanwhile, is
- *  described per GROUP — 117 contexts in 16 groups in context-map.json — and nothing
+ *  described per GROUP — 117 contexts in 12 groups in context-map.json — and nothing
  *  joined the two. So a whole group could gain files, gain cross-group imports and
  *  gain source no context maps, and nothing here could say that nobody answers for
  *  it. `npm run owners:groups` prints the join; this is what stops the declaration
