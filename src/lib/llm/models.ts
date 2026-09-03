@@ -23,10 +23,12 @@ export const CLAUDE_MODEL = "claude-sonnet";
 /** User-facing tag for the fast Claude tier (latest Haiku via the CLI alias). */
 export const CLAUDE_MODEL_FAST = "claude-haiku";
 
-/** Gemini model used in production. A `-preview` tag chosen for flash-tier
- *  price/latency. NOTE: src/lib/llm/cost.ts `RATES` is keyed by this exact string,
- *  so renaming it (or its GA) needs a matching RATES entry or cost reports as $0. */
-export const GEMINI_MODEL = "gemini-3-flash-preview";
+/** Gemini model used in production. GA since 2026-09-02 (was a `-preview` tag).
+ *  NOTE: src/lib/llm/cost.ts `RATES` is keyed by this exact string, so renaming it
+ *  needs a matching RATES entry or cost reports as $0 - and because that key is
+ *  COMPUTED from this constant, the key follows a rename automatically while the RATE
+ *  underneath it does not. Changing this line means checking the number there too. */
+export const GEMINI_MODEL = "gemini-3.8-flash";
 
 /** Gemini model for the fast tier (flash-lite-class price/latency). Keyed into
  *  src/lib/llm/cost.ts `RATES` like GEMINI_MODEL — keep the two in sync. */

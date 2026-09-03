@@ -24,7 +24,7 @@
       "path": "gemini.quality",
       "provider": "gemini — the Google GenAI API (production; what real users are served by)",
       "declaredBy": "GEMINI_MODEL",
-      "tag": "gemini-3-flash-preview"
+      "tag": "gemini-3.8-flash"
     },
     {
       "path": "gemini.fast",
@@ -50,8 +50,8 @@
     }
   ],
   "acceptance": {
-    "pinnedAt": "2026-08-31",
-    "reason": "First pin. Recorded from src/lib/llm/models.ts as it stands, so a model id can no longer move without a build going red. NOT a claim that anything was re-proved: no real-model run backs this entry, and `provenAt` stays null until one does.",
+    "pinnedAt": "2026-09-03",
+    "reason": "gemini-3.8-flash GA (2026-09-02) replaced the gemini-3-flash-preview tag; goldens and budget re-checked statically, llm:drift re-prove against the live provider still OWED",
     "provenAt": null,
     "provenBy": null
   },
