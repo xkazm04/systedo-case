@@ -2,5 +2,15 @@
   "projectName": "systedo-case",
   "createdAt": "2026-06-15T13:16:17.467Z",
   "updatedAt": "2026-06-15T13:16:17.467Z",
-  "customConfig": {}
+  "customConfig": {},
+  "permissions": {
+    "deny": [
+      "Bash(*--no-verify*)",
+      "Bash(git push*--force*)",
+      "Bash(git push* -f *)",
+      "Bash(*SYSTEDO_SKIP_GATE=1*)",
+      "Bash(*HUSKY=0*)",
+      "Bash(git push*)"
+    ]
+  }
 }

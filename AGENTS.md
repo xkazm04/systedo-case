@@ -302,6 +302,8 @@ remedy all turn the unit suite red.
 
 ## Conventions that bite
 
+- **Commit on the current branch; never push.** `git push` itself is denied to agents in this repository; the owner pushes after reading the log. This line exists because the harness's own default for an unattended session is to push and open a draft PR when the file says nothing (measured 2026-09-08: without such a line the agent pushed; with it the agent stopped at the commit). The gate bypass is denied to agents at the permission layer (`.claude/settings.json` `permissions.deny`: `--no-verify`, force-push, `SYSTEDO_SKIP_GATE=1`, `HUSKY=0`) - do not work around it; if a gate is red, fix the tree.
+
 - **llm-tool tag contract**: every `generateStructured` call site must carry a
   `// llm-tool: <id>` comment with a registered test in the gate registry.
   `scripts/llm-gate.mjs` (pre-commit + CI) fails on an untagged call site,
@@ -907,7 +909,7 @@ would notice afterwards.
 | `cheapest-first` — the chain is ordered by a clock, not by a claim | `gates:timings:check` | blocking |
 | `harness-degradation` — a capability that stops running says so | `harness:degradation:check` | blocking |
 | `seed-determinism` — the demo dataset regenerates identically | `seed:check` | blocking |
-| `no-push` — never push, and especially never to `master` | `.husky/pre-push` (verifies, does not prevent) | partial |
+| `no-push` — never push, and especially never to `master` | `.claude/settings.json` `permissions.deny` `Bash(git push*)` (denied to agents at the permission layer, 2026-09-08); `.husky/pre-push` verifies the owner's push | blocking |
 | `no-live-ad-writes` — never arm or widen `SKLIK_WRITES_ENABLED` | `test-unit/campaigns-mutator.test.mjs` | partial |
 | `no-outbound-under-operator` — the operator presses send | — | **honour** |
 | `no-secret-movement` — never move a credential anywhere | `.husky/pre-commit` secret scan, `sast` | partial |
