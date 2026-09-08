@@ -1,32 +1,22 @@
 # Retired: the `/lp` landing-page variants
 
-> **Reopened 2026-09-08, deliberately and with an end date.** `/lp` and
-> `/lp/monolith` are live again for the landing motion + asset rebuild
-> ([`docs/ship/2026-09-08-landing-motion-rebuild.md`](../ship/2026-09-08-landing-motion-rebuild.md)).
-> This note is the reason that is not simply a repeat of the mistake below, so
-> the differences are stated rather than assumed:
+> **Reopened 2026-09-08, deliberately and with an end date.** `/lp` is live again as the
+> REVIEW SHEET for three research variants — `/lp/story`, `/lp/exhibit`, `/lp/instrument` —
+> each a pure application of one information-distribution strategy from
+> [`docs/design/nextgen-landing.md`](../design/nextgen-landing.md) (time, space, interaction).
+> A first single variant, `/lp/monolith`, was built and torn down the same day; its record is
+> [`docs/ship/2026-09-08-landing-motion-rebuild.md`](../ship/2026-09-08-landing-motion-rebuild.md).
+> This note is the reason that is not simply a repeat of the mistake below:
 >
-> - **It is reachable and it says so.** `/lp` is an index page carrying both
->   surfaces and the decision date. Reason 2 below — "nothing linked to them" —
->   does not apply.
-> - **It leads with the claim the product leads with.** The free-channel path is
->   the first band after the hero, which is what reason 1 below says a candidate
->   must do.
-> - **It is composed, not a monolith file.** One 90-line composer over six
->   section components, each under the 200-LOC rubric. Reason 3 below is the
->   shape it was built to avoid.
-> - **It has a decision date: 2026-10-08.** Promote one onto `/` and delete the
->   other, or delete both routes. An unpromoted variant left alive past that date
->   is this note's original finding happening again, and should be deleted
->   without ceremony.
-
-**Decision, 2026-08-28 — reversible.** The three exploratory landing-page
-variants and their comparison index are **deleted from the tree**. The shipped
-homepage (`src/components/brand/BrandLanding.tsx` + `src/components/brand/landing/*`
-+ the free-channel bands under `src/components/marketing/kanaly/`) is the single
-landing surface. This note is the only thing that survives them; the code itself
-survives in git history and can be restored in one command if the decision is
-wrong.
+> - **They are reachable and reviewed, not parked.** `/lp` links all three with the bet each
+>   one makes and a good/bad column; reason 2 below does not apply.
+> - **They exist to DERIVE the path, not to be it.** Each is unblended on purpose so a review can
+>   attribute what worked. The shipped homepage is untouched throughout.
+> - **They are composed, not monolith files.** Every band is a section component under the
+>   200-LOC rubric; reason 3 below is the shape they were built to avoid.
+> - **Decision date: 2026-10-08.** Promote one strategy (or a written fusion) onto `/` and delete
+>   the rest, or delete all three. Past that date with no decision, they are this note's original
+>   finding happening again and should be deleted without ceremony.
 
 ## What was deleted
 

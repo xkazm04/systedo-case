@@ -1,6 +1,7 @@
 "use client";
 
-/** CURSOR-TRACKED LIGHT — the one hydrating piece of the Monolith landing.
+/** POINTER LIGHT — a cursor-tracked light source for a marketing surface (P5 in
+ *  docs/design/nextgen-landing.md: the cursor-tracking technique, minus the mascot).
  *
  *  The reference technique is a mascot whose eyes follow the pointer, with the
  *  eyes travelling FURTHER than the head; that offset between two layers is what
@@ -22,7 +23,7 @@
  *     fully-composed hero. Nothing here is required to see the page. */
 import { useEffect, useRef, type ReactNode } from "react";
 
-export default function MonolithLight({
+export default function PointerLight({
   children,
   className = "",
 }: {

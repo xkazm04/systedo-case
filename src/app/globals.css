@@ -612,6 +612,150 @@ html[data-theme="dark"] .theme-toggle-moon {
 .mono-panel:nth-child(5) { transform: rotateY(240deg) translateZ(var(--r)); }
 .mono-panel:nth-child(6) { transform: rotateY(300deg) translateZ(var(--r)); }
 
+/* ---------------------------------------------------------------------------
+   THE STORY FILM (/lp/story) — P1 in docs/design/nextgen-landing.md.
+   One protagonist on one pinned stage; the scroll sets `data-scene` on the
+   stage (StoryFilm.tsx, an IntersectionObserver over the captions) and every
+   transition below is CSS. Nothing here is a timeline, so the universal
+   reduced-motion rule neutralises all of it — scenes still switch, instantly.
+   The one animation (the chart drawing itself at scene 4) is killed by name.
+--------------------------------------------------------------------------- */
+.story-film {
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+.story-film [data-for] {
+  transition:
+    opacity 700ms var(--ease),
+    transform 900ms var(--ease),
+    filter 700ms var(--ease);
+  will-change: opacity, transform;
+}
+/* default: everything that is not the URL is not there yet */
+.story-film [data-for="url"] { opacity: 1; transform: none; }
+.story-film [data-for="chips"],
+.story-film [data-for="field"],
+.story-film [data-for="chart"],
+.story-film [data-for="figures"],
+.story-film [data-for="final"] { opacity: 0; transform: translate3d(0, 28px, 0); pointer-events: none; }
+
+/* once the film has started, the address is gone for good — a state that is
+   not written for a later scene falls back to the DEFAULT, which is visible */
+.story-film:not([data-scene="0"]) [data-for="url"] { opacity: 0; transform: translate3d(0, -200px, 0) scale(0.6); }
+.story-film[data-scene="1"] [data-for="url"] { opacity: 0.35; transform: translate3d(0, -140px, 0) scale(0.7); }
+.story-film[data-scene="1"] [data-for="chips"] { opacity: 1; transform: none; }
+
+/* scene 2 — the facets rise, the ranked field lands */
+.story-film[data-scene="2"] [data-for="chips"] { opacity: 0.55; transform: translate3d(0, -190px, 0) scale(0.78); }
+.story-film[data-scene="2"] [data-for="field"] { opacity: 1; transform: none; }
+.story-film[data-scene="2"] .story-tile { transition-delay: calc(var(--i) * 45ms); }
+
+/* scene 3 — the top three pull forward and start holding state */
+.story-film[data-scene="3"] [data-for="chips"] { opacity: 0.3; transform: translate3d(0, -210px, 0) scale(0.72); }
+.story-film[data-scene="3"] [data-for="field"] { opacity: 1; transform: none; }
+.story-film[data-scene="3"] .story-tile { opacity: 0.28; filter: saturate(0.4); transform: scale(0.94); }
+.story-film[data-scene="3"] .story-tile[data-top] { opacity: 1; filter: none; transform: translate3d(0, -18px, 0) scale(1.06); }
+.story-film[data-scene="3"] .story-tile[data-top] .story-stage-strip { opacity: 1; transform: none; }
+
+/* scene 4 — the numbers: field compresses to a floor row, the line draws, figures arrive */
+.story-film[data-scene="4"] [data-for="chips"],
+.story-film[data-scene="5"] [data-for="chips"] { opacity: 0; }
+.story-film[data-scene="4"] [data-for="field"] { opacity: 0.18; transform: translate3d(0, 150px, 0) scale(0.7); filter: blur(1px); }
+.story-film[data-scene="4"] [data-for="chart"] { opacity: 1; transform: none; }
+.story-film[data-scene="4"] [data-for="figures"] { opacity: 1; transform: none; }
+.story-film[data-scene="4"] .story-figure { opacity: 1; transform: none; }
+.story-film[data-scene="4"] .story-figure:nth-child(1) { transition-delay: 300ms; }
+.story-film[data-scene="4"] .story-figure:nth-child(2) { transition-delay: 620ms; }
+.story-film[data-scene="4"] .story-figure:nth-child(3) { transition-delay: 940ms; }
+.story-film[data-scene="4"] .story-figure:nth-child(4) { transition-delay: 1260ms; }
+.story-film[data-scene="4"] .story-line { animation: chartDraw 1.6s var(--ease) 200ms both; }
+
+/* scene 5 — leave with the account running */
+.story-film[data-scene="5"] [data-for="field"] { opacity: 0; }
+.story-film[data-scene="5"] [data-for="chart"] { opacity: 0.45; transform: translate3d(0, -60px, 0) scale(0.9); }
+.story-film[data-scene="5"] [data-for="figures"] { opacity: 0.5; transform: translate3d(0, -80px, 0) scale(0.85); }
+.story-film[data-scene="5"] .story-line { animation: chartDraw 1.6s var(--ease) both; }
+.story-film[data-scene="5"] [data-for="final"] { opacity: 1; transform: none; pointer-events: auto; }
+
+/* pieces with their own resting state */
+.story-tile { transition: opacity 600ms var(--ease), transform 700ms var(--ease), filter 600ms var(--ease); }
+.story-stage-strip { opacity: 0; transform: translate3d(0, 6px, 0); transition: opacity 500ms var(--ease) 350ms, transform 500ms var(--ease) 350ms; }
+.story-figure { opacity: 0; transform: translate3d(0, 14px, 0); transition: opacity 600ms var(--ease), transform 700ms var(--ease); }
+.story-line { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.story-caret { animation: storyCaret 1.1s steps(2, start) infinite; }
+@keyframes storyCaret { to { visibility: hidden; } }
+
+/* ---------------------------------------------------------------------------
+   THE EXHIBIT (/lp/exhibit) — P4 in docs/design/nextgen-landing.md.
+   Still by design: the only motion is `.reveal-on-scroll` on each specimen and
+   `.mono-seq` on the figures, both already covered by the kill lists. What is
+   here is the gallery's material — the noise a spotlit wall has (Orbital
+   Garden's feTurbulence overlay, at 4%), and the glowing dot of a mono eyebrow.
+--------------------------------------------------------------------------- */
+.exhibit-noise {
+  position: relative;
+}
+.exhibit-noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23ffffff' filter='url(%23n)' opacity='.5' d='M0 0h180v180H0z'/%3E%3C/svg%3E");
+}
+.exhibit-dot::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 12px;
+  border-radius: 50%;
+  background: var(--color-brand-300);
+  box-shadow: 0 0 13px var(--color-brand-400);
+  vertical-align: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   THE INSTRUMENT (/lp/instrument) — P3/P7/P12 in docs/design/nextgen-landing.md.
+   The switch is the motion: a key's light is a transition, staggered by its
+   index, so the board wakes up left to right. Transitions, not timelines —
+   the universal reduced-motion rule neutralises them. The pointer light is
+   the same --mx/--my PointerLight writes for the hero mass.
+--------------------------------------------------------------------------- */
+.sb-key {
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  border-color: color-mix(in oklab, var(--color-onyx-line) 60%, transparent);
+  color: var(--color-onyx-muted);
+  opacity: 0.45;
+  transition:
+    opacity 500ms var(--ease) calc(var(--i, 0) * 18ms),
+    border-color 500ms var(--ease) calc(var(--i, 0) * 18ms),
+    background-color 500ms var(--ease) calc(var(--i, 0) * 18ms),
+    color 500ms var(--ease) calc(var(--i, 0) * 18ms);
+}
+.sb-key .sb-lamp {
+  background: var(--color-onyx-line);
+  transition: background-color 500ms var(--ease) calc(var(--i, 0) * 18ms), box-shadow 500ms var(--ease) calc(var(--i, 0) * 18ms);
+}
+.sb-key[data-lit="1"] {
+  opacity: 1;
+  color: var(--color-onyx-ink);
+  border-color: color-mix(in oklab, var(--color-brand-400) 45%, transparent);
+  background-color: color-mix(in oklab, var(--color-brand-500) 10%, transparent);
+}
+.sb-key[data-lit="1"] .sb-lamp {
+  background: var(--color-brand-300);
+  box-shadow: 0 0 10px var(--color-brand-400);
+}
+.sb-light {
+  background: radial-gradient(
+    420px circle at calc(50% + var(--mx, 0) * 45%) calc(50% + var(--my, 0) * 45%),
+    color-mix(in oklab, var(--color-brand-500) 14%, transparent),
+    transparent 70%
+  );
+  transition: background-position 500ms var(--ease);
+}
+
 /* 5. STACKING CARDS — each slab pins and the next slides OVER it, instead of
       pushing it off the screen. Pure `position: sticky`: no JS, no timeline,
       and it degrades to a plain vertical list wherever sticky is unavailable.
@@ -787,6 +931,24 @@ html {
   .mono-prism {
     animation: none !important;
   }
+  /* the story film's line draws by animation at scene 4 — settle it drawn */
+  .story-line,
+  .story-caret {
+    animation: none !important;
+    stroke-dashoffset: 0;
+    visibility: visible;
+  }
+  /* the universal rule above zeroes DURATION, not DELAY: a figure sequenced to
+     arrive 1.26s after the scene would still keep a reduced-motion reader
+     waiting for it. Sequencing is a motion; here it is switched off too. */
+  .story-film [data-for],
+  .story-tile,
+  .story-figure,
+  .story-stage-strip,
+  .sb-key,
+  .sb-key .sb-lamp {
+    transition-delay: 0s !important;
+  }
   /* the pointer-tracked light never attaches under reduced motion, so --mx/--my
      stay 0; pinning the transform makes that true even if it ever did */
   .mono-mass {
@@ -830,4 +992,7 @@ html {
   .mono-stack > * {
     position: static;
   }
+  .story-line { animation: none !important; stroke-dashoffset: 0; }
+  /* a film cannot print: show every scene's pieces, unpinned */
+  .story-film [data-for] { opacity: 1 !important; transform: none !important; position: static; }
 }

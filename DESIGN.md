@@ -496,6 +496,12 @@ CSS- and JS-driven motion read as one hand.
   / `.mono-mass` / `.mono-glow` are the one exception that needs JS — a pointer has no
   CSS timeline. Assigned one technique per band so only one thing ever moves; see
   `docs/ship/2026-09-08-landing-motion-rebuild.md`.
+- **The three research landings** (`/lp/*`, `docs/design/nextgen-landing.md`) each add one
+  family: `.story-film[data-scene]` (a pinned stage whose pieces move per scene, all
+  transitions, one drawn line), `.exhibit-noise` / `.exhibit-dot` (a gallery's material, no
+  motion of its own), and `.sb-key[data-lit]` / `.sb-light` (a switchboard that re-lights by
+  index). Transitions, not timelines, so the kill switch already reaches them; the story's
+  `.story-line` draw is the one animation and is killed by name.
 
 **The Reduced-Motion Kill Switch.** A single global block collapses every animation and
 transition to 0.01ms and disables smooth scrolling; the infinite loading pulse is stopped

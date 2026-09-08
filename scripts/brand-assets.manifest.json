@@ -115,6 +115,51 @@
       "style": "cinematic",
       "prompt": "Several thin teal paths branching outward from one dark stone node across a black surface, seen from directly above, geometric, sparse, cold, near black, no text",
       "role": "Crossroad tile for /kanaly-zdarma, which renders a bare onyx chip today."
+    },
+    {
+      "id": "story-desk",
+      "out": "public/brand/monolith/story-desk",
+      "width": 1536,
+      "height": 640,
+      "style": "cinematic",
+      "prompt": "An empty polished obsidian desk surface seen from a low front angle, one cold teal light raking across it from the left, faint reflections, deep black beyond the far edge, minimal, wide cinematic plate, near black",
+      "role": "Story variant — the stage plate every scene plays on (P1: one protagonist, one set)."
+    },
+    {
+      "id": "story-account",
+      "out": "public/brand/monolith/story-account",
+      "width": 1536,
+      "height": 640,
+      "style": "cinematic",
+      "prompt": "Abstract dark instrument surface with a single thin teal line rising gently left to right across it, faint horizontal etched grooves, soft glow at the line's end, near black, wide cinematic plate, minimal",
+      "role": "Story variant — the final scene's backdrop, the account running."
+    },
+    {
+      "id": "exhibit-plate",
+      "out": "public/brand/monolith/exhibit-plate",
+      "width": 1024,
+      "height": 1024,
+      "style": "cinematic",
+      "prompt": "A dark stone museum plinth top surface lit from directly above by one cold teal spotlight, soft falloff into black, fine mineral grain, seen from a slight elevation, minimal, near black",
+      "role": "Exhibit variant — the plinth every specimen sits on (P4)."
+    },
+    {
+      "id": "exhibit-wall",
+      "out": "public/brand/monolith/exhibit-wall",
+      "width": 1536,
+      "height": 640,
+      "style": "cinematic",
+      "prompt": "A wide nearly black gallery wall with a very faint plaster texture, one narrow cold teal spotlight cone falling on it from above left, deep shadow elsewhere, minimal, wide plate",
+      "role": "Exhibit variant — the gallery wall behind the hero exhibit."
+    },
+    {
+      "id": "instrument-panel",
+      "out": "public/brand/monolith/instrument-panel",
+      "width": 640,
+      "height": 1536,
+      "style": "dynamic",
+      "prompt": "Tall narrow dark brushed metal control panel surface, fine vertical brushing, one cold teal edge light along the right edge, small unlit indicator recesses in a vertical column, near black, macro material study, seamless",
+      "role": "Instrument variant — the type rail's background (P3: the product is the hero)."
     }
   ]
 }
