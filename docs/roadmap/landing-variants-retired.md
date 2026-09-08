@@ -1,5 +1,25 @@
 # Retired: the `/lp` landing-page variants
 
+> **Reopened 2026-09-08, deliberately and with an end date.** `/lp` and
+> `/lp/monolith` are live again for the landing motion + asset rebuild
+> ([`docs/ship/2026-09-08-landing-motion-rebuild.md`](../ship/2026-09-08-landing-motion-rebuild.md)).
+> This note is the reason that is not simply a repeat of the mistake below, so
+> the differences are stated rather than assumed:
+>
+> - **It is reachable and it says so.** `/lp` is an index page carrying both
+>   surfaces and the decision date. Reason 2 below — "nothing linked to them" —
+>   does not apply.
+> - **It leads with the claim the product leads with.** The free-channel path is
+>   the first band after the hero, which is what reason 1 below says a candidate
+>   must do.
+> - **It is composed, not a monolith file.** One 90-line composer over six
+>   section components, each under the 200-LOC rubric. Reason 3 below is the
+>   shape it was built to avoid.
+> - **It has a decision date: 2026-10-08.** Promote one onto `/` and delete the
+>   other, or delete both routes. An unpromoted variant left alive past that date
+>   is this note's original finding happening again, and should be deleted
+>   without ceremony.
+
 **Decision, 2026-08-28 — reversible.** The three exploratory landing-page
 variants and their comparison index are **deleted from the tree**. The shipped
 homepage (`src/components/brand/BrandLanding.tsx` + `src/components/brand/landing/*`

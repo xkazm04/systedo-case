@@ -892,7 +892,14 @@
         "src/components/brand/landing/LandingProof.tsx",
         "src/components/brand/landing/LandingClosing.tsx",
         "src/components/brand/landing/LandingModules.tsx",
-        "src/components/brand/landing/LandingFaq.tsx"
+        "src/components/brand/landing/LandingFaq.tsx",
+        "src/components/brand/monolith/MonolithLanding.tsx",
+        "src/components/brand/monolith/MonolithHero.tsx",
+        "src/components/brand/monolith/MonolithLight.tsx",
+        "src/components/brand/monolith/MonolithClaim.tsx",
+        "src/components/brand/monolith/MonolithTurntable.tsx",
+        "src/components/brand/monolith/MonolithProof.tsx",
+        "src/components/brand/monolith/MonolithClosing.tsx"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
@@ -4690,7 +4697,9 @@
         "src/app/not-found.tsx",
         "src/app/error.tsx",
         "src/app/global-error.tsx",
-        "src/app/loading.tsx"
+        "src/app/loading.tsx",
+        "src/app/lp/page.tsx",
+        "src/app/lp/monolith/page.tsx"
       ],
       "group": "Site & Marketing",
       "group_id": "0ca5ac6b-c9d8-4a90-94fb-6088a88a66b4",

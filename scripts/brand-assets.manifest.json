@@ -1,0 +1,120 @@
+{
+  "$comment": [
+    "PROMPTS AS DATA, so a regeneration is reviewable as a diff.",
+    "",
+    "This is the asset half of the landing motion rebuild (docs/ship/2026-09-08-landing-motion-rebuild.md).",
+    "Every prompt is written FROM DESIGN.md's world statement — 'an obsidian monument for ad",
+    "intelligence: onyx surfaces, a faceted 60 degree lattice, and one teal that only speaks when",
+    "it means something' — and against its recorded anti-reference: no purple-to-blue SaaS wash,",
+    "no glassmorphism, no mascots, no people, no lettering.",
+    "",
+    "WHY EVERY PROMPT ENDS THE SAME WAY. Leonardo will happily put invented words on a monument",
+    "and a watermark in the corner; both are unusable in a brand asset and neither is fixable in",
+    "CSS. The negative tail is therefore part of the contract, not decoration.",
+    "",
+    "TEAL IS RATIONED IN THE PROMPT, not just in the CSS. DESIGN.md gives the brand exactly one",
+    "accent, so an asset that arrives already glowing teal everywhere cannot be toned down later.",
+    "Each prompt names teal as a rim/edge light on a near-black subject, which is the one job it has.",
+    "",
+    "SIZES are multiples of 8 and <= 1536 (Lucid Origin's practical ceiling). The prism panels are",
+    "deliberately small: twelve of them ship on one page, so each is a texture, not a picture."
+  ],
+  "model": "lucid-origin",
+  "defaults": {
+    "style": "cinematic",
+    "contrast": 3.5,
+    "negativeTail": "no text, no lettering, no words, no logo, no watermark, no signature, no people, no faces, no mascot, no cartoon, no purple, no magenta, no glassmorphism, no lens flare stars"
+  },
+  "assets": [
+    {
+      "id": "hero-far",
+      "out": "public/brand/monolith/hero-far",
+      "width": 1536,
+      "height": 640,
+      "style": "cinematic",
+      "prompt": "A vast dark field of thin geometric facet lines receding into deep near-black navy fog, sixty degree lattice, faint teal light pooling far away on the horizon, extreme depth, wide cinematic plate, matte, no subject in focus, ambient background layer, subtle film grain",
+      "role": "Hero parallax plane 1 of 3 — the deepest layer, moves least."
+    },
+    {
+      "id": "hero-mass",
+      "out": "public/brand/monolith/hero-mass",
+      "width": 1024,
+      "height": 1024,
+      "style": "cinematic",
+      "prompt": "A single monolithic obsidian slab standing upright in darkness, sharply faceted black volcanic glass, hard planar edges, one cold teal rim light raking down the left edge, deep shadow on the right, centred, isolated on pure black, product photography of a sculpture, studio, ultra sharp edges, no ground plane, no reflection",
+      "role": "Hero parallax plane 2 of 3 — the monument itself, the mid plane."
+    },
+    {
+      "id": "hero-veil",
+      "out": "public/brand/monolith/hero-veil",
+      "width": 1536,
+      "height": 640,
+      "style": "cinematic",
+      "prompt": "Thin drifting haze and fine dust motes lit from one side by a narrow cold teal beam, black background, atmospheric volumetric light layer, very subtle, mostly empty frame, wide plate, soft grain",
+      "role": "Hero parallax plane 3 of 3 — the nearest layer, moves most."
+    },
+    {
+      "id": "facet-a",
+      "out": "public/brand/monolith/facet-a",
+      "width": 512,
+      "height": 1024,
+      "style": "dynamic",
+      "prompt": "Tall narrow vertical panel of polished black obsidian, flat planar surface, faint sixty degree lattice etched into the stone, cold teal specular highlight along one long edge, macro material study, seamless, even lighting, near black",
+      "role": "Prism skin — the lit face."
+    },
+    {
+      "id": "facet-b",
+      "out": "public/brand/monolith/facet-b",
+      "width": 512,
+      "height": 1024,
+      "style": "dynamic",
+      "prompt": "Tall narrow vertical panel of matte black volcanic stone, fine mineral grain, barely visible geometric etching, no highlight, deep shadow, macro material study, seamless, near black",
+      "role": "Prism skin — the shadow face."
+    },
+    {
+      "id": "facet-c",
+      "out": "public/brand/monolith/facet-c",
+      "width": 512,
+      "height": 1024,
+      "style": "dynamic",
+      "prompt": "Tall narrow vertical panel of dark stone split by one thin bright teal fracture line running top to bottom, polished black surface either side, macro material study, seamless, near black",
+      "role": "Prism skin — the seam face, one in twelve."
+    },
+    {
+      "id": "band-claim",
+      "out": "public/brand/monolith/band-claim",
+      "width": 1024,
+      "height": 768,
+      "style": "cinematic",
+      "prompt": "Many thin teal light threads converging from the dark edges of the frame into one bright point at the centre, black background, precise geometric routing, circuit-like but organic, cold, quiet, minimal, depth of field",
+      "role": "Free-channel band — many channels resolving into one plan."
+    },
+    {
+      "id": "band-proof",
+      "out": "public/brand/monolith/band-proof",
+      "width": 1024,
+      "height": 768,
+      "style": "cinematic",
+      "prompt": "A dark polished obsidian surface photographed from a low raking angle, faint parallel horizontal grooves etched across the stone, one thin teal line of light rising steadily from lower left to upper right, instrument panel feeling, near black, minimal, no ruler, no scale, no numerals, no digits, no tick marks, no gauge markings",
+      "role": "Proof band — measurement as a SURFACE, not a chart. The first generation of this prompt put a numbered ruler across the plate despite the negative tail, which is why the measuring instrument is now described as etched grooves and the numerals are refused four different ways."
+    },
+    {
+      "id": "closing-seal",
+      "out": "public/brand/monolith/closing-seal",
+      "width": 1024,
+      "height": 512,
+      "style": "cinematic",
+      "prompt": "A narrow horizontal shaft of cold teal light sealing a seam between two black stone masses, darkness above and below, extreme minimalism, wide letterbox plate, near black",
+      "role": "Closing band — the seal."
+    },
+    {
+      "id": "crossroad-kanaly",
+      "out": "public/brand/crossroad/kanaly-zdarma",
+      "width": 1024,
+      "height": 1024,
+      "style": "cinematic",
+      "prompt": "Several thin teal paths branching outward from one dark stone node across a black surface, seen from directly above, geometric, sparse, cold, near black, no text",
+      "role": "Crossroad tile for /kanaly-zdarma, which renders a bare onyx chip today."
+    }
+  ]
+}

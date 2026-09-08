@@ -438,6 +438,200 @@ html[data-theme="dark"] .theme-toggle-moon {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   THE MONOLITH MOTION FAMILY — the named techniques the landing rebuild uses
+   (docs/ship/2026-09-08-landing-motion-rebuild.md).
+
+   WHY NAMES. A section brief that says "make it feel premium" produces a
+   gradient. A brief that says "layered parallax on the hero, scroll-driven
+   rotation on the path band" produces those two things and nothing else, which
+   is also why this family is SMALL: five techniques, and the page assigns each
+   one to exactly ONE band so that only one thing is ever moving. A page where
+   six things move at once reads as noise no matter how good each one is.
+
+   WHY MOSTLY CSS. Four of the five are scroll-driven and hydrate nothing —
+   same argument as `.reveal-on-scroll` above: a static marketing band should
+   not pull a motion runtime into the bundle. Only the cursor-tracked light
+   needs a client island, because a pointer has no CSS timeline.
+
+   THE @supports GUARD IS LOAD-BEARING AND FAILS SAFE, exactly as above:
+   without scroll-driven animations none of these rules apply, so every band
+   renders in its final, fully legible state. `both` is only safe inside it.
+
+   AND EVERY CLASS HERE IS SWITCHED OFF BY NAME under prefers-reduced-motion
+   and in print. A view/scroll timeline ignores `animation-duration`, so the
+   universal 0.01ms rule below CANNOT neutralise it. Add a class here, add it
+   to both kill lists — otherwise a reduced-motion reader gets the full effect.
+--------------------------------------------------------------------------- */
+
+/* 1. LAYERED PARALLAX — three planes, three speeds, page-scroll driven.
+      The hero sits at the top of the document, so this is `scroll()` (progress
+      through the page) and not `view()` (progress across the viewport): a view
+      timeline is already finished for an element that starts on screen. */
+@keyframes planeDrift {
+  to {
+    transform: translate3d(0, var(--drift, 0), 0) scale(var(--drift-scale, 1));
+  }
+}
+
+/* 2. SCROLL-TRIGGER TEXT REVEAL — a line does not exist until you reach it.
+      The mask is the parent's `overflow: hidden`; the child rises through it. */
+@keyframes lineRise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 105%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 3. SCROLL-DRIVEN ROTATION — the monolith is not playing an animation, your
+      scroll position is turning it, and scrolling back turns it the other way. */
+@keyframes monolithSpin {
+  from {
+    transform: rotateX(-7deg) rotateY(-72deg);
+  }
+  to {
+    transform: rotateX(-7deg) rotateY(104deg);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .mono-plane {
+    animation: planeDrift linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 100vh;
+  }
+  .mono-plane-far {
+    --drift: 4%;
+    --drift-scale: 1.04;
+  }
+  .mono-plane-mid {
+    --drift: 9%;
+    --drift-scale: 1.06;
+  }
+  .mono-plane-near {
+    --drift: 18%;
+    --drift-scale: 1.1;
+  }
+
+  .mono-reveal-line > * {
+    animation: lineRise 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-timeline: view();
+    animation-range: entry 4% cover 30%;
+  }
+  /* the lines arrive in order rather than together — the same reason the proof
+     figures below are sequenced: four things landing at once reads as a table */
+  .mono-reveal-line:nth-child(2) > * { animation-range: entry 10% cover 36%; }
+  .mono-reveal-line:nth-child(3) > * { animation-range: entry 16% cover 42%; }
+  .mono-reveal-line:nth-child(4) > * { animation-range: entry 22% cover 48%; }
+
+  .mono-prism {
+    animation: monolithSpin linear both;
+    animation-timeline: view();
+    animation-range: cover 0% cover 100%;
+  }
+
+  /* 4b. ONE LINE AT A TIME. Four numbers fading in together read as a table;
+         arriving separately they read as calm. Straight from the drone build
+         in the reference video, and the cheapest good idea in it. */
+  .mono-seq > * {
+    animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-timeline: view();
+    animation-range: entry 12% entry 70%;
+  }
+  .mono-seq > *:nth-child(2) { animation-range: entry 20% entry 78%; }
+  .mono-seq > *:nth-child(3) { animation-range: entry 28% entry 86%; }
+  .mono-seq > *:nth-child(n + 4) { animation-range: entry 36% entry 94%; }
+}
+
+/* The masked line wrapper is plain layout, so it stays OUTSIDE the guard —
+   without scroll-driven animations the child simply sits at its end position. */
+.mono-reveal-line {
+  display: block;
+  overflow: hidden;
+}
+.mono-reveal-line > * {
+  display: block;
+}
+
+/* 4. CURSOR-TRACKED LIGHT — the one hydrating technique.
+      MonolithLight sets --mx/--my in the range -1..1 on the stage. The rim
+      light travels roughly four times as far as the mass does, which is the
+      whole trick: a foreground that moves further than its subject reads as
+      depth. Both default to 0, so the no-JS render is simply centred, and the
+      transition (not a per-frame write) is what gives the light its weight. */
+.mono-track {
+  --mx: 0;
+  --my: 0;
+}
+/* These two carry their FULL transform, centring and scale included, and the
+   elements must not also wear a Tailwind transform utility. Tailwind v4 emits
+   its utilities inside `@layer utilities`, and an unlayered rule beats any
+   layer — so `scale-110` or `-translate-x-1/2` on one of these elements is
+   silently dropped, with no warning and a layout that looks almost right. */
+.mono-mass {
+  transform: translate3d(calc(var(--mx) * 7px), calc(var(--my) * 7px), 0) scale(1.1);
+  transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mono-glow {
+  transform: translate3d(calc(-50% + var(--mx) * 30px), calc(-50% + var(--my) * 22px), 0);
+  transition: transform 550ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 3b. The prism's geometry. SIX panels on a 60° pitch, and the face count is the
+       whole design decision: the radius that makes N panels of width w meet
+       edge-to-edge is w / (2·tan(180°/N)), so twelve panels wide enough to carry
+       a stone texture describe a BARREL two and a half times wider than it is
+       readable — measured, not guessed. Six panels give a hexagonal column at
+       w × 0.866 half-width, which is what "monolith" means, and they face-cut
+       visibly as it turns instead of blurring into a cylinder.
+
+       Only the front three are ever painted (`backface-visibility: hidden`), so
+       the object is never see-through, and the fixed light overlay above it does
+       the shading a CSS 3D transform will not do for you. */
+.mono-stage {
+  perspective: 1200px;
+}
+.mono-prism {
+  transform-style: preserve-3d;
+  transform: rotateX(-7deg) rotateY(-24deg);
+}
+.mono-panel {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  transform-origin: 50% 50%;
+}
+.mono-panel:nth-child(1) { transform: rotateY(0deg)   translateZ(var(--r)); }
+.mono-panel:nth-child(2) { transform: rotateY(60deg)  translateZ(var(--r)); }
+.mono-panel:nth-child(3) { transform: rotateY(120deg) translateZ(var(--r)); }
+.mono-panel:nth-child(4) { transform: rotateY(180deg) translateZ(var(--r)); }
+.mono-panel:nth-child(5) { transform: rotateY(240deg) translateZ(var(--r)); }
+.mono-panel:nth-child(6) { transform: rotateY(300deg) translateZ(var(--r)); }
+
+/* 5. STACKING CARDS — each slab pins and the next slides OVER it, instead of
+      pushing it off the screen. Pure `position: sticky`: no JS, no timeline,
+      and it degrades to a plain vertical list wherever sticky is unavailable.
+      The small top offsets leave the earlier slabs' edges visible underneath,
+      which is what makes the stack legible as a stack rather than as a swap.
+
+      NOT ON A PHONE, and that is a content decision rather than a performance
+      one: at 390px a slab is a stacked number ABOVE its label, so a pinned slab
+      shows its figure with the sentence that explains it hidden under the next
+      card — "8.3M CZK" and nothing else. Below `sm` the slabs are a list. */
+@media (min-width: 40rem) {
+  .mono-stack > * {
+    position: sticky;
+    top: 5.5rem;
+  }
+  .mono-stack > *:nth-child(2) { top: 6.75rem; }
+  .mono-stack > *:nth-child(3) { top: 8rem; }
+  .mono-stack > *:nth-child(n + 4) { top: 9.25rem; }
+}
+
 /* Route-level loading fallback (app/loading.tsx). The reveal holds opacity 0
    for the first 40% of its 0.5s run (~200ms), so fast navigations swap in the
    real page before the spinner ever paints — no flash on quick round-trips. */
@@ -576,6 +770,31 @@ html {
     animation: none !important;
     opacity: 1;
   }
+  /* ...and the same for every member of the Monolith family, for the same
+     reason. `transform: none` is not optional on the reveal lines: their
+     start state is translated 105% BEHIND an overflow mask, so stopping the
+     animation without resetting the transform would leave the headline
+     invisible — the precise failure DESIGN.md's motion Don'ts warn about. */
+  .mono-plane,
+  .mono-reveal-line > *,
+  .mono-seq > * {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+  /* the prism keeps its RESTING angle — `transform: none` would flatten six
+     panels onto one plane and show a broken object rather than a still one */
+  .mono-prism {
+    animation: none !important;
+  }
+  /* the pointer-tracked light never attaches under reduced motion, so --mx/--my
+     stay 0; pinning the transform makes that true even if it ever did */
+  .mono-mass {
+    transform: scale(1.1) !important;
+  }
+  .mono-glow {
+    transform: translate3d(-50%, -50%, 0) !important;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -599,8 +818,16 @@ html {
   .animate-fade-up,
   .animate-fade-in,
   .animate-drop,
-  .reveal-on-scroll {
+  .reveal-on-scroll,
+  .mono-plane,
+  .mono-reveal-line > *,
+  .mono-seq > * {
     animation: none !important;
     opacity: 1;
+    transform: none;
+  }
+  /* a stack that pins would print four slabs on top of each other */
+  .mono-stack > * {
+    position: static;
   }
 }

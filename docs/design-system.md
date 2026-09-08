@@ -58,3 +58,35 @@ utility adapts for free. Key facts:
 would shift some colours sub-perceptibly in light mode (e.g. `navy-800 #0b1b2b` vs `ink #0d1a24`)
 for zero functional gain — a regression risk with no upside. Apply the convention going forward
 and when touching a file; don't sweep.
+
+## Scroll-driven motion — the one rule that is not optional
+
+`globals.css` carries two families of scroll-driven animation: `.reveal-on-scroll`
+(the marketing band fade) and the `.mono-*` family the Monolith landing uses
+(`docs/ship/2026-09-08-landing-motion-rebuild.md`). Both are `@supports
+(animation-timeline: view())`-guarded, so a browser without scroll-driven
+animations renders the content in its final state and nothing is lost.
+
+**A view or scroll timeline ignores `animation-duration`.** The universal
+`prefers-reduced-motion` rule collapses every animation to 0.01ms — and that does
+nothing at all to a timeline-driven one, because a timeline supplies the progress
+itself. So every such class is switched off **by name** in the reduced-motion
+block *and* in the print block. Add a class to the family, add it to both lists in
+the same diff.
+
+Two ways to get the kill wrong, both of which have already happened here:
+
+- **A masked reveal needs `transform: none` too.** `.mono-reveal-line`'s start
+  state is translated 105% behind an `overflow: hidden` mask. `animation: none`
+  alone leaves the line parked outside its mask — invisible, with no animation
+  running to bring it back.
+- **A 3D object must NOT be flattened.** `.mono-prism` gets `animation: none` and
+  keeps its resting `rotateY`; giving it `transform: none` with the rest of the
+  family collapses six panels onto one plane and shows a broken object instead of
+  a still one.
+
+Two more things CSS 3D will not do for you, learned the same way: an element
+translated on Z inside a `perspective` sits nearer the camera than an
+untransformed sibling, so any overlay above it needs an explicit `z-index`; and a
+`rotateX` tilt pushes an object's ends outside its own box, so an overlay that
+masks those ends has to reach past the box, not stop at it.

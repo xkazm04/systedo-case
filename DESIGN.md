@@ -487,10 +487,25 @@ CSS- and JS-driven motion read as one hand.
   `<Marquee>` (infinite ticker).
 - **Loading:** `.animate-loading-reveal` holds opacity 0 for the first 40% of its 0.5s
   run, so a fast navigation swaps in the real page before a spinner ever paints.
+- **The Monolith family** (`.mono-*`) — five named marketing techniques, four of them
+  scroll-driven and hydrating nothing: `.mono-plane-{far,mid,near}` (layered parallax on
+  a `scroll()` timeline), `.mono-reveal-line` (a masked line rising on arrival),
+  `.mono-prism` + `.mono-panel` (a six-face CSS 3D column turned by scroll position),
+  `.mono-seq` (children arriving one at a time rather than together) and `.mono-stack`
+  (`position: sticky` slabs that pin and are slid over, `sm` and up only). `.mono-track`
+  / `.mono-mass` / `.mono-glow` are the one exception that needs JS — a pointer has no
+  CSS timeline. Assigned one technique per band so only one thing ever moves; see
+  `docs/ship/2026-09-08-landing-motion-rebuild.md`.
 
 **The Reduced-Motion Kill Switch.** A single global block collapses every animation and
 transition to 0.01ms and disables smooth scrolling; the infinite loading pulse is stopped
-outright and pinned at full opacity. Every motion primitive additionally short-circuits
+outright and pinned at full opacity. **A scroll- or view-timeline animation ignores
+`animation-duration`, so that global block does not reach it** — `.reveal-on-scroll` and
+every `.mono-*` class are switched off BY NAME in both the reduced-motion and print
+blocks. Adding a timeline-driven class without adding it to both lists ships a page that
+still animates for a reader who asked it not to, and `.mono-reveal-line` additionally
+needs `transform: none` there: its start state is translated behind an overflow mask, so
+stopping the animation without resetting the transform hides the headline outright. Every motion primitive additionally short-circuits
 to a static render via `useReducedMotion()`. No content is ever hidden by a motion
 preference — `both` fill means an un-run animation would otherwise leave a section at
 opacity 0, which is why the kill switch settles to the *end* state, never the start.
@@ -533,6 +548,9 @@ opacity 0, which is why the kill switch settles to the *end* state, never the st
   change border. Nothing lifts on hover.
 - **Don't** layer `.bg-facets` and `.bg-dotgrid`, and don't raise the pattern opacity to
   make the lattice legible. It is ambient by design.
+- **Don't** ship a scroll- or view-timeline animation without adding its class to the
+  reduced-motion AND print kill lists by name. The universal duration override cannot
+  neutralise a timeline, and a `both` fill will leave the content invisible.
 - **Don't** ship an entrance animation without confirming the global reduced-motion block
   settles it to its *end* state — an `animation-fill-mode: both` entrance that isn't
   neutralized leaves content invisible.
