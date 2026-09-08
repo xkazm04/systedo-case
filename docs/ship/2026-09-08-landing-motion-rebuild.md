@@ -1,8 +1,11 @@
 # The landing motion + asset rebuild — direction contract
 
-**Status:** live at `/lp/monolith`, indexed from `/lp`, both `noindex`.
-**Decision due 2026-10-08:** promote one onto `/` and delete the other, or delete
-both routes. See [Reversing this](#reversing-this).
+**Status: DELETED, 2026-09-08.** `/lp/monolith` was built, reviewed and torn down the same
+day (its verdict: the object was over-invested and every other band stayed a "reading
+journal"); the three research variants that replaced it were reviewed by the owner and
+deleted the same day too. What survives: the asset generator (`npm run brand:assets`), the
+crossroad tile for `/kanaly-zdarma`, and `docs/design/nextgen-landing.md` as the record of
+the reading. The verification-loop findings below are kept as a record.
 
 ---
 

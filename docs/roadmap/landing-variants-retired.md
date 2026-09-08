@@ -1,22 +1,14 @@
 # Retired: the `/lp` landing-page variants
 
-> **Reopened 2026-09-08, deliberately and with an end date.** `/lp` is live again as the
-> REVIEW SHEET for three research variants — `/lp/story`, `/lp/exhibit`, `/lp/instrument` —
-> each a pure application of one information-distribution strategy from
-> [`docs/design/nextgen-landing.md`](../design/nextgen-landing.md) (time, space, interaction).
-> A first single variant, `/lp/monolith`, was built and torn down the same day; its record is
-> [`docs/ship/2026-09-08-landing-motion-rebuild.md`](../ship/2026-09-08-landing-motion-rebuild.md).
-> This note is the reason that is not simply a repeat of the mistake below:
->
-> - **They are reachable and reviewed, not parked.** `/lp` links all three with the bet each
->   one makes and a good/bad column; reason 2 below does not apply.
-> - **They exist to DERIVE the path, not to be it.** Each is unblended on purpose so a review can
->   attribute what worked. The shipped homepage is untouched throughout.
-> - **They are composed, not monolith files.** Every band is a section component under the
->   200-LOC rubric; reason 3 below is the shape they were built to avoid.
-> - **Decision date: 2026-10-08.** Promote one strategy (or a written fusion) onto `/` and delete
->   the rest, or delete all three. Past that date with no decision, they are this note's original
->   finding happening again and should be deleted without ceremony.
+> **Reopened and closed again on 2026-09-08.** `/lp` came back that day as a review sheet for
+> three research variants (`story` / `exhibit` / `instrument`, one information-distribution
+> strategy each, from [`docs/design/nextgen-landing.md`](../design/nextgen-landing.md)) after
+> a first single variant, `/lp/monolith`, had already been built and torn down. The owner
+> reviewed all three and deleted them the same day: none showed the potential hoped for, and
+> the lesson recorded is that a landing direction needs the owner's OWN specific references
+> and inputs before anything is built — a library derived from other people's videos is not
+> a brief. The pattern doc stays as the record of the reading; nothing else survives. Reason 2
+> below held again: a variant nobody asked for in those terms is a period piece on arrival.
 
 ## What was deleted
 

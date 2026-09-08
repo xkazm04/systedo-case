@@ -1,5 +1,10 @@
 # Next-gen landing — the pattern library
 
+> **Status 2026-09-08:** the three variants this library was applied to (`/lp/story`,
+> `/lp/exhibit`, `/lp/instrument`) were reviewed by the owner and deleted the same day —
+> none showed the potential hoped for. This document stays as the record of what the four
+> sources say; the next attempt starts from the owner's own references, not from here.
+
 **What this is.** Four videos and one repository about "GPT-6 Astra web design", read for what
 survives once the model worship and the plugin referral links are removed. It is a library of
 *information-distribution* patterns, not a motion vocabulary: the first attempt at a rebuild
@@ -7,9 +12,8 @@ survives once the model worship and the plugin referral links are removed. It is
 journal, because motion is not what separates a designed page from a formatted one.
 
 **What it is for.** Briefing a landing page — ours or a client's — so the page has a strategy
-before it has a hero. Three variants at `/lp/{story,exhibit,instrument}` each apply ONE strategy
-from this library, on purpose and unblended, so a review can attribute what works. The review
-sheet is `/lp`; the decision date is 2026-10-08.
+before it has a hero. Three variants (`story`, `exhibit`, `instrument`) each applied ONE strategy
+from it, unblended, and were deleted on review; what that taught is in the status note above.
 
 **Sources** (transcripts pulled 2026-09-08; timestamps are into each video):
 
@@ -50,8 +54,9 @@ transition is CSS on layered planes. Same effect, no runtime, no 40 MB asset.
 > over the top." — V3 02:27–02:40
 
 Every hero and most bands are three or four planes — text, subject, background, foreground —
-each moving at its own rate or not at all. Flat is the first thing that reads as slop. The
-brand already has the planes (`hero-far`, `hero-mass`, `hero-veil` in `public/brand/monolith/`).
+each moving at its own rate or not at all. Flat is the first thing that reads as slop. Planes
+for the brand can be regenerated from `scripts/brand-assets.manifest.json` (`hero-far`,
+`hero-mass`, `hero-veil`).
 
 ### P3 · Open on the thing itself
 
@@ -88,9 +93,9 @@ already lists as the un-harvested "mono for measurement" idea.
 > for." — V1 05:50–05:58
 
 Layered parallax · scroll-trigger text reveal · scroll-driven rotation · cursor tracking ·
-stacking cards. Assign each to exactly one band. Implemented here as the `.mono-*` family in
-`src/app/globals.css` and `src/components/motion/PointerLight.tsx`. Four of five are CSS
-timelines and hydrate nothing.
+stacking cards. Assign each to exactly one band. Four of five can be CSS scroll timelines
+that hydrate nothing; only cursor tracking needs a client island (the implementation was
+removed with the variants; git history holds it).
 
 ### P6 · Sequence: footage → body → numbers, and numbers one at a time
 
@@ -132,7 +137,7 @@ visible content, and hierarchy"; then the implementation is compared at the SAME
 (1536×1024, 1:1, no chrome), findings are graded P0/P1/P2, interaction is verified case by
 case, and mobile is rendered separately. Verification is a written record.
 
-Ours: `docs/design/qa/` — one sheet per variant.
+Ours: one design-QA sheet per variant, in the astra shape (written for the three variants; deleted with them, in git history).
 
 ### P10 · Mobile is a second story, not a squeeze
 
@@ -170,9 +175,9 @@ It is fixed by choosing a distribution strategy, and there are three:
 
 | Strategy | Axis | Patterns | Variant |
 | --- | --- | --- | --- |
-| **Story** | time | P1 P2 P6 P10 | `/lp/story` — one project, from a URL to a running account, on a pinned stage |
-| **Exhibit** | space | P3 P4 P8 P11 | `/lp/exhibit` — every fact a numbered specimen in an asymmetric gallery |
-| **Instrument** | interaction | P3 P7 P12 P5 | `/lp/instrument` — pick a business type, the page re-composes |
+| **Story** | time | P1 P2 P6 P10 | *story* — one project, from a URL to a running account, on a pinned stage (removed) |
+| **Exhibit** | space | P3 P4 P8 P11 | *exhibit* — every fact a numbered specimen in an asymmetric gallery (removed) |
+| **Instrument** | interaction | P3 P7 P12 P5 | *instrument* — pick a business type, the page re-composes (removed) |
 
 Each variant is pure by design. A blend would make the review unable to say which strategy
 carried it.
