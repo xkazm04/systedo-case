@@ -25,6 +25,40 @@ function competitionBand(level: string | undefined, index: number): Competition 
   return index >= 66 ? "high" : index >= 33 ? "medium" : "low";
 }
 
+/** Unknown competition → mid (index 50), the same documented default the Sklik adapter
+ *  uses (`SKLIK_DEFAULT_COMPETITION_INDEX`). The Planner omits `competitionIndex` for
+ *  thin or newly-seen terms; reading that absence as 0 handed the idea FULL ease points
+ *  in `opportunityScore` (1 − 0/100), so an unknown-difficulty keyword outranked one
+ *  with a reported mid competition by 20 points on the same volume. An unknown sinks,
+ *  never flatters (registry: marketing / keyword-metric-reliability,
+ *  `unknown-metric-sinks-never-flatters`). A REPORTED "0" is kept as 0 — the platform
+ *  said so, and that is a measurement, not an absence. */
+export const PLANNER_DEFAULT_COMPETITION_INDEX = 50;
+
+function competitionIndexOf(v: string | number | undefined): number {
+  if (v == null || v === "") return PLANNER_DEFAULT_COMPETITION_INDEX;
+  const n = typeof v === "string" ? Number(v) : v;
+  if (!Number.isFinite(n)) return PLANNER_DEFAULT_COMPETITION_INDEX;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+/** Map one Planner idea row onto the neutral RawKeywordIdea. Exported (pure) so the
+ *  absent-competition rule can be pinned without a network. */
+export function mapPlannerIdea(r: IdeaRow): RawKeywordIdea | null {
+  if (!r.text) return null;
+  const m = r.keywordIdeaMetrics ?? {};
+  const competitionIndex = competitionIndexOf(m.competitionIndex);
+  return {
+    keyword: r.text,
+    avgMonthlySearches: num(m.avgMonthlySearches),
+    competition: competitionBand(m.competition, competitionIndex),
+    competitionIndex,
+    // micros of the account currency → CZK
+    lowBidCzk: Math.round(num(m.lowTopOfPageBidMicros) / 1_000_000),
+    highBidCzk: Math.round(num(m.highTopOfPageBidMicros) / 1_000_000),
+  };
+}
+
 interface IdeaRow {
   text?: string;
   keywordIdeaMetrics?: {
@@ -64,19 +98,5 @@ export async function generateKeywordIdeas(
   }
   const json = (await res.json()) as { results?: IdeaRow[] };
 
-  return (json.results ?? [])
-    .filter((r) => r.text)
-    .map((r) => {
-      const m = r.keywordIdeaMetrics ?? {};
-      const competitionIndex = num(m.competitionIndex);
-      return {
-        keyword: r.text!,
-        avgMonthlySearches: num(m.avgMonthlySearches),
-        competition: competitionBand(m.competition, competitionIndex),
-        competitionIndex,
-        // micros of the account currency → CZK
-        lowBidCzk: Math.round(num(m.lowTopOfPageBidMicros) / 1_000_000),
-        highBidCzk: Math.round(num(m.highTopOfPageBidMicros) / 1_000_000),
-      } satisfies RawKeywordIdea;
-    });
+  return (json.results ?? []).map(mapPlannerIdea).filter((idea): idea is RawKeywordIdea => idea !== null);
 }
