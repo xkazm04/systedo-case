@@ -179,6 +179,7 @@ kpi-sim/*
 /.claude/skills/tiger
 /.claude/skills/uat
 /.claude/rules/ai-registry-access.md
+/.claude/rules/ai-registry-marketing.md
 /.claude/rules/ai-registry-media-generation.md
 /.claude/rules/ai-registry-software-engineering.md
 # END ai-registry linked skills
