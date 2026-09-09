@@ -896,14 +896,10 @@
         "src/components/brand/prototypes/PrototypeChrome.tsx",
         "src/components/brand/prototypes/PrototypeGallery.tsx",
         "src/components/brand/prototypes/Orbit.tsx",
-        "src/components/brand/prototypes/Studio.tsx",
-        "src/components/brand/prototypes/Signal.tsx",
         "src/app/prototypes/layout.tsx",
         "src/app/prototypes/page.tsx",
         "src/app/prototypes/prototypes.css",
-        "src/app/prototypes/orbit/page.tsx",
-        "src/app/prototypes/studio/page.tsx",
-        "src/app/prototypes/signal/page.tsx"
+        "src/app/prototypes/orbit/page.tsx"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
