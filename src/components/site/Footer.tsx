@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import Link from "next/link";
+import { connection } from "next/server";
 import { footerLinks } from "@/lib/nav";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getMessages } from "@/lib/i18n/messages";
@@ -8,6 +9,9 @@ export default async function Footer() {
   const locale = await getServerLocale();
   const t = getMessages(locale).footer;
   const links = footerLinks(locale);
+  // The year belongs to the incoming request, including when the locale cookie
+  // is available during speculative prerendering of a new public route.
+  await connection();
   const copyright = t.copyright.replace("{year}", String(new Date().getFullYear()));
 
   return (
