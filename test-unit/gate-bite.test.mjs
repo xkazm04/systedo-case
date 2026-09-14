@@ -64,7 +64,17 @@ const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
 /** What the sandboxed gates read. Deliberately explicit: a gate that starts
  *  needing something else fails its own control run here, loudly, rather than
  *  going quiet. */
-const SANDBOX_PATHS = ["scripts", "src", "docs", "test-llm", ".github", ".agent", "README.md"];
+const SANDBOX_PATHS = [
+  "scripts",
+  "src",
+  "docs",
+  "test-llm",
+  ".github",
+  ".agent",
+  ".husky/pre-push",
+  "README.md",
+  "package.json",
+];
 
 const temps = [];
 function tempDir(prefix) {
