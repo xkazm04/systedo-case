@@ -35,6 +35,7 @@ const T = {
     saved: "Uloženo",
     saveError: "Uložení selhalo",
     namePh: "Název",
+    currencyUnit: "Kč",
     products: "Produkty",
     plans: "Plány",
     services: "Služby",
@@ -125,6 +126,9 @@ const T = {
     saved: "Saved",
     saveError: "Save failed",
     namePh: "Name",
+    // Catalog prices are koruny in both locales; Czech writes "Kč", English "CZK"
+    // (operator ruling 2026-09-14, docs/i18n/style-en.md).
+    currencyUnit: "CZK",
     products: "Products",
     plans: "Plans",
     services: "Services",

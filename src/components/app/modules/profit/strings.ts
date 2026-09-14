@@ -157,10 +157,11 @@ export const T = {
     byMonths: "by month",
     week: "week",
     month: "month",
-    // "Kč", not "USD" — the overhead / per-order fields are koruny in BOTH
+    // "CZK", not "USD" — the overhead / per-order fields are koruny in BOTH
     // locales (there is no stored currency dimension) and render through fmtCZK.
-    // Matches CostModelEditor and ProfitReallocationPanel; swept together on
-    // 2026-08-06 because these two render into one screen.
-    currencyUnit: "Kč",
+    // English writes the koruna as "CZK", Czech as "Kč" (operator ruling 2026-09-14,
+    // docs/i18n/style-en.md). Matches CostModelEditor and ProfitReallocationPanel;
+    // keep the three in step because they render into one screen.
+    currencyUnit: "CZK",
   },
 } as const;

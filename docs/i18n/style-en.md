@@ -103,10 +103,14 @@ title-case element class exists).
 
 ## Numbers, dates, currency
 
-`createFormatters("en")` → `en-US` / USD (`src/lib/format.ts`). **Never**
+`createFormatters("en")` → `en-US` / CZK (`src/lib/format.ts`; every stored
+amount is koruny, so English relabels and never converts). **Never**
 hand-type a formatted number, price, or date into an `en` string — keep the
 placeholder (`{amount}`, `{n}`) and let the formatter render it. A hand-typed
 constant unrelated to project data ("TOP 3", "3×") is fine as literal text.
+
+Czech koruna: `Kč` in Czech only; `CZK` in English (2026-09-14, operator).
+A unit label beside a koruny input (`currencyUnit`) follows the same split.
 
 ## Length discipline
 

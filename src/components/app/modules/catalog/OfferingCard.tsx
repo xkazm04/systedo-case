@@ -97,7 +97,7 @@ function OfferingCardBase({
             onKeyDown={commitOnEnter}
             className={`${INPUT_BASE} w-24 text-right tnum`}
           />
-          Kč
+          {t("currencyUnit")}
         </label>
         <label className="inline-flex items-center gap-1 text-sm text-muted" title={t("margin")}>
           <input

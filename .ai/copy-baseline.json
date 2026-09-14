@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "checker": "native-copy/copy-check 1.0.0",
-  "generatedAt": "2026-09-14T10:20:20.760Z",
-  "count": 129,
+  "checker": "native-copy/copy-check 1.1.0",
+  "generatedAt": "2026-09-14T10:46:15.312Z",
+  "count": 126,
   "fingerprints": [
     "EN-AMPERSAND|src/components/app/modules/ContentSchedule.tsx|T.en.ideasTitle|346adb02804c3869ea25d14363b2b9395fdcde21",
     "EN-AMPERSAND|src/components/app/modules/CostModelEditor.tsx|T.en.inactive|ccd5a29edd41c8f9d7fb158db518fd7a1aba2b4d",
@@ -122,10 +122,7 @@
     "EN-QUOTES|src/components/app/modules/LocalLadderSource.tsx|T.en.importHelp|d81182bc960b7d8cbec8f2a74166aaad3f164266",
     "EN-QUOTES|src/components/app/modules/LocalSourcePanel.tsx|T.en.reviewsPlaceholder|bc4a41066ab41988a78bca981a5a581088cf7b25",
     "EN-QUOTES|src/components/app/modules/mappack/EngineSwitch.tsx|T.en.emptyHelp|fb574e2a6392dee76ab064f78f06ecb7d6c2c0ba",
-    "EN-SOURCE-RESIDUE|src/components/app/modules/CostModelEditor.tsx|T.en.currencyUnit|ef2f19488d0f4eeaba0b6cbd063cdf1728daea3e",
     "EN-SOURCE-RESIDUE|src/components/app/modules/LocalLadderSource.tsx|T.en.importHelp|d81182bc960b7d8cbec8f2a74166aaad3f164266",
-    "EN-SOURCE-RESIDUE|src/components/app/modules/ProfitReallocationPanel.tsx|T.en.currencyUnit|ef2f19488d0f4eeaba0b6cbd063cdf1728daea3e",
-    "EN-SOURCE-RESIDUE|src/components/app/modules/catalog/OfferingCard.tsx|<label>|ef2f19488d0f4eeaba0b6cbd063cdf1728daea3e",
     "EN-SOURCE-RESIDUE|src/components/app/modules/mappack/EngineSwitch.tsx|T.en.emptyHelp|fb574e2a6392dee76ab064f78f06ecb7d6c2c0ba",
     "EN-SPACING|src/components/app/modules/LtvModule.tsx|T.en.ltvCac|09118d925a0c84feafb70ecae664e18f8716dc2e",
     "EN-SPACING|src/components/app/modules/LtvProjectionPanel.tsx|T.en.ltvCacLabel|be491c9372702fb330f2b137d9932e7beb6f55be",
