@@ -59,6 +59,48 @@ noun phrase over a translated verb clause: `Žebříček pozic klíčových slov
   **Out of scope:** the standalone `"—"` no-data placeholder (a design-system
   glyph, 92 sites), numeric/date ranges, and `·` middots.
 
+  **2026-09-14: fleet-wide operator decision, same rule.** The em dash is now
+  banned in product copy across the whole fleet (registry rule EN-DASH, contract
+  `dash.emDash: "ban"`). This house rule already said so; nothing here reverses.
+  At adoption the English side still carried **106 em dashes** (and 24 en
+  dashes); they are debt in `.ai/copy-baseline.json`, drained separately.
+
+## Spelling: US English
+
+**Ruled 2026-09-14 (operator, fleet-wide): US spelling, every surface** (registry
+rule EN-SPELLING, contract `variant: "US"`). This supersedes the *parked*
+EN-SPELLING note in [`constructions-en.md`](./constructions-en.md), whose measured
+table stays there as history, and extends the 2026-08-06 `-ize` ruling
+([`glossary.md`](./glossary.md), review-cs A6) to the rest of the variant:
+`color`, `modeled`, `labeled`, `canceled`. Count at adoption: US 72 forms, UK 3
+(`colour`, `modelled`, `labelled`). The 3 are baselined debt, not swept by the gate.
+
+## Copy gate (native-copy)
+
+Declared mechanics live in [`copy-contract.json`](./copy-contract.json); the
+registry's `localization/english` subject owns the rule text, and this guide is the
+delta. Curly quotes and `…` above are declared there too (EN-QUOTES, EN-ELLIPSIS);
+sentence case is EN-CASE (4 of 307 judgeable headings were Title Case, so no
+title-case element class exists).
+
+- `npm run copy:check` reads only the **English** side: the `en` branch of each
+  `const T = { cs, en }` dictionary, `src/lib/i18n/messages.ts`, and JSX text in
+  `src/components/**` and `src/app/**`. It skips `cs` branches, the design-system
+  page, the dev inspector, brand prototypes and the Czech opengraph image. Czech
+  route `metadata` (the known mismatch in `contract.md`) and the Czech `EXAMPLE`
+  sample inputs are still read and sit in the baseline.
+- **It closes the English half of the dash rule.** `scripts/i18n-gate.mjs` tracks em
+  dashes in the Czech column only; this gate blocks a new em dash in `en`.
+- It exits 1 only on a new error-level finding; warnings print and never block. It
+  runs in `.husky/pre-push` inside the master gate, after `check:ci` (so
+  `SYSTEDO_SKIP_GATE=1` skips it too). It is **not** in `check:ci`, because the checker
+  is a gitignored link to ai-registry that CI does not have. Without the link the
+  hook prints `copy gate SKIPPED`. Install with `node scripts/link-registry.mjs
+  --project systedo-case` from the registry.
+- **Exceptions are visible, never bypassed.** A deliberate string goes into the
+  baseline in its own commit whose message says why. A rule wrong for this catalog
+  is turned `off` in the contract, with the reason recorded here. Never `--no-verify`.
+
 ## Numbers, dates, currency
 
 `createFormatters("en")` → `en-US` / USD (`src/lib/format.ts`). **Never**

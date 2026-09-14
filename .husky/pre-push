@@ -42,5 +42,19 @@ npm run check:ci || {
   exit 1
 }
 
+# English copy gate (docs/i18n/style-en.md § Copy gate). NOT part of check:ci:
+# the checker is a gitignored link to ai-registry, absent in CI and fresh clones,
+# so it runs here only, and says so loudly when it cannot.
+if [ -f .claude/skills/native-copy/scripts/copy-check.mjs ]; then
+  echo "pre-push: running the English copy gate (npm run copy:check)..." >&2
+  npm run copy:check || {
+    echo "pre-push: copy:check found new error-level copy findings — push blocked." >&2
+    echo "pre-push: Fix the string, or baseline a deliberate one in its own commit." >&2
+    exit 1
+  }
+else
+  echo "pre-push: native-copy checker not installed - copy gate SKIPPED (run ai-registry/scripts/link-registry.mjs)" >&2
+fi
+
 echo "pre-push: gate green — pushing. Then: gh run watch --exit-status" >&2
 exit 0

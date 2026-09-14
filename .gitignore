@@ -172,6 +172,7 @@ kpi-sim/*
 /.claude/skills/consult
 /.claude/skills/explorer
 /.claude/skills/i18n-translate
+/.claude/skills/native-copy
 /.claude/skills/onboarding
 /.claude/skills/perfect
 /.claude/skills/project-populate
@@ -182,5 +183,6 @@ kpi-sim/*
 /.claude/rules/ai-registry-marketing.md
 /.claude/rules/ai-registry-media-generation.md
 /.claude/rules/ai-registry-software-engineering.md
+/.claude/rules/ai-registry-localization.md
 # END ai-registry linked skills
 .architect/
