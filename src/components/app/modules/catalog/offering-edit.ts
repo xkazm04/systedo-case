@@ -2,7 +2,24 @@
  *  OfferingCard: the search predicate, the per-field draft→value parsers used when a
  *  card commits on blur, and the shared input class. No React import, so these are unit-
  *  testable in node and safe to reuse across the client components. */
-import type { Offering } from "@/lib/catalog/offering";
+import type { Offering, OfferingKind } from "@/lib/catalog/offering";
+import type { IconKey } from "@/lib/projects/icon-keys";
+import type { ProjectType } from "@/lib/projects/types";
+
+/** Static presentation metadata and the default offering kind for each project type. */
+export const KIND_META: Record<OfferingKind, { titleKey: "products" | "plans" | "services"; icon: IconKey }> = {
+  product: { titleKey: "products", icon: "catalog" },
+  plan: { titleKey: "plans", icon: "app" },
+  service: { titleKey: "services", icon: "local" },
+};
+
+export const PRIMARY_KIND: Record<ProjectType, OfferingKind> = {
+  eshop: "product",
+  app: "plan",
+  leadgen: "service",
+  content: "service",
+  local: "service",
+};
 
 /** Diacritic- and case-insensitive normalization so a cs search ("kesu") matches
  *  "Kešu" and an en search matches either. */

@@ -154,6 +154,12 @@ kpi-sim/*
 # knowledge leads filed back to the ai-registry (collected by leads-collect.mjs; local)
 .ai/registry-leads.jsonl
 
+# Registry installation receipts and /maintain run state are machine-local.
+.ai/registry-installation.local.json
+.ai/registry-releases/
+.ai/maintain/
+/.agents/skills/maintain
+
 # BEGIN ai-registry linked skills (managed by ai-registry/scripts/link-skills.mjs)
 # The links are machine state; the declaration lives in .ai/manifest.yaml `skills:`.
 /.claude/skills/consult
@@ -172,6 +178,7 @@ kpi-sim/*
 /.claude/skills/consult
 /.claude/skills/explorer
 /.claude/skills/i18n-translate
+/.claude/skills/maintain
 /.claude/skills/native-copy
 /.claude/skills/onboarding
 /.claude/skills/perfect
