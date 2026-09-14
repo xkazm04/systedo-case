@@ -6,16 +6,6 @@
 
   "candidates": [
     {
-      "path": "gemini.quality",
-      "declaredBy": "GEMINI_MODEL",
-      "serving": "gemini-3-flash-preview",
-      "candidate": "gemini-3.5-flash",
-      "vendor": "gemini",
-      "keyEnv": "GEMINI_API_KEY",
-      "tier": "quality",
-      "why": "The production quality tier serves a `-preview` tag, and a preview's whole promise is that it stops existing. `gemini-3.5-flash` is the successor this repository already ships against for BYOM users (BYOM_DEFAULT_MODELS.gemini.quality in src/lib/llm/models.ts), so it is a real model id the app already talks to rather than a name invented for a rehearsal."
-    },
-    {
       "path": "gemini.fast",
       "declaredBy": "GEMINI_MODEL_FAST",
       "serving": "gemini-3-flash-lite-preview",
@@ -24,6 +14,17 @@
       "keyEnv": "GEMINI_API_KEY",
       "tier": "fast",
       "why": "The fast tier's half of the same swap, and the tier where a downgrade hides best: the short, low-stakes operations (lead replies, repurposing, keyword clustering) are the ones nobody reads closely enough to notice a shape that has quietly loosened. `gemini-3.1-flash-lite` is BYOM_DEFAULT_MODELS.gemini.fast."
+    }
+  ],
+
+  "awaitingCandidates": [
+    {
+      "path": "gemini.quality",
+      "declaredBy": "GEMINI_MODEL",
+      "serving": "gemini-3.8-flash",
+      "checkedOn": "2026-09-14",
+      "source": "https://ai.google.dev/gemini-api/docs/models",
+      "why": "Google's current model catalog lists Gemini 3.8 Flash as the newest Flash model and names no later successor. Keep this absence explicit instead of rehearsing an older model or inventing a future model id; move this row back to candidates when Google publishes the next Flash model."
     }
   ],
 

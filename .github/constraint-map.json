@@ -403,10 +403,11 @@
       "rule": "Never push, and especially never to master — Vercel ships master on push, so the push is the release.",
       "statedIn": { "file": "AGENTS.md", "quote": "and especially any push to `master`" },
       "enforcement": [
+        { "kind": "permission", "name": ".claude/settings.json", "note": "Claude Code denies git push and the gate-bypass forms at the permission layer" },
         { "kind": "hook", "name": ".husky/pre-push", "note": "a push to master runs the full blocking gate first" }
       ],
       "rung": "partial",
-      "gapNote": "The hook decides whether a push is VERIFIED, not whether an agent was allowed to make it — and SYSTEDO_SKIP_GATE=1 turns it off. Nothing prevents the push itself."
+      "gapNote": "Claude Code is denied at its permission layer. Other harnesses are bound by the instruction but not prevented by repository code; the hook verifies an owner's push rather than forbidding it."
     },
     {
       "id": "no-live-ad-writes",

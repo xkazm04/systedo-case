@@ -19,8 +19,8 @@
  *      that actually shipped was never rehearsed at all;
  *    • the candidate is not the serving model (a row that rehearses today is a row
  *      that proves nothing and reports a pass);
- *    • every path here is a path test-llm/model-pins.json pins, so the two files
- *      cannot start describing different model surfaces;
+ *    • every pinned Gemini path is either rehearsed or explicitly records that no
+ *      successor has been announced, so absence cannot masquerade as coverage;
  *    • and the rehearsal is wired to a command and to the weekly job, because a
  *      drill nobody schedules is a design document.
  *
@@ -100,13 +100,26 @@ test("the row still describes a swap that has NOT happened", () => {
 });
 
 test("the candidate paths and the model pins describe the same surface", () => {
-  const pinned = new Set((pins.pins ?? []).map((p) => p.path));
-  for (const c of spec.candidates ?? []) {
-    assert.ok(
-      pinned.has(c.path),
-      `${c.path}: test-llm/model-pins.json pins no such path. The pins say which model the corpus was proved `
-        + "against and the candidates say which one is next; two different vocabularies is how they drift apart."
-    );
+  const pinned = new Set((pins.pins ?? []).filter((p) => p.declaredBy?.startsWith("GEMINI_MODEL")).map((p) => p.path));
+  const rows = [...(spec.candidates ?? []), ...(spec.awaitingCandidates ?? [])];
+  const covered = new Set();
+  for (const row of rows) {
+    assert.ok(pinned.has(row.path), `${row.path}: test-llm/model-pins.json pins no such Gemini path.`);
+    assert.ok(!covered.has(row.path), `${row.path}: appears as both a candidate and an awaiting surface.`);
+    covered.add(row.path);
+  }
+  assert.deepEqual(covered, pinned, "every pinned Gemini surface must be rehearsed or explicitly awaiting a successor");
+});
+
+test("an awaiting surface names the current model and the source checked for a successor", () => {
+  for (const row of spec.awaitingCandidates ?? []) {
+    for (const key of ["path", "declaredBy", "serving", "checkedOn", "source", "why"]) {
+      assert.ok(row[key], `${row.path ?? "(unnamed)"}: awaiting row is missing \`${key}\``);
+    }
+    assert.equal(row.serving, declaredValue(row.declaredBy), `${row.path}: awaiting row is stale against the serving model`);
+    assert.match(row.checkedOn, /^\d{4}-\d{2}-\d{2}$/, `${row.path}: checkedOn must be an ISO date`);
+    assert.match(row.source, /^https:\/\/ai\.google\.dev\//, `${row.path}: successor check must cite Google's model catalog`);
+    assert.ok(String(row.why).length >= 80, `${row.path}: awaiting row must explain why no candidate is named`);
   }
 });
 

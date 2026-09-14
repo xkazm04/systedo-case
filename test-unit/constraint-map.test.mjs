@@ -51,7 +51,7 @@ const rubric = read(".github/agent-review-rubric.md");
 const agents = read("AGENTS.md");
 
 const RUNGS = new Set(["blocking", "reporting", "partial", "honour"]);
-const KINDS = new Set(["gate", "lint", "test", "hook", "review", "type", "honour"]);
+const KINDS = new Set(["gate", "lint", "test", "hook", "permission", "review", "type", "honour"]);
 
 test("the map is well formed and states a rule per entry", () => {
   assert.ok(
@@ -117,6 +117,7 @@ test("every claimed fence exists — a gate that is not there is worse than an h
           break;
         case "test":
         case "hook":
+        case "permission":
         case "type":
           assert.ok(
             existsSync(join(ROOT, e.name)),
