@@ -1489,6 +1489,8 @@
       ],
       "file_paths": [
         "src/lib/campaigns/report-config.ts",
+        "src/lib/campaigns/report-config.local.ts",
+        "src/lib/campaigns/report-config.firestore.ts",
         "src/lib/campaigns/report-config-types.ts",
         "src/lib/campaigns/report-input.ts",
         "src/lib/campaigns/shared-report.ts",
