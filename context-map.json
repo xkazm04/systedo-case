@@ -3122,7 +3122,10 @@
         "src/lib/llm/telemetry.ts",
         "src/lib/llm/telemetry-ops.ts",
         "src/lib/llm/telemetry-stats.ts",
-        "src/lib/llm/request-context.ts"
+        "src/lib/llm/request-context.ts",
+        "src/lib/llm/gateway.ts",
+        "src/lib/llm/gateway-generate.ts",
+        "src/lib/llm/repair-note.ts"
       ],
       "group": "AI & Content Engine",
       "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",

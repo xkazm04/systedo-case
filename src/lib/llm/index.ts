@@ -43,6 +43,9 @@ import { getByomContext } from "./byom-context";
 import { getLlmRequestContext } from "./request-context";
 import { ByomUserError, isRetryableLlmError, LlmCallError } from "./errors";
 import { runWithDeadline } from "./deadline";
+import { buildRepairNote } from "./repair-note";
+import { gatewayRouteFor } from "./gateway";
+import { generateViaGateway } from "./gateway-generate";
 import type { ResolvedByomKey } from "./keys/types";
 
 export {
@@ -261,16 +264,6 @@ async function runWithRetry(
   throw lastErr;
 }
 
-/** Re-prompt note appended when the first output violates domain limits. */
-function buildRepairNote(violations: string[]): string {
-  return [
-    "",
-    "POZOR: předchozí pokus porušil tyto limity:",
-    ...violations.map((v) => `- ${v}`),
-    "Vrať prosím CELÝ JSON znovu přesně podle schématu a striktně dodrž uvedené limity (raději mírně pod limitem).",
-  ].join("\n");
-}
-
 /**
  * The single chokepoint for every LLM call in the app. Tries providers in
  * environment-preferred order (Claude→Codex→Gemini in dev, Gemini→Claude in prod),
@@ -301,6 +294,18 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
   // The locale override goes on the PROMPT, never the system prompt, so the
   // fingerprint (system + schema) — and the golden/coverage gate — is unchanged.
   const effectivePrompt = withLanguage(args.prompt, args.locale);
+
+  // A use case the LightTrack gateway routes (LLM_GATEWAY_URL set, and `GET /v1/models` lists a
+  // route named after this tool id) bypasses the in-app ladder entirely: the gateway does the
+  // retry, the cross-seat fallback and the LightTrack record, so repeating any of it here would
+  // double every exhausted-seat attempt and every event row (see ./gateway-generate.ts). BYOM
+  // still wins — a subscriber's own key is theirs to spend, not the operator's seats.
+  if (!byom) {
+    const route = await gatewayRouteFor(toolId);
+    if (route) {
+      return generateViaGateway(args, { route, toolId, promptHash, attribution, effectivePrompt, start });
+    }
+  }
   const baseCall: ProviderCall = {
     system: args.system,
     prompt: effectivePrompt,

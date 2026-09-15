@@ -198,6 +198,12 @@
     "LIGHTTRACK_KEY": { "class": "optional", "scope": "server", "source": "env-example" },
     "LIGHTTRACK_SOURCE": { "class": "optional", "scope": "server", "source": "env-example" },
     "LIGHTTRACK_ENABLED": { "class": "optional", "scope": "server", "source": "env-example" },
+    "LLM_GATEWAY_URL": {
+      "class": "optional",
+      "scope": "server",
+      "source": "env-example",
+      "note": "local lt-gateway routes for llm-tools named in its gateway.toml — docs/LLM_ROUTES.md."
+    },
     "NEXT_PUBLIC_SOURCE_REPO_URL": {
       "class": "optional",
       "scope": "public",

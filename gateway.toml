@@ -1,0 +1,27 @@
+# lt-gateway routes for systedo — committable: models and routes only, never keys.
+#
+# Run beside the app (from this directory, so this file is found):
+#   LIGHTTRACK_URL=http://127.0.0.1:8787 LIGHTTRACK_PROJECT=systedo lt-gateway
+# and point the app at it with LLM_GATEWAY_URL=http://127.0.0.1:8790/v1 (see .env.example).
+# Which tools ride the gateway is exactly the set of routes below (the app reads GET /v1/models).
+#
+# Every route here was measured, not assumed: benchmark "lead-source-diagnosis seats"
+# (LightTrack project `systedo`, benchmark 0d4b7f3b-4a34-4d5f-82dd-ac4fb10c41cf, 2026-09-15),
+# 21 cases graded easy/medium/hard, rubric threshold 0.80, judge google/gemini-2.5-flash
+# (cross-family, self_preference=false). Scorecard and reasoning: docs/LLM_ROUTES.md.
+
+# Seconds a seat is skipped after it reports a usage limit and names no retry-after.
+cooldown_secs = 300
+
+[routes.lead-source-diagnosis]
+# gpt-5.5@medium: hard 0.81 / medium 0.89 / easy 0.98, p50 11.0s, 0 errors (run 3bcc66f3).
+# gpt-5.5@low missed the hard bar (0.75), so the extra ~130 reasoning tokens are what buy it.
+primary  = "codex/gpt-5.5@medium"
+# NO fallback, on purpose. The Claude-seat rows did not clear the bar on ANY tier:
+#   sonnet@low  easy 0.79 / medium 0.78 / hard 0.75 (run 61fd0689) — cause right on 11/21,
+#               below the app's own deterministic pickCause floor;
+#   haiku@low   0.18 — answered outside bare JSON on 21/21 cases (run b76cb4ed).
+# On a ChatGPT-seat limit the gateway answers 503 and the app degrades to its deterministic
+# demo diagnosis (src/lib/ai/tools/lead-source-diagnosis.ts pickCause), which is honest about
+# being a demo. Re-measure sonnet@medium / opus@low before adding a fallback here.
+fallback = []
