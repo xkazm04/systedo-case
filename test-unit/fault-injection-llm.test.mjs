@@ -53,7 +53,7 @@ const { LlmCallError, ByomUserError } = await import("@/lib/llm/errors");
 // surface of the replacement, so omitting it made `adapters.ts` fail to LINK ("does not provide an
 // export named 'extractJson'") and the file died before a single scenario ran. Capture the genuine
 // helper first — importing it here, ahead of `mock.module`, binds the real implementation.
-const { extractJson } = await import("@/lib/llm/claude");
+const { extractJson, extractJsonTraced } = await import("@/lib/llm/claude");
 
 // ── the injectable providers ─────────────────────────────────────────────────
 //
@@ -77,6 +77,8 @@ function next(who) {
 
 mock.module("@/lib/llm/claude", {
   namedExports: {
+    // The gateway adapter (loaded by the real index.ts) parses with the same traced helper.
+    extractJsonTraced,
     claudeAvailable: () => configured.has("claude"),
     runClaude: async () => ({ value: next("claude"), rung: "direct" }),
     extractJson,
