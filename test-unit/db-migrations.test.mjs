@@ -8,10 +8,10 @@ import { DatabaseSync } from "node:sqlite";
 import { runMigrations, rebuildTable, MIGRATION_VERSIONS } from "@/lib/db";
 
 // Wave 3 appends in parallel (W3-B = v30, W3-C = v31, W3-D = v32/33, W1-residual
-// twin_archive_evictions = v34). This is the
+// twin_archive_evictions = v34, report_config LOCAL_DB backend = v35). This is the
 // highest version present in the tree; the Director settles it at the seams commit
 // once every builder's migration has landed.
-const LATEST = 34;
+const LATEST = 35;
 
 test("MIGRATIONS versions are unique + contiguous from 1 (the header's contract)", () => {
   const v = [...MIGRATION_VERSIONS];
