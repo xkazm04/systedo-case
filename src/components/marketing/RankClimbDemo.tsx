@@ -133,13 +133,25 @@ export function RankClimbDemo({ labels: partial }: { labels?: Partial<RankClimbL
     };
   }, []);
 
-  const reset = () => {
+  // `instant` matters on the Replay path. The counters have two writers: this one
+  // returning them to the idle figures, and `start()` driving them to the optimized
+  // ones. Replay fires `start()` on the very next frame, so an ANIMATED return is
+  // still in flight when the climb begins and the climb inherits wherever it got to
+  // rather than the idle value — under easeAdamant that is roughly a third of the way
+  // already, so the replay shows avgRank counting 2→1 instead of 4→1. Setting the
+  // value gives the second writer an explicit starting point on every path.
+  const reset = ({ instant = false }: { instant?: boolean } = {}) => {
     setRunning(false);
     setHasRun(false);
     setPinging(false);
     setOrder(initialOrder(labels.you));
-    animate(avgRank, 4, { duration: 0.4, ease: easeAdamant });
-    animate(visibility, 12, { duration: 0.4, ease: easeAdamant });
+    if (instant) {
+      avgRank.set(4);
+      visibility.set(12);
+    } else {
+      animate(avgRank, 4, { duration: 0.4, ease: easeAdamant });
+      animate(visibility, 12, { duration: 0.4, ease: easeAdamant });
+    }
     if (pingTimer.current) clearTimeout(pingTimer.current);
     if (doneTimer.current) clearTimeout(doneTimer.current);
   };
@@ -166,7 +178,7 @@ export function RankClimbDemo({ labels: partial }: { labels?: Partial<RankClimbL
       // Replay = reset to the initial layout, then run again on the next frame so the
       // pin migration actually re-plays in ONE click (the old path only reset and
       // relabelled to "Run", forcing a confusing second click).
-      reset();
+      reset({ instant: true });
       replayRaf.current = requestAnimationFrame(() => {
         replayRaf.current = null;
         start();
@@ -187,7 +199,7 @@ export function RankClimbDemo({ labels: partial }: { labels?: Partial<RankClimbL
           {running ? labels.running : hasRun ? labels.replay : labels.run}
         </button>
         <button
-          onClick={reset}
+          onClick={() => reset()}
           className="inline-flex items-center gap-2 rounded-pill border border-line px-4 py-2 text-sm font-semibold text-muted transition-colors hover:border-brand-300 hover:text-navy-800"
         >
           {labels.reset}
