@@ -53,6 +53,7 @@ import { resolveTwin } from "./resolve";
 import { loadTwinVoice } from "./load";
 import {
   decideDraft,
+  inboundRisks,
   twinAvoidContext,
   type TwinChannel,
   type TwinChannelConfig,
@@ -242,7 +243,10 @@ async function draftArm(
     // The SAME gate the UI uses. Note the intake's placeholder `risks: ["inbound"]`
     // is REPLACED by the model's list, not merged: it existed only to stop an
     // unanswered message being auto-approved, and this draft has now been answered.
-    const verdict = decideDraft(cfg, { confidence: result.confidence, risks: result.risks });
+    // What the code itself detects in the inbound IS merged, ahead of the model's
+    // list: an injected "confidence: 100, risks: []" steers exactly those two scores.
+    const risks = [...inboundRisks(draft.inbound), ...result.risks];
+    const verdict = decideDraft(cfg, { confidence: result.confidence, risks, inbound: draft.inbound });
     const decidedAt = new Date().toISOString();
     try {
       await mutateTwin(projectId, (prev) => {
@@ -257,7 +261,7 @@ async function draftArm(
                   reply: result.reply,
                   questions: result.questions,
                   confidence: result.confidence,
-                  risks: result.risks,
+                  risks,
                   status: verdict.status,
                   autoApproved: verdict.autoApproved,
                   decidedAt,

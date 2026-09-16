@@ -374,7 +374,7 @@ export default function SpeedLeadModule({
    *  arrives — otherwise `auto` would be a label the leads inbox never earns. */
   useEffect(() => {
     if (!bankingOn || !leadsCfg || !onBankLead || !aiReply || !selected) return;
-    const verdict = decideDraft(leadsCfg, { confidence: aiReply.confidence, risks: aiReply.risks });
+    const verdict = decideDraft(leadsCfg, { confidence: aiReply.confidence, risks: aiReply.risks, inbound: selected.message });
     if (!verdict.autoApproved) return;
     const key = `${selected.id}:${aiReply.reply}`;
     if (bankKeyRef.current === key) return;
@@ -694,7 +694,7 @@ export default function SpeedLeadModule({
                   {aiReply.risks.length === 0 ? (
                     <Pill tone="positive">{t("noRisks")}</Pill>
                   ) : null}
-                  {bankingOn && leadsCfg && decideDraft(leadsCfg, aiReply).autoApproved ? (
+                  {bankingOn && leadsCfg && decideDraft(leadsCfg, { ...aiReply, inbound: selected?.message }).autoApproved ? (
                     <Pill tone="positive">
                       <Check width={12} height={12} />
                       {t("autoApproved")}

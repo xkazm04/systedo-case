@@ -34,7 +34,7 @@ export interface DraftSeed {
  *  status. Under `auto` a confident, risk-free draft lands `approved` (and carries
  *  a `decidedAt`, since the machine decided it); everything else lands `pending`. */
 export function buildDraft(cfg: TwinChannelConfig, seed: DraftSeed, id: string, now: string): TwinDraft {
-  const verdict = decideDraft(cfg, { confidence: seed.confidence, risks: seed.risks });
+  const verdict = decideDraft(cfg, { confidence: seed.confidence, risks: seed.risks, inbound: seed.inbound });
   const draft: TwinDraft = {
     id,
     channel: seed.channel,

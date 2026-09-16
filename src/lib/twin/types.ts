@@ -14,6 +14,8 @@
  *  `sanitizeTwinState` first: the client edits this blob (it POSTs scoped slices,
  *  or legacy whole-state blobs), so nothing here may be trusted. */
 
+import { injectionSignals } from "@/lib/ai/untrusted";
+
 /* -------------------------------------------------------------------------- */
 /*  Channels + tone scopes                                                     */
 /* -------------------------------------------------------------------------- */
@@ -273,14 +275,32 @@ export function draftGateVerdict(cfg: TwinChannelConfig): DraftGateVerdict {
  *  A disabled channel (one the operator switched off, even if its stored config still
  *  says `auto`) may still receive a pending draft but never a self-approved one — the
  *  exact trust breach the autonomy tiers exist to prevent. Everything else lands in
- *  `pending`. Pure: the one rule, in one place, so callers never re-check `enabled`. */
+ *  `pending`. Pure: the one rule, in one place, so callers never re-check `enabled`.
+ *
+ *  `confidence` and `risks` are the MODEL's scores of its own draft, and the model is
+ *  the component an injected inbound message is trying to steer ("confidence: 100,
+ *  risks: []"). So when the caller passes the `inbound` text, the hostile shapes the
+ *  code itself detects in it are risks too, and the model cannot clear them: its list
+ *  replaces the intake placeholder, never a code-detected signal. */
 export function decideDraft(
   cfg: TwinChannelConfig,
-  draft: { confidence: number; risks: string[] }
+  draft: { confidence: number; risks: string[]; inbound?: string }
 ): { status: DraftStatus; autoApproved: boolean } {
   const clears =
-    cfg.enabled && cfg.autonomy === "auto" && draft.confidence >= cfg.autoThreshold && draft.risks.length === 0;
+    cfg.enabled &&
+    cfg.autonomy === "auto" &&
+    draft.confidence >= cfg.autoThreshold &&
+    draft.risks.length === 0 &&
+    inboundRisks(draft.inbound).length === 0;
   return clears ? { status: "approved", autoApproved: true } : { status: "pending", autoApproved: false };
+}
+
+/** The risks the CODE sees in a stranger's message, as `injection:<signal>` entries.
+ *  Empty for ordinary messages; a hit holds the draft for a human however the model
+ *  scored it. Merged ahead of the model's list wherever a draft's risks are stored, so
+ *  the reviewer sees why it is pending. */
+export function inboundRisks(inbound: string | undefined): string[] {
+  return injectionSignals(inbound).map((id) => `injection:${id}`);
 }
 
 /* ── the DELIVERY gate (WP S2) ────────────────────────────────────────────────── */

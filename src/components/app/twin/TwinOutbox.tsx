@@ -276,7 +276,7 @@ export default function TwinOutbox({
 
   /** The gate's verdict on the live draft, recomputed as the human edits nothing
    *  that would change it. `null` until there is something to judge. */
-  const verdict = result ? decideDraft(cfg, { confidence: result.confidence, risks: result.risks }) : null;
+  const verdict = result ? decideDraft(cfg, { confidence: result.confidence, risks: result.risks, inbound: draftContext?.inbound }) : null;
 
   /** Under `auto`, a confident risk-free draft is banked as approved WITHOUT a human
    *  click — otherwise `autoApproved` would be a label the app never earns. The ref
