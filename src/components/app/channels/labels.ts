@@ -16,6 +16,7 @@ export const CATEGORY_LABELS: Record<ChannelCategory, L> = {
   marketplace: { cs: "Porovnávač", en: "Marketplace" },
   community: { cs: "Komunita", en: "Community" },
   content: { cs: "Obsah", en: "Content" },
+  newsletter: { cs: "Newsletter", en: "Newsletter" },
   social: { cs: "Sociální síť", en: "Social" },
   pr: { cs: "PR", en: "PR" },
   partnership: { cs: "Partnerství", en: "Partnership" },

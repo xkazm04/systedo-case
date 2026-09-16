@@ -94,7 +94,7 @@ const BLOG_SEO: Seed = {
 const NEWSLETTER: Seed = {
   id: "newsletter",
   name: "E-mailový newsletter",
-  category: "content",
+  category: "newsletter",
   fit: 74,
   effort: "medium",
   rationale:

@@ -13,6 +13,7 @@ export type ChannelCategory =
   | "marketplace"
   | "community"
   | "content"
+  | "newsletter"
   | "social"
   | "pr"
   | "partnership";
@@ -22,6 +23,7 @@ export const CHANNEL_CATEGORIES: ChannelCategory[] = [
   "marketplace",
   "community",
   "content",
+  "newsletter",
   "social",
   "pr",
   "partnership",
@@ -49,8 +51,17 @@ export type ChannelMode = "manual" | "twin";
 export type ChannelInboxSource = "manual" | "import";
 
 /** Broad interaction shape of a channel — different kinds have different
- *  lifecycles (a directory listing can be "done"; a community never is). */
-export type ChannelKind = "listing" | "conversational" | "content" | "pr";
+ *  lifecycles (a directory listing can be "done"; a community never is).
+ *
+ *  "content" and "push" are both won by publishing, and they split on who moves
+ *  first. A blog post, a video, a search-facing page are PULL: a stranger arrives
+ *  from a results page, so the channel can carry a target query and publishing
+ *  more costs only the work. A newsletter is PUSH: nobody arrives, the business
+ *  spends a standing permission by reaching into an inbox, the channel ranks for
+ *  nothing, and an intermediary meters the send against how the recipients
+ *  reacted to the last one. Folding push into content deals it target queries it
+ *  cannot rank for — see `carriesContent` in ./visibility-plan. */
+export type ChannelKind = "listing" | "conversational" | "content" | "push" | "pr";
 
 export function channelKind(category: ChannelCategory): ChannelKind {
   switch (category) {
@@ -60,6 +71,8 @@ export function channelKind(category: ChannelCategory): ChannelKind {
     case "community":
     case "social":
       return "conversational";
+    case "newsletter":
+      return "push";
     case "pr":
     case "partnership":
       return "pr";

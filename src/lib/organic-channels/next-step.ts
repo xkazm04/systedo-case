@@ -95,7 +95,8 @@ export interface ChannelNext {
 
 /** Twin scope a channel maps to by default when the user picks twin mode. */
 export function suggestedTwinScope(channel: OrganicChannel): string {
-  return channelKind(channel.category) === "pr" ? "email" : "social";
+  const kind = channelKind(channel.category);
+  return kind === "pr" || kind === "push" ? "email" : "social";
 }
 
 /** Mode the wizard pre-selects, by kind: listings are one-shot manual work,

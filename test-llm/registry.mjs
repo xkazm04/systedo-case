@@ -960,7 +960,7 @@ Pravidla:
 - Doporuč 6–9 KONKRÉTNÍCH kanálů vhodných přesně pro tuto firmu a její typ. Preferuj kanály relevantní na českém trhu.
 - Vycházej VÝHRADNĚ z předaného kontextu (typ podnikání, značka, popis firmy, nabídka, publikum, lokality, konkurence, klíčová slova) — nevymýšlej si žádné údaje, které v podkladech nejsou. Zejména si nevymýšlej čísla ani fakta o konkurenci.
 - Každý kanál musí být bezplatný na vstup (žádné placené PPC/nákup médií).
-- Pro každý kanál vrať: „name" (název kanálu), „category" (jedna z: directory | marketplace | community | content | social | pr | partnership), „fit" (0–100, jak dobře sedí této firmě), „effort" (low | medium | high), „rationale" (jednou větou proč sedí PRÁVĚ této firmě), „payoff" (co konkrétně přinese) a „firstActions" (2–4 konkrétní první kroky).
+- Pro každý kanál vrať: „name" (název kanálu), „category" (jedna z: directory | marketplace | community | content | newsletter | social | pr | partnership), „fit" (0–100, jak dobře sedí této firmě), „effort" (low | medium | high), „rationale" (jednou větou proč sedí PRÁVĚ této firmě), „payoff" (co konkrétně přinese) a „firstActions" (2–4 konkrétní první kroky).
 - Seřaď kanály od nejvyššího „fit" po nejnižší. Nedávej dva stejné kanály.
 - Volitelně u kanálu vrať „url" (kam se zapsat) a „contentAngle" (námět příspěvku k předání do tvorby obsahu).
 - Vrať i „summary": jednu větu, kde má firma největší bezplatnou příležitost.
@@ -994,7 +994,7 @@ Vrať „summary" (jedna věta o největší bezplatné příležitosti) a „ch
               },
               category: {
                 type: Type.STRING,
-                description: "Kategorie kanálu, jedna z: directory | marketplace | community | content | social | pr | partnership",
+                description: "Kategorie kanálu, jedna z: directory | marketplace | community | content | newsletter | social | pr | partnership",
               },
               fit: {
                 type: Type.NUMBER,

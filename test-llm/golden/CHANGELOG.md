@@ -91,3 +91,11 @@ lp-variant-draft: new hosted-LP-experiment arm-copy tool (WP W3-B) — first gol
 | tool | from | to |
 |---|---|---|
 | lp-variant-draft | — | 810b3dbbd4147162 |
+
+## 2026-09-16 — channel-research
+
+channel taxonomy gains a newsletter category (push kind): the category enum is interpolated into the channel-research system prompt and schema description
+
+| tool | from | to |
+|---|---|---|
+| channel-research | b78a5a2a23afd349 | 941897c1eb7130ff |
