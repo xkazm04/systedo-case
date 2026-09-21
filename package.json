@@ -144,19 +144,19 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
-    "@babel/core": "^8.0.1",
-    "@playwright/test": "^1.62.1",
+    "@babel/core": "^8.0.5",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^26.4.0",
+    "@types/node": "^26.6.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "cross-env": "^10.1.0",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.3",
+    "eslint": "^10",
+    "eslint-config-next": "16.3.5",
     "husky": "^9.1.7",
-    "lint-staged": "^17.4.1",
+    "lint-staged": "^17.5.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^7"
   },
   "overrides": {
     "uuid": "^11.1.1",
