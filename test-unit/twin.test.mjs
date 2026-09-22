@@ -27,6 +27,7 @@ import {
 } from "@/lib/twin/types";
 import {
   buildEditFact,
+  classifyEdit,
   editDistanceRatio,
   isMeaningfulEdit,
   EDIT_BANK_THRESHOLD,
@@ -286,11 +287,54 @@ test("isMeaningfulEdit: only a substantive rewrite of a real draft banks", () =>
   assert.equal(isMeaningfulEdit("původní text", "   "), false, "emptied");
   assert.equal(isMeaningfulEdit("stejný text tady", "stejný text tady"), false, "unchanged");
   assert.equal(isMeaningfulEdit("stejný text tady  ", "stejný text tady"), false, "whitespace-only");
-  // Below threshold: one word of eight.
-  assert.equal(isMeaningfulEdit("a b c d e f g h", "a b c d e f g X"), false);
-  // Above threshold.
+  // Above threshold: a rewrite always banks.
   assert.equal(isMeaningfulEdit("a b c d", "a X Y Z"), true);
   assert.ok(EDIT_BANK_THRESHOLD > 0 && EDIT_BANK_THRESHOLD < 1);
+});
+
+// A 46-word reply: one changed word is 0.022 of it, far under the rewrite threshold.
+const REPLY =
+  "Dobrý den, děkujeme za Vaši poptávku. Rekonstrukci koupelny zvládneme do tří týdnů od podpisu smlouvy a cena začíná na 1200 Kč za metr čtvereční. Možná bychom se mohli zítra ozvat a domluvit prohlídku? Pokud Vám to vyhovuje, stačí odpovědět na tento e-mail. S pozdravem, tým Koupelny";
+
+test("isMeaningfulEdit: a small voice correction banks, a small typo or fact fix does not", () => {
+  const swap = (from, to) => REPLY.replace(from, to);
+  // Voice: judged by what changed, not by how much.
+  assert.equal(isMeaningfulEdit(REPLY, swap("zvládneme", "hravě zvládneme")), true, "adjective added");
+  assert.equal(isMeaningfulEdit(REPLY, swap("Možná bychom se mohli zítra ozvat", "Zítra se ozveme")), true, "hedge cut");
+  assert.equal(isMeaningfulEdit(REPLY, swap("S pozdravem, tým Koupelny", "Díky, Jana")), true, "sign-off");
+  assert.equal(isMeaningfulEdit(REPLY, swap("Dobrý den,", "Ahoj,")), true, "greeting register");
+  assert.equal(
+    isMeaningfulEdit(REPLY, swap("od podpisu smlouvy", "od podpisu smlouvy, podle zkušenosti z více než 200 zakázek")),
+    true,
+    "evidence habit added"
+  );
+  // Not voice.
+  assert.equal(isMeaningfulEdit(swap("zítra", "zítar"), REPLY), false, "typo fixed");
+  assert.equal(isMeaningfulEdit(swap("děkujeme", "dekujeme"), REPLY), false, "diacritics restored");
+  assert.equal(isMeaningfulEdit(REPLY, swap("Dobrý den,", "dobrý den")), false, "case and punctuation");
+  assert.equal(isMeaningfulEdit(REPLY, swap("1200", "1500")), false, "a price is a grounding fix, not a style fact");
+  // The known blind spot, pinned so a change to it is deliberate.
+  assert.equal(isMeaningfulEdit(REPLY, swap("zvládneme", "zvládnem")), false, "colloquial elision reads as a typo");
+});
+
+test("classifyEdit: spelling decides a one-for-one swap, adding or cutting words is voice", () => {
+  assert.equal(classifyEdit(["teh"], ["the"]), "typo", "a transposition is one slip");
+  assert.equal(classifyEdit(["Máš"], ["máš,"]), "cosmetic");
+  assert.equal(classifyEdit(["1200"], ["1500"]), "fact");
+  assert.equal(classifyEdit(["cool"], ["exquisite"]), "voice");
+  assert.equal(classifyEdit([], ["prosím"]), "voice");
+  assert.equal(classifyEdit(["—"], []), "cosmetic");
+});
+
+test("buildEditFact: a small edit banks its changed span, not two whole replies", () => {
+  const f = buildEditFact(REPLY, REPLY.replace("zvládneme", "hravě zvládneme"), "email", "cs", "id4", "t");
+  assert.match(f.answer, /„poptávku\. Rekonstrukci koupelny zvládneme do tří" → „poptávku\. Rekonstrukci koupelny hravě zvládneme do tří"/);
+  assert.ok(!f.answer.includes("S pozdravem"), "unchanged tail is not repeated");
+  // Two separate corrections render as two spans; a price fix beside them is left out.
+  const two = REPLY.replace("Dobrý den,", "Ahoj,").replace("1200", "1500").replace("S pozdravem,", "Díky,");
+  const g = buildEditFact(REPLY, two, "email", "cs", "id5", "t");
+  assert.match(g.answer, / … /);
+  assert.ok(!g.answer.includes("1500"), "the fact hunk is not a style lesson");
 });
 
 test("buildEditFact: interview-style fact, locale-aware, side-clamped", () => {
