@@ -3963,7 +3963,10 @@
         "test-unit/organic-outcomes-store.test.mjs",
         "test-unit/organic-go-routes.test.mjs",
         "test-unit/channel-research-measured.test.mjs",
-        "src/lib/organic-channels/outcome-join.ts"
+        "src/lib/organic-channels/outcome-join.ts",
+        "src/lib/organic-channels/measured-link.ts",
+        "src/components/app/channels/ChannelStageMoves.tsx",
+        "src/components/app/channels/ChannelMeasuredLink.tsx"
       ],
       "group": "Social & Content Publishing",
       "group_id": "79748803-cfff-4395-b8bd-69e33a473856",
