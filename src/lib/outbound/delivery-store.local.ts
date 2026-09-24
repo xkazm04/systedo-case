@@ -4,7 +4,7 @@
  *  indexed range read rather than a JSON scan, while the full record stays in `data`.
  *  Server-only. Mirrors the Firestore backend's interface exactly. */
 import { getDb } from "@/lib/db";
-import { DELIVERY_LOG_CAP, type Delivery } from "./types";
+import { DELIVERY_LOG_CAP, isClaimable, type Delivery } from "./types";
 
 interface DataRow {
   data: string;
@@ -71,6 +71,76 @@ export async function updateDelivery(
   write({ ...current, ...patch, updatedAt: patch.updatedAt ?? new Date().toISOString() });
 }
 
+/** Read one row. Callers inside a transaction get the committed-or-own view. */
+function readOne(projectId: string, id: string): Delivery | undefined {
+  const row = getDb()
+    .prepare("SELECT data FROM webhook_deliveries WHERE project_id = ? AND id = ?")
+    .get(projectId, id) as DataRow | undefined;
+  return row ? parseAll([row])[0] : undefined;
+}
+
+/** `BEGIN IMMEDIATE; read; check; write; COMMIT` — the tenant-docs compareAndSet
+ *  shape (src/lib/tenant-docs/local.ts), with the write lock taken BEFORE the read so
+ *  a second process cannot interleave between the check and the write. */
+function conditionally(apply: () => boolean): boolean {
+  const db = getDb();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const won = apply();
+    db.exec("COMMIT");
+    return won;
+  } catch (err) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      /* no active transaction to roll back */
+    }
+    throw err;
+  }
+}
+
+export async function claimDelivery(
+  projectId: string,
+  id: string,
+  holder: string,
+  leaseUntil: string,
+  now: Date
+): Promise<boolean> {
+  return conditionally(() => {
+    const cur = readOne(projectId, id);
+    if (!cur || !isClaimable(cur, now.toISOString())) return false;
+    write({
+      ...cur,
+      status: "sending",
+      attempts: cur.attempts + 1,
+      nextAt: leaseUntil,
+      claim: { holder, until: leaseUntil },
+      updatedAt: now.toISOString(),
+    });
+    return true;
+  });
+}
+
+export async function completeDelivery(
+  projectId: string,
+  id: string,
+  holder: string,
+  patch: Partial<Delivery>
+): Promise<boolean> {
+  return conditionally(() => {
+    const cur = readOne(projectId, id);
+    if (!cur || cur.status !== "sending" || cur.claim?.holder !== holder) return false;
+    // JSON.stringify drops an `undefined` field, so a cleared lastError/claim is gone.
+    write({
+      ...cur,
+      ...patch,
+      claim: undefined,
+      updatedAt: patch.updatedAt ?? new Date().toISOString(),
+    });
+    return true;
+  });
+}
+
 export async function listDeliveries(projectId: string, limit = 50): Promise<Delivery[]> {
   const rows = getDb()
     .prepare(
@@ -85,7 +155,7 @@ export async function listPendingDeliveries(now: Date, limit = 100): Promise<Del
   const rows = getDb()
     .prepare(
       `SELECT data FROM webhook_deliveries
-        WHERE status = 'pending' AND next_at IS NOT NULL AND next_at <= ?
+        WHERE status IN ('pending', 'sending') AND next_at IS NOT NULL AND next_at <= ?
         ORDER BY next_at ASC LIMIT ?`
     )
     .all(now.toISOString(), limit) as unknown as DataRow[];

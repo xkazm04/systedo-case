@@ -28,6 +28,7 @@ const T = {
     colCode: "Kód",
     ok: "Doručeno",
     pending: "Čeká na opakování",
+    sending: "Odesílá se",
     failed: "Selhalo",
     gaveUp: "Vzdáno",
     clear: "Vymazat historii",
@@ -46,6 +47,7 @@ const T = {
     colCode: "Code",
     ok: "Delivered",
     pending: "Retry scheduled",
+    sending: "Sending",
     failed: "Failed",
     gaveUp: "Gave up",
     clear: "Clear history",
@@ -59,6 +61,7 @@ const T = {
 const TONE: Record<PublicDelivery["status"], PillTone> = {
   ok: "positive",
   pending: "coral",
+  sending: "neutral",
   failed: "negative",
   "gave-up": "negative",
 };
@@ -66,6 +69,7 @@ const TONE: Record<PublicDelivery["status"], PillTone> = {
 const LABEL: Record<PublicDelivery["status"], keyof (typeof T)["cs"]> = {
   ok: "ok",
   pending: "pending",
+  sending: "sending",
   failed: "failed",
   "gave-up": "gaveUp",
 };

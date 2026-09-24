@@ -42,10 +42,41 @@ export async function listDeliveries(projectId: string, limit = 50): Promise<Del
   return (await backend()).listDeliveries(projectId, limit);
 }
 
-/** Every project's deliveries that are `pending` and DUE (`nextAt <= now`) — the
- *  retry step's work list, bounded so one tick can never run unboundedly long. */
+/** Every project's deliveries that are DUE (`nextAt <= now`) and either `pending` or
+ *  `sending` with a lapsed lease (a claim whose holder died) — the drain's work
+ *  list, bounded so one tick can never run unboundedly long. */
 export async function listPendingDeliveries(now: Date, limit = 100): Promise<Delivery[]> {
   return (await backend()).listPendingDeliveries(now, limit);
+}
+
+/** CLAIM one delivery for sending: a single conditional write (a transaction on both
+ *  backends) that succeeds only if the row is still due — `pending`, or `sending`
+ *  with a lease that lapsed — at `now`. The winner's row becomes `sending` with
+ *  `claim = { holder, until: leaseUntil }`, `nextAt = leaseUntil` and one more
+ *  attempt counted (a holder that dies mid-send has used an attempt, so a crash loop
+ *  still reaches the give-up cap). Resolves true for exactly one of any number of
+ *  concurrent claimers — the election IS the conditional write. */
+export async function claimDelivery(
+  projectId: string,
+  id: string,
+  holder: string,
+  leaseUntil: string,
+  now: Date
+): Promise<boolean> {
+  return (await backend()).claimDelivery(projectId, id, holder, leaseUntil, now);
+}
+
+/** Settle a claimed delivery with `patch`, but ONLY if `holder` still holds it (the
+ *  row is `sending` and names it). A holder that lost the row — to a faster claimer,
+ *  or to a reaper after its lease lapsed — gets false and writes nothing. The claim
+ *  is cleared, and a field the patch sets to `undefined` is REMOVED on both backends. */
+export async function completeDelivery(
+  projectId: string,
+  id: string,
+  holder: string,
+  patch: Partial<Delivery>
+): Promise<boolean> {
+  return (await backend()).completeDelivery(projectId, id, holder, patch);
 }
 
 /** Drop a project's whole delivery log — the project-delete cascade + the settings

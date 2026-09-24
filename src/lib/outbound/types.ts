@@ -83,16 +83,28 @@ export interface Delivery {
   endpointId: string;
   eventId: string;
   type: OutboundEventType;
-  status: "pending" | "ok" | "failed" | "gave-up";
+  /** `sending` is the drain's CLAIM: one conditional write moved the row out of
+   *  `pending` for exactly one holder (see {@link DeliveryClaim}). */
+  status: "pending" | "sending" | "ok" | "failed" | "gave-up";
   attempts: number;
-  /** ISO time the next attempt is due; null once the delivery is terminal. */
+  /** ISO time the next attempt is due; null once the delivery is terminal. While
+   *  `sending`, it is the claim's LEASE deadline: a row still `sending` past it is
+   *  due again (its holder died), which is how the sweep reaps a stuck claim. */
   nextAt: string | null;
+  /** Present only while `sending`: who holds the row and until when. Completion is
+   *  conditional on `holder`, so a worker that lost the row cannot overwrite it. */
+  claim?: DeliveryClaim;
   lastCode?: number;
   lastError?: string;
   createdAt: string;
   updatedAt: string;
   /** the exact bytes that were signed — re-sent verbatim on a retry */
   payload: string;
+}
+
+export interface DeliveryClaim {
+  holder: string;
+  until: string;
 }
 
 /** Client-safe delivery view — the payload can be large and is not needed to render
@@ -219,11 +231,27 @@ export function publicDelivery(d: Delivery): PublicDelivery {
     attempts: d.attempts,
     nextAt: d.nextAt,
     ...(typeof d.lastCode === "number" ? { lastCode: d.lastCode } : {}),
-    ...(d.lastError ? { lastError: d.lastError } : {}),
+    // A delivered row never shows an error: rows written before the Firestore patch
+    // learned to delete a cleared field can still carry the first failure's text.
+    ...(d.lastError && d.status !== "ok" ? { lastError: d.lastError } : {}),
     createdAt: d.createdAt,
     updatedAt: d.updatedAt,
     payloadBytes: Buffer.byteLength(d.payload, "utf8"),
   };
+}
+
+/** Statuses the drain may claim from: a `pending` row, or a `sending` row whose lease
+ *  (its `nextAt`) lapsed. Terminal rows never re-enter. */
+export const CLAIMABLE_STATUSES = ["pending", "sending"] as const;
+
+/** Is this row claimable at `nowIso`? The ONE due rule both store backends apply
+ *  inside their conditional write, and the in-memory cut of the Firestore sweep. */
+export function isClaimable(d: Pick<Delivery, "status" | "nextAt">, nowIso: string): boolean {
+  return (
+    (CLAIMABLE_STATUSES as readonly string[]).includes(d.status) &&
+    d.nextAt !== null &&
+    d.nextAt <= nowIso
+  );
 }
 
 /** Serialise an event to the exact bytes that get signed, enforcing the payload cap.
