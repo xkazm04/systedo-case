@@ -155,3 +155,30 @@ test("live coverage untags the gap rec without touching the review rec", () => {
   assert.equal(local.find((r) => r.title.includes("Chybí stránka")).sample, undefined);
   assert.equal(local.find((r) => r.title.includes("negativních")).sample, true);
 });
+
+/* ── the inbox triage: "need a reply" counts only negatives NOT answered ──
+   The local DIAGNOSIS already reconciles the /recenze triage (answeredReviewIds);
+   the Overview rec used to count every rating-negative review, so an operator who
+   had answered them all was still told N reviews await a reply. The resolver threads
+   the SAME triage in (see insights-resolve-inputs.test.mjs); here the pure count. */
+
+const negativeRecs = (recs) => recs.filter((r) => r.subjectKey === "lokalni:unanswered-negative-reviews");
+
+test("answered negatives drop out of the reply nudge — all answered means no nudge", () => {
+  const recs = collectRecommendations(localProject, "cs", { ...input, answeredReviewIds: ["r2", "r3"] });
+  assert.equal(negativeRecs(recs).length, 0);
+});
+
+test("a partly answered inbox counts only what is still open", () => {
+  const [rev] = negativeRecs(collectRecommendations(localProject, "cs", { ...input, answeredReviewIds: ["r2", "r1"] }));
+  assert.equal(rev.metric, "1");
+  assert.ok(rev.title.startsWith("1"));
+});
+
+test("no triage threaded (the legacy positional call) still counts every negative", () => {
+  const [rev] = negativeRecs(collectRecommendations(localProject, "cs", { ...input }));
+  assert.equal(rev.metric, "2");
+  // An EMPTY triage is a loaded triage with nothing answered — the same two.
+  const [loaded] = negativeRecs(collectRecommendations(localProject, "cs", { ...input, answeredReviewIds: [] }));
+  assert.equal(loaded.metric, "2");
+});

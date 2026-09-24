@@ -12,16 +12,10 @@ import PortfolioCompare from "@/components/app/overview/PortfolioCompare";
 import LocationsOverviewSection from "@/components/app/overview/LocationsOverviewSection";
 import NeedsAttention from "@/components/app/overview/NeedsAttention";
 import { projectDataSource } from "@/lib/project-data/source";
-import { hasSyncedMetrics } from "@/lib/report-metrics/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
-import { collectRecommendations } from "@/lib/insights/aggregate";
-import {
-  getPortfolioModel,
-  resolveChannelRecsInput,
-  resolveLocalRecsInput,
-  resolveSeoQueries,
-  type PortfolioRec,
-} from "@/components/app/overview/portfolio-model";
+import { recommendationsFor } from "@/lib/insights/aggregate";
+import { resolveRecommendationInputs } from "@/lib/insights/resolve";
+import { getPortfolioModel, type PortfolioRec } from "@/components/app/overview/portfolio-model";
 import { bucketize, totalsOf, type Totals } from "@/lib/metrics";
 import type { Formatters } from "@/lib/format";
 import {
@@ -98,9 +92,8 @@ type ProjRec = PortfolioRec;
 /* The "Needs attention" feed (with its advice-ledger affordances) lives in
  * ./overview/NeedsAttention — extracted in WP W3-A.
  *
- * The local-signals / SEO-slate resolvers and the portfolio view-model live in
- * ./overview/portfolio-model — one owner for the computation, plus the demo
- * fast path (pure sample inputs + module-level memo) the public /dashboard uses. */
+ * Every rec producer's input comes from ONE resolver (@/lib/insights/resolve, demo
+ * ids pure); the portfolio view-model + its all-demo memo live in ./overview/portfolio-model. */
 
 export default async function ProjectOverview({
   projects,
@@ -127,26 +120,13 @@ export default async function ProjectOverview({
   if (projects.length <= 1) {
     const project = projects[0]!;
     const data = getProjectDataset(project);
-    // Honest label: "živá data" only once the project has SYNCED rows (not merely
-    // linked an Ads account) — the same signal the Monthly Report/AI recap use. The
-    // SAME boolean is threaded into the aggregator so the dataset-derived recs
-    // (profit/seasonality) carry the same provenance the pill shows.
-    // The channel plan resolves the way /kanaly does (pinned AI plan else the seed),
-    // so the "Kanál zdarma" rec names a channel from the plan the tenant actually has.
-    const [localInput, seoQueries, synced, channelPlan] = await Promise.all([
-      resolveLocalRecsInput(project),
-      resolveSeoQueries(project),
-      hasSyncedMetrics(project.id),
-      resolveChannelRecsInput(project),
-    ]);
-    const recs: ProjRec[] = collectRecommendations(
-      project,
-      locale,
-      localInput,
-      seoQueries,
-      synced,
-      channelPlan
-    ).map((r) => ({
+    // Demo ids and anonymous viewers skip the per-user reads (triage, calendar, ledger).
+    const uid = isDemoProjectId(project.id) ? null : await currentUserId();
+    const inputs = await resolveRecommendationInputs(project, { uid });
+    // Honest label: "živá data" only once the project has SYNCED rows — the SAME
+    // boolean the dataset-derived recs (profit/seasonality) carry as provenance.
+    const synced = inputs.metricsLive;
+    const recs: ProjRec[] = recommendationsFor(project, locale, inputs).map((r) => ({
       ...r,
       projectId: project.id,
       projectName: project.name,
@@ -157,7 +137,6 @@ export default async function ProjectOverview({
     // observation, so a slow or broken ledger can never delay or fail this page. The
     // read is one project_state round-trip and is skipped entirely for a demo id and
     // for an anonymous viewer, keeping the public /dashboard path I/O-free.
-    const uid = isDemoProjectId(project.id) ? null : await currentUserId();
     const ledger = uid ? await getAdviceLedger(uid, project.id) : null;
     void recordAdviceSighting(project.id, recs);
     const meta = projectTypeMeta(project.type, locale);
@@ -268,7 +247,8 @@ export default async function ProjectOverview({
   // fixtures (the public /dashboard) is served from the module-level memo — the
   // deterministic model is computed once, with zero store round-trips; any real
   // tenant id in the list bypasses the memo and resolves its stores per request.
-  const { rows, combined } = await getPortfolioModel(projects, locale);
+  const viewer = projects.some((p) => !isDemoProjectId(p.id)) ? await currentUserId() : null;
+  const { rows, combined } = await getPortfolioModel(projects, locale, viewer);
 
   const totalRevenue = rows.reduce((s, r) => s + r.totals.revenue, 0);
   const totalCost = rows.reduce((s, r) => s + r.totals.cost, 0);

@@ -357,6 +357,9 @@ export interface LocalRecsInput {
   ladder: KeywordRank[];
   reviews: ReviewItem[];
   live: LocalLiveness;
+  /** ids the /recenze inbox triage marks answered — the SAME join the local diagnosis
+   *  reads (resolveAnsweredTriage). Absent = triage not loaded: every negative counts. */
+  answeredReviewIds?: string[];
 }
 
 /** Recommendations for a `local` project: the coverage gap with the most search
@@ -402,8 +405,12 @@ function localRecs(locale: SupportedLocale, input: LocalRecsInput): Recommendati
       `#${weakest.current}`)));
   }
 
-  // Reviews → unanswered negative reviews drag reputation; nudge to reply.
-  const negative = input.reviews.filter((r) => bandOf(r.rating) === "negative").length;
+  // Reviews → unanswered negative reviews drag reputation; nudge to reply. A review the
+  // inbox triage marks answered is not "waiting for a reply" — the diagnosis agrees.
+  const answered = new Set(input.answeredReviewIds ?? []);
+  const negative = input.reviews.filter(
+    (r) => bandOf(r.rating) === "negative" && !answered.has(r.id)
+  ).length;
   if (negative > 0) {
     out.push(from(live.reviews, rec(locale, "lokalni", "warning",
       // Count in the metric, never in the identity (see schranka:sla-breach).
@@ -528,6 +535,9 @@ function channelRecs(
  *  pure aggregator). */
 export interface PublishingRecsInput {
   checks: CadenceCheck[];
+  /** a calendar source read failed (SourceHealth "error"): counts can only be LOW, so
+   *  an empty week is unknowable — the zero-planned claim is withheld, over-cap kept */
+  degraded?: boolean;
 }
 
 /** Cadence recs — the two things a per-channel cap can be wrong about, once it is
@@ -569,7 +579,7 @@ function publishingRecs(
           `${check.count}/${check.cap}`
         )
       );
-    } else if (check.count === 0) {
+    } else if (check.count === 0 && !input.degraded) {
       out.push(
         rec(
           locale,
@@ -636,4 +646,34 @@ export function collectRecommendations(
     ...channelRecs(project, locale, channelPlan),
     ...publishingRecs(locale, publishing),
   ].sort(byImpact);
+}
+
+/** Every producer's resolved input in one shape — what
+ *  `resolveRecommendationInputs` (src/lib/insights/resolve.ts) returns. A new
+ *  producer seam is one field here, not a positional argument each caller can miss. */
+export interface RecommendationInputs {
+  local: LocalRecsInput | null;
+  seoQueries: CompareQuery[] | null;
+  metricsLive: boolean;
+  channelPlan: ChannelRecsInput | null;
+  publishing: PublishingRecsInput | null;
+}
+
+/** {@link collectRecommendations} over a resolved {@link RecommendationInputs} — the
+ *  one way the Overview surfaces rank recs. The positional form stays for the pure
+ *  producer suites. */
+export function recommendationsFor(
+  project: Project,
+  locale: SupportedLocale,
+  inputs: RecommendationInputs
+): Recommendation[] {
+  return collectRecommendations(
+    project,
+    locale,
+    inputs.local,
+    inputs.seoQueries,
+    inputs.metricsLive,
+    inputs.channelPlan,
+    inputs.publishing
+  );
 }

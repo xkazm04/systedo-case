@@ -6,9 +6,11 @@
  *  `collectRecommendations`, resolved by the caller, with async I/O kept out of
  *  the pure aggregator. Two properties are pinned here:
  *
- *   • THE SEAM IS INVISIBLE UNTIL ADOPTED. The portfolio model and ProjectOverview
- *     do not pass it, so omitting it must be byte-identical to the pre-seam
- *     output — deep-equality, not "roughly the same recs".
+ *   • OMITTING THE SEAM IS SILENCE. Both Overview surfaces now thread it through
+ *     `resolveRecommendationInputs` (src/lib/insights/resolve.ts — only for a
+ *     project with a cadence cap; see insights-resolve-inputs.test.mjs), and a
+ *     caller that omits it must stay byte-identical to the pre-seam output —
+ *     deep-equality, not "roughly the same recs".
  *   • NO SAMPLE PATH. Unlike every other producer, this one has no fixture to fall
  *     back to: a cadence rec is derived from the tenant's own tracked caps and
  *     their own four schedulers, so it is never `sample`-tagged and never invented
@@ -116,4 +118,15 @@ test("a warning outranks the info in the same list", () => {
   const produced = cadenceRecs(recs);
   assert.equal(produced[0].severity, "warning");
   assert.equal(produced[1].severity, "info");
+});
+
+test("a DEGRADED calendar suppresses the zero claim but keeps the over-cap one", () => {
+  // A failed source (SourceHealth "error") can only UNDERcount: it may hide an
+  // over-cap, never invent one — but it can invent an empty week, so that claim goes.
+  const recs = collectRecommendations(project, "cs", null, null, false, null, {
+    checks: [check({ count: 5, cap: 3 }), check({ channel: "linkedin", count: 0, cap: 2 })],
+    degraded: true,
+  });
+  const keys = cadenceRecs(recs).map((r) => r.subjectKey);
+  assert.deepEqual(keys, ["kanaly:over-cap:instagram"]);
 });
