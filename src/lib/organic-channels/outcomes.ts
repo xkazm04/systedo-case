@@ -21,6 +21,7 @@
  *
  *  Pure and framework-free (no I/O, no React, no store) so the cron step, the two
  *  routes and the UI all derive the same numbers from the same function. */
+import { joinOutcomesToPlan } from "./outcome-join";
 
 /** One minted short link. `id` is the whole public address space, so it is random
  *  rather than derived — a guessable id would let anyone enumerate a tenant's
@@ -177,17 +178,16 @@ export function measuredBadge(
   };
 }
 
-/** Case/whitespace-tolerant lookup of a channel's outcome. The plan's channel names
- *  come from a model ("LinkedIn", "Linkedin") while a minted link carries whatever
- *  label the Distribuce card used, so an exact-string join would silently show
- *  nothing for the very channels that ARE measured. */
+/** One channel's outcome, looked up by name — a thin wrapper over the plan join
+ *  (./outcome-join) with a one-channel plan, kept for callers that hold a single
+ *  name. A caller holding a whole plan must use `joinOutcomesToPlan` instead: only
+ *  the whole plan can tell that two of its channels share a ChannelKey, which is
+ *  the false-merge guard this wrapper cannot see. */
 export function outcomeFor(
   outcomes: readonly ChannelOutcome[] | undefined,
   channel: string
 ): ChannelOutcome | null {
-  if (!outcomes || outcomes.length === 0) return null;
-  const key = channel.trim().toLowerCase();
-  return outcomes.find((o) => o.channel.trim().toLowerCase() === key) ?? null;
+  return joinOutcomesToPlan([{ id: "channel", name: channel }], outcomes).byId.channel ?? null;
 }
 
 /** The `measured` grounding rows handed to the `channel-research` prompt — the
