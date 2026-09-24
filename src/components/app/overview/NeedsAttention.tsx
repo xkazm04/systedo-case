@@ -8,19 +8,21 @@
  *  THE LEDGER IS OPTIONAL, ALWAYS. `ledger` is null for the public demo dashboard and
  *  for the portfolio feed, and every ledger-derived affordance degrades to exactly the
  *  pre-W3-A rendering when it is — the feed is the product, the ledger is an
- *  observation of it. */
+ *  observation of it.
+ *
+ *  TRIAGE. With `triageProjectId` (a single project's own overview) and a ledger, the
+ *  rows become a triage inbox — dismiss / undo / restore, in the client island
+ *  ./AdviceFeed over the pure @/lib/advice/triage. This shell still renders every
+ *  row's content, so without it the markup is exactly the read-only feed. */
 import Link from "next/link";
 import AdviceOutcomes from "@/components/app/overview/AdviceOutcomes";
+import AdviceFeed, { type FeedRow } from "@/components/app/overview/AdviceFeed";
 import { Pill } from "@/components/ui";
 import { ArrowRight } from "@/components/icons";
 import type { Severity } from "@/lib/insights/types";
 import type { PortfolioRec } from "@/components/app/overview/portfolio-model";
-import {
-  adviceRecordFor,
-  dismissedSubjectKeys,
-  recentAdviceOutcomes,
-  type AdviceLedger,
-} from "@/lib/advice/ledger";
+import { adviceRecordFor, recentAdviceOutcomes, type AdviceLedger } from "@/lib/advice/ledger";
+import { partitionFeed, repeatHint } from "@/lib/advice/triage";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 
 const T = {
@@ -32,6 +34,7 @@ const T = {
     sampleHint:
       "Toto doporučení vychází z ilustrativních dat, ne z vašeho importu. Po napojení zdroje v modulu se přepočítá na reálná čísla.",
     seenSince: "Sledováno od {date} · zobrazeno {n}×",
+    repeat: "Zobrazeno {times}× za {days} d",
   },
   en: {
     needsAttention: "Needs attention",
@@ -41,6 +44,7 @@ const T = {
     sampleHint:
       "This recommendation runs on illustrative data, not your import. Connect the source in the module and it recomputes on real numbers.",
     seenSince: "Tracked since {date} · shown {n}×",
+    repeat: "Shown {times}× in {days} d",
   },
 } as const;
 
@@ -55,14 +59,19 @@ export default async function NeedsAttention({
   recs,
   count,
   moduleHref,
-  showProject,
+  showProject = false,
+  triageProjectId,
   ledger = null,
   now = new Date(),
 }: {
   recs: PortfolioRec[];
   count: number;
   moduleHref: (projectId: string, moduleKey: string) => string;
-  showProject: boolean;
+  /** each row names its project (the cross-project feed) */
+  showProject?: boolean;
+  /** the ONE project this feed belongs to — enables dismiss / undo / restore when a
+   *  ledger backs it */
+  triageProjectId?: string;
   /** the project's advice ledger, when this feed belongs to ONE project */
   ledger?: AdviceLedger | null;
   now?: Date;
@@ -73,9 +82,12 @@ export default async function NeedsAttention({
   // A dismissed subject stops rendering but stays in the ledger — the operator said
   // "not this one", not "forget this ever happened", and its history still counts
   // toward an outcome if the signal later goes quiet.
-  const dismissed = dismissedSubjectKeys(ledger);
-  const visible = dismissed.size > 0 ? recs.filter((r) => !dismissed.has(r.subjectKey)) : recs;
-  const shown = count - (recs.length - visible.length);
+  const feed = partitionFeed(recs, ledger, count);
+  const shown = feed.badge;
+  const triageId = feed.canTriage ? triageProjectId : undefined;
+  const hidden = new Set(feed.dismissed.map((d) => d.subjectKey));
+  // Without triage a dismissed row is simply not rendered (today's filter).
+  const rowRecs = triageId ? recs : feed.visible;
 
   return (
     <div className="mt-8">
@@ -85,18 +97,26 @@ export default async function NeedsAttention({
         </h3>
         {shown > 0 && <Pill tone="neutral">{shown}</Pill>}
       </div>
-      {visible.length === 0 ? (
-        <div className="mt-3 flex items-center gap-3 rounded-card border border-line bg-canvas px-4 py-4 text-sm text-muted">
-          <span className="h-2 w-2 rounded-full bg-positive" aria-hidden />
-          {t("allGood")}
-        </div>
-      ) : (
-        <div className="mt-3 card divide-y divide-line overflow-hidden">
-          {visible.map((r, i) => {
-            // How long this exact subject has been on the list — a row the operator
-            // has been shown eleven times reads differently from a brand-new one.
-            const tracked = adviceRecordFor(ledger, r.subjectKey);
-            return (
+      <AdviceFeed
+        triageProjectId={triageId ?? null}
+        empty={
+          <div className="mt-3 flex items-center gap-3 rounded-card border border-line bg-canvas px-4 py-4 text-sm text-muted">
+            <span className="h-2 w-2 rounded-full bg-positive" aria-hidden />
+            {t("allGood")}
+          </div>
+        }
+        rows={rowRecs.map((r): FeedRow => {
+          // How long this exact subject has been on the list — a row the operator
+          // has been shown eleven times reads differently from a brand-new one.
+          const tracked = adviceRecordFor(ledger, r.subjectKey);
+          const repeat = repeatHint(tracked, now);
+          const i = feed.visible.indexOf(r);
+          return {
+            id: r.id,
+            subjectKey: r.subjectKey,
+            title: r.title,
+            dismissed: hidden.has(r.subjectKey),
+            node: (
             <Link
               key={r.id}
               href={moduleHref(r.projectId, r.module)}
@@ -109,7 +129,7 @@ export default async function NeedsAttention({
               <span className="min-w-0 flex-1">
                 <span className="flex items-center justify-between gap-3">
                   <span className="flex items-center gap-2">
-                    {i < 3 && (
+                    {i >= 0 && i < 3 && (
                       <span className="shrink-0 rounded-pill bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-accent">
                         {t("priority")} {i + 1}
                       </span>
@@ -146,6 +166,7 @@ export default async function NeedsAttention({
                     >
                       {r.title}
                     </span>
+                    {repeat && <Pill tone="coral">{t("repeat", repeat)}</Pill>}
                   </span>
                   {r.metric && (
                     <span className="tnum shrink-0 text-xs font-medium text-muted">{r.metric}</span>
@@ -158,10 +179,10 @@ export default async function NeedsAttention({
                 </span>
               </span>
             </Link>
-            );
-          })}
-        </div>
-      )}
+            ),
+          };
+        })}
+      />
       <AdviceOutcomes records={recentAdviceOutcomes(ledger, now)} />
     </div>
   );

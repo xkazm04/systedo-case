@@ -234,7 +234,7 @@ export default async function ProjectOverview({
           recs={recs}
           count={recs.length}
           moduleHref={moduleHref}
-          showProject={false}
+          triageProjectId={project.id}
           ledger={ledger}
         />
       </div>
