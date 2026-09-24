@@ -196,6 +196,12 @@
         "content": { "text/plain": { "schema": { "$ref": "#/components/schemas/TextBody" } } },
         "x-retryable": "no",
         "x-remedy": "Re-mint the token. Retrying a revoked one answers 404 forever, and a channel that keeps retrying is the failure this route is shaped to avoid."
+      },
+      "ServiceUnavailable": {
+        "description": "A transient store failure stopped the operation before it wrote anything, and whatever it had consumed was put back. On the scan redeem this is `code: \"redeem-retry\"`: no project exists and the claim token is still valid.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } },
+        "x-retryable": "yes",
+        "x-remedy": "Retry the same request with backoff. The claim keeps its original expiry, so a retry after the TTL answers 404 and the scan has to be run again."
       }
     }
   },
@@ -639,7 +645,7 @@
     },
     "/api/sken/redeem": {
       "x-adamant": { "source": "src/app/api/sken/redeem/route.ts", "auth": "session" },
-      "post": { "operationId": "redeemScan", "summary": "Attach a claimed scan to the newly signed-in caller's account.", "tags": ["sken"], "security": [{ "sessionCookie": [] }], "responses": { "201": { "$ref": "#/components/responses/Created" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" } } }
+      "post": { "operationId": "redeemScan", "summary": "Attach a claimed scan to the newly signed-in caller's account.", "description": "Creates the project through the same provisioning seam as POST /api/projects and applies the scan through the in-app apply; the 201 carries a per-part `outcome` (scan applied or failed, competitors, keywords, catalogSeeded, activityLogged) rather than a 500 once the project exists, and a failure before the project exists puts the claim back and answers 503 `redeem-retry`.", "tags": ["sken"], "security": [{ "sessionCookie": [] }], "responses": { "201": { "$ref": "#/components/responses/Created" }, "401": { "$ref": "#/components/responses/Unauthorized" }, "404": { "$ref": "#/components/responses/NotFound" }, "503": { "$ref": "#/components/responses/ServiceUnavailable" } } }
     },
     "/api/skills": {
       "x-adamant": { "source": "src/app/api/skills/route.ts", "auth": "public" },
