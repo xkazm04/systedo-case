@@ -62,3 +62,16 @@ carry any of this.
   while the index is LF: any file an editor touches comes back as a whole-file diff. Normalize
   with `sed -i 's/\r$//' <files>` before staging. Unit tests must run with the loader flags from
   the `test:unit` script (`--import ./test-llm/setup.mjs …`) or `@/lib` imports fail to resolve.
+- **2026-09-24 (challenge run, 3 waves x 4 builders in the shared checkout)** — **A FAILING
+  pre-commit hook rolls back the whole working tree.** `lint-staged` (v17) takes a backup stash at
+  hook start and, when a task fails, does `reset --hard HEAD` + re-applies it: every edit a SIBLING
+  made during that ~20 s window is erased. `lint-staged.config.mjs` runs `tsc --noEmit` over the
+  WHOLE project on any staged .ts/.tsx, so a sibling's in-flight type error is enough to fail your
+  hook. Measured twice in one run (two builders lost an uncommitted edit and re-applied it). Builders
+  here must run `npx tsc --noEmit` and `npx eslint <staged>` to exit 0 BEFORE `git commit`, and
+  re-check their own `git diff --stat` after every commit in the tree.
+- **2026-09-24** — `context:decay:check` and `review:agent:gate` diff against `origin/master`, which
+  lags local master by the owner's unpushed commits; a builder sees red from a crossing it did not
+  make. Integrate with `node scripts/context-decay.mjs --check --base <run base>`. `i18n:audit:check`
+  was already red at the run base (46 > 40) and is not in `check:ci` — compare the finding LIST
+  against a base log, not the exit code.
