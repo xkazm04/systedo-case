@@ -15,6 +15,7 @@ import {
   type ConsentPurpose,
   type LawfulBasis,
 } from "@/lib/leads/types";
+import { sanitizeQualification } from "@/lib/speed-lead/qualification";
 
 const TIMELINE_LIMIT = 200;
 
@@ -58,6 +59,14 @@ export async function PATCH(
   if (!contact) return apiError(404, "Kontakt nenalezen.", "not-found", { envelope: "ok" });
   if (isErased(contact)) {
     return apiError(409, "Kontakt byl smazán na žádost subjektu údajů.", "conflict", { envelope: "ok" });
+  }
+
+  // The rep's BANT capture (Schránka's "Qualify"). Clamped to the closed unions
+  // before it is stored or scored; a non-object is refused, never coerced — and
+  // refused BEFORE the stage move below, so a bad body writes nothing.
+  const qualification = body.qualification !== undefined ? sanitizeQualification(body.qualification) : undefined;
+  if (qualification === null) {
+    return apiError(422, "Neplatná kvalifikace.", "invalid-type", { envelope: "ok" });
   }
 
   const now = new Date();
@@ -113,9 +122,17 @@ export async function PATCH(
     );
   }
 
-  const hasFieldEdit = ["name", "email", "phone", "companyName", "notes", "tags", "ownerId", "firstRespondedAt"].some(
-    (k) => body[k] !== undefined
-  );
+  const hasFieldEdit = [
+    "name",
+    "email",
+    "phone",
+    "companyName",
+    "notes",
+    "tags",
+    "ownerId",
+    "firstRespondedAt",
+    "qualification",
+  ].some((k) => body[k] !== undefined);
   if (hasFieldEdit) {
     contact = await patchContact(
       project.id,
@@ -129,6 +146,7 @@ export async function PATCH(
         ...(body.tags !== undefined ? { tags: body.tags } : {}),
         ...(body.ownerId !== undefined ? { ownerId: trimmedString(body.ownerId) } : {}),
         ...(body.firstRespondedAt !== undefined ? { firstRespondedAt: now.toISOString() } : {}),
+        ...(qualification ? { qualification } : {}),
       },
       now
     );

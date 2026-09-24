@@ -33,6 +33,29 @@ export const EMPTY_QUALIFICATION: Qualification = {
   disposition: "unknown",
 };
 
+const TIMELINES: readonly Timeline[] = ["asap", "weeks", "exploring", "unknown"];
+const BUDGETS: readonly Budget[] = ["confirmed", "flexible", "tight", "unknown"];
+const SCOPES: readonly Scope[] = ["large", "medium", "small", "unknown"];
+const DISPOSITIONS: readonly Disposition[] = ["hot", "warm", "cold", "unknown"];
+
+const pick = <V extends string>(allowed: readonly V[], v: unknown): V =>
+  (allowed as readonly unknown[]).includes(v) ? (v as V) : ("unknown" as V);
+
+/** Coerce an untrusted value (a PATCH body, a stored JSON payload) into a
+ *  Qualification: each field is clamped to its closed union, anything else reads as
+ *  "unknown" (the absent state). Not an object at all ⇒ null, so a caller can refuse
+ *  it instead of storing four "unknown"s the rep never chose. */
+export function sanitizeQualification(raw: unknown): Qualification | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  return {
+    timeline: pick(TIMELINES, r.timeline),
+    budget: pick(BUDGETS, r.budget),
+    scope: pick(SCOPES, r.scope),
+    disposition: pick(DISPOSITIONS, r.disposition),
+  };
+}
+
 /** Each captured field contributes up to ~30 pts; disposition nudges ±10. The
  *  caps keep any single field from dominating and the sum is clamped to 0–100. */
 const TIMELINE_POINTS: Record<Timeline, number> = { asap: 30, weeks: 20, exploring: 8, unknown: 0 };

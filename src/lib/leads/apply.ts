@@ -248,6 +248,9 @@ export async function applyLeadEvent(
     score: scoreContact({
       contact,
       enquiry: event.text,
+      // A merged contact keeps the rep's BANT; rescoring without it would silently
+      // drop the engagement axis back to the behavioural half.
+      qualification: contact.qualification,
       activities,
       firstRespondedAt: contact.firstRespondedAt,
       lastActivityAt: contact.lastActivityAt,

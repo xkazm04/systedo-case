@@ -23,6 +23,7 @@ import {
   type LostReason,
   type PipelineStage,
 } from "./types";
+import type { Qualification } from "@/lib/speed-lead/qualification";
 import { contactKeys } from "./normalize";
 import { appendActivity, deleteActivities, listActivities, saveContact } from "./store";
 import { newLeadId } from "./apply";
@@ -113,6 +114,8 @@ export interface ContactPatch {
   tags?: unknown;
   ownerId?: string;
   firstRespondedAt?: string;
+  /** the rep's BANT capture — the caller sanitizes it (`sanitizeQualification`) */
+  qualification?: Qualification;
 }
 
 /** Patch the editable identity/ownership fields, re-deriving the dedup keys from
@@ -156,6 +159,10 @@ export async function patchContact(
     next.firstRespondedAt = patch.firstRespondedAt;
     changed.push("firstRespondedAt");
   }
+  if (patch.qualification !== undefined) {
+    next.qualification = patch.qualification;
+    changed.push("qualification");
+  }
 
   if (changed.length === 0) return contact;
 
@@ -168,6 +175,7 @@ export async function patchContact(
   const activities = await listActivities(projectId, contact.id, 200);
   next.score = scoreContact({
     contact: next,
+    qualification: next.qualification,
     activities,
     firstRespondedAt: next.firstRespondedAt,
     lastActivityAt: next.lastActivityAt,

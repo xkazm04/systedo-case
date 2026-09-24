@@ -18,6 +18,7 @@
  *  imports are TYPE-ONLY so this file stays free of runtime dependencies. */
 import type { LeadStage } from "@/lib/lead-quality/types";
 import type { TwinChannel } from "@/lib/twin/types";
+import type { Qualification } from "@/lib/speed-lead/qualification";
 
 /* ── stages: EXTENDS lead-quality's LeadStage, never replaces it ─────────────── */
 
@@ -288,6 +289,11 @@ export interface Contact {
 
   attribution: Attribution;
   score?: LeadScore;
+  /** the rep's captured BANT (Schránka's qualify) — ADDITIVE and optional. It rides
+   *  the contact's JSON payload on both backends (no migration) and feeds the BANT
+   *  half of `score.ts#engagementScore` on every rescoring call site, so grades A and
+   *  C are reachable. Always stored through `sanitizeQualification`. */
+  qualification?: Qualification;
 
   /** which twin channel this person is reachable on (bridges to twin drafts) */
   preferredChannel?: TwinChannel;
