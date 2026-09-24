@@ -5355,7 +5355,9 @@
         "src/components/app/modules/speed-lead/LeadQualificationPanel.tsx",
         "src/components/app/modules/speed-lead/qualification.ts",
         "src/components/app/modules/speed-lead/useLeadSla.ts",
-        "src/components/app/modules/speed-lead/useSnippetLibrary.ts"
+        "src/components/app/modules/speed-lead/useSnippetLibrary.ts",
+        "src/components/app/modules/speed-lead/ResponseBand.tsx",
+        "src/components/app/modules/speed-lead/useContactWriteBack.ts"
       ],
       "group": "Lead & CRM Management",
       "group_id": "f1a820c1-0783-4550-b47c-133532ad7ea4",
@@ -5398,7 +5400,9 @@
         "src/lib/speed-lead/draft.ts",
         "src/lib/speed-lead/qualification.ts",
         "src/lib/speed-lead/sample.ts",
-        "src/lib/speed-lead/snippets.ts"
+        "src/lib/speed-lead/snippets.ts",
+        "src/lib/speed-lead/inbox-source.ts",
+        "src/lib/speed-lead/resolve-inbox.ts"
       ],
       "group": "Lead & CRM Management",
       "group_id": "f1a820c1-0783-4550-b47c-133532ad7ea4",
