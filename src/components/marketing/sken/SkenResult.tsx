@@ -8,7 +8,9 @@ import { coerceProjectType } from "@/lib/projects/types";
 import { useT } from "@/lib/i18n/client";
 import SkenProfileCard from "./SkenProfileCard";
 import SkenPlanTable from "./SkenPlanTable";
-import type { SkenClaimPhase } from "./useSkenClaim";
+import SkenTargetChooser from "./SkenTargetChooser";
+import type { SkenClaimPhase } from "./claim-phase";
+import type { RedeemCandidate } from "@/lib/onboarding/redeem-plan";
 
 /** The answer: what the scan read, what to do with it, and the one offer.
  *
@@ -54,6 +56,8 @@ export default function SkenResult({
   selfHosted,
   onClaim,
   onRetrySignIn,
+  candidates,
+  onChoose,
 }: {
   result: OnboardingScanResult;
   scannedUrl: string;
@@ -61,6 +65,8 @@ export default function SkenResult({
   selfHosted: boolean;
   onClaim: () => void;
   onRetrySignIn: () => void;
+  candidates: RedeemCandidate[];
+  onChoose: (target: string) => void;
 }) {
   const t = useT(T);
   const plan = useMemo(
@@ -84,16 +90,20 @@ export default function SkenResult({
         <h3 className="text-lg font-semibold tracking-tight text-navy-800">{t("ctaHeading")}</h3>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-navy-700">{t("ctaBody")}</p>
 
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          {phase === "needs-signin" ? (
-            <Button onClick={onRetrySignIn}>{t("retry")}</Button>
-          ) : (
-            <Button onClick={onClaim} disabled={busy}>
-              {selfHosted ? t("ctaSelfHost") : t("cta")}
-            </Button>
-          )}
-          <span className="text-xs text-muted">{t("trust")}</span>
-        </div>
+        {phase === "choosing" ? (
+          <SkenTargetChooser candidates={candidates} onChoose={onChoose} />
+        ) : (
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            {phase === "needs-signin" ? (
+              <Button onClick={onRetrySignIn}>{t("retry")}</Button>
+            ) : (
+              <Button onClick={onClaim} disabled={busy}>
+                {selfHosted ? t("ctaSelfHost") : t("cta")}
+              </Button>
+            )}
+            <span className="text-xs text-muted">{t("trust")}</span>
+          </div>
+        )}
 
         {busy && (
           <p className="mt-3 text-sm text-muted" role="status">

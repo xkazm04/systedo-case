@@ -6,6 +6,7 @@ import { Button, Container } from "@/components/ui";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useT } from "@/lib/i18n/client";
 import SkenResult from "./SkenResult";
+import SkenTargetChooser from "./SkenTargetChooser";
 import { useSkenClaim } from "./useSkenClaim";
 
 /** The interactive half of /sken: one input, one AI call, one offer.
@@ -30,7 +31,7 @@ const T = {
     retry: "Dokončit přihlášení",
     expired: "Odkaz na sken vypršel nebo už byl použit. Spusťte sken znovu.",
     failed: "Projekt se nepodařilo založit. Zkuste sken spustit znovu.",
-    redeemRetry: "Projekt se tentokrát nepodařilo založit. Váš sken zůstal uložený, stačí to zkusit znovu.",
+    redeemRetry: "Sken se tentokrát nepodařilo uložit do projektu. Zůstal uložený, stačí to zkusit znovu.",
     retryRedeem: "Zkusit znovu",
   },
   en: {
@@ -46,7 +47,7 @@ const T = {
     retry: "Finish signing in",
     expired: "That scan link expired or was already used. Run the scan again.",
     failed: "The project could not be created. Try running the scan again.",
-    redeemRetry: "The project could not be created this time. Your scan is still saved, so just try again.",
+    redeemRetry: "The scan could not be saved to a project this time. It is still saved, so just try again.",
     retryRedeem: "Try again",
   },
 } as const;
@@ -74,7 +75,7 @@ export default function SkenClient({
    *  to the input, and the claim must record what was actually scanned. */
   const [scannedUrl, setScannedUrl] = useState("");
   const scan = useAiTool<OnboardingScanResult>("onboarding-scan-public");
-  const { phase, claim, retrySignIn, retryRedeem } = useSkenClaim({ claimToken, selfHosted });
+  const { phase, candidates, claim, choose, retrySignIn, retryRedeem } = useSkenClaim({ claimToken, selfHosted });
 
   const result = scan.status === "done" ? scan.data?.result : undefined;
   const busy = scan.status === "loading";
@@ -91,10 +92,16 @@ export default function SkenClient({
   // when the visitor comes back from the provider there is no scan on screen yet —
   // without this, a redeem that fails would look like an ordinary empty page.
   const returnKey = claimToken ? RETURN_MESSAGE[phase as keyof typeof RETURN_MESSAGE] : undefined;
+  const choosingOnReturn = !!claimToken && phase === "choosing" && !result;
 
   return (
     <section className="border-b border-line">
       <Container className="py-12 lg:py-16">
+        {choosingOnReturn && (
+          <div className="mb-8 max-w-2xl rounded-2xl border border-line bg-surface p-5 shadow-card">
+            <SkenTargetChooser candidates={candidates} onChoose={choose} />
+          </div>
+        )}
         {returnKey && !result && (
           <div className="mb-8 max-w-2xl rounded-2xl border border-line bg-surface p-5 shadow-card" role="status">
             <p className="text-sm leading-relaxed text-navy-700">{t(returnKey)}</p>
@@ -154,6 +161,8 @@ export default function SkenClient({
             selfHosted={selfHosted}
             onClaim={() => void claim(result, scannedUrl)}
             onRetrySignIn={retrySignIn}
+            candidates={candidates}
+            onChoose={choose}
           />
         )}
       </Container>

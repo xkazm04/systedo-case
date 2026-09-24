@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import type { OnboardingScanResult } from "@/lib/ai-types";
+import type { RedeemCandidate } from "@/lib/onboarding/redeem-plan";
+import { claimNextStep, phaseForRedeemResponse, type SkenClaimPhase } from "./claim-phase";
+
+export type { SkenClaimPhase };
 
 /** The claim lifecycle of the public scan, in one hook — because it is a state
  *  machine that spans a full page unload and back, and inlining it in the view
@@ -11,31 +15,19 @@ import type { OnboardingScanResult } from "@/lib/ai-types";
  *
  *  The trip:
  *    1. `claim(scan, url)` POSTs the result to /api/sken/claim, which parks it under
- *       a token and returns it. Nothing is created yet and nobody is signed in.
- *    2. We hand that token to `signIn` as part of the callbackUrl, and the browser
- *       leaves. Every scrap of client state dies here — the token in the URL IS the
- *       continuity.
- *    3. We come back at /sken?claim=<token> and POST it to /api/sken/redeem, which
- *       (now with a session) creates and seeds the project and answers with its id.
+ *       a token and returns it. Nothing is created yet.
+ *    2. We try the redeem right away. A visitor who is already signed in is done
+ *       here, without leaving the page; an anonymous one gets a 401 (which never
+ *       spends the token) and only THEN do we hand the token to `signIn` as part of
+ *       the callbackUrl. Every scrap of client state dies on that trip — the token in
+ *       the URL IS the continuity.
+ *    3. We come back at /sken?claim=<token> and POST it to /api/sken/redeem again.
+ *    Every redeem sends `chooser: true`: when the caller already owns a project for
+ *    the scanned site the answer is `choosing` (token unspent), and `choose(target)`
+ *    re-POSTs with the project id or "new".
  *
- *  The states that are NOT success are the point of the hook:
- *   - `needs-signin` — we returned with a token but no session (the user cancelled
- *     the provider, or the cookie did not stick). The token is still good, so the
- *     offer is "sign in again", not "start over".
- *   - `expired` — the token is unknown, spent or older than its TTL. Honest dead
- *     end: the scan is gone, run it again.
- *   - `redeem-retry` — the redeem failed BEFORE a project existed (a 503); the
- *     server put the claim back, so the offer is "try again" with the SAME token,
- *     never a fresh (rate-limited) scan.
- *  All are stated; none silently drops the visitor on an empty page. */
-export type SkenClaimPhase =
-  | "idle"
-  | "claiming"
-  | "redeeming"
-  | "needs-signin"
-  | "expired"
-  | "redeem-retry"
-  | "failed";
+ *  What each answer means lives in claim-phase.ts (pure, tested); the states that
+ *  are NOT success are stated there, and none silently drops the visitor. */
 
 const callbackFor = (token: string) => `/sken?claim=${encodeURIComponent(token)}`;
 
@@ -46,6 +38,7 @@ export function useSkenClaim(opts: { claimToken?: string; selfHosted?: boolean }
   /** The token we are mid-flight with, so a `needs-signin` retry re-uses it rather
    *  than asking the visitor to scan again. */
   const [pendingToken, setPendingToken] = useState<string | undefined>(claimToken);
+  const [candidates, setCandidates] = useState<RedeemCandidate[]>([]);
 
   const startSignIn = useCallback(
     (token: string) => {
@@ -59,7 +52,33 @@ export function useSkenClaim(opts: { claimToken?: string; selfHosted?: boolean }
     [selfHosted]
   );
 
-  /** Park the scan, then leave for the provider. */
+  /** POST the token to the redeem door and route on the answer (claim-phase.ts).
+   *  `alive` lets the mount effect drop a response that lands after unmount;
+   *  `onUnauthed` lets the claim leg turn a 401 into the sign-in trip. */
+  const redeem = useCallback(
+    async (token: string, o: { target?: string; alive?: () => boolean; onUnauthed?: () => void } = {}) => {
+      const alive = o.alive ?? (() => true);
+      try {
+        const res = await fetch("/api/sken/redeem", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, chooser: true, ...(o.target ? { target: o.target } : {}) }),
+        });
+        if (!alive()) return;
+        if (o.onUnauthed && claimNextStep(res.status) === "sign-in") return o.onUnauthed();
+        const verdict = phaseForRedeemResponse(res.status, await res.json().catch(() => null));
+        if (!alive()) return;
+        if (verdict.phase === "done") return router.replace(verdict.href);
+        if (verdict.phase === "choosing") setCandidates(verdict.candidates);
+        setPhase(verdict.phase);
+      } catch {
+        if (alive()) setPhase("failed");
+      }
+    },
+    [router]
+  );
+
+  /** Park the scan, then try the redeem; leave for the provider only on a 401. */
   const claim = useCallback(
     async (scan: OnboardingScanResult, scannedUrl: string) => {
       setPhase("claiming");
@@ -74,13 +93,14 @@ export function useSkenClaim(opts: { claimToken?: string; selfHosted?: boolean }
           setPhase("failed");
           return;
         }
-        setPendingToken(json.token);
-        startSignIn(json.token);
+        const token = json.token;
+        setPendingToken(token);
+        await redeem(token, { onUnauthed: () => startSignIn(token) });
       } catch {
         setPhase("failed");
       }
     },
-    [startSignIn]
+    [redeem, startSignIn]
   );
 
   /** Retry the sign-in leg with the token we already hold. */
@@ -88,38 +108,22 @@ export function useSkenClaim(opts: { claimToken?: string; selfHosted?: boolean }
     if (pendingToken) startSignIn(pendingToken);
   }, [pendingToken, startSignIn]);
 
-  /** POST the token to the redeem door and route on the answer. `alive` lets the
-   *  mount effect drop a response that lands after unmount. */
-  const redeem = useCallback(
-    async (token: string, alive: () => boolean = () => true) => {
-      try {
-        const res = await fetch("/api/sken/redeem", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        });
-        if (!alive()) return;
-        if (res.status === 401) return setPhase("needs-signin");
-        if (res.status === 503) return setPhase("redeem-retry");
-        const json = (await res.json().catch(() => null)) as { projectId?: string } | null;
-        if (!res.ok || typeof json?.projectId !== "string") {
-          setPhase(res.status === 404 ? "expired" : "failed");
-          return;
-        }
-        router.replace(`/app/${json.projectId}/start`);
-      } catch {
-        if (alive()) setPhase("failed");
-      }
+  /** Answer the chooser: a project id merges into it, "new" creates one. */
+  const choose = useCallback(
+    (target: string) => {
+      if (!pendingToken) return;
+      setPhase("redeeming");
+      void redeem(pendingToken, { target });
     },
-    [router]
+    [pendingToken, redeem]
   );
 
   /** Re-POST the same token after a 503 — the server put the claim back. */
   const retryRedeem = useCallback(() => {
-    if (!claimToken) return;
+    if (!pendingToken) return;
     setPhase("redeeming");
-    void redeem(claimToken);
-  }, [claimToken, redeem]);
+    void redeem(pendingToken);
+  }, [pendingToken, redeem]);
 
   // The return leg. Guarded by a ref so React's development double-invoke (and any
   // re-render) cannot POST the same single-use token twice — the second POST would
@@ -129,11 +133,11 @@ export function useSkenClaim(opts: { claimToken?: string; selfHosted?: boolean }
     if (!claimToken || redeemedRef.current === claimToken) return;
     redeemedRef.current = claimToken;
     let alive = true;
-    void redeem(claimToken, () => alive);
+    void redeem(claimToken, { alive: () => alive });
     return () => {
       alive = false;
     };
   }, [claimToken, redeem]);
 
-  return { phase, claim, retrySignIn, retryRedeem };
+  return { phase, candidates, claim, choose, retrySignIn, retryRedeem };
 }
