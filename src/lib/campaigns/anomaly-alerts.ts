@@ -163,8 +163,9 @@ export async function evaluateAnomalyAlerts(
     actor: "Automatická synchronizace",
   });
   await sendWebhook(`${SITE_NAME}: ${title}\n${body}`);
-  // The tenant's own signed webhook endpoints (WP W1-E) — never awaited on the alert path.
-  void emitOutboundForTenant(userId, tenant, { type: "alert.anomaly", title, body, data: { items } });
+  // The tenant's own signed webhook endpoints (WP W1-E) — an enqueue, so awaited; the
+  // send itself runs after the response. Never throws.
+  await emitOutboundForTenant(userId, tenant, { type: "alert.anomaly", title, body, data: { items } });
 
   const email = await getUserEmail(userId);
   if (email) {

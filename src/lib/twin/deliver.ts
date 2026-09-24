@@ -379,7 +379,7 @@ async function recordDelivery(
   if (userId) {
     try {
       const { emitOutbound } = await import("@/lib/outbound/emit");
-      void emitOutbound(userId, projectId, {
+      await emitOutbound(userId, projectId, {
         type: "twin.sent",
         title: "Zpráva odeslána",
         body: detail,

@@ -44,8 +44,9 @@ export async function alertSyncFailed(
     await recordAlert(tenant, { type: "critical", title, body, items: [] });
     await recordActivity(tenant, { kind: "alert", title, detail: body, actor: "Plánovaná synchronizace" });
     await sendWebhook(`${SITE_NAME}: ${title}\n${body}`);
-    // The project owner's own signed webhook endpoints (WP W1-E) — best-effort.
-    void emitOutbound(userId, projectId, { type: "sync.failed", title, body, href: `/app/${projectId}/katalog`, data: { providerId, providerLabel, message } });
+    // The project owner's own signed webhook endpoints (WP W1-E) — best-effort; an
+    // enqueue, awaited so the row is durable (the send runs after the response).
+    await emitOutbound(userId, projectId, { type: "sync.failed", title, body, href: `/app/${projectId}/katalog`, data: { providerId, providerLabel, message } });
     const email = await getUserEmail(userId);
     if (email) {
       const html =

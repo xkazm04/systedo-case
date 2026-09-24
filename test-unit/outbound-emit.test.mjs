@@ -5,6 +5,12 @@
  *  covers the choreography — order of writes, the filter, the never-throws contract,
  *  the tenant→project inverse — with no database and no socket.
  *
+ *  An emit ENQUEUES and drains after the response; these cases pass `inline: true`
+ *  (the test-send route's mode) so the drain runs inside the awaited call and every
+ *  assertion keeps its original meaning. The enqueue-only default and the leased
+ *  claim are pinned against the real LOCAL_DB store in outbound-drain.test.mjs; the
+ *  one default-mode case here pins the detached fallback outside a request scope.
+ *
  *  Run with --experimental-test-module-mocks. */
 import { test, mock } from "node:test";
 import assert from "node:assert/strict";
@@ -51,15 +57,33 @@ mock.module("@/lib/outbound/delivery-store", {
     },
     listDeliveries: async (projectId) => log.filter((d) => d.projectId === projectId),
     listPendingDeliveries: async () => log.filter((d) => d.status === "pending"),
+    claimDelivery: async (projectId, id, holder, leaseUntil, now) => {
+      const cur = log.find((d) => d.projectId === projectId && d.id === id);
+      const due = cur && cur.nextAt !== null && cur.nextAt <= now.toISOString();
+      if (!cur || !due || !["pending", "sending"].includes(cur.status)) return false;
+      Object.assign(cur, {
+        status: "sending",
+        attempts: cur.attempts + 1,
+        nextAt: leaseUntil,
+        claim: { holder, until: leaseUntil },
+      });
+      return true;
+    },
+    completeDelivery: async (projectId, id, holder, patch) => {
+      const cur = log.find((d) => d.projectId === projectId && d.id === id);
+      if (!cur || cur.status !== "sending" || cur.claim?.holder !== holder) return false;
+      Object.assign(cur, patch);
+      delete cur.claim;
+      return true;
+    },
     clearDeliveries: async (projectId) => {
       log = log.filter((d) => d.projectId !== projectId);
     },
   },
 });
 
-const { emitOutbound, emitOutboundForTenant, matchTenantProject, nextDeliveryState } = await import(
-  "@/lib/outbound/emit"
-);
+const { emitOutbound, emitOutboundForTenant, matchTenantProject } = await import("@/lib/outbound/emit");
+const { nextDeliveryState } = await import("@/lib/outbound/drain");
 const { backoffMs, DELIVERY_MAX_ATTEMPTS } = await import("@/lib/outbound/types");
 
 const U = "u1";
@@ -92,7 +116,7 @@ const EVENT = { type: "alert.critical", title: "3 kritické kampaně", body: "�
 
 test("an emit produces EXACTLY ONE delivery per matching endpoint", async () => {
   reset([endpoint(), endpoint({ id: "e2", url: "https://b.example/h" })]);
-  const r = await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW });
+  const r = await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW, inline: true });
   assert.equal(r.matched, 2);
   assert.equal(r.delivered, 2);
   assert.equal(r.pending, 0);
@@ -104,7 +128,7 @@ test("an emit produces EXACTLY ONE delivery per matching endpoint", async () => 
 
 test("the delivered payload is the signed event, stamped with id/at/projectId", async () => {
   reset();
-  const r = await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW });
+  const r = await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW, inline: true });
   const body = JSON.parse(log[0].payload);
   assert.equal(body.id, r.eventId);
   assert.equal(body.at, NOW.toISOString());
@@ -115,7 +139,7 @@ test("the delivered payload is the signed event, stamped with id/at/projectId", 
 
 test("a successful delivery is terminal: status ok, nextAt null, one attempt", async () => {
   reset();
-  await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW });
+  await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW, inline: true });
   assert.equal(log[0].status, "ok");
   assert.equal(log[0].nextAt, null);
   assert.equal(log[0].attempts, 1);
@@ -124,7 +148,7 @@ test("a successful delivery is terminal: status ok, nextAt null, one attempt", a
 
 test("a failed delivery stays pending and schedules the FIRST backoff", async () => {
   reset();
-  const r = await emitOutbound(U, P, EVENT, { transport: dead(), now: NOW });
+  const r = await emitOutbound(U, P, EVENT, { transport: dead(), now: NOW, inline: true });
   assert.equal(r.delivered, 0);
   assert.equal(r.pending, 1);
   assert.equal(log[0].status, "pending");
@@ -135,10 +159,10 @@ test("a failed delivery stays pending and schedules the FIRST backoff", async ()
 
 test("the endpoint is stamped with its last outcome", async () => {
   reset();
-  await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW });
+  await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW, inline: true });
   assert.equal(configs.get(key(U, P)).endpoints[0].lastStatus, "ok");
   assert.equal(configs.get(key(U, P)).endpoints[0].lastDeliveryAt, NOW.toISOString());
-  await emitOutbound(U, P, EVENT, { transport: dead(), now: NOW });
+  await emitOutbound(U, P, EVENT, { transport: dead(), now: NOW, inline: true });
   assert.equal(configs.get(key(U, P)).endpoints[0].lastStatus, "failed");
 });
 
@@ -146,21 +170,21 @@ test("the endpoint is stamped with its last outcome", async () => {
 
 test("a DISABLED endpoint is skipped — no delivery, no log row", async () => {
   reset([endpoint({ enabled: false })]);
-  const r = await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW });
+  const r = await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW, inline: true });
   assert.deepEqual(r, { eventId: null, matched: 0, delivered: 0, pending: 0 });
   assert.equal(log.length, 0);
 });
 
 test("an endpoint's event filter is honoured", async () => {
   reset([endpoint({ events: ["digest.weekly"] })]);
-  assert.equal((await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW })).matched, 0);
-  const r = await emitOutbound(U, P, { ...EVENT, type: "digest.weekly" }, { transport: ok(), now: NOW });
+  assert.equal((await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW, inline: true })).matched, 0);
+  const r = await emitOutbound(U, P, { ...EVENT, type: "digest.weekly" }, { transport: ok(), now: NOW, inline: true });
   assert.equal(r.matched, 1);
 });
 
 test("a project with NO configuration emits nothing and writes nothing", async () => {
   reset([]);
-  const r = await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW });
+  const r = await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW, inline: true });
   assert.equal(r.matched, 0);
   assert.equal(log.length, 0);
 });
@@ -170,7 +194,7 @@ test("a project with NO configuration emits nothing and writes nothing", async (
 test("a store failure is swallowed — the alert that triggered the emit is never harmed", async () => {
   reset();
   configReadThrows = true;
-  const r = await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW });
+  const r = await emitOutbound(U, P, EVENT, { transport: ok(), now: NOW, inline: true });
   assert.deepEqual(r, { eventId: null, matched: 0, delivered: 0, pending: 0 });
 });
 
@@ -181,6 +205,7 @@ test("a transport that throws is swallowed and recorded as a pending retry", asy
       throw new Error("ENOTFOUND receiver.example.com");
     },
     now: NOW,
+    inline: true,
   });
   assert.equal(r.pending, 1);
   assert.equal(log[0].status, "pending");
@@ -196,6 +221,7 @@ test("an undecryptable secret fails the delivery honestly instead of sending uns
       return { status: 200 };
     },
     now: NOW,
+    inline: true,
   });
   assert.equal(sent, 0, "nothing is sent without a signature");
   assert.equal(r.delivered, 0);
@@ -256,7 +282,7 @@ test("matchTenantProject returns null for another user's or an unknown tenant", 
 
 test("emitOutboundForTenant delivers through the resolved project", async () => {
   reset();
-  const r = await emitOutboundForTenant(U, `u_${U}_proj_${P}`, EVENT, { transport: ok(), now: NOW });
+  const r = await emitOutboundForTenant(U, `u_${U}_proj_${P}`, EVENT, { transport: ok(), now: NOW, inline: true });
   assert.equal(r.matched, 1);
   assert.equal(log[0].projectId, P);
   assert.equal(log[0].userId, U);
@@ -264,7 +290,28 @@ test("emitOutboundForTenant delivers through the resolved project", async () => 
 
 test("emitOutboundForTenant is a silent no-op when no project matches", async () => {
   reset();
-  const r = await emitOutboundForTenant(U, "u_u1_proj_unknown", EVENT, { transport: ok(), now: NOW });
+  const r = await emitOutboundForTenant(U, "u_u1_proj_unknown", EVENT, { transport: ok(), now: NOW, inline: true });
   assert.equal(r.matched, 0);
   assert.equal(log.length, 0);
+});
+
+/* ── outside a request scope ─────────────────────────────────────────────────── */
+
+test("default mode outside a request enqueues, returns at once, and the DETACHED drain still delivers", async () => {
+  reset();
+  let sent = 0;
+  const r = await emitOutbound(U, P, EVENT, {
+    transport: async () => {
+      sent++;
+      return { status: 200 };
+    },
+    now: NOW,
+  });
+  assert.equal(r.matched, 1);
+  assert.equal(r.delivered, 0, "the emit itself sends nothing");
+  assert.equal(r.pending, 1);
+  // `after()` has no request to follow here, so the drain was started detached.
+  for (let i = 0; i < 100 && log[0]?.status !== "ok"; i++) await new Promise((res) => setTimeout(res, 10));
+  assert.equal(sent, 1);
+  assert.equal(log[0].status, "ok");
 });

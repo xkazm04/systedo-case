@@ -8,7 +8,9 @@
  *
  *  It deliberately goes through the SAME `emitOutbound` path as a real alert — not a
  *  side channel — so a green test is evidence about the real pipeline: the same
- *  guard, the same signature, the same log row, the same retry scheduling. */
+ *  guard, the same signature, the same log row, the same claim and retry scheduling.
+ *  The one difference is `inline`: a real emit drains after the response, this one
+ *  drains its own rows in-request, because the owner is waiting for the answer. */
 import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { rateLimit, tooManyRequests } from "@/lib/ai/rate-limit";
 import { apiError } from "@/lib/api/route-utils";
@@ -44,6 +46,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     body: "Pokud jste tuhle zprávu dostali, podpis i doručení fungují.",
     href: `/app/${id}/nastaveni`,
     data: { test: true },
-  });
+  }, { inline: true });
   return Response.json({ ok: true, ...result });
 }

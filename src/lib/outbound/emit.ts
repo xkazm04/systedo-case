@@ -3,45 +3,42 @@
  *
  *  THE ONE RULE this module exists to keep: an emit is BEST-EFFORT and must never
  *  fail — or even slow down — the alert, digest or report that triggered it. Every
- *  store read, every send and every status write is inside a try/catch, and the
- *  function resolves with counts instead of throwing. The five call sites are
- *  therefore one line each, in the same best-effort position `sendWebhook` already
- *  occupies (after the durable in-app record, never before it).
+ *  store read and write is inside a try/catch, and the function resolves with counts
+ *  instead of throwing.
+ *
+ *  An emit is an OUTBOX append, not a send: one config read and at most
+ *  MAX_ENDPOINTS row writes, cheap enough that every call site AWAITS it — so the
+ *  durable `pending` row exists before the caller moves on (a `void` emit could lose
+ *  the event, row and all, when the function froze after its response). The network
+ *  work is handed to ./drain.ts via `after()` (./after-response.ts): it runs once
+ *  the response is sent, still inside the same invocation and its time limit, and
+ *  anything it does not finish is swept by the `webhook-retry` ledger step. A caller's
+ *  cron budget is therefore never spent waiting on another party's receiver.
  *
  *  Ordering, stated once: the durable record lands FIRST (recordAlert / the report's
  *  claim), the outbound event second. A crash between them costs an event, not an
  *  alert — and an alert nobody can see is the unrecoverable failure, an event nobody
- *  received is not (the log shows it as pending and the cron retries).
- *
- *  Each delivery is attempted ONCE inline, so a healthy receiver sees the event
- *  within milliseconds and no cron tick is needed for the common case. A failure
- *  schedules the first retry (`nextAt = now + backoffMs(1)`) and hands off to the
- *  `webhook-retry` ledger step. */
+ *  received is not (the log shows it as pending and the cron retries). */
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { buildTenantKey } from "@/lib/campaigns/store-keys";
+import { getWebhookConfig, listUserWebhookConfigs } from "./config-store";
+import { appendDelivery } from "./delivery-store";
+import { scheduleAfterResponse } from "./after-response";
+import { drainDeliveries } from "./drain";
+import type { OutboundTransport } from "./send";
 import {
-  getWebhookConfig,
-  listUserWebhookConfigs,
-  saveWebhookConfig,
-} from "./config-store";
-import { appendDelivery, updateDelivery } from "./delivery-store";
-import { decryptSecret } from "./secret-crypto";
-import { postGuarded, type OutboundTransport } from "./send";
-import {
-  DELIVERY_MAX_ATTEMPTS,
-  backoffMs,
   endpointsFor,
   serializeEvent,
   type Delivery,
   type OutboundEvent,
   type OutboundEventInput,
-  type WebhookEndpoint,
 } from "./types";
 
 /** What one emit did. `matched` counts the endpoints subscribed to the type;
- *  `delivered` + `pending` account for every one of them, so a cron can report the
- *  outcome without reading the log back. */
+ *  `delivered` + `pending` account for every row written, so a cron can report the
+ *  outcome without reading the log back. Outside inline mode `delivered` is 0: the
+ *  sends have not happened yet when the emit returns. */
 export interface EmitResult {
   eventId: string | null;
   matched: number;
@@ -51,93 +48,19 @@ export interface EmitResult {
 
 const NOTHING: EmitResult = { eventId: null, matched: 0, delivered: 0, pending: 0 };
 
-/** Options exist for the tests: the transport is injected so the signing, logging
- *  and backoff logic is exercised without a socket, and the clock is injected so the
- *  scheduled `nextAt` is asserted exactly rather than approximately. */
+/** The transport is injected so the signing, logging and backoff logic is exercised
+ *  without a socket, and the clock so the scheduled `nextAt` is asserted exactly.
+ *  `inline` drains THIS emit's rows in-request instead of after the response — the
+ *  test-send route's mode, where the owner is waiting for the answer. */
 export interface EmitOptions {
   transport?: OutboundTransport;
   now?: Date;
+  inline?: boolean;
 }
 
-/** Apply one attempt's outcome to a delivery: success is terminal `ok`, a failure
- *  either schedules the next attempt or gives up at {@link DELIVERY_MAX_ATTEMPTS}.
- *  PURE (no I/O) so the state machine — the part that must not lose or loop a
- *  delivery — is unit-testable on its own. */
-export function nextDeliveryState(
-  delivery: Delivery,
-  attempt: { ok: boolean; code?: number; error?: string },
-  now: Date
-): Partial<Delivery> {
-  const attempts = delivery.attempts + 1;
-  const base = {
-    attempts,
-    updatedAt: now.toISOString(),
-    ...(typeof attempt.code === "number" ? { lastCode: attempt.code } : {}),
-  };
-  if (attempt.ok) return { ...base, status: "ok" as const, nextAt: null, lastError: undefined };
-  if (attempts >= DELIVERY_MAX_ATTEMPTS) {
-    return { ...base, status: "gave-up" as const, nextAt: null, lastError: attempt.error };
-  }
-  return {
-    ...base,
-    status: "pending" as const,
-    nextAt: new Date(now.getTime() + backoffMs(attempts)).toISOString(),
-    lastError: attempt.error,
-  };
-}
-
-/** Send one delivery to one endpoint and persist the outcome. Never throws.
- *  Shared by the inline attempt below and by the `webhook-retry` ledger step, so
- *  there is exactly ONE place that decrypts a secret, signs, sends and records. */
-export async function attemptDelivery(
-  delivery: Delivery,
-  endpoint: WebhookEndpoint,
-  opts: EmitOptions = {}
-): Promise<{ ok: boolean; patch: Partial<Delivery> }> {
-  const now = opts.now ?? new Date();
-  const secret = decryptSecret(endpoint.secretEnc);
-  const attempt = secret
-    ? await postGuarded(endpoint.url, secret, delivery.payload, { type: delivery.type }, delivery.id, {
-        transport: opts.transport,
-        now,
-      })
-    : {
-        ok: false,
-        error: "Podpisové tajemství nelze dešifrovat (změněný WEBHOOK_SECRET_KEY?).",
-      };
-  const patch = nextDeliveryState(delivery, attempt, now);
-  try {
-    await updateDelivery(delivery.projectId, delivery.id, patch);
-  } catch (err) {
-    console.error(`[outbound] delivery ${delivery.id} status write failed:`, err);
-  }
-  return { ok: attempt.ok, patch };
-}
-
-/** Record each endpoint's last outcome on the config, best-effort. One write per
- *  emit, after the sends — never in the hot path, never allowed to throw. */
-async function stampEndpoints(
-  userId: string,
-  projectId: string,
-  outcomes: Map<string, "ok" | "failed">,
-  at: string
-): Promise<void> {
-  if (outcomes.size === 0) return;
-  try {
-    const cfg = await getWebhookConfig(userId, projectId);
-    const endpoints = cfg.endpoints.map((e) => {
-      const status = outcomes.get(e.id);
-      return status ? { ...e, lastDeliveryAt: at, lastStatus: status } : e;
-    });
-    await saveWebhookConfig(userId, projectId, { endpoints });
-  } catch (err) {
-    console.error(`[outbound] endpoint stamp failed for ${userId}/${projectId}:`, err);
-  }
-}
-
-/** Emit one event to every endpoint of `projectId` subscribed to its type.
- *  Fire-and-forget at the call sites (`void emitOutbound(…)`); a cron may `await` it
- *  to make the count observable in its run record. Never throws. */
+/** Emit one event to every endpoint of `projectId` subscribed to its type: append
+ *  one `pending` row per endpoint, then drain them after the response (or now, in
+ *  inline mode). Awaited at every call site; never throws. */
 export async function emitOutbound(
   userId: string,
   projectId: string,
@@ -161,10 +84,7 @@ export async function emitOutbound(
     };
     const payload = serializeEvent(event);
 
-    let delivered = 0;
-    let pending = 0;
-    const outcomes = new Map<string, "ok" | "failed">();
-
+    const queued: Delivery[] = [];
     for (const endpoint of targets) {
       const delivery: Delivery = {
         id: randomUUID(),
@@ -181,21 +101,29 @@ export async function emitOutbound(
         payload,
       };
       try {
-        // The log row lands BEFORE the send: a crash mid-attempt leaves a pending
-        // delivery the cron picks up, rather than an event that silently never was.
+        // The log row IS the queue entry: once it lands, the event survives this
+        // function freezing — the post-response drain or the ledger sweep sends it.
         await appendDelivery(delivery);
+        queued.push(delivery);
       } catch (err) {
         console.error(`[outbound] delivery log write failed for ${projectId}:`, err);
-        continue;
       }
-      const { ok } = await attemptDelivery(delivery, endpoint, { ...opts, now });
-      if (ok) delivered++;
-      else pending++;
-      outcomes.set(endpoint.id, ok ? "ok" : "failed");
     }
+    if (queued.length === 0) return { eventId: event.id, matched: targets.length, delivered: 0, pending: 0 };
 
-    await stampEndpoints(userId, projectId, outcomes, now.toISOString());
-    return { eventId: event.id, matched: targets.length, delivered, pending };
+    const drain = () =>
+      drainDeliveries({ candidates: queued, transport: opts.transport, now: opts.now, stamp: true });
+    if (opts.inline) {
+      const { counts } = await drain();
+      return {
+        eventId: event.id,
+        matched: targets.length,
+        delivered: counts.delivered,
+        pending: queued.length - counts.delivered,
+      };
+    }
+    await scheduleAfterResponse(drain);
+    return { eventId: event.id, matched: targets.length, delivered: 0, pending: queued.length };
   } catch (err) {
     console.error(`[outbound] emit failed for ${userId}/${projectId}:`, err);
     return NOTHING;
