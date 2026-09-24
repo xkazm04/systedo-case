@@ -15,6 +15,8 @@ export interface LeadOutcome {
   responseSec: number | null;
   /** For an open lead: is it already past the SLA target right now? */
   breached: boolean;
+  /** this lead's own target (a CRM row's 15 min); absent ⇒ the drill's SLA_TARGET_MIN */
+  targetSec?: number;
 }
 
 export interface ChannelStat {
@@ -67,7 +69,7 @@ export function computeResponseAnalytics(outcomes: LeadOutcome[]): ResponseAnaly
   for (const o of outcomes) {
     if (o.responseSec != null) {
       judged += 1;
-      if (o.responseSec <= SLA_TARGET_SEC) hits += 1;
+      if (o.responseSec <= (o.targetSec ?? SLA_TARGET_SEC)) hits += 1;
     } else if (o.breached) {
       // An open, already-breached lead is a definite miss — a settled verdict.
       judged += 1;

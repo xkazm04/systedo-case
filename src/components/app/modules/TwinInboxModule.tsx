@@ -42,12 +42,14 @@ const T = {
     stepTwinHint: "Zpřesněte hlas, kterým twin píše",
     stepChannels: "Správa kanálů",
     stepChannelsHint: "Nastavte samostatnost a doručení",
+    queueEmpty: "Ve frontě CRM teď nikdo nečeká na první odpověď. Nové poptávky se tu objeví, jakmile dorazí do Leadů.",
   },
   en: {
     stepTwin: "Twin",
     stepTwinHint: "Sharpen the voice the twin writes in",
     stepChannels: "Channel management",
     stepChannelsHint: "Set autonomy and delivery",
+    queueEmpty: "Nobody in the CRM queue is waiting for a first reply. New enquiries show up here as soon as they reach Leads.",
   },
 } as const;
 
@@ -75,6 +77,7 @@ export default function TwinInboxModule({
   initialChannel,
   projectType,
   leads,
+  liveLeads = false,
   serviceHints,
 }: {
   state: TwinState;
@@ -85,6 +88,8 @@ export default function TwinInboxModule({
   projectType: ProjectType;
   /** the leads inbox, for the absorbed `leads` channel */
   leads: InboundLead[];
+  /** the leads are the CRM's urgent queue, not the sample drill */
+  liveLeads?: boolean;
   serviceHints: string[];
 }) {
   const project = useProject();
@@ -157,7 +162,9 @@ export default function TwinInboxModule({
         initialInbound={seed?.inbound ?? ""}
       />
 
-      {channel === "leads" && (
+      {channel === "leads" && liveLeads && leads.length === 0 ? (
+        <p className="rounded-card border border-line bg-surface px-4 py-3 text-sm text-muted">{t("queueEmpty")}</p>
+      ) : channel === "leads" && (
         <SpeedLeadModule
           leads={leads}
           serviceHints={serviceHints}

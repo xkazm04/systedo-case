@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pill } from "@/components/ui";
+import { Button, Pill } from "@/components/ui";
 import NextSteps from "@/components/app/NextSteps";
-import { Bell, Bolt, Bookmark, Check, Clock, Close, Copy, Info, Refresh, Sparkles } from "@/components/icons";
+import { Bolt, Bookmark, Check, Close, Copy, Info, Refresh, Sparkles } from "@/components/icons";
 import { CHANNEL_LABELS, type InboundLead } from "@/lib/speed-lead/sample";
 import { draftReply, SLA_TARGET_MIN } from "@/lib/speed-lead/draft";
 import {
@@ -32,32 +32,18 @@ import {
 } from "@/lib/twin/types";
 import { REASON_LABELS } from "@/components/app/twin/labels";
 import type { TwinReplyResult, TwinReplyVoice } from "@/lib/ai-types";
-import { useFormatters, useT } from "@/lib/i18n/client";
+import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
-import type { SupportedLocale } from "@/lib/format";
+import { aiDraftAllowed, twinReplyRequestFor } from "@/lib/speed-lead/inbox-source";
 import { mmss, useLeadSla, type SlaPhase } from "./speed-lead/useLeadSla";
+import { useContactWriteBack } from "./speed-lead/useContactWriteBack";
+import ResponseBand from "./speed-lead/ResponseBand";
 import { useSnippetLibrary } from "./speed-lead/useSnippetLibrary";
 import { describeQualification } from "./speed-lead/qualification";
 import LeadQualificationPanel from "./speed-lead/LeadQualificationPanel";
 
 const T = {
   cs: {
-    medianResponse: "Medián reakce",
-    withinSla: "V SLA",
-    slaGoal: "do {min} min",
-    avgByChannel: "Průměr dle kanálu",
-    noData: "zatím bez dat",
-    sentCount: "z {n} odeslaných",
-    noSent: "zatím bez odeslání",
-    judged: "{n} z {total} hodnoceno",
-    atRiskPending: "{n} čeká na odpověď",
-    leadsOverSla_one: "lead po SLA",
-    leadsOverSla_few: "leady po SLA",
-    leadsOverSla_many: "leadů po SLA",
-    overSlaUrgent: "Reagujte okamžitě.",
-    escalate: "Eskalovat",
-    responseGoal: "Cíl reakce",
-    allInSla: "Vše v SLA",
     done: "Vyřízeno",
     overSla: "Po SLA",
     newLead: "Nový",
@@ -99,24 +85,16 @@ const T = {
     nextStepOptimizeHint: "Přesunout rozpočet ke kanálům, kde reagujete v SLA",
     agoMin: "před {n} min",
     agoH: "před {n} h",
+    liveManual:
+      "Skutečný kontakt z CRM: AI návrh je vypnutý, aby osobní údaje leadu nešly do modelu. Odpovězte vlastním kanálem (šablony pomohou) a zaznamenejte to.",
+    markReplied: "Zaznamenat odpověď",
+    replied: "Odpověď zaznamenána",
+    recordDisclaimer: "Nic se odsud neodesílá — zaznamená se jen, že jste odpověděli.",
+    qualify: "Kvalifikovat do Leadů",
+    qualified: "Kvalifikováno",
+    writeBackFailed: "Zápis do CRM selhal. Zkuste to znovu.",
   },
   en: {
-    medianResponse: "Median response",
-    withinSla: "Within SLA",
-    slaGoal: "< {min} min",
-    avgByChannel: "Avg by channel",
-    noData: "no data yet",
-    sentCount: "of {n} sent",
-    noSent: "none sent yet",
-    judged: "{n} of {total} judged",
-    atRiskPending: "{n} awaiting reply",
-    leadsOverSla_one: "lead past SLA",
-    leadsOverSla_few: "leads past SLA",
-    leadsOverSla_many: "leads past SLA",
-    overSlaUrgent: "Respond immediately.",
-    escalate: "Escalate",
-    responseGoal: "Response target",
-    allInSla: "All within SLA",
     done: "Done",
     overSla: "Past SLA",
     newLead: "New",
@@ -158,30 +136,18 @@ const T = {
     nextStepOptimizeHint: "Shift budget to channels where you respond within SLA",
     agoMin: "{n} min ago",
     agoH: "{n} h ago",
+    liveManual:
+      "A real CRM contact: the AI draft is off so the lead's personal data never reaches the model. Reply on your own channel (templates help), then record it.",
+    markReplied: "Record reply",
+    replied: "Reply recorded",
+    recordDisclaimer: "Nothing is sent from here — it only records that you replied.",
+    qualify: "Qualify into Leads",
+    qualified: "Qualified",
+    writeBackFailed: "Writing to the CRM failed. Try again.",
   },
 } as const;
 
 const uid = () => Math.random().toString(36).slice(2, 10);
-
-/** Neutral fallback used only when the catalog offers no service name at all.
- *  It SEEDS the twin-reply prompt, so it has to follow the reader's locale: a
- *  Czech noun phrase grounded an English user's generated reply in Czech. Not UI
- *  copy (it is never rendered), so it stays out of the T table, but the
- *  Record<SupportedLocale, …> shape keeps the two columns type-enforced. */
-const PROJECT_TYPE_FALLBACK: Record<SupportedLocale, string> = {
-  cs: "poptávaná služba",
-  en: "the service being enquired about",
-};
-
-/** A short project-type hint for the AI reply, grounded in the business's REAL
- *  catalog: prefer a service the lead names in their message, else the primary
- *  service, else a neutral label. No hardcoded industry — the old klimatizace /
- *  elektroinstalace guesses mislabelled every non-HVAC maker (BM-L1 cross-niche). */
-function projectTypeFor(lead: InboundLead, hints: string[], locale: SupportedLocale): string {
-  const m = lead.message.toLowerCase();
-  const named = hints.find((h) => h && m.includes(h.toLowerCase()));
-  return named || hints[0] || PROJECT_TYPE_FALLBACK[locale];
-}
 
 /** Formats "X min ago" / "X h ago" — caller must pass the `t` translator. */
 function ago(min: number, t: (key: "agoMin" | "agoH", vars: Record<string, number>) => string): string {
@@ -218,7 +184,6 @@ export default function SpeedLeadModule({
   onBankLead?: (draft: TwinDraft, fact?: TwinStyleFact) => Promise<boolean>;
 }) {
   const project = useProject();
-  const fmt = useFormatters();
   const t = useT(T);
   const { locale } = useLocale();
   const L = locale === "en" ? "en" : "cs";
@@ -233,6 +198,8 @@ export default function SpeedLeadModule({
   const { snippets } = useSnippetLibrary(project.id);
   /** Live SLA countdown + response-time analytics for the whole inbox. */
   const { slaById, isOverdue, overdueCount, analytics, sortedLeads, respondedAt, markResponded } = useLeadSla(leads);
+  /** Reply/qualify write-back onto a live CRM contact (no-op for sample rows). */
+  const writeBack = useContactWriteBack(project.id);
 
   const firstBreachedRef = useRef<HTMLButtonElement | null>(null);
 
@@ -284,24 +251,30 @@ export default function SpeedLeadModule({
    *  means no channel promise exists, so drafting stays available. */
   const draftGate = leadsCfg ? draftGateVerdict(leadsCfg) : ({ allowed: true } as const);
 
+  /** No lead PII in the LLM chokepoint (docs/leads/design.md §7): a live CRM
+   *  contact gets no AI draft — `twinReplyRequestFor` builds no request for it. */
+  const aiAllowed = selected ? aiDraftAllowed(selected) : false;
+
   function generateReply() {
     if (!selected || status === "loading" || !draftGate.allowed) return;
-    setAiLeadId(selected.id);
     const qualification = describeQualification(qualById.get(selected.id) ?? EMPTY_QUALIFICATION);
-    run({
-      inbound: selected.message,
-      // The enquiry's arrival kind (form/call/…) is a sub-kind of the `leads`
-      // channel: it steers phrasing, the channel steers the voice.
-      channel: "leads",
-      arrival: selected.channel,
-      projectType: projectTypeFor(selected, serviceHints, locale),
-      contact: selected.name,
-      brand: promptSafeName(project.name),
-      ...(qualification ? { qualification } : {}),
-      ...(voice ? { voice } : {}),
-      ...(examples.length > 0 ? { examples } : {}),
-      ...(avoid.length > 0 ? { avoid } : {}),
-    });
+    const request = twinReplyRequestFor(selected, { serviceHints, locale: L, brand, qualification, voice, examples, avoid });
+    if (!request) return;
+    setAiLeadId(selected.id);
+    run(request);
+  }
+
+  /** Record the reply: on a live contact the CRM write must LAND before the row
+   *  settles (a local "done" over a failed write would be a lie); a sample row
+   *  settles at once and banks the twin draft as before. */
+  async function recordReply() {
+    if (!selected) return;
+    if (selected.contactId) {
+      if (await writeBack.markReplied(selected)) markResponded(selected.id);
+      return;
+    }
+    void bankSend();
+    markResponded(selected.id);
   }
 
   async function copyReply() {
@@ -466,91 +439,16 @@ export default function SpeedLeadModule({
 
   if (!selected || !draft) return null;
 
-  /** Czech plural for overdue count: 1 = lead, 2–4 = leady, 5+ = leadů */
-  const overdueLabel =
-    overdueCount === 1
-      ? t("leadsOverSla_one")
-      : overdueCount < 5
-        ? t("leadsOverSla_few")
-        : t("leadsOverSla_many");
-
   return (
     <div className="stagger space-y-4">
-      {/* Response-time analytics band — derived from this session's responses
-          plus the live SLA state of still-open leads. */}
-      <div className="flex flex-wrap items-stretch gap-3 rounded-card border border-line bg-surface px-4 py-3">
-        <div className="min-w-[120px]">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{t("medianResponse")}</p>
-          <p className="tnum mt-0.5 text-lg font-semibold text-navy-800">
-            {analytics.medianResponseSec != null ? fmt.fmtDuration(analytics.medianResponseSec) : "—"}
-          </p>
-          <p className="text-[11px] text-muted">
-            {analytics.answered > 0
-              ? t("sentCount", { n: analytics.answered })
-              : t("noSent")}
-          </p>
-        </div>
-        <div className="min-w-[120px] border-l border-line pl-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{t("withinSla")}</p>
-          <div className="mt-0.5 flex items-center gap-2">
-            <p className="tnum text-lg font-semibold text-navy-800">
-              {analytics.withinSlaRate != null ? fmt.fmtPct(analytics.withinSlaRate, 0) : "—"}
-            </p>
-            {analytics.withinSlaRate != null ? (
-              <Pill tone={analytics.withinSlaRate >= 0.8 ? "positive" : analytics.withinSlaRate >= 0.5 ? "coral" : "negative"}>
-                {t("slaGoal", { min: SLA_TARGET_MIN })}
-              </Pill>
-            ) : null}
-          </div>
-          <p className="text-[11px] text-muted">
-            {t("judged", { n: analytics.judged, total: leads.length })}
-            {analytics.atRisk > 0 ? ` · ${t("atRiskPending", { n: analytics.atRisk })}` : ""}
-          </p>
-        </div>
-        <div className="min-w-[160px] flex-1 border-l border-line pl-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{t("avgByChannel")}</p>
-          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
-            {analytics.byChannel.length > 0 ? (
-              analytics.byChannel.map((c) => (
-                <span key={c.channel} className="text-xs text-navy-700">
-                  {CHANNEL_LABELS[c.channel][L]}{" "}
-                  <strong className="tnum font-semibold">
-                    {c.avgResponseSec != null ? fmt.fmtDuration(c.avgResponseSec) : "—"}
-                  </strong>
-                </span>
-              ))
-            ) : (
-              <span className="text-xs text-muted">{t("noData")}</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {overdueCount > 0 ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-card border border-negative/40 bg-negative-soft px-4 py-3 text-sm">
-          <Bell width={16} height={16} className="shrink-0 text-negative" />
-          <span className="font-semibold text-negative">
-            {overdueCount} {overdueLabel}
-          </span>
-          <span className="text-navy-700">{t("overSlaUrgent")}</span>
-          <button
-            type="button"
-            onClick={focusFirstBreached}
-            className="ml-auto inline-flex items-center gap-2 rounded-pill bg-negative px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:opacity-90"
-          >
-            <Bolt width={14} height={14} />
-            {t("escalate")}
-          </button>
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 rounded-card border border-line bg-canvas px-4 py-3 text-sm">
-          <Clock width={16} height={16} className="text-brand-accent" />
-          <span className="text-navy-700">
-            {t("responseGoal")} <strong>{t("slaGoal", { min: SLA_TARGET_MIN })}</strong>.
-          </span>
-          <Pill tone="positive">{t("allInSla")}</Pill>
-        </div>
-      )}
+      <ResponseBand
+        analytics={analytics}
+        leadsCount={leads.length}
+        overdueCount={overdueCount}
+        targetMin={leads[0]?.slaTargetMin ?? SLA_TARGET_MIN}
+        live={Boolean(leads[0]?.contactId)}
+        onEscalate={focusFirstBreached}
+      />
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
         {/* inbox */}
@@ -637,7 +535,7 @@ export default function SpeedLeadModule({
                 <button
                   type="button"
                   onClick={generateReply}
-                  disabled={status === "loading" || !draftGate.allowed}
+                  disabled={status === "loading" || !draftGate.allowed || !aiAllowed}
                   className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
                 >
                   {status === "loading" && aiLeadId === selectedId ? (
@@ -795,10 +693,12 @@ export default function SpeedLeadModule({
             {/* "Review means review": the honest reason the AI button is dead —
                 mirrors the server-side twin-reply gate, which refuses the same
                 channels for a direct API call too. */}
-            {!draftGate.allowed ? (
+            {!aiAllowed || !draftGate.allowed ? (
               <p className="mt-2 flex items-center gap-2 rounded-lg border border-line bg-canvas px-3 py-2 text-xs text-muted">
                 <Info width={14} height={14} className="shrink-0" />
-                {t(draftGate.reason === "review" ? "leadsLockedReview" : "leadsLockedOff")}
+                {!aiAllowed
+                  ? t("liveManual")
+                  : t(!draftGate.allowed && draftGate.reason === "review" ? "leadsLockedReview" : "leadsLockedOff")}
               </p>
             ) : null}
 
@@ -842,20 +742,32 @@ export default function SpeedLeadModule({
 
           <LeadQualificationPanel qual={qual} onChange={setQualField} questions={questions} />
 
-          <div className="mt-5 flex items-center gap-3 border-t border-line pt-4">
+          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">
             <button
               type="button"
-              onClick={() => {
-                void bankSend();
-                markResponded(selected.id);
-              }}
-              disabled={respondedAt.has(selected.id)}
+              onClick={() => void recordReply()}
+              disabled={respondedAt.has(selected.id) || writeBack.pendingId === selected.id}
               className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
             >
               <Bolt width={15} height={15} />
-              {respondedAt.has(selected.id) ? t("sent") : t("sendReply")}
+              {selected.contactId
+                ? t(respondedAt.has(selected.id) ? "replied" : "markReplied")
+                : t(respondedAt.has(selected.id) ? "sent" : "sendReply")}
             </button>
-            <span className="text-xs text-muted">{t("sendDisclaimer")}</span>
+            {selected.contactId ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => void writeBack.qualify(selected, qual).then((ok) => ok && markResponded(selected.id))}
+                disabled={writeBack.qualifiedIds.has(selected.id) || writeBack.pendingId === selected.id}
+              >
+                {t(writeBack.qualifiedIds.has(selected.id) ? "qualified" : "qualify")}
+              </Button>
+            ) : null}
+            <span className="text-xs text-muted">{t(selected.contactId ? "recordDisclaimer" : "sendDisclaimer")}</span>
+            {writeBack.failedId === selected.id ? (
+              <span className="text-xs text-negative">{t("writeBackFailed")}</span>
+            ) : null}
             {editBanked ? (
               <span className="inline-flex items-center gap-1.5 text-xs text-brand-700">
                 <Sparkles width={13} height={13} />

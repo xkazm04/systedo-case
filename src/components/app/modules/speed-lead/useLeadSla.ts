@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { SLA_TARGET_MIN } from "@/lib/speed-lead/draft";
+import { leadSlaTargetSec, seedResponded } from "@/lib/speed-lead/inbox-source";
 import { computeResponseAnalytics, type LeadOutcome, type ResponseAnalytics } from "@/lib/speed-lead/analytics";
 import type { InboundLead } from "@/lib/speed-lead/sample";
 
-const SLA_TARGET_SEC = SLA_TARGET_MIN * 60;
 /** ≤ this many seconds left → pre-breach warning state. */
 const WARNING_THRESHOLD_SEC = 60;
 
@@ -26,10 +25,11 @@ export interface SlaState {
   phase: SlaPhase;
 }
 
-/** Live SLA state for a lead, given the current clock tick. */
+/** Live SLA state for a lead, given the current clock tick — on the lead's OWN
+ *  target (a CRM row's 15 min, a drill row's 5), never one constant for both. */
 function slaState(lead: InboundLead, nowMs: number, arrivalMs: number): SlaState {
   const elapsed = Math.floor((nowMs - arrivalMs) / 1000);
-  const remaining = SLA_TARGET_SEC - elapsed;
+  const remaining = leadSlaTargetSec(lead) - elapsed;
   const phase: SlaPhase = remaining < 0 ? "breached" : remaining <= WARNING_THRESHOLD_SEC ? "warning" : "ontrack";
   return { remaining, phase };
 }
@@ -55,8 +55,9 @@ export interface LeadSla {
  *  derived SLA/analytics/sort. State-only — the inbox JSX and selection live in
  *  the shell; this hook just feeds it. Client-only, no server imports. */
 export function useLeadSla(leads: InboundLead[]): LeadSla {
-  /** id → measured response time (seconds from arrival) once "Send" fires. */
-  const [respondedAt, setRespondedAt] = useState<Map<string, number>>(new Map());
+  /** id → measured response time (seconds from arrival) once "Send" fires — seeded
+   *  from the CRM's recorded first replies, so an answered contact opens settled. */
+  const [respondedAt, setRespondedAt] = useState<Map<string, number>>(() => seedResponded(leads));
   const [now, setNow] = useState(() => Date.now());
 
   /** Pin each lead's arrival once at mount (lazy state initializer) so countdowns
@@ -88,6 +89,7 @@ export function useLeadSla(leads: InboundLead[]): LeadSla {
       channel: l.channel,
       responseSec: respondedAt.get(l.id) ?? null,
       breached: slaById.get(l.id)?.phase === "breached",
+      targetSec: leadSlaTargetSec(l),
     }));
     return computeResponseAnalytics(outcomes);
   }, [leads, respondedAt, slaById]);

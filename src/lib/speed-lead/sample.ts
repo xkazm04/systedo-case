@@ -1,5 +1,6 @@
 /** Illustrative inbound leads for a lead-gen project's speed-to-lead inbox.
  *  Real-integration seam: form/call/email/chat intake webhooks. */
+import type { PipelineStage } from "@/lib/leads/types";
 
 export type LeadChannel = "form" | "call" | "email" | "chat";
 
@@ -10,6 +11,16 @@ export interface InboundLead {
   message: string;
   /** minutes since the lead arrived */
   minutesAgo: number;
+  /** set only on a row mapped from a real CRM contact (inbox-source.ts) — the id the
+   *  reply/qualify write-back PATCHes, and the switch that keeps its PII out of the
+   *  twin-reply prompt. Sample rows never carry it. */
+  contactId?: string;
+  /** the contact's pipeline stage, so a qualify never regresses a later one */
+  stage?: PipelineStage;
+  /** seconds from arrival to the recorded first reply, when there is one */
+  respondedSec?: number;
+  /** this row's response target in minutes; absent ⇒ the drill's SLA_TARGET_MIN */
+  slaTargetMin?: number;
 }
 
 /** How a lead arrived, per locale. Shaped like the twin's own CHANNEL_LABELS
