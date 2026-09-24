@@ -15,6 +15,7 @@
  *  the next save, and is never re-fetched, because the server cannot re-issue it. */
 import { useCallback, useEffect, useState } from "react";
 import type { OutboundEventType } from "@/lib/outbound/event-types";
+import { rotateDraftPayload } from "@/lib/outbound/endpoint-health";
 import type { PublicWebhookEndpoint } from "@/lib/outbound/types";
 
 /** One row as the form holds it — an `id` means "edit the stored endpoint", its
@@ -120,6 +121,14 @@ export function useWebhookEndpoints(projectId: string) {
     [base, merge]
   );
 
+  /** Re-mint ONE endpoint's signing secret through the same PUT (`rotate: true` on
+   *  that row only). The new secret comes back in `secrets`, shown once like any. */
+  const rotate = useCallback(
+    (endpointId: string, fallbackError: string) =>
+      save(rotateDraftPayload(state.drafts, endpointId), fallbackError),
+    [save, state.drafts]
+  );
+
   /** Fire a `ping` through the real pipeline and report what came back. */
   const sendTest = useCallback(
     async (say: (r: { delivered: number; matched: number }) => string, fallbackError: string) => {
@@ -147,5 +156,5 @@ export function useWebhookEndpoints(projectId: string) {
     []
   );
 
-  return { ...state, load, save, sendTest, setDrafts };
+  return { ...state, load, save, rotate, sendTest, setDrafts };
 }

@@ -7,34 +7,32 @@
  *  goes through the REAL pipeline (same SSRF guard, same signature, same log row), so
  *  a green test is evidence about production; and event types render as their WIRE
  *  VALUES, because this card configures a machine contract and the string the
- *  receiver branches on is the string its owner needs to see. Load/save/test
- *  choreography lives in `useWebhookEndpoints`; the log is a sibling component. */
+ *  receiver branches on is the string its owner needs to see. Load/save/test/rotate
+ *  choreography lives in `useWebhookEndpoints`; each destination is a
+ *  `WebhookEndpointRow` whose standing is derived from the log the sibling
+ *  `WebhookDeliveryLog` loads (it hands its rows up), not from a stored stamp. */
 
-import { Button, Pill } from "@/components/ui";
+import { useState } from "react";
+import { Button } from "@/components/ui";
 import { useProject } from "@/lib/projects/context";
 import { useT } from "@/lib/i18n/client";
 import { MAX_ENDPOINTS, OUTBOUND_EVENT_TYPES, type OutboundEventType } from "@/lib/outbound/event-types";
+import { endpointHealth } from "@/lib/outbound/endpoint-health";
+import type { PublicDelivery } from "@/lib/outbound/types";
 import { useWebhookEndpoints, type EndpointDraft } from "@/components/hooks/useWebhookEndpoints";
 import WebhookDeliveryLog from "./WebhookDeliveryLog";
+import WebhookEndpointRow from "./WebhookEndpointRow";
 
 const T = {
   cs: {
     title: "Odchozí webhooky",
     subtitle:
       "Každé kritické upozornění, týdenní souhrn a odeslaný report tohoto projektu pošleme na vaši adresu jako podepsaný JSON. Nejvýše 3 cíle.",
-    urlLabel: "Adresa (https)",
     add: "Přidat cíl",
     save: "Uložit",
     saving: "Ukládám…",
     test: "Odeslat test",
     testing: "Odesílám…",
-    remove: "Odebrat",
-    enabled: "Aktivní",
-    disabled: "Vypnuto",
-    events: "Události",
-    lastOk: "Poslední doručení OK",
-    lastFailed: "Poslední doručení selhalo",
-    never: "Zatím nic neodesláno",
     secretTitle: "Podpisové tajemství — zobrazíme jen teď",
     secretBody:
       "Uložte si ho hned. Ověřuje hlavičku X-Adamant-Signature (HMAC-SHA256 z „časové razítko.tělo“). Znovu ho už nezobrazíme.",
@@ -50,19 +48,11 @@ const T = {
     title: "Outgoing webhooks",
     subtitle:
       "Every critical alert, weekly digest and delivered report for this project is POSTed to your URL as signed JSON. Up to 3 destinations.",
-    urlLabel: "URL (https)",
     add: "Add destination",
     save: "Save",
     saving: "Saving…",
     test: "Send test",
     testing: "Sending…",
-    remove: "Remove",
-    enabled: "Active",
-    disabled: "Off",
-    events: "Events",
-    lastOk: "Last delivery OK",
-    lastFailed: "Last delivery failed",
-    never: "Nothing sent yet",
     secretTitle: "Signing secret — shown only now",
     secretBody:
       "Save it now. It verifies the X-Adamant-Signature header (HMAC-SHA256 over “timestamp.body”). We cannot show it again.",
@@ -76,13 +66,11 @@ const T = {
   },
 } as const;
 
-const INPUT =
-  "mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted/70 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200";
-
 export default function WebhookEndpoints() {
   const project = useProject();
   const t = useT(T);
   const w = useWebhookEndpoints(project.id);
+  const [log, setLog] = useState<PublicDelivery[]>([]);
 
   const patch = (i: number, p: Partial<EndpointDraft>) =>
     w.setDrafts((d) => d.map((row, j) => (j === i ? { ...row, ...p } : row)));
@@ -135,37 +123,16 @@ export default function WebhookEndpoints() {
         {w.drafts.map((row, i) => {
           const saved = w.stored.find((e) => e.id === row.id);
           return (
-            <div key={row.id ?? `new-${i}`} className="rounded-lg border border-line p-4">
-              <label className="block">
-                <span className="text-xs font-medium text-muted">{t("urlLabel")}</span>
-                <input className={INPUT} value={row.url} placeholder="https://example.com/hooks/adamant" onChange={(e) => patch(i, { url: e.target.value })} />
-              </label>
-              <p className="mt-3 text-xs font-medium text-muted">{t("events")}</p>
-              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1.5">
-                {OUTBOUND_EVENT_TYPES.map((type) => (
-                  <label key={type} className="flex items-center gap-1.5 font-mono text-xs text-ink">
-                    <input type="checkbox" checked={row.events === "all" || row.events.includes(type)} onChange={() => toggleEvent(i, type)} />
-                    {type}
-                  </label>
-                ))}
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <label className="flex items-center gap-1.5 text-xs text-ink">
-                  <input type="checkbox" checked={row.enabled} onChange={(e) => patch(i, { enabled: e.target.checked })} />
-                  {row.enabled ? t("enabled") : t("disabled")}
-                </label>
-                {saved?.lastStatus ? (
-                  <Pill tone={saved.lastStatus === "ok" ? "positive" : "negative"}>
-                    {saved.lastStatus === "ok" ? t("lastOk") : t("lastFailed")}
-                  </Pill>
-                ) : (
-                  saved && <Pill tone="neutral">{t("never")}</Pill>
-                )}
-                <Button variant="ghost" size="sm" onClick={() => w.setDrafts((d) => d.filter((_, j) => j !== i))}>
-                  {t("remove")}
-                </Button>
-              </div>
-            </div>
+            <WebhookEndpointRow
+              key={row.id ?? `new-${i}`}
+              row={row}
+              health={saved ? endpointHealth(log, saved.id, { secretReadable: saved.secretReadable }) : null}
+              busy={w.busy !== null}
+              onPatch={(p) => patch(i, p)}
+              onToggleEvent={(type) => toggleEvent(i, type)}
+              onRemove={() => w.setDrafts((d) => d.filter((_, j) => j !== i))}
+              onRotate={() => void w.rotate(saved?.id ?? "", t("loadError"))}
+            />
           );
         })}
 
@@ -194,7 +161,7 @@ export default function WebhookEndpoints() {
         </div>
       </div>
 
-      <WebhookDeliveryLog projectId={project.id} />
+      <WebhookDeliveryLog projectId={project.id} endpoints={w.stored} onRows={setLog} />
     </section>
   );
 }
