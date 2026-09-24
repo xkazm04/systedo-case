@@ -2607,7 +2607,8 @@
         "src/lib/diagnoses/store.ts",
         "src/lib/diagnoses/store.firestore.ts",
         "src/lib/diagnoses/store.local.ts",
-        "src/lib/diagnoses/types.ts"
+        "src/lib/diagnoses/types.ts",
+        "src/lib/diagnoses/answered-triage.ts"
       ],
       "group": "Analytics & Reporting",
       "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
@@ -4737,7 +4738,14 @@
       "cross_refs": [
         "report-engine",
         "ai-tools-campaigns-research",
-        "metrics-core"
+        "metrics-core",
+        "organic-channels-keywords",
+        "local-seo-core-lib",
+        "catalog-import-export",
+        "mappack-reviews-competitors",
+        "local-signals",
+        "catalog-core",
+        "social-media-management"
       ],
       "db_tables": [
         "recaps",
@@ -4770,7 +4778,8 @@
         "test-unit/advice-ledger.test.mjs",
         "test-unit/advice-digest-grounding.test.mjs",
         "test-unit/advice-store-route.test.mjs",
-        "test-unit/insights-subject-keys.test.mjs"
+        "test-unit/insights-subject-keys.test.mjs",
+        "src/lib/insights/resolve.ts"
       ],
       "group": "Analytics & Reporting",
       "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
