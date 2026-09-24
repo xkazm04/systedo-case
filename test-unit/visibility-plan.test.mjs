@@ -29,7 +29,7 @@ const {
   VISIBILITY_PLAN_MODULES,
   VISIBILITY_PLAN_ROWS,
 } = await import("@/lib/organic-channels/visibility-plan");
-const { channelPlanForProject } = await import("@/lib/organic-channels/sample");
+const { baseChannelPlan, channelPlanForProject } = await import("@/lib/organic-channels/sample");
 const { demoProjectFor } = await import("@/lib/demo/projects");
 const { SAMPLE_CONTENT_ENTRIES } = await import("@/lib/content-library/sample");
 const { SCAN_LIST_SEED } = await import("@/lib/onboarding/seed");
@@ -362,12 +362,35 @@ test("THE BYTE-IDENTITY RULE holds for the measured leg too", () => {
 });
 
 test("a measured channel does not jump the queue — the plan stays a to-do list", () => {
+  // Outcome label "blog" and plan channel "Vlastní blog" share ChannelKey "blog".
+  // The old lowercase-equality join never attached them, so this test used to pass
+  // with nothing measured at all; it now proves the row IS measured AND unmoved.
   const outcomes = [{ channel: "blog", links: 1, clicks7d: 9, clicks30d: 40, lastClickAt: "2026-08-29" }];
   const withMeasure = buildVisibilityPlan({ channels: CHANNELS, outcomes, limit: 0 });
   const without = buildVisibilityPlan({ channels: CHANNELS, limit: 0 });
+  const blog = withMeasure.rows.find((r) => r.channel.id === "blog");
+  assert.equal(blog?.measuredClicks, 40, "the measured row carries its clicks (not a vacuous pass)");
   assert.deepEqual(
     withMeasure.rows.map((r) => r.channel.id),
     without.rows.map((r) => r.channel.id),
     "measurement informs, it does not reorder"
   );
+});
+
+test("a Distribuce-labelled outcome is stamped on the seeded content plan's row, order unchanged", () => {
+  const channels = baseChannelPlan("content", {}, "x");
+  const outcomes = [{ channel: "Instagram", links: 1, clicks7d: 0, clicks30d: 12 }];
+  const plan = buildVisibilityPlan({ channels, outcomes, limit: 0 });
+  const base = buildVisibilityPlan({ channels, limit: 0 });
+  const row = plan.rows.find((r) => r.channel.id === "instagram-organic");
+  assert.equal(row?.channel.name, "Instagram (organicky)");
+  assert.equal(row?.measuredClicks, 12);
+  assert.deepEqual(
+    plan.rows.map((r) => r.id),
+    base.rows.map((r) => r.id),
+    "the join stamps a number, it never reorders"
+  );
+  for (const r of plan.rows) {
+    if (r.id !== "instagram-organic") assert.equal("measuredClicks" in r, false, r.id);
+  }
 });

@@ -3,12 +3,14 @@
 /** The signpost table: fit + mode + stage + the ONE derived next step per
  *  channel. Rows open the playbook; the trailing button performs the next step
  *  (the parent owns both handlers and the derivation). */
+import { useMemo } from "react";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
 import { ArrowRight } from "@/components/icons";
 import type { ChannelTrack, OrganicChannel } from "@/lib/organic-channels/types";
 import type { ChannelNext } from "@/lib/organic-channels/next-step";
-import { measuredBadge, outcomeFor, type ChannelOutcome } from "@/lib/organic-channels/outcomes";
+import { measuredBadge, type ChannelOutcome } from "@/lib/organic-channels/outcomes";
+import { joinOutcomesToPlan } from "@/lib/organic-channels/outcome-join";
 import { CATEGORY_LABELS, EFFORT_LABELS, MODE_LABELS, NEXT_LABELS, STAGE_LABELS } from "./labels";
 import { interactiveRowProps } from "@/lib/a11y/rowActivation";
 
@@ -62,6 +64,8 @@ export default function ChannelTable({
   const t = useT(T);
   const { locale } = useLocale();
   const L = locale === "en" ? "en" : "cs";
+  // One plan-wide join (the false-merge guard needs the whole plan), read by id.
+  const measured = useMemo(() => joinOutcomesToPlan(channels, outcomes).byId, [channels, outcomes]);
 
   return (
     // overflow-x-AUTO, not hidden. The table drops its fit and mode columns below
@@ -85,7 +89,7 @@ export default function ChannelTable({
             const track = tracks[c.id];
             const stage = track?.stage ?? "identified";
             const next = nextOf(c);
-            const badge = measuredBadge(outcomeFor(outcomes, c.name));
+            const badge = measuredBadge(measured[c.id]);
             return (
               <tr
                 key={c.id}

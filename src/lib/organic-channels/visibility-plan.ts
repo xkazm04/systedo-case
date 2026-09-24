@@ -38,7 +38,8 @@
 import type { KeywordList } from "@/lib/keywords/types";
 import type { SavedContentEntry } from "@/lib/content-library/entries";
 import { SCAN_LIST_SEED } from "@/lib/onboarding/seed";
-import { measuredBadge, outcomeFor, type ChannelOutcome } from "./outcomes";
+import { measuredBadge, type ChannelOutcome } from "./outcomes";
+import { joinOutcomesToPlan } from "./outcome-join";
 import { isModuleAvailable } from "@/lib/projects/modules";
 import type { ProjectType } from "@/lib/projects/types";
 import {
@@ -232,10 +233,12 @@ export function buildVisibilityPlan(input: {
         a.query.localeCompare(b.query, "cs")
     );
 
-  // Measured clicks, looked up per row. `measuredBadge` is the same null-on-nothing
-  // rule the channel table uses, so the two surfaces can never disagree about
-  // whether a channel counts as measured.
-  const measuredOf = (name: string) => measuredBadge(outcomeFor(input.outcomes, name));
+  // Measured clicks, joined onto the plan ONCE through the shared ledger join (so a
+  // Distribuce label reaches its seeded channel) and read per row by id.
+  // `measuredBadge` is the same null-on-nothing rule the channel table uses, so the
+  // two surfaces can never disagree about whether a channel counts as measured.
+  const measured = joinOutcomesToPlan(input.channels, input.outcomes).byId;
+  const measuredOf = (id: string) => measuredBadge(measured[id]);
 
   let next = 0;
   const rows: VisibilityRow[] = input.channels.map((c) => {
@@ -274,7 +277,7 @@ export function buildVisibilityPlan(input: {
       query,
       content: matched,
       step,
-      ...(measuredOf(c.name) ? { measuredClicks: measuredOf(c.name)!.clicks30d } : {}),
+      ...(measuredOf(c.id) ? { measuredClicks: measuredOf(c.id)!.clicks30d } : {}),
       provenance: strongest(
         channelProvenance,
         ...(query ? [query.provenance] : []),
