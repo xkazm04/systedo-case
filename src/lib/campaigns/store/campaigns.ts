@@ -16,6 +16,11 @@ export { readTenantRoot, type TenantRoot } from "./tenant";
 
 export interface SyncMeta {
   source: string;
+  /** the network the last sync was FOR (the connector's source), stamped even when
+   *  the fetch degraded to sample and `source` says "sample". Additive + optional:
+   *  docs synced before it existed omit it, and the write path then reads `source`
+   *  alone, exactly as before (./write-target). */
+  network?: string;
   /** the ACTIVE period — what the page and the analyze route currently show */
   period: CampaignPeriod;
   syncedAt: string;
@@ -51,6 +56,8 @@ export async function upsertCampaigns(
   campaigns: Campaign[],
   meta: {
     source: string;
+    /** the connector's network, degraded or not — additive on the root doc */
+    network?: string;
     period: CampaignPeriod;
     /** the account's captured ISO currency (Direction 2) — additive on the root doc */
     currency?: string;
@@ -143,6 +150,7 @@ export async function upsertCampaigns(
   batch.setRoot(
     {
       source: meta.source,
+      ...(meta.network ? { network: meta.network } : {}),
       period: meta.period,
       syncedAt,
       // Pinned once; recomputed idempotently from the existing value so it never moves.
@@ -236,6 +244,7 @@ function syncMetaFromData(r: FirebaseFirestore.DocumentData | undefined): SyncMe
   if (!r?.syncedAt) return null;
   return {
     source: r.source,
+    ...(typeof r.network === "string" ? { network: r.network } : {}),
     period: r.period as CampaignPeriod,
     syncedAt: r.syncedAt,
     ...(typeof r.currency === "string" ? { currency: r.currency } : {}),

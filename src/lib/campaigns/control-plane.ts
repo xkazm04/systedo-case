@@ -19,6 +19,7 @@ import {
   restoreBudgets,
   restoreCriteria,
 } from "./mutations";
+import { resolveWriteTarget } from "./mutator";
 import { recordActivity } from "./activity";
 import { resolveAlert } from "./alerts";
 import { fmtCZK } from "@/lib/format";
@@ -30,6 +31,7 @@ import {
   type Calibration,
 } from "./calibration";
 import {
+  changeSetSource,
   checkPolicy,
   planApproveClaim,
   planRevertClaim,
@@ -288,6 +290,10 @@ export async function approveChangeSet(
   }
 
   const cs = claim.cs;
+  // ONE write target for the whole set, checked against the network the set itself
+  // records (./write-target). A refusal is handed to every move below, which then
+  // returns it without writing — the set settles "failed" like any rail refusal.
+  const target = await resolveWriteTarget(userId, tenant, changeSetSource(cs), "apply");
   const results: MoveResult[] = [];
   const budgetSnapshots: BudgetSnapshot[] = [];
   const statusSnapshots: StatusSnapshot[] = [];
@@ -319,7 +325,7 @@ export async function approveChangeSet(
     // next move starts, which is the whole invariant: a crash between two creates
     // must never leave a criterion on the live account with no recorded address.
     if (isCriterionMove(m)) {
-      const r = await applyCriterionMove(userId, tenant, m);
+      const r = await applyCriterionMove(userId, tenant, m, target);
       results.push({
         fromName: m.fromName,
         toName: m.toName,
@@ -338,7 +344,7 @@ export async function approveChangeSet(
       // WP S1: `r.platform` is present only for a Sklik write, so a Google set's
       // stored results + snapshots keep the exact shape every set already in the
       // ledger has (and an old build could still read them after a rollback).
-      const r = await applyPause(userId, tenant, m.fromId, m.fromName);
+      const r = await applyPause(userId, tenant, m.fromId, m.fromName, target);
       results.push({
         fromName: m.fromName,
         toName: m.fromName,
@@ -364,7 +370,7 @@ export async function approveChangeSet(
       toId: m.toId,
       toName: m.toName,
       amount: m.amount,
-    });
+    }, target);
     results.push({
       fromName: m.fromName,
       toName: m.toName,
@@ -465,17 +471,20 @@ export async function revertChangeSet(
   // Exact revert from snapshots (guaranteed present — the claim refused otherwise):
   // restore every touched budget in one call, and resume every paused campaign.
   // Per-move results map each move to the outcome of the operation that undoes it.
+  // One write target for the whole revert, as on approve (a sample-derived set is
+  // let through here so a landed write stays undoable — see writeTargetVerdict).
+  const target = await resolveWriteTarget(userId, tenant, changeSetSource(cs), "revert");
   const hasBudgetSnaps = (cs.budgetSnapshots?.length ?? 0) > 0;
-  const budgetResult = hasBudgetSnaps ? await restoreBudgets(userId, tenant, cs.budgetSnapshots!) : null;
+  const budgetResult = hasBudgetSnaps ? await restoreBudgets(userId, tenant, cs.budgetSnapshots!, target) : null;
   const resumeById = new Map<string, { ok: boolean; error?: string }>();
   for (const s of cs.statusSnapshots ?? []) {
-    resumeById.set(s.campaignId, await applyResume(userId, tenant, s.campaignId, s.campaignName));
+    resumeById.set(s.campaignId, await applyResume(userId, tenant, s.campaignId, s.campaignName, target));
   }
   // WP S1b — remove every criterion this set created, newest first (restoreCriteria
   // reverses the list). A set with no criterion snapshots gets `{ ok: true }` without
   // resolving a mutator, so a budget-only revert is byte-identical to before.
   const criterionSnaps = cs.criterionSnapshots ?? [];
-  const criterionResult = await restoreCriteria(userId, tenant, criterionSnaps);
+  const criterionResult = await restoreCriteria(userId, tenant, criterionSnaps, target);
   const results: MoveResult[] = cs.moves.map((m) => {
     if (isCriterionMove(m)) {
       return { fromName: m.fromName, toName: m.toName, ok: criterionResult.ok, error: criterionResult.error };

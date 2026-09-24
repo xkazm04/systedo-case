@@ -44,6 +44,13 @@ import {
   setCampaignBudgetMicros,
 } from "@/lib/google/ads";
 import type { CriterionSnapshot } from "./control-plane-types";
+import type { AdsSource } from "./types";
+import {
+  syncDegraded,
+  writeTargetVerdict,
+  WRITE_TARGET_REFUSALS,
+  type WriteTargetRefusal,
+} from "./write-target";
 
 /** WP S1b — the three criterion functions are reached through a LAZY import, not the
  *  static one above, and the reason is a hard constraint rather than a preference.
@@ -167,6 +174,9 @@ export type MutatorRefusal =
   | "sklik-unit-unsettled"
   | "sklik-not-connected"
   | "google-not-configured"
+  /** The tenant's last sync was for a live network but served sample rows
+   *  (./write-target `syncDegraded`). Checked before any rail or credential read. */
+  | "sync-degraded"
   /** RESERVED. A sample/demo tenant currently falls through to the Google guards,
    *  whose three refusal messages are pinned byte-identical by WP S1's invariants —
    *  changing what a demo tenant is told is not this WP's business. Listed so the
@@ -174,7 +184,14 @@ export type MutatorRefusal =
   | "sample-tenant";
 
 export type MutatorResolution =
-  | { ok: true; mutator: AdsMutator; tenant: string }
+  | {
+      ok: true;
+      mutator: AdsMutator;
+      tenant: string;
+      /** Set only by {@link resolveWriteTarget}: the change-set may not be written
+       *  here, and `mutator` is a {@link refusingMutator} that can only refuse. */
+      refused?: WriteTargetRefusal;
+    }
   | { ok: false; code: MutatorRefusal; error: string };
 
 /** Rail 3 — the global Sklik write switch. Named once, read at CALL time (never
@@ -362,6 +379,7 @@ export function sklikMutator(client: SklikClient): AdsMutator {
  *  that already shipped (the pre-S1 "Sklik mutations are not supported" refusal) —
  *  kept verbatim, because with the flag off that is still exactly true. */
 const REFUSALS: Record<Exclude<MutatorRefusal, "google-not-configured">, string> = {
+  "sync-degraded": WRITE_TARGET_REFUSALS["sync-degraded"],
   "sklik-writes-disabled":
     "Úpravy kampaní pro Sklik zatím nejsou podporované. Dostupné jsou jen pro Google Ads.",
   "sklik-unit-unsettled":
@@ -382,6 +400,16 @@ const REFUSALS: Record<Exclude<MutatorRefusal, "google-not-configured">, string>
  *  connection store. */
 export async function mutatorForTenant(userId: string, tenant: string): Promise<MutatorResolution> {
   const meta = await getSyncMeta(tenant);
+
+  // A sync that fell back to sample rows leaves `source` = "sample" (the honest
+  // provenance label) while `network` still names the live account it was for.
+  // Routing below reads `source`, so such a tenant would fall through to the Google
+  // branch whatever its network — a degraded Sklik tenant would be handed the user's
+  // Google mutator without rail 3 ever being read. Refuse instead, before any rail
+  // or credential. A meta without `network` (synced before the stamp) never trips.
+  if (syncDegraded(meta)) {
+    return { ok: false, code: "sync-degraded", error: REFUSALS["sync-degraded"] };
+  }
 
   if (meta?.source === "sklik") {
     // Rail 3 — global off switch (default off).
@@ -429,4 +457,53 @@ export async function mutatorForTenant(userId: string, tenant: string): Promise<
     };
   }
   return { ok: true, mutator: googleMutator({ customerId: connection.customerId, token }), tenant };
+}
+
+/** A mutator that can only refuse — every write member rejects with `error`. It
+ *  holds no credential and no transport, so it cannot write by construction (the
+ *  rail-1 idea: wrong ⇒ inert). It copies the refused mutator's identity and its
+ *  criterion CAPABILITY, but none of its behaviour: a network that has no criterion
+ *  API still answers with its own capability refusal first, and every other move
+ *  fails inside the mutation layer's try/catch with `error` as its message, before
+ *  any audit doc or activity is written. */
+export function refusingMutator(like: AdsMutator, error: string): AdsMutator {
+  const refuse = async (): Promise<never> => {
+    throw new Error(error);
+  };
+  const base: AdsMutator = {
+    source: like.source,
+    networkLabel: like.networkLabel,
+    auditFields: like.auditFields,
+    pause: refuse,
+    resume: refuse,
+    readBudgets: refuse,
+    setBudget: refuse,
+  };
+  return canWriteCriteria(like)
+    ? { ...base, addNegativeKeyword: refuse, addExactKeyword: refuse, removeCriterion: refuse }
+    : base;
+}
+
+/** Resolve a change-set's write target ONCE, for the whole apply or revert loop:
+ *  {@link mutatorForTenant}, then the set's own network (`changeSetSource`) checked
+ *  against the mutator's by {@link writeTargetVerdict}. On a refused verdict the real
+ *  mutator (and the credential inside it) is dropped and a {@link refusingMutator}
+ *  is handed to every move instead, so each move returns the refusal without
+ *  writing anything — no audit doc, no activity — and the set settles "failed"
+ *  through the same `settledApplyStatus` a rail refusal does.
+ *
+ *  Resolving once is also what keeps a set on ONE network: re-resolving per move
+ *  read the meta and the credentials N times, and a sync landing between two moves
+ *  could have switched the target half-way through a set. */
+export async function resolveWriteTarget(
+  userId: string,
+  tenant: string,
+  setSource: AdsSource | undefined,
+  phase: "apply" | "revert"
+): Promise<MutatorResolution> {
+  const resolved = await mutatorForTenant(userId, tenant);
+  if (!resolved.ok) return resolved;
+  const verdict = writeTargetVerdict({ setSource, mutatorSource: resolved.mutator.source, phase });
+  if (verdict.ok) return resolved;
+  return { ok: true, mutator: refusingMutator(resolved.mutator, verdict.error), tenant, refused: verdict.code };
 }

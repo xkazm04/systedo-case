@@ -117,6 +117,10 @@ export async function runTenantSync(
   const stamped = campaigns.map((c) => ({ ...c, source: rowSource }));
   await upsertCampaigns(tenant, stamped, {
     source: rowSource,
+    // The network this sync was FOR, degraded or not. `source` above stays the
+    // honest provenance label; the write path refuses while the two disagree
+    // (./write-target `syncDegraded`) instead of routing on "sample".
+    network: connector.source,
     period,
     // The account's captured currency (base CZK for sample / a degraded fetch). Lets
     // the money surfaces label a non-CZK account honestly without converting.

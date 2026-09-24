@@ -17,6 +17,11 @@
  *  `{ ok: false, error }` here — it never mutates and never writes an audit doc, so
  *  the change-set settles `failed` with the refusal as its message.
  *
+ *  Every function takes an optional trailing, pre-resolved `MutatorResolution`: the
+ *  control plane resolves ONE per change-set (`resolveWriteTarget` in ./mutator) and
+ *  hands it to each move. Absent, the function resolves for itself as before, so
+ *  every direct caller is unchanged.
+ *
  *  The audit + activity are written under the SAME project-scoped `tenant` as the
  *  campaigns and change-sets they act on (the caller passes the tenant it already
  *  resolved via `resolveTenant`/`resolveCampaignContext`), so a pause/budget-shift
@@ -31,7 +36,13 @@ import { recordActivity } from "./activity";
 import { buildTenantKey, mutationAuditReadTenants } from "./store-keys";
 import { CAMPAIGN_PERIOD_DAYS } from "./types";
 import { fmtCZK } from "@/lib/format";
-import { canWriteCriteria, mutatorForTenant, type AdsMutator, type PlatformBudget } from "./mutator";
+import {
+  canWriteCriteria,
+  mutatorForTenant,
+  type AdsMutator,
+  type MutatorResolution,
+  type PlatformBudget,
+} from "./mutator";
 import type { BudgetMove } from "./simulate";
 import {
   computeDailyMicros,
@@ -100,9 +111,10 @@ export async function applyPause(
   /** the project-scoped tenant the campaigns live under (resolveTenant/…Context) */
   tenant: string,
   campaignId: string,
-  campaignName: string
+  campaignName: string,
+  resolution?: MutatorResolution
 ): Promise<MutationResult> {
-  const resolved = await mutatorForTenant(userId, tenant);
+  const resolved = resolution ?? (await mutatorForTenant(userId, tenant));
   if (!resolved.ok) return { ok: false, error: resolved.error };
   const { mutator } = resolved;
 
@@ -137,9 +149,10 @@ export async function applyResume(
   /** the project-scoped tenant the campaigns live under (resolveTenant/…Context) */
   tenant: string,
   campaignId: string,
-  campaignName: string
+  campaignName: string,
+  resolution?: MutatorResolution
 ): Promise<MutationResult> {
-  const resolved = await mutatorForTenant(userId, tenant);
+  const resolved = resolution ?? (await mutatorForTenant(userId, tenant));
   if (!resolved.ok) return { ok: false, error: resolved.error };
   const { mutator } = resolved;
 
@@ -256,9 +269,10 @@ export async function applyBudgetShift(
   userId: string,
   /** the project-scoped tenant the campaigns live under (resolveTenant/…Context) */
   tenant: string,
-  move: BudgetShiftInput
+  move: BudgetShiftInput,
+  resolution?: MutatorResolution
 ): Promise<MutationResult> {
-  const resolved = await mutatorForTenant(userId, tenant);
+  const resolved = resolution ?? (await mutatorForTenant(userId, tenant));
   if (!resolved.ok) return { ok: false, error: resolved.error };
   const { mutator } = resolved;
 
@@ -382,9 +396,10 @@ export async function restoreBudgets(
   userId: string,
   /** the project-scoped tenant the campaigns live under (resolveTenant/…Context) */
   tenant: string,
-  snapshots: BudgetSnapshot[]
+  snapshots: BudgetSnapshot[],
+  resolution?: MutatorResolution
 ): Promise<MutationResult> {
-  const resolved = await mutatorForTenant(userId, tenant);
+  const resolved = resolution ?? (await mutatorForTenant(userId, tenant));
   if (!resolved.ok) return { ok: false, error: resolved.error };
   const { mutator } = resolved;
 
@@ -448,13 +463,14 @@ export async function applyCriterionMove(
   userId: string,
   /** the project-scoped tenant the campaigns live under (resolveTenant/…Context) */
   tenant: string,
-  move: BudgetMove
+  move: BudgetMove,
+  resolution?: MutatorResolution
 ): Promise<MutationResult> {
   const criterion = move.criterion;
   if (!criterion || (move.kind !== "negative" && move.kind !== "promote")) {
     return { ok: false, error: "Návrh neobsahuje vyhledávací dotaz, na který by šlo sáhnout." };
   }
-  const resolved = await mutatorForTenant(userId, tenant);
+  const resolved = resolution ?? (await mutatorForTenant(userId, tenant));
   if (!resolved.ok) return { ok: false, error: resolved.error };
   const { mutator } = resolved;
   // The all-three-or-none capability check: a mutator that could create but not
@@ -511,10 +527,11 @@ export async function restoreCriteria(
   userId: string,
   /** the project-scoped tenant the campaigns live under (resolveTenant/…Context) */
   tenant: string,
-  snapshots: CriterionSnapshot[]
+  snapshots: CriterionSnapshot[],
+  resolution?: MutatorResolution
 ): Promise<MutationResult> {
   if (snapshots.length === 0) return { ok: true };
-  const resolved = await mutatorForTenant(userId, tenant);
+  const resolved = resolution ?? (await mutatorForTenant(userId, tenant));
   if (!resolved.ok) return { ok: false, error: resolved.error };
   const { mutator } = resolved;
   if (!canWriteCriteria(mutator)) return { ok: false, error: CRITERION_UNSUPPORTED };
