@@ -30,11 +30,16 @@ let claims = new Map(); // token → ScanClaim
 let consumed = [];
 let skenClaimCounted = 0;
 let currentUser = null;
+// failure switches — each one arms exactly one store call to throw
+let failCreateOnce = false;
+let failSaveOnboarding = false;
+let restored = [];
 
 mock.module("@/lib/onboarding/store", {
   namedExports: {
     getOnboarding: async (projectId) => onboardingRows.get(projectId) ?? null,
     saveOnboarding: async (projectId, state) => {
+      if (failSaveOnboarding) throw new Error("onboarding store down");
       saveOnboardingCalls.push({ projectId, state });
       onboardingRows.set(projectId, state);
     },
@@ -73,6 +78,10 @@ mock.module("@/lib/session", { namedExports: { currentUserId: async () => curren
 mock.module("@/lib/projects/store", {
   namedExports: {
     createProject: async (userId, input) => {
+      if (failCreateOnce) {
+        failCreateOnce = false;
+        throw new Error("projects store down");
+      }
       const project = {
         id: `p${projects.length + 1}`,
         userId,
@@ -125,6 +134,11 @@ mock.module("@/lib/onboarding/claim-store", {
       throw new Error("not used in this suite");
     },
     getScanClaim: async (token) => claims.get(token) ?? null,
+    restoreScanClaim: async (claim) => {
+      restored.push(claim.token);
+      claims.set(claim.token, claim);
+      return true;
+    },
     pruneScanClaims: async () => 0,
   },
 });
@@ -141,6 +155,7 @@ mock.module("@/lib/onboarding/sken-track", {
 const { applyScanToProject } = await import("@/lib/onboarding/apply");
 const { SCAN_LIST_SEED } = await import("@/lib/onboarding/seed");
 const { POST: redeem } = await import("@/app/api/sken/redeem/route");
+const { getScanClaim } = await import("@/lib/onboarding/claim-store");
 
 const PROFILE = {
   businessName: "Mionelo",
@@ -166,6 +181,9 @@ function reset() {
   consumed = [];
   skenClaimCounted = 0;
   currentUser = null;
+  failCreateOnce = false;
+  failSaveOnboarding = false;
+  restored = [];
 }
 
 const post = (body) =>
@@ -290,4 +308,49 @@ test("redeem: an unrecognized suggested type falls back to the honest default", 
   assert.equal(projects[0].type, "content", "a stored type that is not a ProjectType never reaches the store");
   assert.equal(projects[0].domain, undefined, "an unparseable URL yields no domain rather than a bad one");
   assert.equal(projects[0].name, "Nový projekt", "…and the project still gets a display name");
+});
+
+// --- (3) the per-part outcome and the safe retry (onboarding-A) --------------
+
+test("apply: the keyword part reports its result — seeded first, skipped on a re-apply", async () => {
+  reset();
+  const first = await applyScanToProject("u1", { id: "p1" }, PROFILE);
+  assert.deepEqual(first.keywords, { seeded: 2 }, "the first apply says how many keywords it seeded");
+  const second = await applyScanToProject("u1", { id: "p1" }, PROFILE);
+  assert.deepEqual(second.keywords, { skipped: "exists" }, "the second apply says WHY it wrote nothing");
+});
+
+test("redeem: a create failure puts the claim back and answers 503 — the same token then succeeds once", async () => {
+  reset();
+  currentUser = "u1";
+  const token = "f".repeat(32);
+  const claim = { token, profile: PROFILE, suggestedType: "eshop", createdAt: "2026-08-29T00:00:00.000Z" };
+  claims.set(token, claim);
+  failCreateOnce = true;
+
+  const res = await post({ token });
+  assert.equal(res.status, 503, "a failure BEFORE a project exists is retryable, not a 500");
+  assert.equal((await res.json()).code, "redeem-retry");
+  assert.equal(projects.length, 0, "nothing was created");
+  assert.ok(await getScanClaim(token), "the visitor's scan is still parked under the same token");
+
+  const again = await post({ token });
+  assert.equal(again.status, 201, "the retry with the same token redeems");
+  assert.equal(projects.length, 1, "exactly one project across both attempts");
+  assert.equal(await getScanClaim(token), null, "…and the token is spent now");
+});
+
+test("redeem: a failed scan apply after the project exists is a 201 with the part reported", async () => {
+  reset();
+  currentUser = "u1";
+  const token = "9".repeat(32);
+  claims.set(token, { token, profile: PROFILE, suggestedType: "eshop", createdAt: "2026-08-29T00:00:00.000Z" });
+  failSaveOnboarding = true;
+
+  const res = await post({ token });
+  assert.equal(res.status, 201, "the project exists — a 500 here would be one the visitor can never retry");
+  const body = await res.json();
+  assert.equal(body.projectId, "p1");
+  assert.equal(body.outcome?.scan, "failed", "the scan part is reported as failed, not swallowed");
+  assert.equal(projects.length, 1);
 });

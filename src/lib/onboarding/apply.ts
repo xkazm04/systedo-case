@@ -14,7 +14,8 @@
  *   - competitor suggestions MERGE into the stored set, so re-applying a scan can
  *     never wipe a curated list, and the outcome is REPORTED rather than swallowed;
  *   - the keyword seed is best-effort and skipped when a scan-originated list
- *     already exists, so re-applying never duplicates it;
+ *     already exists, so re-applying never duplicates it — and its result is
+ *     REPORTED (`keywords`: seeded / skipped / failed) like the competitor merge's;
  *   - onboarding state is saved exactly ONCE, with `extra` folded into the same
  *     write (the route's `dismissed` flag rides that way).
  *
@@ -40,11 +41,18 @@ export interface ApplyCompetitorsOutcome {
   warning?: { code: "competitors-truncated"; dropped: number } | { code: "competitors-merge-failed" };
 }
 
+/** What the keyword part of the apply did. `skipped: "exists"` is the idempotent
+ *  re-apply; `"empty"` means the scan carried nothing seedable; `failed` is a
+ *  keyword-store hiccup that did not fail the apply. */
+export type ApplyKeywordsOutcome = { seeded: number } | { skipped: "exists" | "empty" } | { failed: true };
+
 export interface ApplyScanOutcome {
   /** the onboarding state that was persisted */
   state: OnboardingState;
   /** present only when the scan carried competitor names */
   competitors?: ApplyCompetitorsOutcome;
+  /** the keyword-list seed's result — always present */
+  keywords: ApplyKeywordsOutcome;
 }
 
 /** Merge the scan's competitor suggestions into the stored set — never replace it.
@@ -74,22 +82,28 @@ async function seedCompetitors(
 /** Seed a scan-tagged keyword list from the scan's keywords — tenant-scoped, the
  *  same tenant the keyword-lists route resolves (lists are per-tenant, onboarding is
  *  per-project). Idempotent: skipped when a scan-originated list already exists.
- *  Best-effort — a keyword-store hiccup never fails the apply. */
-async function seedKeywordList(uid: string, projectId: string, profile: OnboardingScanProfile): Promise<void> {
+ *  Best-effort — a keyword-store hiccup never fails the apply, but it is reported. */
+async function seedKeywordList(
+  uid: string,
+  projectId: string,
+  profile: OnboardingScanProfile
+): Promise<ApplyKeywordsOutcome> {
+  if (profile.keywords.length === 0) return { skipped: "empty" };
   try {
     const tenant = await resolveTenant(uid, projectId);
     const existing = await listKeywordLists(tenant);
-    if (!shouldSeedScanList(existing.map((l) => l.seed), profile.keywords.length)) return;
+    if (!shouldSeedScanList(existing.map((l) => l.seed), profile.keywords.length)) return { skipped: "exists" };
     const keywords = scanKeywordsToSaved(profile.keywords, profile.businessName);
-    if (keywords.length === 0) return;
+    if (keywords.length === 0) return { skipped: "empty" };
     await saveKeywordList(tenant, {
       name: SCAN_LIST_NAME,
       seed: SCAN_LIST_SEED,
       source: "sample",
       keywords,
     });
+    return { seeded: keywords.length };
   } catch {
-    /* best-effort seeding */
+    return { failed: true };
   }
 }
 
@@ -115,8 +129,8 @@ export async function applyScanToProject(
   const competitors =
     profile.competitors.length > 0 ? await seedCompetitors(project.id, profile.competitors, now) : undefined;
 
-  if (profile.keywords.length > 0) await seedKeywordList(uid, project.id, profile);
+  const keywords = await seedKeywordList(uid, project.id, profile);
 
   await saveOnboarding(project.id, state);
-  return { state, ...(competitors ? { competitors } : {}) };
+  return { state, ...(competitors ? { competitors } : {}), keywords };
 }

@@ -30,6 +30,8 @@ const T = {
     retry: "Dokončit přihlášení",
     expired: "Odkaz na sken vypršel nebo už byl použit. Spusťte sken znovu.",
     failed: "Projekt se nepodařilo založit. Zkuste sken spustit znovu.",
+    redeemRetry: "Projekt se tentokrát nepodařilo založit. Váš sken zůstal uložený, stačí to zkusit znovu.",
+    retryRedeem: "Zkusit znovu",
   },
   en: {
     label: "Your website address",
@@ -44,6 +46,8 @@ const T = {
     retry: "Finish signing in",
     expired: "That scan link expired or was already used. Run the scan again.",
     failed: "The project could not be created. Try running the scan again.",
+    redeemRetry: "The project could not be created this time. Your scan is still saved, so just try again.",
+    retryRedeem: "Try again",
   },
 } as const;
 
@@ -53,6 +57,7 @@ const RETURN_MESSAGE = {
   redeeming: "redeeming",
   "needs-signin": "needsSignin",
   expired: "expired",
+  "redeem-retry": "redeemRetry",
   failed: "failed",
 } as const;
 
@@ -69,7 +74,7 @@ export default function SkenClient({
    *  to the input, and the claim must record what was actually scanned. */
   const [scannedUrl, setScannedUrl] = useState("");
   const scan = useAiTool<OnboardingScanResult>("onboarding-scan-public");
-  const { phase, claim, retrySignIn } = useSkenClaim({ claimToken, selfHosted });
+  const { phase, claim, retrySignIn, retryRedeem } = useSkenClaim({ claimToken, selfHosted });
 
   const result = scan.status === "done" ? scan.data?.result : undefined;
   const busy = scan.status === "loading";
@@ -96,6 +101,11 @@ export default function SkenClient({
             {phase === "needs-signin" && (
               <Button className="mt-4" onClick={retrySignIn}>
                 {t("retry")}
+              </Button>
+            )}
+            {phase === "redeem-retry" && (
+              <Button className="mt-4" onClick={retryRedeem}>
+                {t("retryRedeem")}
               </Button>
             )}
           </div>

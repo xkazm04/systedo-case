@@ -31,7 +31,7 @@ process.env.SYSTEDO_DB_FILE = dbFile;
 process.env.LOCAL_DB = "true";
 register("./json-loader.mjs", import.meta.url);
 
-const { createScanClaim, getScanClaim, consumeScanClaim, pruneScanClaims } = await import(
+const { createScanClaim, getScanClaim, consumeScanClaim, pruneScanClaims, restoreScanClaim } = await import(
   "@/lib/onboarding/claim-store"
 );
 const { SCAN_CLAIM_TTL_DAYS, isClaimToken, isClaimExpired } = await import("@/lib/onboarding/claim-token");
@@ -118,4 +118,32 @@ test("prune: only rows past the TTL go, and the sweep is bounded", async () => {
   assert.equal(await pruneScanClaims(), 1, "the next sweep takes the other stale row");
   assert.equal(rowCount(), 1, "the fresh claim survives every sweep");
   assert.ok(await getScanClaim(fresh.token), "…and is still readable");
+});
+
+test("restore: a consumed claim goes back under the same token with its ORIGINAL age", async () => {
+  const claim = await createScanClaim(profile());
+  const taken = await consumeScanClaim(claim.token);
+  assert.equal(await getScanClaim(claim.token), null, "consumed");
+
+  assert.equal(await restoreScanClaim(taken), true, "a live claim is put back");
+  const back = await getScanClaim(claim.token);
+  assert.equal(back?.token, claim.token, "readable again under the same token");
+  assert.equal(back?.createdAt, claim.createdAt, "restoring never restarts the TTL clock");
+});
+
+test("restore: an expired claim is never written back (fail-closed)", async () => {
+  const stale = new Date(Date.now() - (SCAN_CLAIM_TTL_DAYS + 1) * DAY).toISOString();
+  const token = "c".repeat(32);
+  getDb().prepare("DELETE FROM scan_claims WHERE token = ?").run(token);
+
+  assert.equal(await restoreScanClaim({ token, profile: profile(), createdAt: stale }), false);
+  const row = getDb().prepare("SELECT data FROM scan_claims WHERE token = ?").get(token);
+  assert.equal(row, undefined, "no row was written — restoring never extends a bearer token's life");
+  assert.equal(await getScanClaim(token), null);
+});
+
+test("restore: a malformed token never reaches the store", async () => {
+  const before = rowCount();
+  assert.equal(await restoreScanClaim({ token: "nope", profile: profile(), createdAt: new Date().toISOString() }), false);
+  assert.equal(rowCount(), before);
 });

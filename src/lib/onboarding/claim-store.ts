@@ -9,7 +9,7 @@
  *  No cascade entry is needed: rows are user-free and self-expiring.
  *
  *  ALL POLICY LIVES HERE, not in the backends: minting, the TTL check on read, the
- *  get-then-delete of a consume, and the opportunistic prune. The two backends are
+ *  get-then-delete of a consume, the fail-closed restore, and the opportunistic prune. The two backends are
  *  four dumb operations (get / put / delete / prune-before), so they cannot drift
  *  on the security-relevant half the way two hand-written expiry checks would. */
 import { LOCAL_DB } from "@/lib/local-mode";
@@ -93,6 +93,19 @@ export async function consumeScanClaim(token: unknown): Promise<ScanClaim | null
   if (!claim) return null;
   await be.deleteClaim(token);
   return isClaimExpired(claim) ? null : claim;
+}
+
+/** Put a consumed claim back — the redeem path's undo for a failure that happened
+ *  BEFORE a project existed, so the visitor retries with the same token instead of
+ *  re-running (and paying a daily public scan for) the scan.
+ *
+ *  Fail-closed: a malformed token or an already-expired claim is never written, and
+ *  the claim goes back with its ORIGINAL `createdAt`, so restoring can never extend
+ *  a bearer token's life. Returns whether the claim is readable again. */
+export async function restoreScanClaim(claim: ScanClaim, now: number = Date.now()): Promise<boolean> {
+  if (!isClaimToken(claim.token) || isClaimExpired(claim, now)) return false;
+  await (await backend()).putClaim(claim);
+  return true;
 }
 
 /** Sweep expired rows. Called opportunistically by {@link createScanClaim};

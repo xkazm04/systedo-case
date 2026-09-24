@@ -24,9 +24,18 @@ import type { OnboardingScanResult } from "@/lib/ai-types";
  *     offer is "sign in again", not "start over".
  *   - `expired` — the token is unknown, spent or older than its TTL. Honest dead
  *     end: the scan is gone, run it again.
- *  Both are recoverable and both are stated; neither silently drops the visitor on
- *  an empty page. */
-export type SkenClaimPhase = "idle" | "claiming" | "redeeming" | "needs-signin" | "expired" | "failed";
+ *   - `redeem-retry` — the redeem failed BEFORE a project existed (a 503); the
+ *     server put the claim back, so the offer is "try again" with the SAME token,
+ *     never a fresh (rate-limited) scan.
+ *  All are stated; none silently drops the visitor on an empty page. */
+export type SkenClaimPhase =
+  | "idle"
+  | "claiming"
+  | "redeeming"
+  | "needs-signin"
+  | "expired"
+  | "redeem-retry"
+  | "failed";
 
 const callbackFor = (token: string) => `/sken?claim=${encodeURIComponent(token)}`;
 
@@ -79,6 +88,39 @@ export function useSkenClaim(opts: { claimToken?: string; selfHosted?: boolean }
     if (pendingToken) startSignIn(pendingToken);
   }, [pendingToken, startSignIn]);
 
+  /** POST the token to the redeem door and route on the answer. `alive` lets the
+   *  mount effect drop a response that lands after unmount. */
+  const redeem = useCallback(
+    async (token: string, alive: () => boolean = () => true) => {
+      try {
+        const res = await fetch("/api/sken/redeem", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        if (!alive()) return;
+        if (res.status === 401) return setPhase("needs-signin");
+        if (res.status === 503) return setPhase("redeem-retry");
+        const json = (await res.json().catch(() => null)) as { projectId?: string } | null;
+        if (!res.ok || typeof json?.projectId !== "string") {
+          setPhase(res.status === 404 ? "expired" : "failed");
+          return;
+        }
+        router.replace(`/app/${json.projectId}/start`);
+      } catch {
+        if (alive()) setPhase("failed");
+      }
+    },
+    [router]
+  );
+
+  /** Re-POST the same token after a 503 — the server put the claim back. */
+  const retryRedeem = useCallback(() => {
+    if (!claimToken) return;
+    setPhase("redeeming");
+    void redeem(claimToken);
+  }, [claimToken, redeem]);
+
   // The return leg. Guarded by a ref so React's development double-invoke (and any
   // re-render) cannot POST the same single-use token twice — the second POST would
   // 404 by design and turn a successful claim into an "expired" screen.
@@ -87,32 +129,11 @@ export function useSkenClaim(opts: { claimToken?: string; selfHosted?: boolean }
     if (!claimToken || redeemedRef.current === claimToken) return;
     redeemedRef.current = claimToken;
     let alive = true;
-    void (async () => {
-      try {
-        const res = await fetch("/api/sken/redeem", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: claimToken }),
-        });
-        if (!alive) return;
-        if (res.status === 401) {
-          setPhase("needs-signin");
-          return;
-        }
-        const json = (await res.json().catch(() => null)) as { projectId?: string } | null;
-        if (!res.ok || typeof json?.projectId !== "string") {
-          setPhase(res.status === 404 ? "expired" : "failed");
-          return;
-        }
-        router.replace(`/app/${json.projectId}/start`);
-      } catch {
-        if (alive) setPhase("failed");
-      }
-    })();
+    void redeem(claimToken, () => alive);
     return () => {
       alive = false;
     };
-  }, [claimToken, router]);
+  }, [claimToken, redeem]);
 
-  return { phase, claim, retrySignIn };
+  return { phase, claim, retrySignIn, retryRedeem };
 }

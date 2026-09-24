@@ -76,6 +76,7 @@ export const API_ERROR_CODES = [
   "empty-content", // content below the minimum length
   "content-too-long", // content over the platform/field limit
   "not-approved", // an action requires an approved precondition (twin send)
+  "redeem-retry", // 503 — sken redeem failed before a project existed; the claim was put back, retry the same token
   // --- provider / upstream categories (raw message server-logged only) -------
   "provider-error", // upstream returned an error (502)
   "provider-auth", // upstream rejected the credentials (502)
