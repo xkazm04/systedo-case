@@ -29,10 +29,9 @@ import { resolveCohorts } from "@/lib/ltv/resolve";
 import { ltvSummary, withMetrics as cohortWithMetrics } from "@/lib/ltv/compute";
 import { buildCohortRequest } from "./cohort-request";
 
-import { resolveLeadSources } from "@/lib/lead-quality/resolve";
-import { sourcesForProject } from "@/lib/lead-quality/sample";
-import { withMetrics as sourceWithMetrics } from "@/lib/lead-quality/compute";
-import { buildLeadSourceSeeds, seedToRequest } from "./lead-source-request";
+import { resolveLeadFunnel } from "@/lib/lead-quality/resolve";
+import { funnelSeeds } from "@/lib/lead-quality/funnel-tier";
+import { seedToRequest } from "./lead-source-request";
 
 import {
   SAMPLE_RECENT_REVIEWS,
@@ -86,46 +85,24 @@ export function resolveCohortDiagnosisRequest(
 }
 
 /** Re-derive the lead-source diagnosis for one picked source from the funnel's
- *  ACTUAL resolved sources (imported-over-sample), reusing the SAME seeds the panel
+ *  ACTUAL resolved tier (contacts, import or sample), reusing the SAME seeds the panel
  *  and cron build. Returns null when the source no longer stands out as diagnosable
- *  (nothing to diagnose). `sample` = the funnel is not on genuinely imported leads. */
+ *  (nothing to diagnose). `sample` = the funnel is not on real leads. */
 export async function resolveLeadSourceDiagnosisRequest(
   project: Project,
   source: string,
   userId?: string | null
 ): Promise<ResolvedDiagnosisRequest<LeadSourceDiagnosisRequest> | null> {
-  const resolved = await resolveLeadSources(project.id, sourcesForProject(project));
-  const rows = resolved.sources
-    .map(sourceWithMetrics)
-    .sort((a, b) => b.qualityScore - a.qualityScore);
-  // WP W3-C — the SAME per-label conversion join LeadQualityModule builds; both
-  // paths must carry it or `inputDigest` disagrees between the page and the click
-  // path and every stored diagnosis badges "stale". Best-effort: no ledger (or an
-  // anonymous demo read) simply grounds without the field.
-  let conversions;
-  if (userId) {
-    try {
-      const { getConversionSummary } = await import("@/lib/leads/conversion-state");
-      const summary = await getConversionSummary(userId, project.id);
-      if (summary) {
-        conversions = Object.fromEntries(
-          summary.bySource.map((c) => [
-            c.sourceLabel,
-            { qualified30d: c.qualified30d, won30d: c.won30d, gclidPct: c.gclidPct },
-          ])
-        );
-      }
-    } catch {
-      /* grounding stays conversion-free — absence, not zero */
-    }
-  }
-  const seeds = buildLeadSourceSeeds(rows, conversions);
+  // The page's resolver, so the tier AND the W3-C ledger join match it and the
+  // `inputDigest` agrees. No ledger (or an anonymous demo read) grounds without it.
+  const funnel = await resolveLeadFunnel(project, userId ?? null);
+  const seeds = funnelSeeds(funnel);
   if (seeds.length === 0) return null;
   // Honour the client's picked source when it is one of the diagnosable seeds;
   // otherwise fall back to the worst (first) seed so a stale selection still returns
   // an honest diagnosis rather than nothing.
   const seed = seeds.find((s) => s.source === source) ?? seeds[0]!;
-  return { request: seedToRequest(seed), sample: !resolved.live };
+  return { request: seedToRequest(seed), sample: !funnel.live };
 }
 
 /** The resolved local-visibility inputs, so the /lokalni page and the /api/ai

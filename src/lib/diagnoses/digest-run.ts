@@ -6,8 +6,10 @@
  *  too, and a compact summary is returned for the alert-inbox entry + the email.
  *
  *  Integrity (Direction 1): the lead-source diagnosis runs ONLY when the funnel
- *  resolves to genuinely imported leads (resolveLeadSources.live) — a connected
- *  tenant WITHOUT imported leads now gets NO synthetic diagnosis. The cohort
+ *  resolves to genuinely imported leads (resolveLeadFunnel, import tier) — a
+ *  connected tenant WITHOUT imported leads now gets NO synthetic diagnosis. A funnel
+ *  on the CRM contacts tier is skipped with its own note: the page and the click
+ *  path read it, the cron adds no spend for it. The cohort
  *  diagnosis is skipped honestly (no live cohort store): no LLM call, no spend, a
  *  recorded note. Sample-only tenants were already gated out by the cron.
  *
@@ -26,10 +28,9 @@ import { generateLeadSourceDiagnosis } from "@/lib/ai/tools";
 // Imported from its own module rather than the ./tools barrel (which is outside this
 // work package's write set); the barrel would re-export exactly this.
 import { generateAdsDiagnosis } from "@/lib/ai/tools/ads-diagnosis";
-import { sourcesForProject } from "@/lib/lead-quality/sample";
-import { withMetrics as sourceWithMetrics } from "@/lib/lead-quality/compute";
-import { resolveLeadSources } from "@/lib/lead-quality/resolve";
-import { buildLeadSourceSeeds, seedToRequest } from "./lead-source-request";
+import { resolveLeadFunnel } from "@/lib/lead-quality/resolve";
+import { funnelSeeds } from "@/lib/lead-quality/funnel-tier";
+import { seedToRequest } from "./lead-source-request";
 import { adsDiagnosisSubject } from "./ads-request";
 import { resolveAdsDiagnosisRequest } from "./resolve-request";
 import { planDigestDiagnoses } from "./digest-plan";
@@ -83,13 +84,10 @@ export async function runTenantDiagnoses(
 ): Promise<DigestDiagnosisResult> {
   const locale: SupportedLocale = "cs";
 
-  // Resolve the funnel's ACTUAL source set (imported-over-sample) and build the
-  // SAME seeds the panel builds — from real data, never the sample generator.
-  const resolved = await resolveLeadSources(project.id, sourcesForProject(project));
-  const sourceRows = resolved.sources
-    .map(sourceWithMetrics)
-    .sort((a, b) => b.qualityScore - a.qualityScore);
-  const leadSeed = buildLeadSourceSeeds(sourceRows)[0];
+  // Resolve the funnel the page resolves (same tier, same ledger join) and build the
+  // SAME seeds it builds, so a digest-origin diagnosis is not badged stale on arrival.
+  const funnel = await resolveLeadFunnel(project, userId);
+  const leadSeed = funnelSeeds(funnel)[0];
 
   // The ads request is rebuilt by the SAME server resolver the click path uses, so
   // the passive and the on-demand diagnosis read identical numbers. A store hiccup
@@ -100,8 +98,9 @@ export async function runTenantDiagnoses(
   });
 
   const plan = planDigestDiagnoses({
-    leadSourcesLive: resolved.live,
+    leadSourcesLive: funnel.live,
     hasLeadSeed: leadSeed != null,
+    leadOnContactsTier: funnel.source === "contacts",
     adsLive: adsResolved != null && !adsResolved.sample,
     // Spend ANYWHERE in the portfolio counts, asked of each network in turn — the
     // per-network figures are never summed across currencies (ADR-0010).

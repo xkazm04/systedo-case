@@ -7,7 +7,7 @@
 import type { Project } from "@/lib/projects/types";
 import { sourcesForProject, type LeadSource } from "@/lib/lead-quality/sample";
 import { summarize, withMetrics, avgVelocity } from "@/lib/lead-quality/compute";
-import { resolveLeadSources } from "@/lib/lead-quality/resolve";
+import { resolveLeadFunnel } from "@/lib/lead-quality/resolve";
 import { fmtCZK, fmtInt, fmtPct } from "@/lib/format";
 
 /** R02: reconcile the lead-quality source breakdown with the report tile. The tile
@@ -131,21 +131,21 @@ export function leadSignalsPromptText(project: Project, targetLeads?: number): s
   return leadSignalsText(raw, { targetLeads, live: false });
 }
 
-/** The recap's lead-quality grounding, resolving IMPORTED leads over the sample:
- *  when the project has imported CRM leads the block computes over them (labelled
- *  live) and reports the import's timestamp as a cache `version` so a re-import
- *  can't be served a stale recap; otherwise it falls back to the sample spine
- *  (byte-identical, no version). Leadgen/local only. Server-only. Never throws. */
+/** The recap's lead-quality grounding over the page's funnel (resolveLeadFunnel:
+ *  CRM contacts → imported leads → sample). On a live tier the block computes over
+ *  the real rows (labelled live) and reports the tier's cache `version` (the import's
+ *  timestamp, or a digest of the contacts) so an edit can't be served a stale recap;
+ *  otherwise it falls back to the sample spine (byte-identical, no version).
+ *  Leadgen/local only. Server-only. Never throws. */
 export async function resolveLeadSignals(
   project: Project,
   targetLeads?: number
 ): Promise<{ text: string | null; version?: string }> {
   if (project.type !== "leadgen" && project.type !== "local") return { text: null };
-  const sample = sourcesForProject(project);
-  const resolved = await resolveLeadSources(project.id, sample);
+  const funnel = await resolveLeadFunnel(project);
   return {
-    text: leadSignalsText(resolved.sources, { targetLeads, live: resolved.live }),
-    version: resolved.live ? resolved.syncedAt : undefined,
+    text: leadSignalsText(funnel.sources, { targetLeads, live: funnel.live }),
+    version: funnel.live ? funnel.version : undefined,
   };
 }
 

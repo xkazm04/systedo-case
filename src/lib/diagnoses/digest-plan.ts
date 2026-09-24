@@ -24,6 +24,10 @@ export const NOTE_COHORT_NO_LIVE = "cohort: no live basis";
 export const NOTE_LEAD_NO_LIVE = "lead: no live basis";
 /** Leads are imported, but no under-performing source stood out to diagnose. */
 export const NOTE_LEAD_NO_SEED = "lead: no diagnosable source";
+/** The funnel is on the CRM contacts tier. The page and the recap read it, but the
+ *  weekly cron does not spend a paid diagnosis on a tier it never diagnosed before;
+ *  the click path still diagnoses it on demand. */
+export const NOTE_LEAD_CONTACTS_TIER = "lead: contacts tier is diagnosed on demand only";
 /** No genuinely synced ad account resolved — the portfolio is the illustrative sample. */
 export const NOTE_ADS_NO_LIVE = "ads: no live basis";
 /** The ad accounts are synced, but nothing spent in the window — nothing to diagnose. */
@@ -35,6 +39,10 @@ export interface DigestDiagnosisPlanInput {
   leadSourcesLive: boolean;
   /** an under-performing, diagnosable seed exists from the resolved sources */
   hasLeadSeed: boolean;
+  /** the funnel resolved to the CRM contacts tier (lead-quality/funnel-tier). The lead
+   *  arm is skipped with NOTE_LEAD_CONTACTS_TIER: no added cron spend. Optional, so a
+   *  caller that does not know about tiers keeps its plan byte-identical. */
+  leadOnContactsTier?: boolean;
   /** the project resolves a genuinely SYNCED ad portfolio (Google Ads and/or Sklik),
    *  not the illustrative campaign sample. OPTIONAL on purpose: a caller that knows
    *  nothing about ads (the pre-Wave-1 shape) gets neither the ads arm nor an ads
@@ -58,8 +66,9 @@ export interface DigestDiagnosisPlan {
 /** Decide which passive diagnoses run for a tenant this pass. Pure and total. */
 export function planDigestDiagnoses(input: DigestDiagnosisPlanInput): DigestDiagnosisPlan {
   const notes: string[] = [NOTE_COHORT_NO_LIVE];
-  const runLead = input.leadSourcesLive && input.hasLeadSeed;
+  const runLead = input.leadSourcesLive && input.hasLeadSeed && !input.leadOnContactsTier;
   if (!input.leadSourcesLive) notes.push(NOTE_LEAD_NO_LIVE);
+  else if (input.leadOnContactsTier) notes.push(NOTE_LEAD_CONTACTS_TIER);
   else if (!input.hasLeadSeed) notes.push(NOTE_LEAD_NO_SEED);
 
   // Ads arm. An ads-unaware caller (neither flag supplied) records NO ads note, so

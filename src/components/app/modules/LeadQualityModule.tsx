@@ -18,13 +18,10 @@ import type { LeadSource } from "@/lib/lead-quality/sample";
 import LeadSourceDiagnosisPanel from "@/components/app/modules/LeadSourceDiagnosisPanel";
 import LeadImportPanel from "@/components/app/modules/LeadImportPanel";
 import ConversionLedgerStrip from "@/components/app/modules/leads/ConversionLedgerStrip";
+import CrmFunnelBanner from "@/components/app/modules/leads/CrmFunnelBanner";
 import FunnelBySourceCard from "@/components/app/modules/leads/FunnelBySourceCard";
-import type { ConversionSummary } from "@/lib/leads/conversion-events";
-import {
-  buildLeadSourceSeeds,
-  seedToRequest,
-  type ConversionsByLabel,
-} from "@/lib/diagnoses/lead-source-request";
+import { funnelSeeds, type LeadFunnel } from "@/lib/lead-quality/funnel-tier";
+import { seedToRequest } from "@/lib/diagnoses/lead-source-request";
 import { inputDigest } from "@/lib/diagnoses/types";
 import { latestDiagnosis, listDiagnoses } from "@/lib/diagnoses/store";
 
@@ -130,26 +127,13 @@ const alertTone: Record<LeadQualityAlert["severity"], PillTone> = {
 export default async function LeadQualityModule({
   sources,
   projectId,
-  live = false,
-  source,
-  syncedAt,
-  sourceUrl,
-  conversions = null,
+  funnel,
 }: {
   sources: LeadSource[];
   /** the project the diagnosis persists under — undefined on sample-less surfaces */
   projectId?: string;
-  /** whether `sources` are imported (live) rather than the seeded sample */
-  live?: boolean;
-  /** provenance of the active source set (import / url / sample) */
-  source?: "sample" | "import" | "url";
-  /** ISO timestamp of the import, when live */
-  syncedAt?: string;
-  /** for source "url": the hosted CSV the leads were fetched from */
-  sourceUrl?: string;
-  /** WP W3-C — the project's rolled-up conversion ledger, or null when the rollup
-   *  has never run (or on the sample-less/demo mount, which has no project). */
-  conversions?: ConversionSummary | null;
+  /** the resolved funnel (tier, provenance, W3-C ledger join); absent on the demo mount */
+  funnel?: LeadFunnel;
 }) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
@@ -170,19 +154,9 @@ export default async function LeadQualityModule({
   // the model needs — drift / velocity / live alerts / peer set threaded — via the
   // shared server-usable builder the digest cron reuses. No compute / sample data
   // ships to the client.
-  // WP W3-C: the ledger's per-source 30-day counts, joined by the DISPLAY label the
-  // funnel already groups by. `resolveLeadSourceDiagnosisRequest` must build the same
-  // map from the same summary — the seed feeds `inputDigest`, so two call sites
-  // disagreeing would badge every stored diagnosis stale.
-  const conversionsByLabel: ConversionsByLabel | undefined = conversions
-    ? Object.fromEntries(
-        conversions.bySource.map((c) => [
-          c.sourceLabel,
-          { qualified30d: c.qualified30d, won30d: c.won30d, gclidPct: c.gclidPct },
-        ])
-      )
-    : undefined;
-  const diagnosisSeeds = buildLeadSourceSeeds(rows, conversionsByLabel);
+  // WP W3-C: the ledger join rides the funnel; funnelSeeds is the ONE builder the
+  // click path and the digest cron share, so their `inputDigest`s match this page's.
+  const diagnosisSeeds = funnelSeeds({ sources, conversionsByLabel: funnel?.conversionsByLabel });
   // The persisted latest lead-source diagnosis + capped history, so the panel
   // renders the last one on load (not only after a click) and lists the history.
   const [initialDiagnosis, diagnosisHistory] = projectId
@@ -211,21 +185,17 @@ export default async function LeadQualityModule({
 
   return (
     <div className="stagger space-y-6">
-      {/* Live-over-sample: import real CRM leads (or revert). Only on a real project
-          surface — the demo/sample-less mount omits it. */}
-      {projectId && (
-        <LeadImportPanel
-          projectId={projectId}
-          live={live}
-          source={source}
-          syncedAt={syncedAt}
-          sourceUrl={sourceUrl}
-        />
+      {/* Provenance: the CRM tier's banner, else import real leads (or revert). Only
+          on a real project surface — the demo/sample-less mount omits both. */}
+      {projectId && funnel?.source === "contacts" && (
+        <CrmFunnelBanner projectId={projectId} contactCount={funnel.contactCount ?? 0} scanned={funnel.contactsScanned} shadowedImportRows={funnel.shadowedImportRows} />
+      )}
+      {projectId && funnel?.source !== "contacts" && (
+        <LeadImportPanel projectId={projectId} live={funnel?.live ?? false} source={funnel?.source} syncedAt={funnel?.syncedAt} sourceUrl={funnel?.sourceUrl} />
       )}
 
-      {/* WP W3-C — the conversion ledger + its two exports. Only on a real project
-          surface, for the same reason the importer above is. */}
-      {projectId && <ConversionLedgerStrip projectId={projectId} summary={conversions} />}
+      {/* WP W3-C — the conversion ledger + its two exports, on a real project only. */}
+      {projectId && <ConversionLedgerStrip projectId={projectId} summary={funnel?.conversions ?? null} />}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card p-5">
