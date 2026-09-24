@@ -23,11 +23,9 @@ import {
 import {
   pnoMetricTone,
   roasMetricTone,
-  severityLabel,
   triageReasonLabel,
   triageWeight,
   type MetricTone,
-  type Severity,
   type TriageGoals,
 } from "@/lib/campaigns/triage";
 import type { CampaignReport, ReportHistoryPoint } from "@/lib/ai-types";
@@ -45,9 +43,12 @@ import { loadFilters, saveFilters } from "./table/filters";
 import { useBatchRunner } from "./table/useBatchRunner";
 import { exportCampaignsCsv } from "./table/csv";
 import { deriveCampaignRows, filterCampaignRows, sortCampaignRows } from "./table/derive";
-import SourceBadge, { SourceReadOnlyHint } from "./table/SourceBadge";
+import SourceBadge from "./table/SourceBadge";
 import SourceFilter, { type SourceFilterValue } from "./table/SourceFilter";
 import RowFunnel from "./table/RowFunnel";
+import PriorityCell from "./table/PriorityCell";
+import SelectionBar from "./table/SelectionBar";
+import { useStageSelection, type StageContext } from "./table/useStageSelection";
 import type { CampaignsSourceMeta } from "./useCampaigns";
 
 const T = {
@@ -66,13 +67,6 @@ const T = {
     countAll: "{n} kampaní",
     colAiReport: "AI report",
     emptyNoMatch: "Žádná kampaň neodpovídá zadanému filtru.",
-    okLabel: "V pořádku",
-    okTitle: "Plní cíl",
-    preparePackage: "Připravit balíček",
-    preparingPackage: "Připravuji…",
-    preparePackageFailed: "Přípravu balíčku se nepodařilo dokončit.",
-    preparePackageTitle:
-      "Vytvořit změnový balíček pro tuto kampaň v Řízení rozpočtů níže (simulace → schválení → vrácení)",
     analyzePriorityTitle: "Doporučeno vyhodnotit prioritně",
     analyzing: "Analyzuji…",
     analyze: "Analyzovat",
@@ -109,7 +103,6 @@ const T = {
     footerLabel: "Součet filtru ({n})",
     footerTitle:
       "Souhrn právě vyfiltrovaných kampaní: ROAS a PNO jsou přepočítané ze součtů, ne průměrované",
-    severityPillTitle: "Zobrazit nálezy triáže v detailu řádku",
     triageHeading: "Proč vyžaduje pozornost",
     csvImpressions: "Zobrazení",
     csvClicks: "Prokliky",
@@ -130,13 +123,6 @@ const T = {
     countAll: "{n} campaigns",
     colAiReport: "AI report",
     emptyNoMatch: "No campaign matches the active filter.",
-    okLabel: "On target",
-    okTitle: "Meeting goal",
-    preparePackage: "Stage change set",
-    preparingPackage: "Staging…",
-    preparePackageFailed: "Couldn't stage the change set.",
-    preparePackageTitle:
-      "Create a change set for this campaign in Budget management below (simulate → approve → revert)",
     analyzePriorityTitle: "Recommended to evaluate first",
     analyzing: "Analyzing…",
     analyze: "Analyze",
@@ -173,7 +159,6 @@ const T = {
     footerLabel: "Filter total ({n})",
     footerTitle:
       "Aggregate of the currently filtered campaigns: ROAS and PNO are re-derived from sums, not averaged",
-    severityPillTitle: "Show the triage findings in the row detail",
     triageHeading: "Why it needs attention",
     csvImpressions: "Impressions",
     csvClicks: "Clicks",
@@ -188,12 +173,6 @@ const METRIC_TONE_CLASS: Record<MetricTone, string> = {
   bad: "text-negative",
   neutral: "text-navy-700",
   muted: "text-muted",
-};
-
-/** Pill tint per severity (healthy rows render a muted dash instead). */
-const SEVERITY_BADGE: Record<Exclude<Severity, "ok">, string> = {
-  critical: "bg-negative-soft text-negative",
-  warning: "bg-coral-soft text-coral-600",
 };
 
 // --- sorting / filtering ----------------------------------------------------
@@ -225,7 +204,7 @@ export default function CampaignTable({
   campaignSeries,
   typeFilter,
   onTypeFilterChange,
-  onPreparePackage,
+  staging,
   goals,
   sources,
 }: {
@@ -260,11 +239,9 @@ export default function CampaignTable({
    *  and the table dropdown drive the same state (click a card → filter rows) */
   typeFilter: CampaignType | "all";
   onTypeFilterChange: (t: CampaignType | "all") => void;
-  /** Stage a governed change-set for one critical row — prefers that campaign's
-   *  alert when one exists, else a campaign-scoped create. Absent for anonymous
-   *  visitors (the control-plane route is signed-in only). Resolves { ok, error }
-   *  so the row can drop its busy state AND surface the server's failure reason. */
-  onPreparePackage?: (campaignId: string) => Promise<{ ok: boolean; error?: string }> | void;
+  /** Select flagged rows → preview ONE scoped change-set → stage it (useStageSelection).
+   *  Absent for anonymous visitors (the control-plane route is signed-in only). */
+  staging?: StageContext;
   /** the tenant's triage goal — agreed pnoGoal → target ROAS/PNO, plus the
    *  margin-based break-even when a cost model exists. Threaded through every
    *  triage / tone / banner call so the badges, cell colours and the summary all
@@ -321,27 +298,6 @@ export default function CampaignTable({
   const analyze = (id: string) => {
     setExpanded((e) => ({ ...e, [id]: true }));
     void onAnalyze(id);
-  };
-
-  // Which critical row is currently staging a change-set (disables its button),
-  // plus the per-row failure text so a failed stage isn't completely silent.
-  const [preparingId, setPreparingId] = useState<string | null>(null);
-  const [prepareError, setPrepareError] = useState<Record<string, string>>({});
-  const prepare = async (id: string) => {
-    if (!onPreparePackage) return;
-    setPreparingId(id);
-    setPrepareError((e) => {
-      const { [id]: _drop, ...rest } = e;
-      return rest;
-    });
-    try {
-      const res = await onPreparePackage(id);
-      if (res && !res.ok) {
-        setPrepareError((e) => ({ ...e, [id]: res.error ?? t("preparePackageFailed") }));
-      }
-    } finally {
-      setPreparingId(null);
-    }
   };
 
   // Which metric the per-row trend sparkline plots. Cost is always available; CTR
@@ -431,6 +387,9 @@ export default function CampaignTable({
     [allRows, q, typeFilter, statusFilter, attentionOnly, sourceFilter]
   );
   const view = useMemo(() => sortCampaignRows(filtered, sort), [filtered, sort]);
+  // Row selection → one previewed, basis-pinned change-set (the selection survives
+  // the filter; the bar counts what the filter hides).
+  const stage = useStageSelection(allRows.map((r) => r.c), view.map((r) => r.c), staging);
 
   // Export the *currently filtered + sorted* view as a cs-CZ-friendly CSV (the
   // deliverable agencies actually hand to clients), carrying triage severity, the
@@ -552,6 +511,8 @@ export default function CampaignTable({
         </div>
       </div>
 
+      {stage.enabled && stage.selected.size > 0 && <SelectionBar stage={stage} money={money} />}
+
       <div className="overflow-x-auto">
         <table className="w-full min-w-[920px] border-collapse text-sm">
           <thead>
@@ -628,59 +589,16 @@ export default function CampaignTable({
                 <Fragment key={c.id}>
                   <tr className="border-b border-line/70 hover:bg-canvas/60">
                     <td className="px-5 py-3 align-top">
-                      {triageResult.severity === "ok" ? (
-                        <span className="text-muted" title={t("okTitle")} aria-label={t("okLabel")}>
-                          —
-                        </span>
-                      ) : (
-                        <div className="flex flex-col items-start gap-1.5">
-                          {/* A button, not a bare pill: the hover-only tooltip left
-                              touch users with no way to read WHY the row is flagged.
-                              Clicking opens the row detail, where the same reasons
-                              render as a copyable list; the title stays as a
-                              secondary desktop affordance. */}
-                          <button
-                            type="button"
-                            onClick={() => toggle(c.id)}
-                            aria-expanded={isOpen}
-                            className={`pill cursor-pointer transition-shadow hover:shadow-card ${SEVERITY_BADGE[triageResult.severity]}`}
-                            title={`${t("severityPillTitle")}\n${triageResult.reasons.map((r) => `${triageReasonLabel(r, locale)}: ${r.detail}`).join("\n")}`}
-                          >
-                            <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-                            {severityLabel(triageResult.severity, locale)}
-                          </button>
-                          {/* ADR-0010 — a union READ is not a union WRITE: Sklik
-                              rows are read-only until the Sklik write path lands
-                              (the control-plane route refuses them anyway), so the
-                              row states that instead of offering a button that
-                              cannot work. */}
-                          {triageResult.severity === "critical" &&
-                            onPreparePackage &&
-                            c.source === "sklik" && <SourceReadOnlyHint />}
-                          {/* Critical rows get a direct path to the fix: stage a
-                              governed change-set (scoped to this campaign's alert
-                              when one exists) without hunting through the inbox. */}
-                          {triageResult.severity === "critical" && onPreparePackage && c.source !== "sklik" && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => void prepare(c.id)}
-                                disabled={preparingId === c.id}
-                                title={t("preparePackageTitle")}
-                                className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-accent transition-colors hover:underline disabled:opacity-60"
-                              >
-                                <Bolt width={11} height={11} />
-                                {preparingId === c.id ? t("preparingPackage") : t("preparePackage")}
-                              </button>
-                              {prepareError[c.id] && (
-                                <span className="text-[11px] text-negative" role="alert">
-                                  {prepareError[c.id]}
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      )}
+                      <PriorityCell
+                        name={c.name}
+                        tr={triageResult}
+                        isOpen={isOpen}
+                        onToggleDetail={() => toggle(c.id)}
+                        readOnly={stage.enabled && c.source === "sklik"}
+                        select={
+                          stage.enabled ? { checked: stage.selected.has(c.id), onChange: () => stage.toggle(c.id) } : undefined
+                        }
+                      />
                     </td>
                     <td className="px-5 py-3">
                       <div className="font-medium text-navy-800">{c.name}</div>
