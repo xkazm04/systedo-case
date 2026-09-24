@@ -45,7 +45,7 @@ import { targetsFromCatalog } from "@/lib/local/catalog";
 import { profilesFromReviews } from "@/lib/local/compute";
 import { businessTypeFromServices } from "@/lib/local/business-type";
 import { currentUserId } from "@/lib/session";
-import { getProjectState } from "@/lib/project-state/store";
+import { resolveAnsweredTriage } from "./answered-triage";
 import { keywordLadder } from "@/lib/mappack/sample";
 import { locationsFromCatalog } from "@/lib/locations/sample";
 import {
@@ -171,7 +171,7 @@ export async function resolveLocalDiagnosisRequest(
       resolveLocalLadder(project.id, keywordLadder(project, localities, services)),
       resolveLocations(project.id, locationsFromCatalog(project, localities, services)),
       resolveCoverage(project.id, seedTargets),
-      resolveAnsweredTriage(project.id),
+      currentUserId().then((uid) => resolveAnsweredTriage(uid, project.id), () => undefined),
     ]);
 
   // Live page-presence overlaid on the seed drives the whole coverage picture — the
@@ -223,21 +223,6 @@ export async function resolveLocalDiagnosisRequest(
     recentReviews,
     businessType,
   };
-}
-
-/** The inbox triage's answered review-ids for the current user + project, or undefined
- *  when no triage is stored (or there is no signed-in user). Best-effort: a store hiccup
- *  degrades to "no triage" so the diagnosis still resolves on the roster figures alone.
- *  The "reviews" key mirrors ReviewInbox's persisted state shape (answered/flagged/drafts). */
-async function resolveAnsweredTriage(projectId: string): Promise<string[] | undefined> {
-  try {
-    const uid = await currentUserId();
-    if (!uid) return undefined;
-    const state = await getProjectState<{ answered?: string[] }>(uid, projectId, "reviews");
-    return Array.isArray(state?.answered) ? state.answered : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 /** The diagnosed ads window. Fixed at 30 days: it is the campaign spine's own
