@@ -1,6 +1,8 @@
 /** Ad-ops control plane for the signed-in user's tenant:
  *   GET  → recent change-sets (the governance ledger)
- *   POST → {action:"create"}  build + simulate a pending change-set
+ *   POST → {action:"preview"} build + simulate the set "create" WOULD stage; writes nothing
+ *          {action:"create", basis?}  build + simulate a pending change-set; with the
+ *                                  preview's basis, a sync since answers 409
  *          {action:"approve", id}  apply it through the audited mutation path
  *          {action:"revert", id}   apply the inverse moves, restoring budgets
  *  Live budget mutations require a connected account; on sample data each move
@@ -14,10 +16,13 @@ import {
 } from "@/lib/campaigns/connector";
 import type { AdsSource } from "@/lib/campaigns/types";
 import {
+  buildChangeSet,
   createChangeSet,
   listChangeSets,
   approveChangeSet,
   revertChangeSet,
+  BasisMismatchError,
+  type CreateChangeSetOptions,
 } from "@/lib/campaigns/control-plane";
 import { GuardrailError, NoSnapshotsError } from "@/lib/campaigns/control-plane-types";
 import { getSearchTerms } from "@/lib/campaigns/store";
@@ -98,6 +103,7 @@ export async function POST(request: Request) {
     scopeCampaignIds?: unknown;
     source?: unknown;
     moveSource?: unknown;
+    basis?: unknown;
   };
   try {
     body = await request.json();
@@ -113,83 +119,37 @@ export async function POST(request: Request) {
   if (unknown) return unknown;
   const tenant = await tenantFor(userId, projectId, parseSource(body.source));
 
-  if (action === "create") {
-    // Direction 1 — profit-aware money-mover: resolve the project's persisted blended
-    // margin here (the route already holds the projectId; createChangeSet takes a
-    // tenant) and thread it into every create path. Absent model → margin undefined →
-    // the recommender's original revenue-ROAS scoring, unchanged. A store hiccup
-    // degrades to margin-blind rather than failing the proposal.
-    let marginPct: number | undefined;
-    if (projectId) {
-      try {
-        const costModel = await getCostModel(projectId);
-        if (costModel && costModel.grossMarginPct > 0 && costModel.grossMarginPct <= 1) {
-          marginPct = costModel.grossMarginPct;
-        }
-      } catch {
-        marginPct = undefined;
-      }
+  if (action === "preview" || action === "create") {
+    const proposal = await resolveProposal(body, tenant, projectId, alertId);
+    if (proposal instanceof Response) return proposal;
+    if (action === "preview") {
+      // The set a create with this body WOULD stage — nothing is persisted, no
+      // mutator is built and no credential is read (buildChangeSet).
+      const preview = await buildChangeSet(tenant, proposal.opts);
+      if (!preview) return Response.json({ error: proposal.empty }, { status: 422 });
+      return Response.json({ preview });
     }
-    // Close-the-loop path: when an alertId is supplied, pre-scope the change-set to
-    // exactly the alerted campaigns and link it back to the alert. Otherwise the
-    // usual portfolio-wide proposal.
-    if (alertId) {
-      const alert = await getAlert(tenant, alertId);
-      if (!alert) return Response.json({ error: "Upozornění nenalezeno." }, { status: 404 });
-      const scopeCampaignIds = alertCampaignIds(alert);
-      if (scopeCampaignIds.length === 0) {
-        return Response.json(
-          { error: "Upozornění neodkazuje na žádnou kampaň." },
-          { status: 422 }
-        );
-      }
-      const changeSet = await createChangeSet(tenant, { scopeCampaignIds, alertId, marginPct });
-      if (!changeSet) {
-        return Response.json(
-          { error: "Pro upozorněné kampaně není žádný smysluplný přesun." },
-          { status: 422 }
-        );
-      }
-      return Response.json({ changeSet });
-    }
-    // WP S1b — which recommender fills the set. Only the literal "terms" switches it;
-    // anything else (absent, a typo, a future value) reads as the budget recommender,
-    // so an unrecognised value can never silently propose account-changing keyword
-    // writes in place of the budget moves the caller asked for.
-    if (body.moveSource === "terms") {
-      const changeSet = await createChangeSet(tenant, { moveSource: "terms", marginPct });
-      if (!changeSet) {
-        return Response.json(
-          {
-            error:
-              "Žádné vyhledávací dotazy k řešení — buď účet ještě nebyl synchronizován, nebo žádný dotaz nesplňuje prahy.",
-          },
-          { status: 422 }
-        );
-      }
-      return Response.json({ changeSet });
-    }
-    // Direct campaign scoping (a critical table row without an alert): the body may
-    // name the campaigns to act on — createChangeSet already supports the scope, the
-    // route just has to read it. Absent/empty → the usual portfolio-wide proposal.
-    const scopeCampaignIds = Array.isArray(body.scopeCampaignIds)
-      ? (body.scopeCampaignIds as unknown[])
-          .filter((v): v is string => typeof v === "string" && v.length > 0)
-          .slice(0, 50)
-      : [];
-    const changeSet = await createChangeSet(
-      tenant,
-      scopeCampaignIds.length > 0 ? { scopeCampaignIds, marginPct } : { marginPct }
-    );
-    if (!changeSet) {
-      return Response.json(
-        scopeCampaignIds.length > 0
-          ? { error: "Pro vybrané kampaně není žádný smysluplný přesun." }
-          : { error: "Žádné doporučené přesuny — portfolio je vyvážené." },
-        { status: 422 }
+    // The preview's basis pins the stage to it: absent (every older client) → the
+    // create is exactly what it was; present and a sync has landed since → 409, and
+    // the operator previews again rather than staging moves they never saw.
+    const expectedBasis =
+      typeof body.basis === "string" || body.basis === null ? (body.basis as string | null) : undefined;
+    try {
+      const changeSet = await createChangeSet(
+        tenant,
+        expectedBasis === undefined ? proposal.opts : { ...proposal.opts, expectedBasis }
       );
+      if (!changeSet) return Response.json({ error: proposal.empty }, { status: 422 });
+      return Response.json({ changeSet });
+    } catch (err) {
+      if (err instanceof BasisMismatchError) {
+        return Response.json(
+          { error: err.message, code: "conflict", basis: err.actual },
+          { status: 409 }
+        );
+      }
+      throw err;
     }
-    return Response.json({ changeSet });
   }
 
   if (action === "approve") {
@@ -226,4 +186,73 @@ export async function POST(request: Request) {
   }
 
   return Response.json({ error: "Nepodporovaná akce." }, { status: 400 });
+}
+
+/** What a preview or a create proposes, from the request body: the options the
+ *  change-set is built with, and the 422 text for "nothing worth moving". An early
+ *  refusal (unknown or campaign-less alert) comes back as the Response to send.
+ *  One resolver for both actions, so a preview and the stage that follows it with
+ *  the same body always ask the recommender the same question. */
+async function resolveProposal(
+  body: { moveSource?: unknown; scopeCampaignIds?: unknown },
+  tenant: string,
+  projectId: string | undefined,
+  alertId: string
+): Promise<{ opts: CreateChangeSetOptions; empty: string } | Response> {
+  // Direction 1 — profit-aware money-mover: resolve the project's persisted blended
+  // margin here (the route already holds the projectId; createChangeSet takes a
+  // tenant) and thread it into every create path. Absent model → margin undefined →
+  // the recommender's original revenue-ROAS scoring, unchanged. A store hiccup
+  // degrades to margin-blind rather than failing the proposal.
+  let marginPct: number | undefined;
+  if (projectId) {
+    try {
+      const costModel = await getCostModel(projectId);
+      if (costModel && costModel.grossMarginPct > 0 && costModel.grossMarginPct <= 1) {
+        marginPct = costModel.grossMarginPct;
+      }
+    } catch {
+      marginPct = undefined;
+    }
+  }
+  // Close-the-loop path: when an alertId is supplied, pre-scope the change-set to
+  // exactly the alerted campaigns and link it back to the alert. Otherwise the
+  // usual portfolio-wide proposal.
+  if (alertId) {
+    const alert = await getAlert(tenant, alertId);
+    if (!alert) return Response.json({ error: "Upozornění nenalezeno." }, { status: 404 });
+    const scopeCampaignIds = alertCampaignIds(alert);
+    if (scopeCampaignIds.length === 0) {
+      return Response.json(
+        { error: "Upozornění neodkazuje na žádnou kampaň." },
+        { status: 422 }
+      );
+    }
+    return {
+      opts: { scopeCampaignIds, alertId, marginPct },
+      empty: "Pro upozorněné kampaně není žádný smysluplný přesun.",
+    };
+  }
+  // WP S1b — which recommender fills the set. Only the literal "terms" switches it;
+  // anything else (absent, a typo, a future value) reads as the budget recommender,
+  // so an unrecognised value can never silently propose account-changing keyword
+  // writes in place of the budget moves the caller asked for.
+  if (body.moveSource === "terms") {
+    return {
+      opts: { moveSource: "terms", marginPct },
+      empty:
+        "Žádné vyhledávací dotazy k řešení — buď účet ještě nebyl synchronizován, nebo žádný dotaz nesplňuje prahy.",
+    };
+  }
+  // Direct campaign scoping (table rows without an alert): the body may name the
+  // campaigns to act on — createChangeSet already supports the scope, the route just
+  // has to read it. Absent/empty → the usual portfolio-wide proposal.
+  const scopeCampaignIds = Array.isArray(body.scopeCampaignIds)
+    ? (body.scopeCampaignIds as unknown[])
+        .filter((v): v is string => typeof v === "string" && v.length > 0)
+        .slice(0, 50)
+    : [];
+  return scopeCampaignIds.length > 0
+    ? { opts: { scopeCampaignIds, marginPct }, empty: "Pro vybrané kampaně není žádný smysluplný přesun." }
+    : { opts: { marginPct }, empty: "Žádné doporučené přesuny — portfolio je vyvážené." };
 }

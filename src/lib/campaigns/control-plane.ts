@@ -48,6 +48,7 @@ import {
   type MoveResult,
   type StatusSnapshot,
 } from "./control-plane-types";
+import type { ChangeSetPreview } from "./stage-selection";
 
 /** The sub-collection under `tenants/{tenant}` these sets live in — unchanged;
  *  it is now addressed through the generic per-tenant document seam
@@ -100,14 +101,58 @@ export interface CreateChangeSetOptions {
   moveSource?: "budget" | "terms";
 }
 
-/** Build a pending change-set from the current campaigns + recommendation engine,
- *  simulate it, and flag any guardrail breaches. Returns null when there's
- *  nothing worth moving — including a scoped request whose alerted campaigns yield
- *  no sensible move (surfaced honestly rather than inventing one). */
-export async function createChangeSet(
+/** A stage refused because the campaigns moved under the preview: the caller
+ *  presented the `basis` (`SyncMeta.syncedAt`) its preview was built on, and a sync
+ *  has landed since. Nothing is persisted — the route answers 409 and the operator
+ *  previews again, so a staged set is always the one that was looked at. */
+export class BasisMismatchError extends Error {
+  readonly code = "basis-mismatch";
+  readonly expected: string | null;
+  readonly actual: string | null;
+  constructor(expected: string | null, actual: string | null) {
+    super("Data se od náhledu změnila — zobrazte náhled znovu.");
+    this.name = "BasisMismatchError";
+    this.expected = expected;
+    this.actual = actual;
+  }
+}
+
+/** The tenant's `SyncMeta.syncedAt`: what a preview was built on. Reached through
+ *  the same lazy `import("./store")` as `getSearchTerms` below, so the store doubles
+ *  the older control-plane suites install (which export no `getSyncMeta`) still link;
+ *  against such a double the basis simply reads as unknown. */
+async function readBasis(tenant: string): Promise<string | null> {
+  const { getSyncMeta } = await import("./store");
+  if (typeof getSyncMeta !== "function") return null;
+  return (await getSyncMeta(tenant))?.syncedAt ?? null;
+}
+
+/** Build the change-set the current campaigns + recommendation engine WOULD stage,
+ *  simulate it, and flag any guardrail breaches — and write nothing: no change-set,
+ *  no mutator, no credential read. This is the preview; {@link createChangeSet} is
+ *  this plus the one `addDoc`. Returns null when there's nothing worth moving —
+ *  including a scoped request whose campaigns yield no sensible move (surfaced
+ *  honestly rather than inventing one).
+ *
+ *  The basis is read BEFORE the campaigns: a sync landing between the two reads then
+ *  yields an older basis over newer rows, which a later stage refuses (a false
+ *  conflict, answered by previewing again) — never a newer basis over older rows,
+ *  which would let a stage persist moves the operator never saw. */
+export async function buildChangeSet(
   tenant: string,
   opts: CreateChangeSetOptions = {}
-): Promise<ChangeSet | null> {
+): Promise<ChangeSetPreview | null> {
+  return draftChangeSet(tenant, opts, await readBasis(tenant));
+}
+
+/** The shared pipeline behind {@link buildChangeSet} and {@link createChangeSet}:
+ *  recommend → calibrate → simulate → checkPolicy over the tenant's campaigns, with
+ *  the basis the caller already read. Writes nothing. */
+async function draftChangeSet(
+  tenant: string,
+  opts: CreateChangeSetOptions,
+  basis: string | null
+): Promise<ChangeSetPreview | null> {
   const policy = opts.policy ?? DEFAULT_POLICY;
   const campaigns = await listCampaigns(tenant);
   if (campaigns.length === 0) return null;
@@ -160,13 +205,42 @@ export async function createChangeSet(
     moves,
     calibrated ? { gainMultiplier: calibration.multiplier } : {}
   );
-  const doc: Omit<ChangeSet, "id"> = {
-    createdAt: new Date().toISOString(),
-    status: "pending",
+  return {
     moves,
     simulation,
     policy,
     violations: checkPolicy(moves, policy),
+    ...(opts.marginPct !== undefined ? { marginPct: opts.marginPct } : {}),
+    ...(calibrated ? { calibration: { multiplier: calibration.multiplier, n: calibration.n } } : {}),
+    basis,
+  };
+}
+
+/** Build a pending change-set ({@link buildChangeSet}) and persist it. With
+ *  `expectedBasis` (the basis a preview returned) the stage is pinned to that
+ *  preview: when the tenant has synced since, it throws {@link BasisMismatchError}
+ *  and persists nothing. Without it — every caller before the preview existed —
+ *  the behaviour and the stored shape are exactly what they were. */
+export async function createChangeSet(
+  tenant: string,
+  opts: CreateChangeSetOptions & { expectedBasis?: string | null } = {}
+): Promise<ChangeSet | null> {
+  // The basis is only read for a pinned stage, so an unpinned create issues exactly
+  // the reads it always did.
+  let basis: string | null = null;
+  if (opts.expectedBasis !== undefined) {
+    basis = await readBasis(tenant);
+    if (basis !== opts.expectedBasis) throw new BasisMismatchError(opts.expectedBasis, basis);
+  }
+  const draft = await draftChangeSet(tenant, opts, basis);
+  if (!draft) return null;
+  const doc: Omit<ChangeSet, "id"> = {
+    createdAt: new Date().toISOString(),
+    status: "pending",
+    moves: draft.moves,
+    simulation: draft.simulation,
+    policy: draft.policy,
+    violations: draft.violations,
     approvedAt: null,
     revertedAt: null,
     results: null,
@@ -174,10 +248,10 @@ export async function createChangeSet(
     ...(opts.alertId ? { alertId: opts.alertId } : {}),
     // persist the scored margin only when profit-aware, so margin-blind sets keep
     // their exact prior shape in Firestore.
-    ...(opts.marginPct !== undefined ? { marginPct: opts.marginPct } : {}),
+    ...(draft.marginPct !== undefined ? { marginPct: draft.marginPct } : {}),
     // Only persisted when it actually shaped the projection, so an uncalibrated
     // set keeps its exact prior shape in the store (and the UI shows no pill).
-    ...(calibrated ? { calibration: { multiplier: calibration.multiplier, n: calibration.n } } : {}),
+    ...(draft.calibration ? { calibration: draft.calibration } : {}),
   };
   const id = await (await tenantDocs()).addDoc(tenant, CHANGE_SETS, doc);
   return { id, ...doc };
