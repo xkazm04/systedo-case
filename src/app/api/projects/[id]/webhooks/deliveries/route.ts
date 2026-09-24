@@ -20,8 +20,7 @@
  *  per-user bucket, so it is no more of an amplifier than "Send test". */
 import { randomUUID } from "node:crypto";
 import { requireOwnedProject } from "@/lib/projects/api-guard";
-import { badRequest, conflict, notFound, readJson } from "@/lib/api/route-utils";
-import { rateLimit, tooManyRequests } from "@/lib/ai/rate-limit";
+import { badRequest, conflict, enforceUserRate, notFound, readJson } from "@/lib/api/route-utils";
 import { getWebhookConfig } from "@/lib/outbound/config-store";
 import {
   appendDelivery,
@@ -65,10 +64,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const auth = await requireOwnedProject(id);
   if ("error" in auth) return auth.error;
 
-  const limited = rateLimit(`user:${auth.uid}`, [SEND_RATE]);
-  if (!limited.ok) {
-    return tooManyRequests(limited.retryAfter, "Příliš mnoho odeslání. Zkuste to prosím za chvíli.");
-  }
+  const limited = enforceUserRate(auth.uid, SEND_RATE, "Příliš mnoho odeslání. Zkuste to prosím za chvíli.");
+  if (limited) return limited;
 
   const body = await readJson<{ redeliver?: unknown }>(req);
   const target = typeof body?.redeliver === "string" ? body.redeliver.trim() : "";
