@@ -30,7 +30,13 @@ mock.module("@/lib/outbound/config-store", {
 });
 
 /** The pending sweep is DUE-filtered in the real backends; the fake reproduces that
- *  so this test exercises the step's behaviour, not a mock that hands it everything. */
+ *  so this test exercises the step's behaviour, not a mock that hands it everything.
+ *  The claim and the conditional completion are reproduced the same way (the real
+ *  backends are pinned in outbound-drain.test.mjs): a claim succeeds only on a DUE
+ *  pending row or a lapsed `sending` lease, and a completion only for the holder. */
+const isDue = (d, now) =>
+  (d.status === "pending" || d.status === "sending") && d.nextAt !== null && d.nextAt <= now.toISOString();
+
 mock.module("@/lib/outbound/delivery-store", {
   namedExports: {
     appendDelivery: async (d) => log.push({ ...d }),
@@ -38,10 +44,22 @@ mock.module("@/lib/outbound/delivery-store", {
       log = log.map((d) => (d.projectId === projectId && d.id === id ? { ...d, ...patch } : d));
     },
     listDeliveries: async (projectId) => log.filter((d) => d.projectId === projectId),
-    listPendingDeliveries: async (now, limit = 100) =>
-      log
-        .filter((d) => d.status === "pending" && d.nextAt !== null && d.nextAt <= now.toISOString())
-        .slice(0, limit),
+    listPendingDeliveries: async (now, limit = 100) => log.filter((d) => isDue(d, now)).slice(0, limit),
+    claimDelivery: async (projectId, id, holder, leaseUntil, now) => {
+      const i = log.findIndex((d) => d.projectId === projectId && d.id === id);
+      if (i < 0 || !isDue(log[i], now)) return false;
+      const d = log[i];
+      log[i] = { ...d, status: "sending", attempts: d.attempts + 1, nextAt: leaseUntil, claim: { holder, until: leaseUntil } };
+      return true;
+    },
+    completeDelivery: async (projectId, id, holder, patch) => {
+      const i = log.findIndex((d) => d.projectId === projectId && d.id === id);
+      if (i < 0 || log[i].status !== "sending" || log[i].claim?.holder !== holder) return false;
+      const next = { ...log[i], ...patch };
+      delete next.claim;
+      log[i] = next;
+      return true;
+    },
     clearDeliveries: async (projectId) => {
       log = log.filter((d) => d.projectId !== projectId);
     },
