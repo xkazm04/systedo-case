@@ -77,6 +77,9 @@ mock.module("@/lib/session", { namedExports: { currentUserId: async () => curren
 
 mock.module("@/lib/projects/store", {
   namedExports: {
+    // read by the redeem's target choice (onboarding-B); these cases send no chooser
+    listProjects: async (userId) => projects.filter((p) => p.userId === userId),
+    getProject: async (userId, projectId) => projects.find((p) => p.userId === userId && p.id === projectId) ?? null,
     createProject: async (userId, input) => {
       if (failCreateOnce) {
         failCreateOnce = false;

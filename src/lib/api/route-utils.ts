@@ -77,6 +77,8 @@ export const API_ERROR_CODES = [
   "content-too-long", // content over the platform/field limit
   "not-approved", // an action requires an approved precondition (twin send)
   "redeem-retry", // 503 — sken redeem failed before a project existed; the claim was put back, retry the same token
+  "choose-target", // 409 — sken redeem: the caller already owns a project for the scanned site; pick one (`candidates`) or "new"
+  "unknown-target", // 404 — sken redeem: the chosen target is not one of the caller's projects; the claim was not spent
   // --- provider / upstream categories (raw message server-logged only) -------
   "provider-error", // upstream returned an error (502)
   "provider-auth", // upstream rejected the credentials (502)
