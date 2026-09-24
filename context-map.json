@@ -2973,7 +2973,8 @@
         "test-unit/fixtures/conversion-events.mjs",
         "test-unit/conversions-mapping.test.mjs",
         "test-unit/conversions-upload-payload.test.mjs",
-        "test-unit/conversions-drain.test.mjs"
+        "test-unit/conversions-drain.test.mjs",
+        "src/components/app/modules/leads/CrmFunnelBanner.tsx"
       ],
       "group": "Lead & CRM Management",
       "group_id": "f1a820c1-0783-4550-b47c-133532ad7ea4",
@@ -3004,7 +3005,8 @@
       "cross_refs": [
         "ai-tools-diagnostics",
         "metrics-analysis",
-        "speed-lead-lib"
+        "speed-lead-lib",
+        "diagnoses-engine"
       ],
       "db_tables": [
         "lead_quality_records"
@@ -3024,7 +3026,8 @@
         "src/lib/lead-quality/store.local.ts",
         "src/lib/lead-quality/sample.ts",
         "src/lib/lead-quality/types.ts",
-        "src/lib/lead-signals/summary.ts"
+        "src/lib/lead-signals/summary.ts",
+        "src/lib/lead-quality/funnel-tier.ts"
       ],
       "group": "Lead & CRM Management",
       "group_id": "f1a820c1-0783-4550-b47c-133532ad7ea4",
