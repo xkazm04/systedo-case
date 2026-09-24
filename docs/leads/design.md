@@ -347,14 +347,19 @@ human string, per the route-utils catalog.
 
 ## 10. Open items / deviations from the blueprint
 
-1. **`lead-quality/resolve.ts` was NOT extended with a third "contacts" tier.**
-   `ResolvedLeadSources.source` is `"sample" | "import" | "url"`, and
-   `kvalita-leadu/page.tsx` passes it straight into `LeadQualityModule`'s typed
-   `source` prop. Widening the union is therefore a typecheck failure in a component
-   — outside this phase's write set (no component edits). **TODO for the UI phase:**
-   widen `ResolvedLeadSources["source"]` to include `"contacts"`, add the tier
-   (`live contacts → imported CSV → sample`) using `contactsToLeadSources`, and add
-   the cs+en copy to `LeadQualityModule`'s dict in the same commit.
+1. **DONE (2026-09-24): the "contacts" tier.** `lead-quality/resolve.ts#resolveLeadFunnel`
+   reads one bounded contacts scan (`LIST_SCAN_CAP`, tombstones included, with
+   `countContacts` when the cap bites), the stored import and the conversion-ledger
+   summary, and the pure `lead-quality/funnel-tier.ts` picks the tier
+   (`live contacts → imported CSV/URL → sample`) through `contactsToLeadSources`.
+   Kvalita leadů, the diagnosis click path, the digest cron and the recap grounding
+   all call it, and all build diagnosis seeds through `funnelSeeds`, so the ledger
+   join (keyed by `sourceLabel` on both sides) and every `inputDigest` agree. A
+   stored import the contacts shadow is disclosed by `CrmFunnelBanner`, never dropped
+   silently. The recap's cache version on this tier is a digest of every contact's
+   `(id, stage, updatedAt)`. **The weekly digest cron does not diagnose this tier**
+   (`NOTE_LEAD_CONTACTS_TIER`, zero spend units); the click path does on demand.
+   Spend on this tier is 0, so CPL/CPQL read "—", as on the import tier.
 2. **`Company` and `Deal` are typed but have no store yet.** `contactsToLeadSources`
    already accepts `Deal[]`, so the aggregate is ready for them; nothing writes one.
 3. **No retention cron.** `retainUntil` is on the type; the sweep is not built.
