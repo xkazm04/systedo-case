@@ -4455,7 +4455,8 @@
       "category": "ui",
       "cross_refs": [
         "app-shell-chrome",
-        "onboarding-settings"
+        "onboarding-settings",
+        "recaps-activity"
       ],
       "db_tables": [],
       "description": "Covers the project lifecycle UI — creation, switching, and overview. ProjectsHome is the landing screen listing all projects; ProjectSwitcher is the dropdown in the topbar; CreateProjectForm walks users through a typed project setup; create-project-packages and create-project-shared define the package presets and shared step components; ProjectOverview renders the per-project summary card.",
@@ -4471,7 +4472,9 @@
         "src/components/app/create-project-packages.ts",
         "src/components/app/create-project-shared.tsx",
         "src/components/app/overview/NeedsAttention.tsx",
-        "src/components/app/overview/AdviceOutcomes.tsx"
+        "src/components/app/overview/AdviceOutcomes.tsx",
+        "src/components/app/overview/AdviceFeed.tsx",
+        "src/components/app/overview/DismissedAdvice.tsx"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
@@ -4792,7 +4795,8 @@
         "test-unit/advice-digest-grounding.test.mjs",
         "test-unit/advice-store-route.test.mjs",
         "test-unit/insights-subject-keys.test.mjs",
-        "src/lib/insights/resolve.ts"
+        "src/lib/insights/resolve.ts",
+        "src/lib/advice/triage.ts"
       ],
       "group": "Analytics & Reporting",
       "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
