@@ -1193,7 +1193,11 @@
         "src/components/campaigns/table/derive.ts",
         "src/components/campaigns/table/filters.ts",
         "src/components/campaigns/table/sort.ts",
-        "src/components/campaigns/table/useBatchRunner.ts"
+        "src/components/campaigns/table/useBatchRunner.ts",
+        "src/components/campaigns/table/PriorityCell.tsx",
+        "src/components/campaigns/table/SelectionBar.tsx",
+        "src/components/campaigns/table/SelectionPreview.tsx",
+        "src/components/campaigns/table/useStageSelection.ts"
       ],
       "group": "Campaign & Ads Management",
       "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
@@ -1552,7 +1556,8 @@
         "src/lib/campaigns/calibration.ts",
         "test-unit/campaigns-realize.test.mjs",
         "test-unit/campaigns-realize-run-local-store.test.mjs",
-        "test-unit/campaigns-calibration.test.mjs"
+        "test-unit/campaigns-calibration.test.mjs",
+        "src/lib/campaigns/stage-selection.ts"
       ],
       "group": "Campaign & Ads Management",
       "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
