@@ -60,6 +60,10 @@ export interface PublicWebhookEndpoint {
   events: OutboundEventType[] | "all";
   enabled: boolean;
   hasSecret: boolean;
+  /** A secret is stored AND the server can still open it. False with `hasSecret`
+   *  true is the rotated-server-key state: every delivery fails to sign until the
+   *  owner re-mints. A boolean only — the plaintext never leaves secret-crypto.ts. */
+  secretReadable: boolean;
   createdAt: string;
   lastDeliveryAt?: string;
   lastStatus?: "ok" | "failed";
@@ -100,6 +104,9 @@ export interface Delivery {
   updatedAt: string;
   /** the exact bytes that were signed — re-sent verbatim on a retry */
   payload: string;
+  /** Set on a row the owner replayed from the log: the id of the delivery it
+   *  re-sends (same `eventId`, same payload bytes — the receiver can de-dupe). */
+  redeliveryOf?: string;
 }
 
 export interface DeliveryClaim {
@@ -121,6 +128,7 @@ export interface PublicDelivery {
   createdAt: string;
   updatedAt: string;
   payloadBytes: number;
+  redeliveryOf?: string;
 }
 
 /** Give-up threshold. With the backoff table below, five attempts span ~15 hours —
@@ -209,13 +217,16 @@ export function endpointsFor(cfg: WebhookConfig, type: OutboundEventType): Webho
   );
 }
 
-export function publicEndpoint(e: WebhookEndpoint): PublicWebhookEndpoint {
+/** `readable` is the caller's `secretReadable(e.secretEnc)` (server-only, so it is
+ *  passed in rather than computed in this node:crypto-only module). */
+export function publicEndpoint(e: WebhookEndpoint, readable: boolean): PublicWebhookEndpoint {
   return {
     id: e.id,
     url: e.url,
     events: e.events,
     enabled: e.enabled,
     hasSecret: Boolean(e.secretEnc),
+    secretReadable: Boolean(e.secretEnc) && readable === true,
     createdAt: e.createdAt,
     ...(e.lastDeliveryAt ? { lastDeliveryAt: e.lastDeliveryAt } : {}),
     ...(e.lastStatus ? { lastStatus: e.lastStatus } : {}),
@@ -237,6 +248,7 @@ export function publicDelivery(d: Delivery): PublicDelivery {
     createdAt: d.createdAt,
     updatedAt: d.updatedAt,
     payloadBytes: Buffer.byteLength(d.payload, "utf8"),
+    ...(d.redeliveryOf ? { redeliveryOf: d.redeliveryOf } : {}),
   };
 }
 

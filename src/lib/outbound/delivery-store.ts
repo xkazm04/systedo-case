@@ -37,6 +37,13 @@ export async function updateDelivery(
   return (await backend()).updateDelivery(projectId, id, patch);
 }
 
+/** One delivery of THIS project, or null. Addressed by `(projectId, id)`, never by id
+ *  alone: a route resolves `projectId` through `requireOwnedProject` first, so another
+ *  project's delivery id reads as absent (ADR-0002) — the redeliver verb's scoping. */
+export async function getDelivery(projectId: string, id: string): Promise<Delivery | null> {
+  return (await backend()).getDelivery(projectId, id);
+}
+
 /** This project's log, NEWEST FIRST, bounded. */
 export async function listDeliveries(projectId: string, limit = 50): Promise<Delivery[]> {
   return (await backend()).listDeliveries(projectId, limit);

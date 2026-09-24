@@ -5,7 +5,10 @@
  *  minting a signing secret for each new endpoint and returning it EXACTLY ONCE in
  *  `secrets` — that response is the only moment the plaintext exists outside the
  *  encrypted blob, so the UI shows it in a reveal-once banner and nothing can read it
- *  back. DELETE drops one endpoint (`?endpointId=`) or the whole configuration.
+ *  back. Rotating is the same PUT with `rotate: true` on ONE row: that row gets a fresh
+ *  secret (shown once), every other row keeps its own. GET reports per endpoint whether
+ *  the stored secret is still `secretReadable` under today's server key — a boolean,
+ *  never the secret. DELETE drops one endpoint (`?endpointId=`) or the whole configuration.
  *
  *  Every URL is validated against the SSRF guard here so the owner gets an immediate
  *  error — but the guard that matters runs again inside the sender on every single
@@ -26,8 +29,13 @@ import {
   encryptSecret,
   hasWebhookCrypto,
   mintWebhookSecret,
+  secretReadable,
 } from "@/lib/outbound/secret-crypto";
 import { publicEndpoint, type WebhookEndpoint } from "@/lib/outbound/types";
+
+/** The client view, with whether the server can still OPEN each secret (a boolean —
+ *  false after a key-chain change, which is what the card's "Rotate secret" answers). */
+const view = (e: WebhookEndpoint) => publicEndpoint(e, secretReadable(e.secretEnc));
 
 /** Per-user write throttle. A save is cheap, but each one can re-point where the
  *  server will POST unattended for hours — worth a bucket of its own. */
@@ -39,7 +47,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if ("error" in auth) return auth.error;
   const cfg = await getWebhookConfig(auth.uid, id);
   return Response.json({
-    endpoints: cfg.endpoints.map(publicEndpoint),
+    endpoints: cfg.endpoints.map(view),
     cryptoReady: hasWebhookCrypto(),
   });
 }
@@ -107,7 +115,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     detail: `${endpoints.length} cílů`,
     actor: "Vy",
   });
-  return Response.json({ endpoints: endpoints.map(publicEndpoint), secrets });
+  return Response.json({ endpoints: endpoints.map(view), secrets });
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -120,7 +128,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const cfg = await getWebhookConfig(auth.uid, id);
     const endpoints = cfg.endpoints.filter((e) => e.id !== endpointId);
     await saveWebhookConfig(auth.uid, id, { endpoints });
-    return Response.json({ ok: true, endpoints: endpoints.map(publicEndpoint) });
+    return Response.json({ ok: true, endpoints: endpoints.map(view) });
   }
 
   // No id → drop the whole configuration AND its log. Pending deliveries whose

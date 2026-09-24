@@ -81,6 +81,11 @@ export async function updateDelivery(
   await ref.set(merged, { merge: true });
 }
 
+export async function getDelivery(projectId: string, id: string): Promise<Delivery | null> {
+  const snap = await deliveries(projectId).doc(id).get();
+  return snap.exists ? toDelivery(snap.data() ?? {}) : null;
+}
+
 export async function claimDelivery(
   projectId: string,
   id: string,

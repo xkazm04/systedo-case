@@ -18,8 +18,9 @@
  *  — or rotating AUTH_SECRET — makes every stored blob undecryptable, and every
  *  delivery then fails with a signing error until the owner re-mints each endpoint's
  *  secret. `looksEncrypted` lets a caller tell that state ("a blob is stored but
- *  cannot be opened") from "no secret at all". Treat a secret-chain change as a mass
- *  re-mint. */
+ *  cannot be opened") from "no secret at all", and `secretReadable` tells the settings
+ *  card which endpoints need that re-mint (the card's per-endpoint "Rotate secret").
+ *  Treat a secret-chain change as a mass re-mint. */
 import "server-only";
 import crypto from "node:crypto";
 
@@ -67,6 +68,16 @@ export function looksEncrypted(blob: string | null | undefined): boolean {
   if (!blob) return false;
   const parts = blob.split(".");
   return parts[0] === "v1" && parts.length === 5;
+}
+
+/** Can the server still open this blob under today's key? The state `looksEncrypted`
+ *  cannot tell apart from a healthy secret: after a key-chain change the blob is
+ *  well-formed and dead. Answers a BOOLEAN only — the plaintext is decrypted inside
+ *  this function and dropped; it is never returned, logged or compared outside it.
+ *  Costs one scrypt per call, so a caller asks per endpoint (≤ 3), never per row. */
+export function secretReadable(blob: string | null | undefined): boolean {
+  if (!blob) return false;
+  return decryptSecret(blob) !== null;
 }
 
 /** A fresh signing secret, shown to the owner ONCE and stored only encrypted. */

@@ -99,6 +99,10 @@ function conditionally(apply: () => boolean): boolean {
   }
 }
 
+export async function getDelivery(projectId: string, id: string): Promise<Delivery | null> {
+  return readOne(projectId, id) ?? null;
+}
+
 export async function claimDelivery(
   projectId: string,
   id: string,
