@@ -1410,7 +1410,8 @@
         "test-unit/ads-search-terms.test.mjs",
         "test-unit/campaigns-term-moves.test.mjs",
         "test-unit/campaigns-term-moves-apply.test.mjs",
-        "test-unit/campaigns-search-terms-store.test.mjs"
+        "test-unit/campaigns-search-terms-store.test.mjs",
+        "src/lib/campaigns/write-target.ts"
       ],
       "group": "Campaign & Ads Management",
       "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
