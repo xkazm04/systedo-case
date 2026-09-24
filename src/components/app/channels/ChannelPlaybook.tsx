@@ -17,6 +17,7 @@ import {
 import type { ChannelNext } from "@/lib/organic-channels/next-step";
 import { CATEGORY_LABELS, EFFORT_LABELS, MODE_LABELS, NEXT_LABELS, STAGE_LABELS } from "./labels";
 import ChannelStageMoves from "./ChannelStageMoves";
+import ChannelMeasuredLink from "./ChannelMeasuredLink";
 
 const T = {
   cs: {
@@ -197,6 +198,8 @@ export default function ChannelPlaybook({
               {t("visit")}
             </a>
           )}
+
+          <ChannelMeasuredLink key={channel.id} channel={channel} />
 
           <ChannelStageMoves stage={stage} degraded={degraded} onSetStage={(st) => onSetStage(channel.id, st)} />
 
