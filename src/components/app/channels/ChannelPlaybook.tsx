@@ -16,6 +16,7 @@ import {
 } from "@/lib/organic-channels/types";
 import type { ChannelNext } from "@/lib/organic-channels/next-step";
 import { CATEGORY_LABELS, EFFORT_LABELS, MODE_LABELS, NEXT_LABELS, STAGE_LABELS } from "./labels";
+import ChannelStageMoves from "./ChannelStageMoves";
 
 const T = {
   cs: {
@@ -28,7 +29,6 @@ const T = {
     changeSetup: "Změnit nastavení",
     cadence: "max {n}× týdně",
     cadenceEnforced: "Vynucuje se při plánování — otevřít kalendář publikování",
-    stageSet: "Stav:",
     createContent: "Vytvořit obsah pro tento kanál",
     fitLabel: "Vhodnost",
     effortLabel: "Náročnost",
@@ -44,22 +44,12 @@ const T = {
     changeSetup: "Change setup",
     cadence: "max {n}× a week",
     cadenceEnforced: "Enforced when scheduling — open the publishing calendar",
-    stageSet: "Status:",
     createContent: "Create content for this channel",
     fitLabel: "Fit",
     effortLabel: "Effort",
     pending: "{n} waiting",
   },
 } as const;
-
-/** Stage transitions the modal offers per current stage — lifecycle-legal moves only (decide/go-live flow through the wizard + next-step CTA, not here). */
-const STAGE_MOVES: Record<ChannelStage, ChannelStage[]> = {
-  identified: [],
-  planned: ["live", "paused"],
-  live: ["paused", "done"],
-  paused: ["live", "done"],
-  done: ["live"],
-};
 
 export default function ChannelPlaybook({
   channel,
@@ -208,25 +198,7 @@ export default function ChannelPlaybook({
             </a>
           )}
 
-          {/* Stage transitions (lifecycle-legal moves only) */}
-          {STAGE_MOVES[stage].length > 0 && (
-            <div className="rounded-card border border-line bg-canvas px-4 py-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t("stageSet")}</p>
-              <div className="flex flex-wrap gap-2">
-                {STAGE_MOVES[stage].map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => onSetStage(channel.id, st)}
-                    disabled={degraded}
-                    className="rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-navy-200 hover:text-navy-800 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {STAGE_LABELS[st][L]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <ChannelStageMoves stage={stage} degraded={degraded} onSetStage={(st) => onSetStage(channel.id, st)} />
 
           <button
             type="button"
