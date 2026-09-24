@@ -4539,7 +4539,8 @@
       "cross_refs": [
         "session-firebase-core",
         "catalog-core",
-        "account-project-data"
+        "account-project-data",
+        "recaps-activity"
       ],
       "db_tables": [
         "projects"
@@ -4560,7 +4561,8 @@
         "src/lib/projects/api-guard.ts",
         "src/lib/projects/modules.ts",
         "src/lib/projects/icon-keys.ts",
-        "src/lib/projects/name.ts"
+        "src/lib/projects/name.ts",
+        "src/lib/projects/provision.ts"
       ],
       "group": "Authenticated Product Shell",
       "group_id": "e8028227-6d96-42a5-8d3a-fc7741b799a4",
