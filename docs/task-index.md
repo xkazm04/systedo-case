@@ -98,6 +98,7 @@ is a red build, not a dead link somebody finds later.
 
 | The task | Open | What it settles |
 |---|---|---|
+| Why a gate or convention in `AGENTS.md` exists, what it caught and what it cannot see | [`docs/agent-guide/conventions.md`](agent-guide/conventions.md) | Every command's full description and every rule's reasoning, moved out of the always-loaded file verbatim |
 | What the product is, for whom | [`PRODUCT.md`](../PRODUCT.md) | The product profile |
 | Why anyone would pay for it | [`docs/value-case.md`](value-case.md) | The value case, in the terms an operator judges it by |
 | Where the project came from | [`docs/case-study.md`](case-study.md) | The original brief and task write-ups, preserved unchanged |

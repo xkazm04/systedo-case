@@ -1,25 +1,20 @@
 {
   "$comment": "The READ-FIRST guidance surface: the documents this repository tells an agent to read before its first edit, with a line ceiling on each and on the total. Measured by scripts/guidance-budget.mjs (`npm run guidance:budget`) and enforced on every build by test-unit/guidance-budget.test.mjs, inside test:unit → check:ci → .husky/pre-push.",
-
   "$why": "Every document below was added for a reason a reviewer agreed with, and the total had no limit. That is how a reading surface grows past the attention available — one justified paragraph at a time — and it costs more here than in a repository read by people: a person skims and comes back, while an agent pays for the whole surface on every run, before it has seen a line of the code it was asked to change. A surface nobody can finish is read partially, and nobody can say which part was dropped. `npm run agents:surface` already protects what the guidance SAYS; this protects how much of it there is.",
-
   "$boundary": "The ceilings are not the interesting number. The BOUNDARY is: everything not listed under `readFirst` is a LOOKUP, reached deliberately through docs/task-index.md when a task needs it, and deliberately unbounded — a routing table's whole job is to make a large corpus cheap, and capping it would push its content back into the file everybody reads. Moving a document from `lookups` to `readFirst` is therefore the expensive decision, and this file is where it becomes visible.",
-
   "$howToChange": "Raising a ceiling is allowed and is the point: it is one reviewed line next to the paragraph it pays for, the same shape as every pin in .github/contract-ledger.json. What is no longer possible is adding the paragraph and nothing else. Before raising one, ask the question the ceiling exists to force: does EVERY run need this before its first edit, or is it a lookup that docs/task-index.md should route to?",
-
   "$measuredOn": "2026-09-01. Ceilings are exact — what each file holds today — so this is green on arrival (docs/adr/0007-gate-rung-discipline.md) and red the moment the surface grows. Lines, because it is the unit a diff is written in and anyone can check it with `wc -l`.",
-
   "schema": 1,
   "routedBy": "docs/task-index.md",
-  "maxTotalLines": 1749,
-
+  "maxTotalLines": 1131,
   "readFirst": [
     {
       "file": "AGENTS.md",
-      "maxLines": 1049,
+      "maxLines": 430,
       "why": "canonical. Every command, every seam, every rule about what may be done unattended. Read late, an agent has already picked the wrong store, the wrong prompt path or the wrong commit subject.",
       "$raised20260914": "1047 → 1049 for the already-landed no-push rule and its separating line. Every run needs the boundary before delivery because a push from master is the release act; the local permission fence is specific to one harness, while this canonical sentence governs every agent.",
-      "$raised": "983 → 1047 on 2026-09-01, for two rules and the two rows in the constraint table that pay for them. `context-test-floor`: the suite's strength is measured for the REPOSITORY — 515 files, a healthy ratio, a mutation drill on six seams — while the unit an agent works in is the context, and a whole context nothing points at does not move a total. That paragraph is read-first rather than routed because it changes what a run does BEFORE its first edit (write the test alongside the change in a floored context), which is the test this ceiling exists to force; the floors themselves, and the ranked census, stay a lookup. `decision-trailer`: the log was filterable by shape and by origin and not by which of twelve ADRs or twelve rubric rules a change served, and the trailer has to be written at the moment the change is made or not at all — which is exactly a before-the-edit fact. Fourteen of the sixty-four lines are the two fenced examples and the two read-back commands, and they are here rather than in a runbook because a trailer whose syntax needs a lookup is one nobody writes. Previously 934 → 983 on 2026-09-01. Six of those lines are rubric A6 inside the paragraph that already lists what Part A blocks — a pin in .github/contract-ledger.json that moved in the loosening direction without being re-dated and re-argued in the same diff. It is paid for here rather than routed because the sentence it replaces was already the one an agent reads before deciding whether to raise a number, and 'tightening is free, loosening is a two-line diff' is the fact that changes the decision. The other forty-three are three rules that each close a gap where nothing could have gone red, and their three rows in the constraint table: `a11y-budget` (every Playwright spec here drives the page by CSS selector, so nothing noticed a page that stopped being usable — six invariants now fail the required E2E job), `interruption-handoff` (`checkpoint:check` reads what is on disk and never produced an interruption, so `npm run interrupt:drill` kills a real writer mid-session and reads what survived), and `context-conventions` (guidance is repository-wide across 117 contexts, which is why the sharp local rules stay tacit — the routing table is asked with a path). All three are paid for HERE rather than routed to a lookup because each changes what an agent does BEFORE its first edit rather than after a red build, which is the test this ceiling exists to force: the a11y invariants constrain the markup being written, the drill changes what a stopped run is expected to leave behind, and the context table is read at task start next to context-map.json. The DATA behind all three — the budgets, the scenario catalogue, the per-context notes — stays a lookup. Previously 920 → 934 on 2026-09-01, for three commands rather than three paragraphs: `check:fast` (the inner loop — the same chain without `next build` and the full suite, which is the difference between consulting the gate after each step and satisfying it once at the end), `lint:fences` (whether the three seam fences still FIRE, as opposed to still being written down) and `adr:owner` (which decision governs the file already open). All three are paid for HERE rather than routed to a lookup because each is a command a run reaches for BEFORE its first edit rather than after a red build — which is the test this ceiling exists to force, and the reason the fourth candidate in the same diff, the reverse index's own data file, is a lookup instead. Previously 883 → 920 on 2026-09-01, in one diff: nineteen lines turning § 'What you may do unattended' from a paragraph into `.github/agent-permissions.json` plus its table row, and eighteen for the API-conformance paragraph and its row — the derived half of docs/api/openapi.json, which an agent needs before it changes a route rather than after the check refuses it. Paid for here rather than routed to a lookup for the same reason the section itself is read-first: the population it addresses is an agent deciding whether to run a command, and that decision is taken before — and instead of — reading anything else. Previously 874 → 883 on 2026-09-01, for the nine lines that say a pin carries `accepted: { on, reviewBy }`."
+      "$raised": "983 → 1047 on 2026-09-01, for two rules and the two rows in the constraint table that pay for them. `context-test-floor`: the suite's strength is measured for the REPOSITORY — 515 files, a healthy ratio, a mutation drill on six seams — while the unit an agent works in is the context, and a whole context nothing points at does not move a total. That paragraph is read-first rather than routed because it changes what a run does BEFORE its first edit (write the test alongside the change in a floored context), which is the test this ceiling exists to force; the floors themselves, and the ranked census, stay a lookup. `decision-trailer`: the log was filterable by shape and by origin and not by which of twelve ADRs or twelve rubric rules a change served, and the trailer has to be written at the moment the change is made or not at all — which is exactly a before-the-edit fact. Fourteen of the sixty-four lines are the two fenced examples and the two read-back commands, and they are here rather than in a runbook because a trailer whose syntax needs a lookup is one nobody writes. Previously 934 → 983 on 2026-09-01. Six of those lines are rubric A6 inside the paragraph that already lists what Part A blocks — a pin in .github/contract-ledger.json that moved in the loosening direction without being re-dated and re-argued in the same diff. It is paid for here rather than routed because the sentence it replaces was already the one an agent reads before deciding whether to raise a number, and 'tightening is free, loosening is a two-line diff' is the fact that changes the decision. The other forty-three are three rules that each close a gap where nothing could have gone red, and their three rows in the constraint table: `a11y-budget` (every Playwright spec here drives the page by CSS selector, so nothing noticed a page that stopped being usable — six invariants now fail the required E2E job), `interruption-handoff` (`checkpoint:check` reads what is on disk and never produced an interruption, so `npm run interrupt:drill` kills a real writer mid-session and reads what survived), and `context-conventions` (guidance is repository-wide across 117 contexts, which is why the sharp local rules stay tacit — the routing table is asked with a path). All three are paid for HERE rather than routed to a lookup because each changes what an agent does BEFORE its first edit rather than after a red build, which is the test this ceiling exists to force: the a11y invariants constrain the markup being written, the drill changes what a stopped run is expected to leave behind, and the context table is read at task start next to context-map.json. The DATA behind all three — the budgets, the scenario catalogue, the per-context notes — stays a lookup. Previously 920 → 934 on 2026-09-01, for three commands rather than three paragraphs: `check:fast` (the inner loop — the same chain without `next build` and the full suite, which is the difference between consulting the gate after each step and satisfying it once at the end), `lint:fences` (whether the three seam fences still FIRE, as opposed to still being written down) and `adr:owner` (which decision governs the file already open). All three are paid for HERE rather than routed to a lookup because each is a command a run reaches for BEFORE its first edit rather than after a red build — which is the test this ceiling exists to force, and the reason the fourth candidate in the same diff, the reverse index's own data file, is a lookup instead. Previously 883 → 920 on 2026-09-01, in one diff: nineteen lines turning § 'What you may do unattended' from a paragraph into `.github/agent-permissions.json` plus its table row, and eighteen for the API-conformance paragraph and its row — the derived half of docs/api/openapi.json, which an agent needs before it changes a route rather than after the check refuses it. Paid for here rather than routed to a lookup for the same reason the section itself is read-first: the population it addresses is an agent deciding whether to run a command, and that decision is taken before — and instead of — reading anything else. Previously 874 → 883 on 2026-09-01, for the nine lines that say a pin carries `accepted: { on, reviewBy }`.",
+      "$lowered20260924": "1049 -> 430. The always-loaded file had become mostly the REASONS for its rules - each gate's history, what it caught, what it cannot see - which a run needs when it argues with a gate, not before its first edit. Those paragraphs and the full command descriptions moved verbatim to docs/agent-guide/conventions.md (a lookup, routed from docs/task-index.md); every rule, command, the constraint table and the unattended section stayed, and every sentence a registry quotes from this file is still here. Measured with 18 behaviour questions answerable only from this file, tools disallowed: 18/18 before and after. First request of a headless session in this checkout: 55,868 -> 39,977 tokens (n=2 per arm, identical repeats)."
     },
     {
       "file": "CLAUDE.md",
@@ -39,9 +34,10 @@
     },
     {
       "file": "docs/task-index.md",
-      "maxLines": 130,
+      "maxLines": 131,
       "why": "the routing table that makes every OTHER document a lookup. It is read first precisely so the ADRs, runbooks and contracts do not have to be.",
-      "$raised": "128 → 130 on 2026-09-01, for two routes and deliberately not two paragraphs: `scripts/commit-decision.mjs` (which decision a commit acted on, and the reverse query) and `.github/context-test-floors.json` (whether the context being edited has any test pointing at it). The question this ceiling exists to force — does EVERY run need this before its first edit? — answers no for both: the first is needed by the run that is about to write a commit message, the second by the run that is about to edit a floored context. Both are tasks, which is what a routing table is for; the two lines here are what keeps the data itself a lookup. Previously 127 → 128 on 2026-09-01, for one route to a runbook that did not exist: `docs/runbooks/credential-rotation.md`. The question this ceiling exists to force — does EVERY run need this before its first edit? — answers no, emphatically: almost no run rotates a credential. But the population that needs it is a reader who has just lost control of a value and does not know the filename, which is precisely the state this index is for, and a runbook nobody can find is one that gets improvised instead. One line here, and the page itself stays a lookup. Previously 126 → 127 on 2026-09-01, for one route and deliberately NOT one paragraph in AGENTS.md: `scripts/guidance-commands.mjs`, which resolves every `npm run …` the guidance quotes against package.json. The question this ceiling exists to force — does EVERY run need this before its first edit? — answers no: it is needed by the run that RENAMES a script, which is a task, which is what a routing table is for. One line here rather than seven in the canonical document. Previously 125 → 126 on 2026-09-01, for the route this table did not have: the REVERSE lookup (`.github/adr-ownership.json`). Every other row here is keyed by a task the reader has already framed; this one is keyed by a path, which is all a reader three files into a change actually holds. Previously 123 → 125 on 2026-09-01, for two routes rather than two documents: `docs/security/threat-model.md` (which credential a change is about to touch, and which fence stands on it) and `test-unit/contract.mjs` (what a seam assertion's failure must SAY). Both are lookups — the whole point of paying two lines here is that neither page is read before every edit, only before the edits that need them."
+      "$raised": "128 → 130 on 2026-09-01, for two routes and deliberately not two paragraphs: `scripts/commit-decision.mjs` (which decision a commit acted on, and the reverse query) and `.github/context-test-floors.json` (whether the context being edited has any test pointing at it). The question this ceiling exists to force — does EVERY run need this before its first edit? — answers no for both: the first is needed by the run that is about to write a commit message, the second by the run that is about to edit a floored context. Both are tasks, which is what a routing table is for; the two lines here are what keeps the data itself a lookup. Previously 127 → 128 on 2026-09-01, for one route to a runbook that did not exist: `docs/runbooks/credential-rotation.md`. The question this ceiling exists to force — does EVERY run need this before its first edit? — answers no, emphatically: almost no run rotates a credential. But the population that needs it is a reader who has just lost control of a value and does not know the filename, which is precisely the state this index is for, and a runbook nobody can find is one that gets improvised instead. One line here, and the page itself stays a lookup. Previously 126 → 127 on 2026-09-01, for one route and deliberately NOT one paragraph in AGENTS.md: `scripts/guidance-commands.mjs`, which resolves every `npm run …` the guidance quotes against package.json. The question this ceiling exists to force — does EVERY run need this before its first edit? — answers no: it is needed by the run that RENAMES a script, which is a task, which is what a routing table is for. One line here rather than seven in the canonical document. Previously 125 → 126 on 2026-09-01, for the route this table did not have: the REVERSE lookup (`.github/adr-ownership.json`). Every other row here is keyed by a task the reader has already framed; this one is keyed by a path, which is all a reader three files into a change actually holds. Previously 123 → 125 on 2026-09-01, for two routes rather than two documents: `docs/security/threat-model.md` (which credential a change is about to touch, and which fence stands on it) and `test-unit/contract.mjs` (what a seam assertion's failure must SAY). Both are lookups — the whole point of paying two lines here is that neither page is read before every edit, only before the edits that need them.",
+      "$raised20260924": "130 -> 131: one route, to docs/agent-guide/conventions.md, which exists because the canonical file stopped carrying its own reasoning. A lookup nobody can find is a paragraph deleted, so the route is the price of the move."
     },
     {
       "file": "docs/agent-index.md",
@@ -54,19 +50,51 @@
       "why": "the traps other agents actually hit here. The rows marked `partial` or `unfenced` are the ones where nothing will tell you that you got it wrong, which is only useful before the edit."
     }
   ],
-
   "$lookups": "Named so the boundary is a list rather than an assumption, and so the gate can refuse a document that is on both sides of it. These are large, they are allowed to be, and none of them is read unless a task needs it.",
-
   "lookups": [
-    { "file": "docs/adr/README.md", "why": "the decision records, routed to by the seam being changed" },
-    { "file": ".github/adr-ownership.json", "why": "which record governs a given path — the reverse lookup, read through `npm run adr:owner` when a file turns out to sit on a seam" },
-    { "file": ".github/constraint-map.json", "why": "which rules actually stop you — read when a rule is in question, and summarised in AGENTS.md's own table" },
-    { "file": ".github/contract-ledger.json", "why": "what each fence is absorbing and the pin it may not cross — read when moving one" },
-    { "file": "context-map.json", "why": "which files belong to the context being edited; an index, consulted per task" },
-    { "file": "docs/deploy.md", "why": "env names, crons, rollback — read when the change touches the deployment" },
-    { "file": "docs/security/threat-model.md", "why": "where each credential enters, rests and leaves, and the fence on each edge — read when the change touches one" },
-    { "file": "docs/design-system.md", "why": "tokens and component conventions — read when the change is a UI one" },
-    { "file": "docs/i18n/contract.md", "why": "the localisation contract — read during a localisation wave" },
-    { "file": ".agent/README.md", "why": "how checkpoints work — read when a run is long enough to need one" }
+    {
+      "file": "docs/adr/README.md",
+      "why": "the decision records, routed to by the seam being changed"
+    },
+    {
+      "file": ".github/adr-ownership.json",
+      "why": "which record governs a given path — the reverse lookup, read through `npm run adr:owner` when a file turns out to sit on a seam"
+    },
+    {
+      "file": ".github/constraint-map.json",
+      "why": "which rules actually stop you — read when a rule is in question, and summarised in AGENTS.md's own table"
+    },
+    {
+      "file": ".github/contract-ledger.json",
+      "why": "what each fence is absorbing and the pin it may not cross — read when moving one"
+    },
+    {
+      "file": "context-map.json",
+      "why": "which files belong to the context being edited; an index, consulted per task"
+    },
+    {
+      "file": "docs/deploy.md",
+      "why": "env names, crons, rollback — read when the change touches the deployment"
+    },
+    {
+      "file": "docs/security/threat-model.md",
+      "why": "where each credential enters, rests and leaves, and the fence on each edge — read when the change touches one"
+    },
+    {
+      "file": "docs/design-system.md",
+      "why": "tokens and component conventions — read when the change is a UI one"
+    },
+    {
+      "file": "docs/i18n/contract.md",
+      "why": "the localisation contract — read during a localisation wave"
+    },
+    {
+      "file": ".agent/README.md",
+      "why": "how checkpoints work — read when a run is long enough to need one"
+    },
+    {
+      "file": "docs/agent-guide/conventions.md",
+      "why": "why each gate and convention in AGENTS.md exists, what it caught and what it cannot see - read when a run is about to argue with a gate, not before every edit"
+    }
   ]
 }
