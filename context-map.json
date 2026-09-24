@@ -5802,7 +5802,9 @@
         "src/app/api/projects/[id]/webhooks/deliveries/route.ts",
         "src/components/app/modules/WebhookEndpoints.tsx",
         "src/components/app/modules/WebhookDeliveryLog.tsx",
-        "src/components/hooks/useWebhookEndpoints.ts"
+        "src/components/hooks/useWebhookEndpoints.ts",
+        "src/lib/outbound/drain.ts",
+        "src/lib/outbound/after-response.ts"
       ],
       "group": "Platform Operations",
       "group_id": "e8e90ce7-36cb-446d-82fd-bceb635cfe12",
