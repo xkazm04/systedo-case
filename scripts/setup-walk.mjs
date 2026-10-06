@@ -206,7 +206,12 @@ async function serve() {
 
 // --- E. the other documented shape, parsed -----------------------------------
 
-const docker = spawnSync("docker", ["compose", "config"], { cwd: ROOT, encoding: "utf8", timeout: 120_000 });
+// Parsed with references left unresolved. A plain `config` inlines every value from
+// the `env_file:` (.env, which on a working machine holds real keys) into stdout,
+// and the red branch below records stdout into setup-walk.json; it also fails on a
+// missing .env, which is step B's question, not the compose shape's. The port and
+// the data volume this step asserts do not depend on either.
+const docker = spawnSync("docker", ["compose", "config", "--no-interpolate", "--no-env-resolution"], { cwd: ROOT, encoding: "utf8", timeout: 120_000 });
 if (docker.error || docker.status === null) {
   record("E-compose", "skipped", "docker is not available on this machine, so the compose shape was not parsed.");
 } else if (docker.status !== 0) {
