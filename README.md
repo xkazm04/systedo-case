@@ -1,9 +1,9 @@
 # Adamant — AI ad intelligence, on your machine
 
-![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
-![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss&logoColor=white)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](./package.json)
+[![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)](./package.json)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](./package.json)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss&logoColor=white)](./package.json)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
 
 [![CI](https://github.com/xkazm04/systedo-case/actions/workflows/ci.yml/badge.svg)](https://github.com/xkazm04/systedo-case/actions/workflows/ci.yml)
@@ -33,6 +33,11 @@ publishing surfaces.
 > is illustrative and labelled as such — none of it is a real customer's result.
 
 ![Adamant portfolio overview on Mionelo demo data](./docs/assets/readme-dashboard.png)
+
+*Note the revenue/ROAS table across five projects at a glance, and the "Needs
+attention" panel below it turning one of those numbers into a dated, actioned
+triage item — that pairing of metric and generated next step is the thing
+this workspace is for.*
 
 ## Two-minute local start
 
