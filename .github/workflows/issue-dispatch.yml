@@ -175,7 +175,7 @@ jobs:
       - name: Fetch the proposal
         if: steps.gate.outputs.dispatch == 'yes'
         continue-on-error: true
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: issue-proposal
 
@@ -245,7 +245,7 @@ jobs:
       # talking to instead of inferring it from a remote.
       - name: Fetch the draft
         continue-on-error: true
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: issue-draft
 

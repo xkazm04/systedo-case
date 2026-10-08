@@ -300,7 +300,7 @@ jobs:
       # After the tree is base, so `git clean` above cannot take the report with it.
       - name: Fetch Part A's report
         continue-on-error: true
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: mechanical-review
 
