@@ -154,6 +154,16 @@ export async function runGemini(args: {
     throw classifyGeminiError(err);
   });
 
+  // The stop condition is read BEFORE the body: a response cut off at the output cap
+  // is empty or ends mid-object, which read body-first becomes "empty" /
+  // "malformed_json" — retryable, so the same call would replay against the same cap
+  // and the record would blame the model. Code "truncated" is not retried and still
+  // falls to the next provider.
+  const stop = (response as { candidates?: { finishReason?: string }[] }).candidates?.[0]?.finishReason;
+  if (stop === "MAX_TOKENS") {
+    throw new LlmCallError("truncated", "Gemini ukončil odpověď na limitu výstupu (MAX_TOKENS).", { provider: "gemini" });
+  }
+
   const text = response.text;
   if (!text) {
     // Distinguish a content-safety block from a plain empty body: a block is not

@@ -108,6 +108,27 @@ async function byomHttpError(vendor: string, res: Response): Promise<Error> {
   );
 }
 
+/** Stops at OUR output-token cap, across the vendors' vocabularies (a filled context
+ *  window is the same fact: the attempt ended before the answer did). */
+const CAP_STOPS: ReadonlySet<string> = new Set(["max_tokens", "model_context_window_exceeded", "length", "MAX_TOKENS"]);
+/** Stops issued by a provider-side content filter — not the model writing a refusal. */
+const FILTER_STOPS: ReadonlySet<string> = new Set(["content_filter", "SAFETY", "RECITATION", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII"]);
+
+/** Read the provider's stop condition BEFORE the body is interpreted. A capped
+ *  response is empty or cut mid-object, so read body-first it becomes `empty` /
+ *  `malformed_json` — both retryable, so the wrapper would replay the identical call
+ *  against the identical cap (each attempt billed) and the record would blame the
+ *  model. `truncated` is not retried and still falls to the next provider. */
+function throwOnStop(vendor: string, stop: string | undefined): void {
+  if (stop === undefined) return;
+  if (CAP_STOPS.has(stop)) {
+    throw new LlmCallError("truncated", `Poskytovatel ${vendor} ukončil odpověď na limitu výstupu (${stop}).`, { provider: vendor });
+  }
+  if (FILTER_STOPS.has(stop)) {
+    throw new LlmCallError("safety_blocked", `Poskytovatel ${vendor} odpověď zablokoval (${stop}).`, { provider: vendor });
+  }
+}
+
 /** Try a native-structured-output request first; on a USER fault / throttle / 5xx
  *  surface it immediately (no wasted embed retry), on a bare-400 (the model likely
  *  doesn't support the structured-output param) retry once with the universal
@@ -176,9 +197,10 @@ async function runOpenAi(byom: ResolvedByomKey, call: ByomCall): Promise<ByomRes
   );
 
   const json = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
+    choices?: { finish_reason?: string; message?: { content?: string } }[];
     usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
   };
+  throwOnStop("openai", json.choices?.[0]?.finish_reason);
   const text = json.choices?.[0]?.message?.content;
   const parsed = text ? extractJson(text) : null;
   if (!parsed) throw new LlmCallError(text ? "malformed_json" : "empty", "OpenAI nevrátil platný JSON.", { provider: "openai" });
@@ -249,6 +271,7 @@ async function runAnthropic(byom: ResolvedByomKey, call: ByomCall): Promise<Byom
   // re-prompting won't change it — code "safety_blocked" (not retried) still falls
   // through to the app provider.
   if (json.stop_reason === "refusal") throw new LlmCallError("safety_blocked", "Anthropic odmítl požadavek (refusal).", { provider: "anthropic" });
+  throwOnStop("anthropic", json.stop_reason);
 
   const text = Array.isArray(json.content)
     ? json.content
@@ -326,9 +349,10 @@ async function runGemini(byom: ResolvedByomKey, call: ByomCall): Promise<ByomRes
   );
 
   const json = (await res.json()) as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
+    candidates?: { finishReason?: string; content?: { parts?: { text?: string }[] } }[];
     usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
   };
+  throwOnStop("gemini", json.candidates?.[0]?.finishReason);
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new LlmCallError("empty", "Gemini vrátil prázdnou odpověď.", { provider: "gemini" });
   const parsed = extractJson(text);
@@ -401,9 +425,10 @@ async function runOpenRouter(byom: ResolvedByomKey, call: ByomCall): Promise<Byo
   );
 
   const json = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
+    choices?: { finish_reason?: string; message?: { content?: string } }[];
     usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; cost?: number };
   };
+  throwOnStop("openrouter", json.choices?.[0]?.finish_reason);
   const text = json.choices?.[0]?.message?.content;
   const parsed = text ? extractJson(text) : null;
   if (!parsed) throw new LlmCallError(text ? "malformed_json" : "empty", "OpenRouter nevrátil platný JSON.", { provider: "openrouter" });
@@ -467,9 +492,10 @@ async function runQwen(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResul
   );
 
   const json = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
+    choices?: { finish_reason?: string; message?: { content?: string } }[];
     usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
   };
+  throwOnStop("qwen", json.choices?.[0]?.finish_reason);
   const text = json.choices?.[0]?.message?.content;
   const parsed = text ? extractJson(text) : null;
   if (!parsed) throw new LlmCallError(text ? "malformed_json" : "empty", "Qwen Cloud nevrátil platný JSON.", { provider: "qwen" });
@@ -530,9 +556,10 @@ async function runOllama(byom: ResolvedByomKey, call: ByomCall): Promise<ByomRes
   );
 
   const json = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
+    choices?: { finish_reason?: string; message?: { content?: string } }[];
     usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
   };
+  throwOnStop("ollama", json.choices?.[0]?.finish_reason);
   const text = json.choices?.[0]?.message?.content;
   const parsed = text ? extractJson(text) : null;
   if (!parsed) throw new LlmCallError(text ? "malformed_json" : "empty", "Ollama nevrátil platný JSON.", { provider: "ollama" });

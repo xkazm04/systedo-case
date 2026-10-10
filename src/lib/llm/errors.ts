@@ -21,8 +21,15 @@ export type ByomUserErrorCode = "auth" | "permission" | "quota" | "model" | "inv
  *    server          provider-side / transient failure (5xx, non-zero CLI exit)
  *    network         the transport itself failed (fetch reject, DNS, reset)
  *    safety_blocked  a content-safety refusal — re-prompting the same input won't
- *                    help, so it is NOT retried (but still falls to another provider)
- *    aborted         the caller aborted — a deliberate stop, never retried/fallen-back
+ *                    help, so it is NOT retried (but still falls to another provider).
+ *                    Also a provider-side filter's stop (`content_filter`, SAFETY…)
+ *    truncated       the provider stopped at OUR output-token cap (`max_tokens` /
+ *                    `length` / `MAX_TOKENS`, or a filled context window) — read off
+ *                    the stop condition BEFORE the body, because the body is empty or
+ *                    cut mid-object and would otherwise read as `empty` /
+ *                    `malformed_json`, blaming the model. The same call hits the same
+ *                    cap, so it is NOT retried (but still falls to another provider)
+ *    aborted        the caller aborted — a deliberate stop, never retried/fallen-back
  *    unknown         an unclassified failure — conservatively NOT retried */
 export type LlmErrorCode =
   | "timeout"
@@ -32,11 +39,13 @@ export type LlmErrorCode =
   | "server"
   | "network"
   | "safety_blocked"
+  | "truncated"
   | "aborted"
   | "unknown";
 
-/** Codes worth a bounded retry on the SAME provider. `safety_blocked`, `aborted`
- *  and `unknown` are deliberately absent: re-running them just burns the provider. */
+/** Codes worth a bounded retry on the SAME provider. `safety_blocked`, `truncated`,
+ *  `aborted` and `unknown` are deliberately absent: re-running them just burns the
+ *  provider. */
 const RETRYABLE_CODES: ReadonlySet<LlmErrorCode> = new Set<LlmErrorCode>([
   "timeout",
   "empty",

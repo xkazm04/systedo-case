@@ -182,7 +182,7 @@ test("every incident code the classifier can emit has cs + en copy", () => {
   const codes = [
     "auth", "permission", "quota", "model", "invalid",
     "timeout", "empty", "malformed_json", "rate_limited", "server", "network",
-    "safety_blocked", "aborted", "unknown",
+    "safety_blocked", "truncated", "aborted", "unknown",
   ];
   for (const code of codes) {
     assert.ok(BYOM_INCIDENT_REASONS.cs[code], `missing cs copy for ${code}`);

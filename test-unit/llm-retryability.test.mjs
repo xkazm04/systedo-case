@@ -15,7 +15,7 @@ import { runByom } from "@/lib/llm/byom/adapters.ts";
 // ── pure error model ──────────────────────────────────────────────────────────
 test("LlmCallError.retryable is code-based", () => {
   const retryable = ["timeout", "empty", "malformed_json", "rate_limited", "server", "network"];
-  const notRetryable = ["safety_blocked", "aborted", "unknown"];
+  const notRetryable = ["safety_blocked", "truncated", "aborted", "unknown"];
   for (const code of retryable) assert.equal(new LlmCallError(code, "x").retryable, true, code);
   for (const code of notRetryable) assert.equal(new LlmCallError(code, "x").retryable, false, code);
 });
