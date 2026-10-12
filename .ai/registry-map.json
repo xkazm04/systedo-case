@@ -2096,7 +2096,11 @@
           "revision": 43,
           "changedAt": "2026-10-02",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/ai/history.ts:1 This context manages client-side localStorage history of completed AI responses and HTTP input-hash caching, rather than multi-turn LLM conversation transcripts or prompt assembly.",
+          "evaluatedAt": "2026-10-12",
+          "evaluatedAgainst": "sha256-b2:7436fd55a7cb2500",
+          "evaluatedRevision": 43
         },
         {
           "subject": "mcp-tools",
@@ -5408,7 +5412,11 @@
           "revision": 43,
           "changedAt": "2026-10-02",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/campaigns/types.ts:59 The core campaign domain library defines channel types, store interfaces, and mutators, while the actual campaign evaluation prompt assembler lives in src/lib/campaigns/report-input.ts under the campaigns-reporting context.",
+          "evaluatedAt": "2026-10-12",
+          "evaluatedAgainst": "sha256-b2:7436fd55a7cb2500",
+          "evaluatedRevision": 43
         },
         {
           "subject": "search-term-mining",
@@ -9923,13 +9931,12 @@
           "changedAt": "2026-10-02",
           "confidence": "strong",
           "state": "deviation",
-          "evidence": "response-reservation-sizing: src/lib/llm/byom/adapters.ts:209 (and :364, :434, the other two providers) fixes max_tokens at 16000 on every call, sized per the comment at :207-208 'for the heaviest tool' - a reservation charged on every call rather than derived from the output lengths the adapter already receives (usage.output_tokens, :246/:262). And the cut is never detected as a cut: :251 checks stop_reason only for \"refusal\", no max_tokens / finish_reason:length check exists anywhere under src/lib/llm, so a truncated structured response surfaces at :260 as malformed_json - a retry category that names the wrong cause.",
-          "evaluatedAt": "2026-09-22",
-          "evaluatedAgainst": "sha256:d09e57cdf6e2d34e",
-          "evaluatedRevision": 34,
+          "evidence": "src/lib/llm/byom/adapters.ts:231 Hardcodes max_tokens at 16000 across multiple providers sized for the heaviest tool instead of deriving the reservation from observed response lengths and retrying truncated responses at an escalated ceiling.",
+          "evaluatedAt": "2026-10-12",
+          "evaluatedAgainst": "sha256-b2:7436fd55a7cb2500",
+          "evaluatedRevision": 43,
           "source": "conform",
-          "revisionsBehind": 9,
-          "stale": true
+          "revisionsBehind": 9
         },
         {
           "subject": "mcp-tools",
@@ -11941,13 +11948,12 @@
           "changedAt": "2026-10-02",
           "confidence": "strong",
           "state": "not-applicable",
-          "evidence": "The onboarding scan's actual prompt assembler (system template, schema, normalize/demo) lives in src/lib/ai/tools/onboarding-scan.ts, outside this context's declared paths; onboarding-flow's own files (site-fetch.ts, seed.ts, progress.ts, types.ts) only prepare page text and post-scan data and build no prompt themselves. [re-judged 2026-09-22: still holds - the scan's prompt assembler, src/lib/ai/tools/onboarding-scan.ts, is still outside this context's 28 files.]",
-          "evaluatedAt": "2026-09-22",
-          "evaluatedAgainst": "sha256:d09e57cdf6e2d34e",
-          "evaluatedRevision": 34,
+          "evidence": "src/lib/onboarding/site-fetch.ts:83 The onboarding-flow context handles webpage scraping and onboarding wizard persistence, while the actual LLM prompt assembler for the scan lives in src/lib/ai/tools/onboarding-scan.ts outside this context.",
+          "evaluatedAt": "2026-10-12",
+          "evaluatedAgainst": "sha256-b2:7436fd55a7cb2500",
+          "evaluatedRevision": 43,
           "source": "conform",
-          "revisionsBehind": 9,
-          "stale": true
+          "revisionsBehind": 9
         },
         {
           "subject": "test-harness",

@@ -214,9 +214,25 @@
       "subject": "prompt-assembly",
       "bundle": "software-engineering",
       "state": "not-applicable",
-      "evaluatedAt": "2026-08-31",
-      "worker": "w7-systedo-llm",
-      "techniques": []
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T20:14:32.372Z",
+      "worker": "e6b4f0b7-824d-48a5-afa3-26d72c798488",
+      "techniques": [
+        {
+          "technique": "layered-composition",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/site-fetch.ts:83 Prompt assembly and context budgeting for the onboarding scan are defined in src/lib/ai/tools/onboarding-scan.ts rather than onboarding-flow."
+        }
+      ],
+      "superseded": [
+        {
+          "state": "not-applicable",
+          "evidence": "The onboarding scan's actual prompt assembler (system template, schema, normalize/demo) lives in src/lib/ai/tools/onboarding-scan.ts, outside this context's declared paths; onboarding-flow's own files (site-fetch.ts, seed.ts, progress.ts, types.ts) only prepare page text and post-scan data and build no prompt themselves. [re-judged 2026-09-22: still holds - the scan's prompt assembler, src/lib/ai/tools/onboarding-scan.ts, is still outside this context's 28 files.]",
+          "evaluatedAt": "2026-09-22",
+          "worker": null,
+          "reason": "replaced by e6b4f0b7-824d-48a5-afa3-26d72c798488"
+        }
+      ]
     },
     "de6396ef-7b54-4360-ad3b-6d9f3d4db536/test-harness": {
       "context": "onboarding-flow",
@@ -331,6 +347,63 @@
       "evaluatedAt": "2026-08-31",
       "worker": "w7-systedo-llm",
       "techniques": []
+    },
+    "a0aeac62-4e06-4785-9eaa-211fad5e6821/prompt-assembly": {
+      "context": "llm-byom-keys",
+      "subject": "prompt-assembly",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T20:14:32.372Z",
+      "worker": "e6b4f0b7-824d-48a5-afa3-26d72c798488",
+      "techniques": [
+        {
+          "technique": "response-reservation-sizing",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/byom/adapters.ts:231 Fixes max_tokens at 16000 for every call rather than deriving the reservation from observed response lengths, and does not retry truncated responses at an escalated ceiling."
+        }
+      ],
+      "superseded": [
+        {
+          "state": "deviation",
+          "evidence": "response-reservation-sizing: src/lib/llm/byom/adapters.ts:209 (and :364, :434, the other two providers) fixes max_tokens at 16000 on every call, sized per the comment at :207-208 'for the heaviest tool' - a reservation charged on every call rather than derived from the output lengths the adapter already receives (usage.output_tokens, :246/:262). And the cut is never detected as a cut: :251 checks stop_reason only for \"refusal\", no max_tokens / finish_reason:length check exists anywhere under src/lib/llm, so a truncated structured response surfaces at :260 as malformed_json - a retry category that names the wrong cause.",
+          "evaluatedAt": "2026-09-22",
+          "worker": null,
+          "reason": "replaced by e6b4f0b7-824d-48a5-afa3-26d72c798488"
+        }
+      ]
+    },
+    "f1dca182-bbfa-4f32-97a6-48b3baf0f92b/prompt-assembly": {
+      "context": "ai-cache-history",
+      "subject": "prompt-assembly",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T20:14:32.372Z",
+      "worker": "e6b4f0b7-824d-48a5-afa3-26d72c798488",
+      "techniques": [
+        {
+          "technique": "history-compaction",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/history.ts:1 History in this context is UI localStorage persistence of tool outputs (capped at 5) rather than LLM conversation history compaction."
+        }
+      ]
+    },
+    "67b653f8-91d5-47ea-919a-09b0d6315f76/prompt-assembly": {
+      "context": "campaigns-core-lib",
+      "subject": "prompt-assembly",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T20:14:32.372Z",
+      "worker": "e6b4f0b7-824d-48a5-afa3-26d72c798488",
+      "techniques": [
+        {
+          "technique": "layered-composition",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/campaigns/types.ts:59 Domain models in this context only declare channel type roles; prompt assembly for campaign evaluations is implemented in campaigns-reporting."
+        }
+      ]
     }
   }
 }
