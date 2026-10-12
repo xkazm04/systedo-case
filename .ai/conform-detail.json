@@ -863,6 +863,163 @@
           "evidence": "src/lib/export.ts:99 This names a browser download, without an agent write operation against a previously read shared artifact."
         }
       ]
+    },
+    "9c32aaab-b57d-4912-aa00-1e00b877253e/agent-memory": {
+      "context": "lead-management",
+      "subject": "agent-memory",
+      "bundle": "software-engineering",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T22:31:42.197Z",
+      "techniques": [],
+      "withdrawn": {
+        "worker": "a10ef567-a052-4fc0-aeed-49872a8b8aee",
+        "state": "not-applicable",
+        "at": "2026-10-12T22:32:35.031201+00:00",
+        "reason": "reviewer (sonnet): The anchor src/lib/leads/conversion-store.ts:5 is comment text about keying the ledger by projectId alone, so it does not show that belief, episode or recall machinery is absent, and the verdict rests on a keyword search over the context's files."
+      }
+    },
+    "outbound-event-bus/agent-memory": {
+      "context": "Outbound event bus",
+      "subject": "agent-memory",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T22:31:42.197Z",
+      "worker": "a10ef567-a052-4fc0-aeed-49872a8b8aee",
+      "techniques": []
+    },
+    "77e2e6b3-b8ed-4acd-afd7-4d04c925665c/agent-memory": {
+      "context": "twin-assistant-core",
+      "subject": "agent-memory",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T22:31:42.197Z",
+      "worker": "a10ef567-a052-4fc0-aeed-49872a8b8aee",
+      "techniques": [
+        {
+          "technique": "working-memory",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/twin/types.ts:168 Drafts are a durable outbox with a lifecycle, not a session synthesis of goal and open threads."
+        },
+        {
+          "technique": "episodic-capture",
+          "verdict": "conformant",
+          "evidence": "src/lib/twin/edit-facts.ts:228 A meaningful edit is stored as one bounded before/after lesson with its own id and createdAt, not as the raw thread."
+        },
+        {
+          "technique": "consolidation",
+          "verdict": "deviation",
+          "evidence": "src/components/app/twin/TwinVoiceStudio.tsx:182 Re-distillation drops the previous voice for that scope instead of linking it as superseded."
+        },
+        {
+          "technique": "decay-and-forgetting",
+          "verdict": "deviation",
+          "evidence": "src/lib/twin/types.ts:795 Past the cap, the oldest style facts are sliced off with no demotion tier and no tombstone."
+        },
+        {
+          "technique": "recall-injection",
+          "verdict": "deviation",
+          "evidence": "src/lib/twin/load.ts:52 A failed voice read is returned as no voice, the same signal as a twin that was never trained."
+        },
+        {
+          "technique": "memory-governance",
+          "verdict": "conformant",
+          "evidence": "src/components/app/twin/TwinVoiceStudio.tsx:7 The distilled standing voice is written only when the operator applies it; distillation itself does not commit."
+        },
+        {
+          "technique": "memory-value-model",
+          "verdict": "deviation",
+          "evidence": "src/lib/twin/types.ts:794 What survives the fact cap is ordered by freshness alone, with no shared trust or usefulness score."
+        },
+        {
+          "technique": "rollup-compaction",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/twin/types.ts:393 The only collapse found is a rejection tally for the next prompt; it does not supersede a family of stored facts."
+        },
+        {
+          "technique": "procedure-promotion",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/twin/types.ts:395 Avoid lines are prompt text for the next reply, not a repeated workflow promoted to a callable capability."
+        },
+        {
+          "technique": "diagnosis-withheld-from-the-executor",
+          "verdict": "deviation",
+          "evidence": "src/lib/twin/dispatch-step.ts:232 The draft run whose later edits and rejections retrain the voice is handed the rejection-derived avoid lines."
+        },
+        {
+          "technique": "baseline-ladder",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/twin/readiness.ts:1 The only score found is a mean of setup gates, not a comparison against no-memory, full history, or raw retrieval."
+        },
+        {
+          "technique": "lane-reconciliation",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/twin/types.ts:8 The module states it has no vector knowledge base, so recall is not a record plus a separate search lane."
+        },
+        {
+          "technique": "owner-and-counterpart-scope",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/twin/store.local.ts:1 The blob is one row per brand project; style facts are not filed under the contact a draft is addressed to."
+        },
+        {
+          "technique": "durable-store-failure-posture",
+          "verdict": "deviation",
+          "evidence": "src/lib/twin/persisted.ts:9 A malformed blob is coerced into a clean state, and an unparseable blob reads as null on both the get and the mutate path."
+        },
+        {
+          "technique": "pending-beliefs-live-apart",
+          "verdict": "conformant",
+          "evidence": "src/components/app/twin/TwinVoiceStudio.tsx:162 The model's proposed voice stays out of the store until applyVoice; the live blob never holds the unconfirmed distillation."
+        },
+        {
+          "technique": "self-trained-capture-filter",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/twin/edit-facts.ts:164 Whether an edit is banked is a fixed threshold over the diff, not a screen trained on the distiller returning nothing."
+        },
+        {
+          "technique": "gap-directed-elicitation",
+          "verdict": "conformant",
+          "evidence": "src/components/app/twin/TwinVoiceStudio.tsx:192 An answer to a named gap is appended as a style fact for the next distillation, not written straight into the voice."
+        },
+        {
+          "technique": "loss-site-inventory",
+          "verdict": "deviation",
+          "evidence": "src/lib/twin/dispatch-step.ts:218 Dispatch builds avoid-context from the hot draft array only, while older rejects live in the archive, and the prompt is not told what was left out."
+        },
+        {
+          "technique": "scope-before-similarity",
+          "verdict": "conformant",
+          "evidence": "src/components/app/twin/TwinVoiceStudio.tsx:135 The distillation window is the facts of the selected channel scope before any samples are sent."
+        },
+        {
+          "technique": "cross-context-promotion",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/twin/types.ts:9 A voice fact is about this brand, and the module defines one voice per project rather than a fleet of incident stores."
+        },
+        {
+          "technique": "observation-clock",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/twin-style.ts:2 The pass writes a speaking style from sent messages, not dated claims that would need an observation instant."
+        },
+        {
+          "technique": "container-carries-decision-status",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/twin/TwinVoiceStudio.tsx:5 The training input is labeled as messages already sent, and the output is a style guide rather than decisions lifted from notes or a draft agenda."
+        }
+      ],
+      "registryProposal": "Say explicitly that an always-injected voice distilled from examples is consolidated standing memory even when the module has dropped its vector fact table; a header that disclaims a knowledge base otherwise hides the voice loop from this subject."
+    },
+    "682ee603-c9cf-4a2e-b0c5-07c5047a018a/agent-memory": {
+      "context": "recaps-activity",
+      "subject": "agent-memory",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T22:31:42.197Z",
+      "worker": "a10ef567-a052-4fc0-aeed-49872a8b8aee",
+      "techniques": []
     }
   }
 }

@@ -14861,7 +14861,11 @@
           "revision": 47,
           "changedAt": "2026-10-05",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/recaps/types.ts:2 A search of the listed recap, activity, insight, and advice files found stored monthly report payloads and a ledger of what was shown to the operator; nothing there distils episodes into beliefs or injects a recalled memory into a later agent run.",
+          "evaluatedAt": "2026-10-12",
+          "evaluatedAgainst": "sha256-b2:23599eae61aa7119",
+          "evaluatedRevision": 47
         },
         {
           "subject": "test-harness",
@@ -16924,7 +16928,11 @@
           "revision": 47,
           "changedAt": "2026-10-05",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/twin/store.firestore.ts:43 When a stored twin blob is missing or does not parse, prev stays null and the same transaction writes the mutator result over the doc, so the voice, style facts, and drafts the agent later injects are replaced as if the store had been empty.",
+          "evaluatedAt": "2026-10-12",
+          "evaluatedAgainst": "sha256-b2:23599eae61aa7119",
+          "evaluatedRevision": 47
         },
         {
           "subject": "voice-io",
@@ -17615,7 +17623,11 @@
           "revision": 47,
           "changedAt": "2026-10-05",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/outbound/emit.ts:9 A search of the listed outbound files found the word memory only as in-process sorting of webhook rows; emit appends signed deliveries to a project endpoint log and never distils or recalls agent beliefs.",
+          "evaluatedAt": "2026-10-12",
+          "evaluatedAgainst": "sha256-b2:23599eae61aa7119",
+          "evaluatedRevision": 47
         },
         {
           "subject": "fleet-orchestration",
