@@ -248,9 +248,125 @@
       "subject": "mcp-tools",
       "bundle": "software-engineering",
       "state": "not-applicable",
-      "evaluatedAt": "2026-08-31",
-      "worker": "w7-systedo-llm",
-      "techniques": []
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T21:25:31.758Z",
+      "worker": "5ec3196a-6460-49cf-8f11-8db3425d6dbf",
+      "techniques": [
+        {
+          "technique": "ambient-selection-is-not-an-argument",
+          "verdict": "not-applicable",
+          "evidence": "src/components/marketing/sken/SkenClient.tsx:88 The submitted URL is explicit application input; no tool server resolves an interactive application's ambient selection."
+        },
+        {
+          "technique": "authentication-and-scoping",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/sken/redeem/route.ts:92 Redemption uses the signed-in application user, without issuing per-consumer tool-server credentials."
+        },
+        {
+          "technique": "caller-differentiated-capability",
+          "verdict": "not-applicable",
+          "evidence": "src/components/marketing/sken/SkenClient.tsx:121 The scan is submitted through a human-facing form; no paired CLI and agent tool surfaces exist here."
+        },
+        {
+          "technique": "catalog-projection-modes",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/steps.ts:148 This projects an onboarding checklist by project type, not a tool catalog under an external host ceiling."
+        },
+        {
+          "technique": "client-integration",
+          "verdict": "not-applicable",
+          "evidence": "src/components/marketing/sken/useSkenClaim.ts:86 The browser calls the application's claim endpoint; it neither installs nor manages tool-server connections."
+        },
+        {
+          "technique": "command-audit-by-position",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/site-fetch.ts:91 The helper fetches a website URL, without executing a configured server-launch command."
+        },
+        {
+          "technique": "egress-argument-gating",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/sken/claim/route.ts:50 The claim endpoint returns a storage reference; there is no outbound third-party tool argument schema to gate."
+        },
+        {
+          "technique": "enumeration-without-a-scope",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/claim-store.ts:27 The claim interface reads one supplied token rather than exposing an unscoped caller-resource listing."
+        },
+        {
+          "technique": "first-party-agent-is-a-principal",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/sken/redeem/route.ts:77 A web route applies the scan for its user; no first-party agent bypasses a public protocol door."
+        },
+        {
+          "technique": "fluent-syntax-bounded-grammar",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/site-fetch.ts:19 The string is a website address, not a model-authored command or query notation with execution authority."
+        },
+        {
+          "technique": "one-server-many-registrations",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/store.ts:15 These are alternative internal storage backends, not duplicate host registrations of one tool server."
+        },
+        {
+          "technique": "orchestration-to-tool-migration",
+          "verdict": "not-applicable",
+          "evidence": "src/components/marketing/sken/SkenResult.tsx:20 The result view performs deterministic application work; no adaptive stage is migrated onto an agent tool surface."
+        },
+        {
+          "technique": "sanctioned-session-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/store.firestore.ts:25 Onboarding state is persisted in the backing store rather than requiring protocol routing to an owning replica."
+        },
+        {
+          "technique": "sealed-continuation-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/claim-store.ts:72 The token references server-held state; it is not a caller-carried continuation containing intermediate state."
+        },
+        {
+          "technique": "server-composition",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/claim-store.ts:35 This dispatcher selects a database implementation, without a protocol registry or tool invocation door."
+        },
+        {
+          "technique": "suspendable-request-classes",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/sken/redeem/route.ts:127 Target choice is an application API outcome, without a protocol metadata/invocation partition."
+        },
+        {
+          "technique": "tool-identity-vs-tool-name",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/seed.ts:13 This identifier marks keyword-list provenance, not the persisted identity of a published protocol tool."
+        },
+        {
+          "technique": "tool-schema-design",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/types.ts:62 The sanitizer handles an application scan profile, without publishing a model-invoked tool input schema."
+        },
+        {
+          "technique": "transport-selection",
+          "verdict": "not-applicable",
+          "evidence": "src/components/marketing/sken/useSkenClaim.ts:62 This is browser-to-application HTTP, not a choice between tool-protocol carriers."
+        },
+        {
+          "technique": "untrusted-result-handling",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/site-fetch.ts:67 Fetched HTML becomes generation input; it is not an external tool result entering a model with invocation authority."
+        },
+        {
+          "technique": "write-freshness-gate",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/apply.ts:134 This persists application state, without exposing an agent artifact-editing tool."
+        }
+      ],
+      "superseded": [
+        {
+          "state": "not-applicable",
+          "evidence": "No MCP client/server/tool-schema appears anywhere in this context (verified by grep); 'tools' here means the internal src/lib/ai/tools/* functions, not the Model Context Protocol — a lexical match, as flagged.",
+          "evaluatedAt": "2026-09-22",
+          "worker": null,
+          "reason": "replaced by 5ec3196a-6460-49cf-8f11-8db3425d6dbf"
+        }
+      ]
     },
     "d248872f-eefa-40f7-8757-50f220334ff7/usage-analytics": {
       "context": "platform-ops-api",
@@ -402,6 +518,349 @@
           "technique": "layered-composition",
           "verdict": "not-applicable",
           "evidence": "src/lib/campaigns/types.ts:59 Domain models in this context only declare channel type roles; prompt assembly for campaign evaluations is implemented in campaigns-reporting."
+        }
+      ]
+    },
+    "20b7abd6-9889-4c03-a59f-76c4d053ecb5/mcp-tools": {
+      "context": "ai-tools-shared",
+      "subject": "mcp-tools",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T21:25:31.758Z",
+      "worker": "5ec3196a-6460-49cf-8f11-8db3425d6dbf",
+      "techniques": [
+        {
+          "technique": "ambient-selection-is-not-an-argument",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_shared.ts:7 The utility consumes explicit values; no interactive application selection is resolved through a tool server."
+        },
+        {
+          "technique": "authentication-and-scoping",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/index.ts:13 These are internal server imports, without consumer token issuance or authenticated protocol listing."
+        },
+        {
+          "technique": "caller-differentiated-capability",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_shared.ts:5 The helper has one pure value-processing surface, without separate human CLI and agent options."
+        },
+        {
+          "technique": "catalog-projection-modes",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/index.ts:15 The index exports application functions; it does not publish a host-budgeted protocol catalog."
+        },
+        {
+          "technique": "client-integration",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/index.ts:3 The layer integrates with its own generation wrapper, without owning tool-server installation or connections."
+        },
+        {
+          "technique": "command-audit-by-position",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_shared.ts:124 String processing here produces slugs; no configured process-launch command is audited or executed."
+        },
+        {
+          "technique": "egress-argument-gating",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/untrusted.ts:46 The quarantine helper processes text locally, without an outbound third-party tool gateway."
+        },
+        {
+          "technique": "enumeration-without-a-scope",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_shared.ts:90 This cleans a supplied output array, rather than enumerating server-held caller resources."
+        },
+        {
+          "technique": "first-party-agent-is-a-principal",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/index.ts:11 The common door is for generation calls, without an external tool door and companion-agent admission."
+        },
+        {
+          "technique": "fluent-syntax-bounded-grammar",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_coerce.ts:20 The coercer normalizes returned enum text, without accepting executable command or query notation."
+        },
+        {
+          "technique": "one-server-many-registrations",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/index.ts:16 A module export is not a host registration, and this context contains no server registration records."
+        },
+        {
+          "technique": "orchestration-to-tool-migration",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_shared.ts:73 This deterministically partitions generation violations, without moving adaptive work to model-selected protocol tools."
+        },
+        {
+          "technique": "sanctioned-session-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_validate.ts:39 Validation operates on supplied output objects; no replica-owned protocol session requires affinity."
+        },
+        {
+          "technique": "sealed-continuation-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_validate.ts:25 The parsed value is generation output, not a continuation carrying protected intermediate execution state."
+        },
+        {
+          "technique": "server-composition",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/index.ts:1 The module is an internal generation barrel, without a JSON-RPC shell or protocol dispatch registry."
+        },
+        {
+          "technique": "suspendable-request-classes",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_validate.ts:4 Repair is an automatic model retry, without human suspension of protocol requests."
+        },
+        {
+          "technique": "tool-identity-vs-tool-name",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/index.ts:39 This names an internal export, without publishing tool identity metadata on definitions and results."
+        },
+        {
+          "technique": "tool-schema-design",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_validate.ts:3 The validation contract concerns model-generated output, not a server-published invocation schema."
+        },
+        {
+          "technique": "transport-selection",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/index.ts:4 These are generation provider choices, without an MCP transport in this context."
+        },
+        {
+          "technique": "untrusted-result-handling",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/untrusted.ts:185 The helper fences generation input; this analogous defense does not establish a protocol-result boundary."
+        },
+        {
+          "technique": "write-freshness-gate",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_shared.ts:35 The helper transforms returned strings, without an agent read/write surface over shared artifacts."
+        }
+      ]
+    },
+    "d248872f-eefa-40f7-8757-50f220334ff7/mcp-tools": {
+      "context": "platform-ops-api",
+      "subject": "mcp-tools",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T21:25:31.758Z",
+      "worker": "5ec3196a-6460-49cf-8f11-8db3425d6dbf",
+      "techniques": [
+        {
+          "technique": "ambient-selection-is-not-an-argument",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/alerts/route.ts:20 The request carries a project reference; no single-seat application's selection is exposed through a tool server."
+        },
+        {
+          "technique": "authentication-and-scoping",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/auth/[...nextauth]/route.ts:5 This exports Auth.js web handlers, without tool-server consumer credential issuance."
+        },
+        {
+          "technique": "caller-differentiated-capability",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/usage/route.ts:7 The route serves a signed-in application user, without paired CLI and agent capability surfaces."
+        },
+        {
+          "technique": "catalog-projection-modes",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/eval/telemetry/route.ts:21 The tools array is a telemetry rollup, not a catalog projected to satisfy a host ceiling."
+        },
+        {
+          "technique": "client-integration",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/health/route.ts:6 The endpoint supports operational monitoring, without tool-server install or connection custody."
+        },
+        {
+          "technique": "command-audit-by-position",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/health/route.ts:91 The health route inspects readiness configuration, without executing configured server commands."
+        },
+        {
+          "technique": "egress-argument-gating",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/activity/route.ts:74 The route records an internal event, without dispatching outbound third-party tool arguments."
+        },
+        {
+          "technique": "enumeration-without-a-scope",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/alerts/route.ts:27 The alert list has an explicit tenant scope; the technique's unscopable enumeration condition does not hold."
+        },
+        {
+          "technique": "first-party-agent-is-a-principal",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/activity/route.ts:8 This is a narrow client event-recording API, without a first-party agent reusing public tool handlers."
+        },
+        {
+          "technique": "fluent-syntax-bounded-grammar",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/activity/route.ts:49 The route accepts ordinary JSON event fields, without model-authored command syntax."
+        },
+        {
+          "technique": "one-server-many-registrations",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/health/route.ts:97 The reported alternatives are database modes, without multiple host registrations of one tool server."
+        },
+        {
+          "technique": "orchestration-to-tool-migration",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/eval/telemetry/route.ts:29 The endpoint summarizes operational data, without migrating pipeline stages into agent-selected tools."
+        },
+        {
+          "technique": "sanctioned-session-state",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/auth/[...nextauth]/route.ts:1 The authentication route delegates to application auth, without protocol replica-affinity ownership."
+        },
+        {
+          "technique": "sealed-continuation-state",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/activity/route.ts:47 The event request contains ordinary application fields, without a caller-carried execution continuation."
+        },
+        {
+          "technique": "server-composition",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/alerts/route.ts:59 This dispatches inbox actions inside a REST route, without protocol discovery or tool invocation."
+        },
+        {
+          "technique": "suspendable-request-classes",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/health/route.ts:75 The probe has a machine timeout; no protocol operation can suspend for human elicitation here."
+        },
+        {
+          "technique": "tool-identity-vs-tool-name",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/eval/telemetry/route.ts:12 The persisted history concerns internal LLM operations, without protocol tool definitions or result identity metadata."
+        },
+        {
+          "technique": "tool-schema-design",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/activity/route.ts:55 This validates a client event taxonomy, without a tool schema presented to a model for invocation."
+        },
+        {
+          "technique": "transport-selection",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/usage/route.ts:6 This is an application HTTP handler, without a tool-protocol transport selection."
+        },
+        {
+          "technique": "untrusted-result-handling",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/activity/route.ts:78 The route composes audit text for the application; it does not inject external tool results into an invoking model."
+        },
+        {
+          "technique": "write-freshness-gate",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/alerts/route.ts:64 Marking an inbox item read is an application action, without an agent editing a previously read artifact."
+        }
+      ]
+    },
+    "d933c7ad-af48-44fb-9b86-126b70d1574a/mcp-tools": {
+      "context": "session-firebase-core",
+      "subject": "mcp-tools",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T21:25:31.758Z",
+      "worker": "5ec3196a-6460-49cf-8f11-8db3425d6dbf",
+      "techniques": [
+        {
+          "technique": "ambient-selection-is-not-an-argument",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/export.ts:23 The export helper computes a filename from supplied parts, without resolving an interactive application's ambient target."
+        },
+        {
+          "technique": "authentication-and-scoping",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/session.ts:15 This retrieves an application session, without minting or validating per-consumer tool-server tokens."
+        },
+        {
+          "technique": "caller-differentiated-capability",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/export.ts:94 The helper distinguishes browser availability, without separate human CLI and agent option sets."
+        },
+        {
+          "technique": "catalog-projection-modes",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/plans.ts:19 The catalog defines product plans, not host-visible protocol tools subject to a shared ceiling."
+        },
+        {
+          "technique": "client-integration",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/export.ts:89 The client helper triggers a browser download, without installing or managing tool servers."
+        },
+        {
+          "technique": "command-audit-by-position",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/db.ts:14 The module uses an in-process database driver, without executing configured server-launch commands."
+        },
+        {
+          "technique": "egress-argument-gating",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/export.ts:95 The export builds a browser-local download payload, without third-party tool arguments granting outbound access."
+        },
+        {
+          "technique": "enumeration-without-a-scope",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/usage.ts:74 The lookup is explicitly keyed by user, without an unscopable resource enumeration."
+        },
+        {
+          "technique": "first-party-agent-is-a-principal",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/usage.ts:121 This enforces application usage limits, without admitting a companion agent to a protocol catalog."
+        },
+        {
+          "technique": "fluent-syntax-bounded-grammar",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/api/route-utils.ts:100 The helper reads JSON request bodies, without accepting model-authored executable notation."
+        },
+        {
+          "technique": "one-server-many-registrations",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/firebase.ts:58 These are Firebase SDK app instances, not host registration records for protocol servers."
+        },
+        {
+          "technique": "orchestration-to-tool-migration",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/data.ts:7 This exposes a static dataset, without an adaptive pipeline stage moving onto an agent tool surface."
+        },
+        {
+          "technique": "sanctioned-session-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/session.ts:5 The cache is request-scoped memoization, without replica-owned cross-call state requiring affinity."
+        },
+        {
+          "technique": "sealed-continuation-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/db.ts:22 The retained values are server-side database bookkeeping, not state handed to an untrusted caller to carry."
+        },
+        {
+          "technique": "server-composition",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/api/route-utils.ts:1 The helpers scaffold application routes, without a protocol shell and discovered tool registry."
+        },
+        {
+          "technique": "suspendable-request-classes",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/usage.ts:115 Metering executes a database transaction, without human-suspendable protocol requests."
+        },
+        {
+          "technique": "tool-identity-vs-tool-name",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/plans.ts:8 These are application quota categories, without published tool identities correlated across renames."
+        },
+        {
+          "technique": "tool-schema-design",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/api/route-utils.ts:62 The catalog defines application API error codes, without model-selected tool definitions and input schemas."
+        },
+        {
+          "technique": "transport-selection",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/firebase.ts:80 This initializes a backend SDK, without choosing a carrier for a model-facing tool protocol."
+        },
+        {
+          "technique": "write-freshness-gate",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/export.ts:99 This names a browser download, without an agent write operation against a previously read shared artifact."
         }
       ]
     }

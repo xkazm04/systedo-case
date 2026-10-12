@@ -2976,7 +2976,11 @@
           "revision": 31,
           "changedAt": "2026-10-06",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/ai/tools/index.ts:1 The shared layer supports internal structured generation, so its tool terminology does not establish the protocol boundary required by this subject.",
+          "evaluatedAt": "2026-10-12",
+          "evaluatedAgainst": "sha256-b2:afba7a2b8c938ae1",
+          "evaluatedRevision": 31
         },
         {
           "subject": "prompt-assembly",
@@ -11925,13 +11929,12 @@
           "changedAt": "2026-10-06",
           "confidence": "strong",
           "state": "not-applicable",
-          "evidence": "No MCP client/server/tool-schema appears anywhere in this context (verified by grep); 'tools' here means the internal src/lib/ai/tools/* functions, not the Model Context Protocol — a lexical match, as flagged.",
-          "evaluatedAt": "2026-09-22",
-          "evaluatedAgainst": "sha256:9fb673a2a2cbe4da",
-          "evaluatedRevision": 28,
+          "evidence": "src/components/marketing/sken/SkenClient.tsx:13 The onboarding flow invokes application generation through its web API, without exposing or consuming a model-facing tool protocol.",
+          "evaluatedAt": "2026-10-12",
+          "evaluatedAgainst": "sha256-b2:afba7a2b8c938ae1",
+          "evaluatedRevision": 31,
           "source": "conform",
-          "revisionsBehind": 3,
-          "stale": true
+          "revisionsBehind": 3
         },
         {
           "subject": "prompt-assembly",
@@ -12947,7 +12950,11 @@
           "revision": 31,
           "changedAt": "2026-10-06",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/app/api/activity/route.ts:1 These routes serve application authentication, monitoring, inboxes, and telemetry rather than a discovered model-facing tool protocol.",
+          "evaluatedAt": "2026-10-12",
+          "evaluatedAgainst": "sha256-b2:afba7a2b8c938ae1",
+          "evaluatedRevision": 31
         },
         {
           "subject": "prompt-assembly",
@@ -15529,7 +15536,11 @@
           "revision": 31,
           "changedAt": "2026-10-06",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/session.ts:1 This context supplies application session, storage, metering, and export helpers without implementing a tool-protocol host or server.",
+          "evaluatedAt": "2026-10-12",
+          "evaluatedAgainst": "sha256-b2:afba7a2b8c938ae1",
+          "evaluatedRevision": 31
         },
         {
           "subject": "prompt-assembly",
