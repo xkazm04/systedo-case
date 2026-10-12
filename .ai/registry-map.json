@@ -11972,14 +11972,10 @@
           "revision": 26,
           "changedAt": "2026-10-06",
           "confidence": "strong",
+          "source": "conform",
           "state": "not-applicable",
           "evidence": "This context's declared paths contain no harness machinery (no suite config, fixtures, lane definitions); tests for this flow exist at test-unit/sken-*.test.mjs, but the harness that partitions/schedules them is project-wide, not owned by this context's source files. [re-judged 2026-09-22: still holds. The context owns four unit tests (test-unit/sken-*.test.mjs) but no harness machinery. The 13 added techniques were checked by shape, not by name: none of the four reads source as text, asserts call order, or claims an effect on a system it does not own - the only URLs in them are fixture values.]",
-          "evaluatedAt": "2026-09-22",
-          "evaluatedAgainst": "sha256:c449405aa9d2e869",
-          "evaluatedRevision": 23,
-          "source": "conform",
-          "revisionsBehind": 3,
-          "stale": true
+          "evaluatedAt": "2026-09-22"
         },
         {
           "subject": "agent-memory",

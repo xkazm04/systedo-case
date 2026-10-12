@@ -1,0 +1,98 @@
+{
+  "schema": "conform-run/1",
+  "worker": "1527ca0a-1c74-4fe4-bb6c-80caab5a5f9e",
+  "subject": "test-harness",
+  "evaluatedAt": "2026-10-12T23:28:50.422823+00:00",
+  "provider": "agy",
+  "model": "gemini-3.8-flash-high",
+  "pairs": [],
+  "declined": [
+    {
+      "subject": "test-harness",
+      "context": "onboarding-flow",
+      "reason": "withdrawn after review: reviewer (sonnet): Each not-applicable anchor is incidental: progress.ts:41 is a function docblock, registry.ts:16 is an exporter list, schedule.ts:21 is isNewPeriod, mutator.ts:401 is a rail-order comment, and send.ts:79 is nodeTransport. None of them shows that test-harness machinery is absent. The claimed searches "
+    },
+    {
+      "subject": "test-harness",
+      "context": "lead-management",
+      "reason": "withdrawn after review: reviewer (sonnet): Each not-applicable anchor is incidental: progress.ts:41 is a function docblock, registry.ts:16 is an exporter list, schedule.ts:21 is isNewPeriod, mutator.ts:401 is a rail-order comment, and send.ts:79 is nodeTransport. None of them shows that test-harness machinery is absent. The claimed searches "
+    },
+    {
+      "subject": "test-harness",
+      "context": "cron-scheduler",
+      "reason": "withdrawn after review: reviewer (sonnet): Each not-applicable anchor is incidental: progress.ts:41 is a function docblock, registry.ts:16 is an exporter list, schedule.ts:21 is isNewPeriod, mutator.ts:401 is a rail-order comment, and send.ts:79 is nodeTransport. None of them shows that test-harness machinery is absent. The claimed searches "
+    },
+    {
+      "subject": "test-harness",
+      "context": "campaigns-core-lib",
+      "reason": "withdrawn after review: reviewer (sonnet): Each not-applicable anchor is incidental: progress.ts:41 is a function docblock, registry.ts:16 is an exporter list, schedule.ts:21 is isNewPeriod, mutator.ts:401 is a rail-order comment, and send.ts:79 is nodeTransport. None of them shows that test-harness machinery is absent. The claimed searches "
+    },
+    {
+      "subject": "test-harness",
+      "context": "Outbound event bus",
+      "reason": "withdrawn after review: reviewer (sonnet): Each not-applicable anchor is incidental: progress.ts:41 is a function docblock, registry.ts:16 is an exporter list, schedule.ts:21 is isNewPeriod, mutator.ts:401 is a rail-order comment, and send.ts:79 is nodeTransport. None of them shows that test-harness machinery is absent. The claimed searches "
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-12T23:28:50.422823+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "test-harness"
+      ],
+      "techniques": [],
+      "deviations": 0,
+      "context": "onboarding-flow",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-12T23:28:50.422823+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "test-harness"
+      ],
+      "techniques": [],
+      "deviations": 0,
+      "context": "lead-management",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-12T23:28:50.422823+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "test-harness"
+      ],
+      "techniques": [],
+      "deviations": 0,
+      "context": "cron-scheduler",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-12T23:28:50.422823+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "test-harness"
+      ],
+      "techniques": [],
+      "deviations": 0,
+      "context": "campaigns-core-lib",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-12T23:28:50.422823+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "test-harness"
+      ],
+      "techniques": [],
+      "deviations": 0,
+      "context": "Outbound event bus",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    }
+  ]
+}

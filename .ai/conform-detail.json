@@ -239,9 +239,24 @@
       "subject": "test-harness",
       "bundle": "software-engineering",
       "state": "not-applicable",
-      "evaluatedAt": "2026-08-31",
-      "worker": "w7-systedo-llm",
-      "techniques": []
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T23:28:50.422Z",
+      "techniques": [],
+      "superseded": [
+        {
+          "state": "not-applicable",
+          "evidence": "This context's declared paths contain no harness machinery (no suite config, fixtures, lane definitions); tests for this flow exist at test-unit/sken-*.test.mjs, but the harness that partitions/schedules them is project-wide, not owned by this context's source files. [re-judged 2026-09-22: still holds. The context owns four unit tests (test-unit/sken-*.test.mjs) but no harness machinery. The 13 added techniques were checked by shape, not by name: none of the four reads source as text, asserts call order, or claims an effect on a system it does not own - the only URLs in them are fixture values.]",
+          "evaluatedAt": "2026-09-22",
+          "worker": null,
+          "reason": "replaced by 1527ca0a-1c74-4fe4-bb6c-80caab5a5f9e"
+        }
+      ],
+      "withdrawn": {
+        "worker": "1527ca0a-1c74-4fe4-bb6c-80caab5a5f9e",
+        "state": "not-applicable",
+        "at": "2026-10-12T23:29:23.838528+00:00",
+        "reason": "reviewer (sonnet): Each not-applicable anchor is incidental: progress.ts:41 is a function docblock, registry.ts:16 is an exporter list, schedule.ts:21 is isNewPeriod, mutator.ts:401 is a rail-order comment, and send.ts:79 is nodeTransport. None of them shows that test-harness machinery is absent. The claimed searches "
+      }
     },
     "de6396ef-7b54-4360-ad3b-6d9f3d4db536/mcp-tools": {
       "context": "onboarding-flow",
@@ -1020,6 +1035,66 @@
       "evaluatedTs": "2026-10-12T22:31:42.197Z",
       "worker": "a10ef567-a052-4fc0-aeed-49872a8b8aee",
       "techniques": []
+    },
+    "9c32aaab-b57d-4912-aa00-1e00b877253e/test-harness": {
+      "context": "lead-management",
+      "subject": "test-harness",
+      "bundle": "software-engineering",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T23:28:50.422Z",
+      "techniques": [],
+      "withdrawn": {
+        "worker": "1527ca0a-1c74-4fe4-bb6c-80caab5a5f9e",
+        "state": "not-applicable",
+        "at": "2026-10-12T23:29:23.838528+00:00",
+        "reason": "reviewer (sonnet): Each not-applicable anchor is incidental: progress.ts:41 is a function docblock, registry.ts:16 is an exporter list, schedule.ts:21 is isNewPeriod, mutator.ts:401 is a rail-order comment, and send.ts:79 is nodeTransport. None of them shows that test-harness machinery is absent. The claimed searches "
+      }
+    },
+    "d5522378-2f5d-4d29-9632-c7d6de708116/test-harness": {
+      "context": "cron-scheduler",
+      "subject": "test-harness",
+      "bundle": "software-engineering",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T23:28:50.422Z",
+      "techniques": [],
+      "withdrawn": {
+        "worker": "1527ca0a-1c74-4fe4-bb6c-80caab5a5f9e",
+        "state": "not-applicable",
+        "at": "2026-10-12T23:29:23.838528+00:00",
+        "reason": "reviewer (sonnet): Each not-applicable anchor is incidental: progress.ts:41 is a function docblock, registry.ts:16 is an exporter list, schedule.ts:21 is isNewPeriod, mutator.ts:401 is a rail-order comment, and send.ts:79 is nodeTransport. None of them shows that test-harness machinery is absent. The claimed searches "
+      }
+    },
+    "67b653f8-91d5-47ea-919a-09b0d6315f76/test-harness": {
+      "context": "campaigns-core-lib",
+      "subject": "test-harness",
+      "bundle": "software-engineering",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T23:28:50.422Z",
+      "techniques": [],
+      "withdrawn": {
+        "worker": "1527ca0a-1c74-4fe4-bb6c-80caab5a5f9e",
+        "state": "not-applicable",
+        "at": "2026-10-12T23:29:23.838528+00:00",
+        "reason": "reviewer (sonnet): Each not-applicable anchor is incidental: progress.ts:41 is a function docblock, registry.ts:16 is an exporter list, schedule.ts:21 is isNewPeriod, mutator.ts:401 is a rail-order comment, and send.ts:79 is nodeTransport. None of them shows that test-harness machinery is absent. The claimed searches "
+      }
+    },
+    "outbound-event-bus/test-harness": {
+      "context": "Outbound event bus",
+      "subject": "test-harness",
+      "bundle": "software-engineering",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-12",
+      "evaluatedTs": "2026-10-12T23:28:50.422Z",
+      "techniques": [],
+      "withdrawn": {
+        "worker": "1527ca0a-1c74-4fe4-bb6c-80caab5a5f9e",
+        "state": "not-applicable",
+        "at": "2026-10-12T23:29:23.838528+00:00",
+        "reason": "reviewer (sonnet): Each not-applicable anchor is incidental: progress.ts:41 is a function docblock, registry.ts:16 is an exporter list, schedule.ts:21 is isNewPeriod, mutator.ts:401 is a rail-order comment, and send.ts:79 is nodeTransport. None of them shows that test-harness machinery is absent. The claimed searches "
+      }
     }
   }
 }
