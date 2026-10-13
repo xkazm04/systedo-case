@@ -7876,7 +7876,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/app/api/cron/social/route.ts:18 The social cron endpoint publishes due posts via atomic claims and records the asset-publish event only upon provider confirmation, keeping promises separate from confirmed publishes.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:091ee6726a8ad240",
+          "evaluatedRevision": 1
         },
         {
           "subject": "mcp-tools",
@@ -16245,7 +16249,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/app/api/social/posts/route.ts:168 The write endpoint runs cadenceRefusal only on future scheduled posts, allowing publish-now posts to bypass the weekly cap entirely while occupying a counted slot once published.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:091ee6726a8ad240",
+          "evaluatedRevision": 1
         },
         {
           "subject": "evidence-bound-visuals",
@@ -16347,7 +16355,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/social/Composer.tsx:182 Composer performs a direct fetch to the social posts endpoint without parsing 409 cadence refusals, displaying a raw machine error and giving the operator no affordance to override the weekly cap.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:091ee6726a8ad240",
+          "evaluatedRevision": 1
         },
         {
           "subject": "prompt-assembly",
@@ -16449,7 +16461,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/social/types.ts:20 Character limits are defined as static constants per platform with no support for account-tier overrides, enforcing a single platform floor rather than an account-specific contract.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:091ee6726a8ad240",
+          "evaluatedRevision": 1
         },
         {
           "subject": "prompt-assembly",

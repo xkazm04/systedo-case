@@ -1,0 +1,234 @@
+{
+  "schema": "conform-run/1",
+  "worker": "9a785e48-29b4-43b9-99f5-6c6bf989b2d8",
+  "subject": "channel-native-social-and-repurposing",
+  "evaluatedAt": "2026-10-13T09:58:57.239611+00:00",
+  "provider": "agy",
+  "model": "gemini-3.8-flash-high",
+  "pairs": [
+    {
+      "context": "social-media-management",
+      "subject": "channel-native-social-and-repurposing",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/components/social/Composer.tsx:182 Composer performs a direct fetch to the social posts endpoint without parsing 409 cadence refusals, displaying a raw machine error and giving the operator no affordance to override the weekly cap.",
+      "techniques": [
+        {
+          "technique": "cadence-caps-at-one-chokepoint",
+          "verdict": "deviation",
+          "evidence": "src/components/social/Composer.tsx:182 Direct fetch does not parse 409 cadence refusal into CadenceNotice or provide the override button."
+        },
+        {
+          "technique": "the-channel-confirms-the-app-promises",
+          "verdict": "conformant",
+          "evidence": "src/lib/publishing/types.ts:27 PublishingStatus taxonomy explicitly requires channel confirmation before any post reads as published."
+        },
+        {
+          "technique": "per-network-register-and-limits",
+          "verdict": "not-applicable",
+          "evidence": "src/components/social/Composer.tsx:126 Post drafting is delegated to /api/social/draft rather than defining the prompt register table, validator, or clamp in this context."
+        }
+      ]
+    },
+    {
+      "context": "social-media",
+      "subject": "channel-native-social-and-repurposing",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/app/api/social/posts/route.ts:168 The write endpoint runs cadenceRefusal only on future scheduled posts, allowing publish-now posts to bypass the weekly cap entirely while occupying a counted slot once published.",
+      "techniques": [
+        {
+          "technique": "cadence-caps-at-one-chokepoint",
+          "verdict": "deviation",
+          "evidence": "src/app/api/social/posts/route.ts:168 Cadence check is bypassed on immediate publish requests despite published posts counting towards the cap."
+        },
+        {
+          "technique": "the-channel-confirms-the-app-promises",
+          "verdict": "conformant",
+          "evidence": "src/app/api/social/posts/route.ts:172 Scheduling records no publish taxonomy so unconfirmed promises stay invisible to publish-rate rollups."
+        },
+        {
+          "technique": "per-network-register-and-limits",
+          "verdict": "conformant",
+          "evidence": "src/app/api/social/posts/route.ts:130 The write chokepoint independently enforces platform character limits with an HTTP 422 refusal."
+        },
+        {
+          "technique": "retell-not-copy-with-source-digest",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/social/draft/route.ts:1 Social drafting generates standalone posts from topics rather than repurposing source articles."
+        }
+      ]
+    },
+    {
+      "context": "social-publishing",
+      "subject": "channel-native-social-and-repurposing",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/lib/social/types.ts:20 Character limits are defined as static constants per platform with no support for account-tier overrides, enforcing a single platform floor rather than an account-specific contract.",
+      "techniques": [
+        {
+          "technique": "per-network-register-and-limits",
+          "verdict": "deviation",
+          "evidence": "src/lib/social/types.ts:20 Fixed platform limits cannot be raised by account tier and the register table is absent from this module."
+        },
+        {
+          "technique": "ground-in-measured-top-posts",
+          "verdict": "conformant",
+          "evidence": "src/lib/social/metrics.ts:120 Grounding returns an empty string when no posts have metrics rows, preventing placeholder text from steering prompts."
+        },
+        {
+          "technique": "the-channel-confirms-the-app-promises",
+          "verdict": "conformant",
+          "evidence": "src/lib/social/types.ts:38 Separates scheduled promises, transient leased publishing claims, and channel-confirmed publishes."
+        },
+        {
+          "technique": "cadence-caps-at-one-chokepoint",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/social/publish.ts:49 Module executes low-level post publishing and metrics storage; cadence cap enforcement belongs to the scheduling chokepoint."
+        },
+        {
+          "technique": "retell-not-copy-with-source-digest",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/social/draft.ts:48 Draft generator creates social posts from short topic phrases rather than bounding long articles."
+        }
+      ]
+    },
+    {
+      "context": "cron-jobs",
+      "subject": "channel-native-social-and-repurposing",
+      "bundle": "marketing",
+      "state": "conformant",
+      "evidence": "src/app/api/cron/social/route.ts:18 The social cron endpoint publishes due posts via atomic claims and records the asset-publish event only upon provider confirmation, keeping promises separate from confirmed publishes.",
+      "techniques": [
+        {
+          "technique": "the-channel-confirms-the-app-promises",
+          "verdict": "conformant",
+          "evidence": "src/app/api/cron/social/route.ts:18 Records the asset-publish event only upon provider confirmation and clears stale publishing claims."
+        },
+        {
+          "technique": "ground-in-measured-top-posts",
+          "verdict": "conformant",
+          "evidence": "src/app/api/cron/ledgers/route.ts:49 Runs the registered socialReadbackStep to snapshot lifetime post engagement counters on a coarse interval."
+        },
+        {
+          "technique": "cadence-caps-at-one-chokepoint",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/cron/social/route.ts:68 Processes previously scheduled posts that already passed the write chokepoint; cadence enforcement does not apply at background send time."
+        },
+        {
+          "technique": "hook-value-cta-triad",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/cron/social/route.ts:87 Background execution cron sends existing post content and performs no generative prompt engineering."
+        },
+        {
+          "technique": "per-network-register-and-limits",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/cron/social/route.ts:7 Cron job operates as an execution worker without writing prompts or defining character limits."
+        },
+        {
+          "technique": "retell-not-copy-with-source-digest",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/cron/social/route.ts:1 Endpoint publishes scheduled social posts rather than decomposing or repurposing articles."
+        }
+      ]
+    }
+  ],
+  "declined": [
+    {
+      "subject": "channel-native-social-and-repurposing",
+      "context": "organic-channels-keywords",
+      "reason": "withdrawn after review: reviewer (sonnet): The not-applicable anchor (ChannelPlaybook.tsx:148) is a cadence pill linking to /socialni, so it doesn't show the precondition is absent. The context does hold the cadence cap (track.maxPerWeek, which the posts route's cadenceRefusal reads through resolveCadenceRules) and has a social channel categ"
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-13T09:58:57.239611+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "channel-native-social-and-repurposing"
+      ],
+      "techniques": [
+        "cadence-caps-at-one-chokepoint",
+        "per-network-register-and-limits",
+        "the-channel-confirms-the-app-promises"
+      ],
+      "deviations": 1,
+      "context": "social-media-management",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-13T09:58:57.239611+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "channel-native-social-and-repurposing"
+      ],
+      "techniques": [
+        "cadence-caps-at-one-chokepoint",
+        "per-network-register-and-limits",
+        "retell-not-copy-with-source-digest",
+        "the-channel-confirms-the-app-promises"
+      ],
+      "deviations": 1,
+      "context": "social-media",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-13T09:58:57.239611+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "channel-native-social-and-repurposing"
+      ],
+      "techniques": [
+        "cadence-caps-at-one-chokepoint",
+        "ground-in-measured-top-posts",
+        "per-network-register-and-limits",
+        "retell-not-copy-with-source-digest",
+        "the-channel-confirms-the-app-promises"
+      ],
+      "deviations": 1,
+      "context": "social-publishing",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-13T09:58:57.239611+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "channel-native-social-and-repurposing"
+      ],
+      "techniques": [
+        "cadence-caps-at-one-chokepoint",
+        "ground-in-measured-top-posts",
+        "hook-value-cta-triad",
+        "per-network-register-and-limits",
+        "retell-not-copy-with-source-digest",
+        "the-channel-confirms-the-app-promises"
+      ],
+      "deviations": 0,
+      "context": "cron-jobs",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-13T09:58:57.239611+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "channel-native-social-and-repurposing"
+      ],
+      "techniques": [
+        "cadence-caps-at-one-chokepoint",
+        "ground-in-measured-top-posts",
+        "hook-value-cta-triad",
+        "per-network-register-and-limits",
+        "retell-not-copy-with-source-digest",
+        "the-channel-confirms-the-app-promises"
+      ],
+      "deviations": 0,
+      "context": "organic-channels-keywords",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    }
+  ]
+}
