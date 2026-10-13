@@ -97,7 +97,7 @@ const FIXTURES = {
   "npm-token": { file: "f.ts", line: `const k = "npm_${a(36)}";` },
   "vercel-token": { file: "f.ts", line: `${a(24)} is the VERCEL_TOKEN` },
   jwt: { file: "f.ts", line: `const t = "eyJ${a(14)}.eyJ${a(14)}.${a(14)}";` },
-  "db-url-with-password": { file: "f.ts", line: `const u = "postgres://u:${a(12)}@db.internal:5432/x";` },
+  "db-url-with-password": { file: "f.ts", line: `const u = "postgres://u:${a(12)}@db.internal:5432/x";` }, // secret-scan:allow - runtime-assembled fixture, no literal password
   "generic-assigned-secret": { file: "f.ts", line: `const cfg = { apiKey: "${FAKE_HEX20}" };` },
   // The one the generic rule structurally could not see: an env NAME with an
   // underscore in front of the secret-ish word.

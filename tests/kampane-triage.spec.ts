@@ -26,7 +26,9 @@ import { pinLocale } from "./support";
  *  table (already synced) — before deciding whether to click. */
 async function ensureSynced(page: Page) {
   await page.goto("/kampane");
-  const sync = page.getByRole("button", { name: "Synchronizovat z Google Ads" });
+  // The console's empty-state button reads "Synchronizovat data" since the Google + Sklik
+  // union read (2d55c793, ADR-0010); it no longer names a single provider.
+  const sync = page.getByRole("button", { name: "Synchronizovat data" });
   const header = page.getByRole("columnheader", { name: "Priorita" });
   await expect(sync.or(header).first()).toBeVisible({ timeout: 30_000 });
   if (await sync.isVisible()) {
