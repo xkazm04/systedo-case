@@ -16,7 +16,6 @@ import ProvenanceChip from "@/components/app/modules/ProvenanceChip";
 import CoverageCell from "@/components/app/modules/CoverageCell";
 import GapPageAction from "@/components/app/modules/local/GapPageAction";
 import type { LocalSignalsSource } from "@/lib/local-signals/types";
-import { moduleHref } from "@/lib/projects/modules";
 
 const T = {
   cs: {
@@ -294,7 +293,7 @@ export default async function LocalModule({
                     <td className="px-4 py-3">
                       <div className="flex flex-col items-start gap-2">
                         <Link
-                          href={`${moduleHref(projectId, "klicova-slova")}?seed=${encodeURIComponent(`${tgt.service} ${tgt.area}`)}`}
+                          href={`/app/${projectId}/klicova-slova?seed=${encodeURIComponent(`${tgt.service} ${tgt.area}`)}`}
                           className="text-xs font-semibold text-brand-accent hover:underline"
                         >
                           {t("exploreGap")} →

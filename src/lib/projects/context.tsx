@@ -52,3 +52,7 @@ export function useOptionalProject(): Project | null {
 export function useProjects(): Project[] {
   return useProjectContext().projects;
 }
+
+/** Re-exported so a client component that already reads the project here builds
+ *  its room links from the same import (ADR-0013's nested URLs). */
+export { moduleHref } from "./modules";

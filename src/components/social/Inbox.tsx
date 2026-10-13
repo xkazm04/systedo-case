@@ -3,10 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Check, Share, Sparkles } from "@/components/icons";
-import { useOptionalProject } from "@/lib/projects/context";
+import { useOptionalProject, moduleHref } from "@/lib/projects/context";
 import { replySeedKey, type ReplySeed } from "@/lib/twin/reply-seed";
 import { useT } from "@/lib/i18n/client";
-import { moduleHref } from "@/lib/projects/modules";
 import {
   SOCIAL_PLATFORM_LABELS,
   type SocialPlatform,

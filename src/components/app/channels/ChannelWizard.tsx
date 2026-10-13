@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Modal from "@/components/app/Modal";
-import { useProject } from "@/lib/projects/context";
+import { useProject, moduleHref } from "@/lib/projects/context";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
 import { ArrowRight, Check } from "@/components/icons";
@@ -28,7 +28,6 @@ import {
   type SignpostContext,
 } from "@/lib/organic-channels/next-step";
 import OptionCard from "./OptionCard";
-import { moduleHref } from "@/lib/projects/modules";
 
 const T = {
   cs: {

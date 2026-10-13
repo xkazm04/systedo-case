@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ArrowRight, Bolt, Layers, Network } from "@/components/icons";
 import { Pill } from "@/components/ui";
-import { useProject } from "@/lib/projects/context";
+import { useProject, moduleHref } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import type { BriefSeed } from "@/components/ai/KeywordResearch";
 import type { KeywordCluster, KeywordClustersResult } from "@/lib/ai-types";
@@ -20,7 +20,6 @@ import {
 } from "@/components/ai/primitives";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
-import { moduleHref } from "@/lib/projects/modules";
 
 const T = {
   cs: {

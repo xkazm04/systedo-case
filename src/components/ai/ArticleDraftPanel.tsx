@@ -8,7 +8,7 @@ import Modal from "@/components/app/Modal";
 import { downloadText } from "@/lib/export";
 import { reportAssetPublished } from "@/lib/activity/publish-client";
 import { useT } from "@/lib/i18n/client";
-import { useOptionalProject } from "@/lib/projects/context";
+import { useOptionalProject, moduleHref } from "@/lib/projects/context";
 import { inlineToText, type Article, type Block, type FaqItem } from "@/lib/article";
 import { blockToMarkdown, inlineToMarkdown, type MarkdownLabels } from "@/lib/article-markdown";
 import { articleSourceFromDraft } from "@/lib/distribution/from-draft";
@@ -16,7 +16,6 @@ import { sendArticleToDistributionAction } from "@/components/app/modules/distri
 import type { AiResponse, ArticleDraftRequest, ArticleDraftResult, BriefResult } from "@/lib/ai-types";
 import type { CreativeSummary } from "@/lib/images/types";
 import { useAiTool } from "./useAiTool";
-import { moduleHref } from "@/lib/projects/modules";
 import {
   LoadingTimer,
   PromptDisclosure,

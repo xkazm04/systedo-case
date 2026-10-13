@@ -7,7 +7,7 @@ import { Pill, type PillTone } from "@/components/ui";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import type { SupportedLocale } from "@/lib/format";
-import { useProject } from "@/lib/projects/context";
+import { useProject, moduleHref } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import type { BriefSeed } from "@/components/ai/KeywordResearch";
 import { useAiTool } from "@/components/ai/useAiTool";
@@ -28,7 +28,6 @@ import {
 } from "@/lib/seo-compare/compute";
 import type { CompareIntent, CompareQuery } from "@/lib/seo-compare/sample";
 import type { KeywordList } from "@/lib/keywords/types";
-import { moduleHref } from "@/lib/projects/modules";
 
 const T = {
   cs: {

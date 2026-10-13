@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bolt, Check, Document, Download, Layers, Search, Share } from "@/components/icons";
 import { downloadText } from "@/lib/export";
 import { reportAssetPublished } from "@/lib/activity/publish-client";
-import { useOptionalProject } from "@/lib/projects/context";
+import { useOptionalProject, moduleHref } from "@/lib/projects/context";
 import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
@@ -30,7 +30,6 @@ import {
 } from "@/lib/ai/pipeline";
 import { useAiTool } from "./useAiTool";
 import { usePersistedForm } from "./usePersistedForm";
-import { moduleHref } from "@/lib/projects/modules";
 import {
   CharCount,
   CopyButton,

@@ -14,7 +14,7 @@ import { channelToPlatform } from "@/lib/distribution/handoff";
 import { NEWSLETTER_CHANNEL } from "@/lib/distribution/publish";
 import type { VariantState, VariantStatus } from "@/lib/distribution/variants";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social/types";
-import { useProject } from "@/lib/projects/context";
+import { useProject, moduleHref } from "@/lib/projects/context";
 import { useCopyFeedback } from "@/lib/useCopyFeedback";
 import { useAiTool } from "@/components/ai/useAiTool";
 import type { RepurposeResult, Tone } from "@/lib/ai-types";
@@ -25,7 +25,6 @@ import VariantAiStatus from "./VariantAiStatus";
 import VariantLinkRow from "./VariantLinkRow";
 import { useVariantDraft } from "./useVariantDraft";
 import { reportDistributionPublish } from "./report-publish";
-import { moduleHref } from "@/lib/projects/modules";
 
 /** Tone used for the AI repurposing — friendly/human matches the demo content. */
 const REPURPOSE_TONE: Tone = "pratelsky";
