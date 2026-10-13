@@ -59,17 +59,32 @@ test("a gate is `seconds` only while it measures like one", () => {
 });
 
 test("the measured chain, in the shape it has today, is clean", () => {
-  // The real order: thirteen zero-dependency checks, then `next build`, then the
-  // unit suite. Representative durations, not a fixture of real numbers — the
-  // property under test is the rule, and CI measures the numbers.
+  // The real order: fourteen zero-dependency checks, then the unit suite, then
+  // `npm run check` and its `next build` last. Representative durations, not a
+  // fixture of real numbers — the property under test is the rule, and CI measures
+  // the numbers.
   const rows = [
     { stage: "adr:check", ms: 300, label: "seconds" },
     { stage: "actions:check", ms: 900, label: "seconds" },
     { stage: "seed:check", ms: 1200, label: "seconds" },
-    { stage: "check", ms: 180_000, label: "minutes" },
     { stage: "test:unit", ms: 45_000, label: "a minute" },
+    { stage: "check", ms: 180_000, label: "minutes" },
   ];
   assert.deepEqual(orderingProblems(rows), []);
+});
+
+test("the rule holds at every rung, not only at the seconds boundary", () => {
+  // The shape this chain was actually in until 2026-09-02: the 517-file unit suite
+  // ran AFTER `npm run check`, so a broken test was reported only once `next build`
+  // had finished — and because both stages measure "not seconds", the older rule
+  // (no seconds-long gate behind a slow one) could never see it.
+  const problems = orderingProblems([
+    { stage: "check", ms: 180_000, label: "minutes" },
+    { stage: "test:unit", ms: 45_000, label: "a minute" },
+  ]);
+  assert.equal(problems.length, 1, "the unit suite behind `next build` is the cost this rule exists to refuse.");
+  assert.match(problems[0], /test:unit/);
+  assert.match(problems[0], /AFTER `check`/);
 });
 
 test("a cheap gate placed behind an expensive one is a finding", () => {

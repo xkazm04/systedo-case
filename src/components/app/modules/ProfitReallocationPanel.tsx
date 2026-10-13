@@ -48,9 +48,10 @@ const T = {
     reallocationFooterCurve:
       "Allocated {allocated} of {total} · marginal profit along the response curve where data allows; the other channels keep the 3× spend cap.",
     liveHint: "Margin or budget changes apply live.",
-    // "Kč", not "USD" — see profit/strings.ts; the budget input is koruny in
-    // both locales and these two panels render on the same screen.
-    currencyUnit: "Kč",
+    // "CZK", not "USD" — see profit/strings.ts; the budget input is koruny in
+    // both locales and these two panels render on the same screen. English writes
+    // the koruna as "CZK" (operator ruling 2026-09-14, docs/i18n/style-en.md).
+    currencyUnit: "CZK",
   },
 } as const;
 

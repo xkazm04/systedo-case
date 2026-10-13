@@ -29,8 +29,20 @@ function collectSources(dir) {
 /** A module opts into the client bundle with a leading `"use client"` directive
  *  (allowed to sit after a leading block/line comment). Match it near the top. */
 function isClientComponent(src) {
-  return /^\s*(?:\/\*[\s\S]*?\*\/\s*|\/\/[^\n]*\n\s*)*["']use client["']/.test(src);
+  // Strip the prefix before checking the directive. Requiring the directive at
+  // the end of the repeated-comment regex backtracks across every later comment
+  // in non-client files such as src/lib/twin/types.ts and stalls the full suite.
+  const body = src.replace(/^\s*(?:(?:\/\*[\s\S]*?\*\/|\/\/[^\n]*(?:\n|$))\s*)*/, "");
+  return /^["']use client["']/.test(body);
 }
+
+test("client detection handles leading comments without scanning later code as a prefix", () => {
+  assert.equal(isClientComponent('/* intro */\n// context\n"use client";'), true);
+  assert.equal(isClientComponent("\n'use client';"), true);
+  assert.equal(isClientComponent('/* intro */\nexport const value = 1;\n/* later */\n"use client";'), false);
+  assert.equal(isClientComponent('/* "use client" is documentation */\nexport const value = 1;'), false);
+  assert.equal(isClientComponent(readFileSync(join(SRC, "lib/twin/types.ts"), "utf8")), false);
+});
 
 /** Every `import ... from "@/lib/format"` statement in a file, with the raw brace
  *  body and whether the whole clause is `import type`. */

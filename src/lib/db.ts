@@ -164,6 +164,16 @@ const SCHEMA = `
     updated_at TEXT NOT NULL
   );
 
+  -- Per-TENANT client-report configuration (white-label + scheduled delivery +
+  -- the account-scoped revenue-goal history), one row per tenant, keyed exactly
+  -- like the Firestore doc at tenants/{tenant}/config/report. See
+  -- src/lib/campaigns/report-config.ts.
+  CREATE TABLE IF NOT EXISTS report_config (
+    tenant     TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- The Kanály module's organic (zero ad-spend) visibility plan: per-project tracked
   -- channel status (the checklist) + an optional pinned AI plan, as one {statuses,
   -- plan?} blob. Absent → the module runs on the seeded per-type sample with no
@@ -1347,6 +1357,20 @@ const MIGRATIONS: Migration[] = [
       );
     },
     applied: (db) => tableExists(db, "twin_archive_evictions"),
+  },
+  {
+    version: 35,
+    name: "report_config (LOCAL_DB backend for the per-tenant client-report config)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS report_config (
+          tenant     TEXT PRIMARY KEY,
+          data       TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )`
+      );
+    },
+    applied: (db) => tableExists(db, "report_config"),
   },
 ];
 

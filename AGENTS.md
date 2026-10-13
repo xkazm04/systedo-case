@@ -120,9 +120,9 @@ npm run check:ci      # what CI runs, CHEAPEST FIRST: adr:check + docs:parity
                       #   + merge-gate + contract:ledger:check + context:decay:check
                       #   + review:agent:gate + llm:gate:check + llm:quality:check
                       #   + llm:budget:check + seed:check, THEN the slow half:
-                      #   check (typecheck/lint/build) + test:unit. The fourteen
-                      #   zero-dependency checks run before `next build`, so a wrong
-                      #   change is refused in seconds rather than after a build
+                      #   test:unit, then check (typecheck/lint/build). Cheapest
+                      #   first ALL THE WAY DOWN — the suite's verdict arrives
+                      #   before `next build`, the stage that dominates the chain
 npm run check:ci:timed # the SAME chain, with a clock on each stage — this is what
                       #   CI runs. Per-gate durations + each stage's share of the
                       #   total into the job summary and .gate-timings.json, and a
@@ -301,6 +301,8 @@ remedy all turn the unit suite red.
 10. Design system: token-driven (`ink`/`muted`/`surface`/`brand-*`, dark mode via token overrides), shared `Button` in `src/components/ui.tsx`; conventions in `docs/design-system.md`.
 
 ## Conventions that bite
+
+- **Commit on the current branch; never push.** `git push` itself is denied to Claude Code in this repository; every other agent is bound by this instruction, and the owner pushes after reading the log. This line exists because the harness's own default for an unattended session is to push and open a draft PR when the file says nothing (measured 2026-09-08: without such a line the agent pushed; with it the agent stopped at the commit). The gate bypass is denied to Claude Code at the permission layer (`.claude/settings.json` `permissions.deny`: `--no-verify`, force-push, `SYSTEDO_SKIP_GATE=1`, `HUSKY=0`) - do not work around it; if a gate is red, fix the tree.
 
 - **llm-tool tag contract**: every `generateStructured` call site must carry a
   `// llm-tool: <id>` comment with a registered test in the gate registry.
@@ -710,7 +712,7 @@ remedy all turn the unit suite red.
   the context it belongs to, or declare the crossing in `cross_refs` and let a
   reviewer see the line. `npm run context:decay` (no `--check`) is the census of
   what already crosses — inherited, printed, not blocked; it is where the "are
-  these 16 groups real?" question gets answered.
+  these 12 groups real?" question gets answered.
 - **And the suite is measured for the repository, while the work is done in a
   context.** 515 test files, a healthy ratio and a mutation drill on six seams are
   all TOTALS, and a whole context with no test pointing at it moves a total by a
@@ -907,7 +909,7 @@ would notice afterwards.
 | `cheapest-first` — the chain is ordered by a clock, not by a claim | `gates:timings:check` | blocking |
 | `harness-degradation` — a capability that stops running says so | `harness:degradation:check` | blocking |
 | `seed-determinism` — the demo dataset regenerates identically | `seed:check` | blocking |
-| `no-push` — never push, and especially never to `master` | `.husky/pre-push` (verifies, does not prevent) | partial |
+| `no-push` — never push, and especially never to `master` | `.claude/settings.json` denies Claude Code; `.husky/pre-push` verifies the owner's push | partial |
 | `no-live-ad-writes` — never arm or widen `SKLIK_WRITES_ENABLED` | `test-unit/campaigns-mutator.test.mjs` | partial |
 | `no-outbound-under-operator` — the operator presses send | — | **honour** |
 | `no-secret-movement` — never move a credential anywhere | `.husky/pre-commit` secret scan, `sast` | partial |

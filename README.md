@@ -1,9 +1,9 @@
 # Adamant — AI ad intelligence, on your machine
 
-![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
-![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss&logoColor=white)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://www.npmjs.com/package/next)
+[![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)](https://www.npmjs.com/package/react)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.npmjs.com/package/typescript)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss&logoColor=white)](https://www.npmjs.com/package/tailwindcss)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
 
 [![CI](https://github.com/xkazm04/systedo-case/actions/workflows/ci.yml/badge.svg)](https://github.com/xkazm04/systedo-case/actions/workflows/ci.yml)
@@ -33,6 +33,8 @@ publishing surfaces.
 > is illustrative and labelled as such — none of it is a real customer's result.
 
 ![Adamant portfolio overview on Mionelo demo data](./docs/assets/readme-dashboard.png)
+
+*Portfolio overview rendered on the fictional Mionelo demo data described above — illustrative, not a real customer's numbers.*
 
 ## Two-minute local start
 

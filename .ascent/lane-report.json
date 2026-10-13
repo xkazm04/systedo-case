@@ -2,15 +2,46 @@
   "v": 1,
   "items": [
     {
-      "recommendationId": "5e4d30e5-c8a0-41d1-98d2-68207e718759",
+      "recommendationId": "16c97aa0-af6c-4f5f-a8d7-9f800841fb3b",
+      "verdict": "resolved",
+      "reason": "Merged the four twinned group pairs the scan produced (16 groups -> 12), gave every surviving group a $scope and a $notTo for each name it shares a word with, and added test-unit/context-map-groups.test.mjs so a rescan that reintroduces an undecidable name is a red build.",
+      "files": [
+        "context-map.json",
+        "test-unit/context-map-groups.test.mjs",
+        "CLAUDE.md",
+        ".github/agent-surface.lock.json",
+        ".github/group-owners.json",
+        ".github/context-conventions.json",
+        "AGENTS.md",
+        "scripts/group-owners.mjs",
+        "test-unit/group-owners.test.mjs"
+      ]
+    },
+    {
+      "recommendationId": "d8e12622-c1ba-4197-96bd-32d422436a64",
+      "verdict": "resolved",
+      "reason": "The ci.yml / check:ci / pre-push alignment is now read by scripts/lib/delivery.mjs from inside npm run merge-gate (blocking in check:ci and therefore in the pre-push hook), the enumeration in docs/deploy.md is generated from the one declaration, and the fence is watched firing against a fixture tree in test-unit/delivery-contract.test.mjs.",
+      "files": [
+        "scripts/lib/delivery.mjs",
+        "scripts/delivery-chain.mjs",
+        "scripts/merge-gate.mjs",
+        "test-unit/delivery-contract.test.mjs",
+        "docs/deploy.md",
+        ".github/workflows/ci.yml",
+        "package.json"
+      ]
+    },
+    {
+      "recommendationId": "2d47a132-a672-46f2-90b9-50386c1be1df",
       "verdict": "skipped",
-      "reason": "Everything this item names already operates (blocking repo SAST + Actions policy in sast.yml and check:ci, blocking full-history gitleaks and reporting npm audit in supply-chain.yml, a blocking lockfile-provenance test, a pre-commit secret scan, and a top-level least-privilege permissions block in all 11 workflows); the one genuinely open piece — pinning the 52 first-party actions/* refs to commit SHAs — cannot be done offline because resolving a tag to a SHA needs the GitHub API, and inventing one breaks the workflow rather than pinning it.",
-      "files": []
+      "reason": "Rehearsing the rotation runbook means revoking and reissuing a live Google Ads / Sklik / Resend credential in its issuing console, which AGENTS.md classifies as a RED action an agent may not perform, and this session has no shell, no network and no credentials; the dated rehearsal log the item asks for already exists as the lastDrilled column in .github/credential-rotation.json, waiting for the operator to fill it.",
+      "files": ["docs/runbooks/credential-rotation.md", ".github/credential-rotation.json"]
     }
   ],
   "lessons": [
-    "This repository already encodes its own D9 posture as machine-checked policy (scripts/actions-pin.mjs rules P1-P10, .github/workflow-permissions.json, .github/contract-ledger.json), and it records WHY a rule is still exempt plus the exact command that would close it — read .github/contract-ledger.json before proposing a supply-chain change, because the open item and its remedy are usually already written down there (P4/P6 explicitly say 'no offline session can do this').",
-    "Adding a fix here is a two-part diff by construction: a new workflow, job or token scope must land together with its entry in .github/workflow-permissions.json, and any exception or threshold must land with the ceiling/floor in .github/contract-ledger.json — a one-part diff turns `npm run actions:check` / `contract:ledger:check` red, so an offline agent that 'helpfully' adds a workflow breaks the build it cannot run.",
-    "Scanner 'missing' lines can contradict the scanner's own observations (here it asked for top-level `permissions:` blocks it had just measured as 11/11 present); check the tree before treating a recommendation's remedy list as the gap."
+    "When this repository has already diagnosed a defect in prose, the prose is the strongest evidence for fixing it: .github/group-owners.json literally described four groups as 'the scan's second X group ... an artefact of the scan rather than a decision', and .claude/architect/config.md and .claude/explorer/config.md had both re-merged those pairs by hand in their menus. A taxonomy every consumer works around is one nobody is using.",
+    "Merging two context-map groups is decay-safe by construction and renaming or moving contexts between them is not: two groups becoming one can only remove cross-group crossings, never add one, so context:decay:check cannot go red for it. That asymmetry is what makes a merge a safe change to land without being able to run the gates.",
+    "AGENTS.md, CLAUDE.md and the other read-first documents have EXACT line ceilings in .github/guidance-budget.json, so a new rule cannot be documented by adding a paragraph there. Put the explanation in the artefact it governs (a $comment in the JSON, the gate script's own header) and change only words in the canonical file.",
+    "Some paths are unwritable in an Ascent worktree session: .husky/* and .claude/*/config.md are refused as sensitive. Design a check so its blocking half reads those files rather than needing to rewrite them, and generate only into files you can actually write."
   ]
 }

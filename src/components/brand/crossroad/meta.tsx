@@ -34,7 +34,7 @@ export const CROSSROAD_META: Record<CrossroadHref, CrossroadMeta> = {
   "/clanek": { icon: Document, image: "/brand/crossroad/clanek.png" },
   "/ai-asistent": { icon: Sparkles, image: "/brand/crossroad/ai-asistent.png" },
   "/kampane": { icon: Target, image: "/brand/crossroad/kampane.png" },
-  "/kanaly-zdarma": { icon: Network },
+  "/kanaly-zdarma": { icon: Network, image: "/brand/crossroad/kanaly-zdarma.jpg" },
 };
 
 /** Card = a localized nav item (serializable — passed server→client). The icon +

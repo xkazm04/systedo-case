@@ -24,14 +24,17 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CHAIN, remedyFor, printRemedy } from "../scripts/gate-remedy.mjs";
+import { chainStages } from "../scripts/lib/chain.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p) => readFileSync(join(ROOT, p), "utf8");
 const pkg = JSON.parse(read("package.json"));
 const scripts = pkg.scripts ?? {};
 
-/** The stages `check:ci` actually runs, in order. */
-const stages = [...(scripts["check:ci"] ?? "").matchAll(/npm run ([\w:-]+)/g)].map((m) => m[1]);
+/** The stages `check:ci` actually runs, in order — through the one parser
+ *  (scripts/lib/chain.mjs), so this test and the gate cannot disagree about what
+ *  the chain contains. */
+const stages = chainStages(pkg);
 
 test("every check:ci stage has a remedy entry", () => {
   assert.ok(stages.length >= 15, `check:ci runs ${stages.length} stages — did the chain get shortened?`);

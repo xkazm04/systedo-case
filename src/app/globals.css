@@ -438,6 +438,8 @@ html[data-theme="dark"] .theme-toggle-moon {
   }
 }
 
+
+
 /* Route-level loading fallback (app/loading.tsx). The reveal holds opacity 0
    for the first 40% of its 0.5s run (~200ms), so fast navigations swap in the
    real page before the spinner ever paints — no flash on quick round-trips. */

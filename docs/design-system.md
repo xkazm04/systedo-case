@@ -58,3 +58,17 @@ utility adapts for free. Key facts:
 would shift some colours sub-perceptibly in light mode (e.g. `navy-800 #0b1b2b` vs `ink #0d1a24`)
 for zero functional gain — a regression risk with no upside. Apply the convention going forward
 and when touching a file; don't sweep.
+
+## Scroll-driven motion — the one rule that is not optional
+
+`.reveal-on-scroll` in `globals.css` is `@supports (animation-timeline: view())`-guarded,
+so a browser without scroll-driven animations renders the content in its final state.
+
+**A view or scroll timeline ignores `animation-duration`.** The universal
+`prefers-reduced-motion` rule collapses every animation to 0.01ms and does nothing to a
+timeline-driven one, because the timeline supplies the progress itself — so every such
+class is switched off **by name** in the reduced-motion block *and* the print block. The
+same rule zeroes `transition-duration` but not `transition-delay`: a sequenced arrival is
+a motion too, and needs `transition-delay: 0s` there. Add a class to the family, add it
+to both lists in the same diff. (Learned on the 2026-09-08 landing research, since removed;
+`docs/design/nextgen-landing.md` keeps the reading.)

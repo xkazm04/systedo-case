@@ -18,11 +18,15 @@
  *  `check:ci` stage has no entry at all.
  *
  *  IT IS ALSO THE CHAIN'S ORDER, and that is not decoration. The stages run
- *  cheapest-first: fourteen zero-dependency checks that read files and finish in
- *  seconds run BEFORE `npm run check`, whose `next build` is minutes. A wrong
- *  change that trips `actions:check` used to cost a full build before saying so.
- *  `cost` records which rung of that ordering a stage sits on, and the test
- *  asserts the chain in package.json is still in this order.
+ *  cheapest-first, all the way down rather than only at the top: fourteen
+ *  zero-dependency checks that read files and finish in seconds, THEN the unit
+ *  suite, and `npm run check` — whose `next build` dominates everything — last. A
+ *  wrong change that trips `actions:check` used to cost a full build before saying
+ *  so; a broken TEST used to cost one too, because the suite sat behind the build
+ *  it does not need. `cost` records which rung of that ordering a stage sits on,
+ *  test-unit/gate-remedy.test.mjs asserts the chain in package.json is still in
+ *  this order, and scripts/gate-timings.mjs asserts the order against a clock —
+ *  no stage may run after one that measures in a slower bucket than it does.
  *
  *  Usage:
  *    npm run gates                  # the whole chain: what runs, what it costs,
@@ -219,6 +223,18 @@ export const CHAIN = [
     records: null,
   },
   {
+    stage: "test:unit",
+    script: null,
+    cost: "a minute",
+    proves: "the node:test suites in test-unit/, including the ones that assert this repository's own wiring.",
+    next: [
+      "npm run test:unit -- --test-name-pattern '<part of the test name>'",
+      "npm run test:fast           # while iterating: only the suites that NAME a file you changed",
+      "Deleting a test needs an `Ack: <why>` line in the commit message (rubric A4).",
+    ],
+    records: null,
+  },
+  {
     stage: "check",
     script: null,
     cost: "minutes",
@@ -230,17 +246,6 @@ export const CHAIN = [
       "never with an eslint-disable. See AGENTS.md § Conventions that bite.",
     ],
     records: "eslint.config.mjs",
-  },
-  {
-    stage: "test:unit",
-    script: null,
-    cost: "a minute",
-    proves: "the node:test suites in test-unit/, including the ones that assert this repository's own wiring.",
-    next: [
-      "npm run test:unit -- --test-name-pattern '<part of the test name>'",
-      "Deleting a test needs an `Ack: <why>` line in the commit message (rubric A4).",
-    ],
-    records: null,
   },
 ];
 
@@ -317,7 +322,8 @@ if (invokedDirectly) {
     console.log("");
   }
   console.log(
-    "Cheapest first: the fourteen zero-dependency checks run before `next build`, so a wrong change is\n" +
-      "refused in seconds rather than after a full build. Rungs: docs/adr/0007-gate-rung-discipline.md."
+    "Cheapest first, all the way down: the fourteen zero-dependency checks run before the unit suite, and\n" +
+      "the unit suite runs before `next build`, so a wrong change — a broken test included — is refused as\n" +
+      "early as it can be. Rungs: docs/adr/0007-gate-rung-discipline.md."
   );
 }

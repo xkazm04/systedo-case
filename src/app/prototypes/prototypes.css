@@ -1,0 +1,1029 @@
+/* Art-directed prototype palettes deliberately remain stable across site themes.
+   Every color is scoped here; the production design tokens are untouched. */
+.proto {
+  --p-bg:#f4f3ed;
+  --p-ink:#20261f;
+  --p-muted:#64685e;
+  --p-line:#d9dcd0;
+  --p-accent:#daff7b;
+  --p-panel:#fff;
+  --p-dark:#18211c;
+  --p-white:#fff;
+  --p-shadow:#16211722;
+  --p-warm:#ef7244;
+  --p-silver:#cdd3cd;
+  background:var(--p-bg);
+  color:var(--p-ink);
+  min-height:100vh;
+  font-family:var(--font-geist-sans),Arial,sans-serif;
+  overflow:clip;
+  line-height:1.5
+}
+
+.proto * {
+  box-sizing:border-box
+}
+
+.proto a {
+  text-decoration:none
+}
+
+.proto h1,.proto h2,.proto h3,.proto p {
+  margin:0
+}
+
+.proto h1,.proto h2 {
+  white-space:pre-line
+}
+
+.proto button,.proto a {
+  -webkit-tap-highlight-color:transparent
+}
+
+.proto a:focus-visible,.proto button:focus-visible {
+  outline:3px solid var(--p-warm);
+  outline-offset:5px
+}
+
+.proto button {
+  font-family:inherit
+}
+
+.proto-review {
+  height:43px;
+  padding:0 4.5%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid var(--p-line);
+  font-size:11px;
+  letter-spacing:.03em
+}
+
+.proto-review>a {
+  opacity:.75
+}
+
+.proto-directions {
+  display:flex;
+  gap:6px
+}
+
+.proto-directions a {
+  padding:5px 16px;
+  border-radius:20px;
+  text-transform:capitalize
+}
+
+.proto-directions a[aria-current=page] {
+  background:var(--p-ink);
+  color:var(--p-bg)
+}
+
+.proto .proto-locale {
+  font-size:11px;
+  color:var(--p-ink);
+  padding:5px 9px
+}
+
+.proto-nav {
+  height:105px;
+  max-width:1600px;
+  padding:0 4.5%;
+  margin:auto;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:30px
+}
+
+.proto-logo {
+  display:flex;
+  align-items:center;
+  gap:9px;
+  font-size:28px;
+  font-weight:650;
+  letter-spacing:-1.5px
+}
+
+.proto-logo>span:first-child {
+  font-size:39px;
+  line-height:1
+}
+
+.proto-logo-dot {
+  font-size:11px;
+  align-self:flex-start;
+  padding-top:8px
+}
+
+.proto-nav nav {
+  display:flex;
+  gap:35px;
+  font-size:13px;
+  margin-left:auto;
+  margin-right:15px
+}
+
+.proto .proto-cta {
+  background:var(--p-accent);
+  color:var(--p-dark);
+  border:1px solid transparent;
+  border-radius:6px;
+  padding:15px 22px;
+  font-size:13px;
+  font-weight:650;
+  box-shadow:none;
+  gap:27px;
+  transition:transform .2s,box-shadow .2s
+}
+
+.proto .proto-cta:hover {
+  transform:translateY(-3px);
+  box-shadow:0 8px 20px var(--p-shadow)
+}
+
+.proto-eyebrow {
+  font:10px var(--font-geist-mono),monospace;
+  letter-spacing:.12em;
+  display:flex;
+  align-items:center;
+  gap:9px
+}
+
+.status-dot {
+  display:inline-block;
+  width:6px;
+  height:6px;
+  background:currentColor;
+  border-radius:50%;
+  flex:none
+}
+
+.proto-sub {
+  font-size:16px;
+  line-height:1.65;
+  color:var(--p-muted)
+}
+
+.proto-motion {
+  position:fixed!important;
+  bottom:20px;
+  right:20px;
+  z-index:20;
+  background:var(--p-panel)!important;
+  color:var(--p-ink)!important;
+  border:1px solid var(--p-line);
+  width:40px;
+  height:40px;
+  padding:0!important;
+  border-radius:50%;
+  box-shadow:0 3px 15px var(--p-shadow)
+}
+
+.proto-footer {
+  padding:30px 4.5%;
+  border-top:1px solid var(--p-line);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  font-size:10px;
+  color:var(--p-muted)
+}
+
+.proto-footer>span:first-child {
+  font-size:19px;
+  color:var(--p-ink);
+  font-weight:600
+}
+
+.proto-footer small {
+  display:block;
+  font-size:10px;
+  font-weight:400;
+  margin-top:5px;
+  color:var(--p-muted)
+}
+
+.proto-closing {
+  text-align:center;
+  padding:90px 25px 110px;
+  position:relative
+}
+
+.proto-closing h2 {
+  font-size:clamp(40px,5.5vw,78px);
+  font-weight:500;
+  letter-spacing:-.06em;
+  line-height:1.08
+}
+
+.proto-closing p {
+  font-size:13px;
+  color:var(--p-muted);
+  margin:25px auto;
+  max-width:440px
+}
+
+.proto-closing .proto-cta {
+  margin-top:5px
+}
+
+/* 01 — Orbit: a dimensional visibility map, with finite ambient motion. */
+.orbit {
+  --p-bg:#080e12;
+  --p-ink:#e9efe9;
+  --p-muted:#97a5a6;
+  --p-line:#263338;
+  --p-accent:#cdfa95;
+  --p-panel:#152127;
+  --p-dark:#17231c;
+  --p-shadow:#0006;
+  --p-orb:#90bba1;
+  --p-glow:#a8ffd9;
+  --p-star:#c8e1d0;
+  --p-space:#0d2426;
+  background:var(--p-bg)
+}
+
+.orbit .proto-review {
+  color:var(--p-muted)
+}
+
+.orbit .proto-nav {
+  position:relative;
+  z-index:3
+}
+
+.orbit .proto-logo>span:first-child {
+  color:var(--p-accent)
+}
+
+.orbit-hero {
+  position:relative;
+  max-width:1600px;
+  min-height:760px;
+  margin:0 auto
+}
+
+.orbit-heading {
+  text-align:center;
+  position:relative;
+  z-index:2;
+  padding:34px 20px 0;
+  pointer-events:none
+}
+
+.orbit-heading .proto-eyebrow {
+  justify-content:center;
+  color:var(--p-accent);
+  font-size:9px
+}
+
+.orbit-heading h1 {
+  font-size:clamp(45px,5.6vw,82px);
+  line-height:1.04;
+  letter-spacing:-.065em;
+  font-weight:450;
+  margin:22px auto 15px
+}
+
+.orbit-heading .proto-sub {
+  font-size:14px
+}
+
+.orbit-heading .proto-cta {
+  margin-top:24px;
+  pointer-events:auto
+}
+
+.orbit-universe {
+  position:relative;
+  height:445px;
+  margin-top:-17px;
+  isolation:isolate;
+  background:radial-gradient(ellipse at 50% 70%,var(--p-space),transparent 62%)
+}
+
+.orbit-stars {
+  position:absolute;
+  inset:-170px 0 0;
+  opacity:.38;
+  background-image:radial-gradient(circle at 10% 30%,var(--p-star) 1px,transparent 1.5px),radial-gradient(circle at 70% 10%,var(--p-star) 1px,transparent 1.5px),radial-gradient(circle at 40% 65%,var(--p-star) .7px,transparent 1.2px);
+  background-size:187px 149px,293px 213px,113px 197px;
+  mask-image:linear-gradient(transparent,#000 30%,#000 80%,transparent)
+}
+
+.orbital-plane {
+  position:absolute;
+  left:50%;
+  top:59%;
+  width:1020px;
+  height:1020px;
+  transform:translate(-50%,-50%) rotateX(70deg) rotateZ(-19deg);
+  transform-style:preserve-3d
+}
+
+.orbital-plane i {
+  position:absolute;
+  inset:4%;
+  border:1px solid var(--p-line);
+  border-radius:50%;
+  box-shadow:0 0 20px var(--p-space)
+}
+
+.orbital-plane i:nth-child(2) {
+  inset:18%;
+  border-color:var(--p-orb);
+  opacity:.5
+}
+
+.orbital-plane i:nth-child(3) {
+  inset:32%;
+  border-style:dashed
+}
+
+.orbit-planet {
+  position:absolute;
+  left:50%;
+  top:49%;
+  width:210px;
+  height:210px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:radial-gradient(circle at 33% 23%,var(--p-orb),var(--p-space) 53%,var(--p-bg) 77%);
+  box-shadow:inset 2px 3px 4px var(--p-glow),inset -5px -10px 20px var(--p-bg),0 0 60px var(--p-space);
+  overflow:hidden;
+  animation:planet-breathe 7s ease-in-out 4
+}
+
+.orbit-planet>span {
+  position:absolute;
+  inset:24% 0;
+  text-align:center;
+  font-size:87px;
+  color:var(--p-glow);
+  text-shadow:0 0 30px var(--p-orb);
+  transform:rotate(-12deg)
+}
+
+.planet-grid {
+  position:absolute;
+  inset:-20%;
+  border-radius:50%;
+  background:repeating-linear-gradient(0deg,transparent 0 26px,var(--p-orb) 27px,transparent 28px),repeating-linear-gradient(90deg,transparent 0 26px,var(--p-orb) 27px,transparent 28px);
+  opacity:.12;
+  transform:rotate(-25deg)
+}
+
+.orbit-beam {
+  position:absolute;
+  width:600px;
+  height:1px;
+  left:50%;
+  top:55%;
+  background:linear-gradient(90deg,transparent,var(--p-glow),transparent);
+  transform:translateX(-50%) rotate(-14deg);
+  box-shadow:0 0 25px 3px var(--p-orb);
+  opacity:.4
+}
+
+.orbit-core {
+  position:absolute;
+  top:79%;
+  left:50%;
+  transform:translateX(-50%);
+  text-align:center;
+  font:9px var(--font-geist-mono),monospace;
+  letter-spacing:.14em;
+  color:var(--p-muted)
+}
+
+.orbit-core b {
+  display:block;
+  font:14px var(--font-geist-sans),sans-serif;
+  color:var(--p-ink);
+  margin-top:8px;
+  letter-spacing:0
+}
+
+.orbit-satellite {
+  position:absolute;
+  background:linear-gradient(135deg,var(--p-panel),var(--p-bg));
+  border:1px solid var(--p-line);
+  border-radius:12px;
+  padding:15px 20px 15px 57px;
+  min-width:164px;
+  box-shadow:0 20px 30px var(--p-shadow);
+  animation:satellite-float 6s ease-in-out 5;
+  z-index:2
+}
+
+.orbit-satellite>span {
+  position:absolute;
+  left:17px;
+  top:18px;
+  font-size:24px;
+  color:var(--p-accent)
+}
+
+.orbit-satellite b {
+  font-size:12px;
+  display:block;
+  font-weight:500
+}
+
+.orbit-satellite small {
+  font-size:9px;
+  color:var(--p-muted)
+}
+
+.satellite-0 {
+  left:18%;
+  top:23%;
+  transform:rotate(-8deg)
+}
+
+.satellite-1 {
+  right:16%;
+  top:26%;
+  transform:rotate(7deg);
+  animation-delay:-2s
+}
+
+.satellite-2 {
+  left:24%;
+  top:66%;
+  transform:rotate(-4deg);
+  animation-delay:-4s
+}
+
+.satellite-3 {
+  right:22%;
+  top:70%;
+  transform:rotate(6deg);
+  animation-delay:-1s
+}
+
+.orbit-coordinate {
+  position:absolute;
+  left:4.5%;
+  bottom:6%;
+  font:8px/2 var(--font-geist-mono),monospace;
+  letter-spacing:.08em;
+  color:var(--p-muted)
+}
+
+.orbit-controls {
+  margin:0 4.5%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-top:1px solid var(--p-line);
+  padding:17px 0;
+  font-size:10px;
+  color:var(--p-muted)
+}
+
+.orbit-controls>div {
+  display:flex;
+  gap:8px
+}
+
+.orbit-controls button {
+  font-size:11px;
+  color:var(--p-muted);
+  border-radius:4px;
+  padding:10px 15px
+}
+
+.orbit-controls button[aria-pressed=true] {
+  background:var(--p-panel);
+  color:var(--p-accent)
+}
+
+.orbit-detail {
+  margin:20px 4.5% 0;
+  padding:35px 0 45px;
+  border-bottom:1px solid var(--p-line);
+  display:grid;
+  grid-template-columns:1fr 1.5fr 1fr;
+  gap:35px;
+  align-items:center
+}
+
+.orbit-detail .proto-eyebrow {
+  font-size:8px;
+  line-height:1.8;
+  color:var(--p-muted)
+}
+
+.orbit-detail h2 {
+  font-weight:400;
+  font-size:28px;
+  letter-spacing:-.04em
+}
+
+.orbit-detail p {
+  font-size:12px;
+  color:var(--p-muted);
+  line-height:1.8
+}
+
+.orbit-how {
+  padding:90px 4.5%;
+  display:grid;
+  grid-template-columns:1fr 1.4fr;
+  gap:50px;
+  align-items:center
+}
+
+.orbit-how h2 {
+  font-size:42px;
+  font-weight:400;
+  line-height:1.15;
+  letter-spacing:-.04em;
+  margin-top:20px
+}
+
+.orbit-how .proto-eyebrow {
+  color:var(--p-accent)
+}
+
+.orbit-steps {
+  display:flex;
+  gap:20px
+}
+
+.orbit-steps>div {
+  flex:1
+}
+
+.step-symbol {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:125px;
+  border:1px solid var(--p-line);
+  background:radial-gradient(ellipse,var(--p-space),transparent);
+  font-size:55px;
+  color:var(--p-accent);
+  border-radius:50%
+}
+
+.orbit-steps small {
+  display:block;
+  font:9px var(--font-geist-mono),monospace;
+  color:var(--p-muted);
+  margin-top:24px
+}
+
+.orbit-steps h3 {
+  font-size:12px;
+  font-weight:450;
+  margin-top:7px
+}
+
+.orbit .proto-closing {
+  background:radial-gradient(ellipse at 50% 110%,var(--p-space),transparent 65%);
+  border-top:1px solid var(--p-line)
+}
+
+/* Gallery: entry point for the remaining Orbit preview. */
+.gallery-intro {
+  padding:55px 4.5% 45px
+}
+
+.gallery-intro h1 {
+  font-size:clamp(44px,5.4vw,76px);
+  line-height:1.04;
+  letter-spacing:-.065em;
+  font-weight:500;
+  margin:24px 0
+}
+
+.gallery-intro>p:last-child {
+  color:var(--p-muted);
+  font-size:16px
+}
+
+.gallery-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:24px;
+  padding:0 4.5%
+}
+
+.gallery-card {
+  display:block;
+  min-width:0
+}
+
+.gallery-art {
+  height:310px;
+  position:relative;
+  overflow:hidden;
+  transition:transform .35s;
+  border-radius:3px
+}
+
+.gallery-card:hover .gallery-art {
+  transform:translateY(-7px)
+}
+
+.gallery-card>small {
+  font:8px var(--font-geist-mono),monospace;
+  color:var(--p-muted);
+  display:block;
+  margin:22px 0 8px
+}
+
+.gallery-card h2 {
+  font-size:30px;
+  font-weight:500;
+  letter-spacing:-.045em
+}
+
+.gallery-card p {
+  font-size:12px;
+  color:var(--p-muted);
+  margin-top:7px
+}
+
+.gallery-open {
+  font-size:11px;
+  display:block;
+  margin-top:22px;
+  border-top:1px solid var(--p-line);
+  padding-top:14px
+}
+
+.mini-orbit {
+  --m-bg:#09171a;
+  --m-line:#427567;
+  background:radial-gradient(ellipse at 50% 70%,var(--m-line),var(--m-bg) 70%);
+  color:var(--p-accent)
+}
+
+.mini-orbit>i {
+  position:absolute;
+  width:340px;
+  height:140px;
+  border:1px solid var(--m-line);
+  border-radius:50%;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-30%) rotate(-20deg)
+}
+
+.mini-orbit>i:nth-child(2) {
+  width:250px;
+  height:100px
+}
+
+.mini-orbit>i:nth-child(3) {
+  width:180px;
+  height:70px
+}
+
+.mini-orbit>b {
+  position:absolute;
+  left:50%;
+  top:42%;
+  transform:translate(-50%,-50%);
+  font-size:67px;
+  font-weight:400;
+  width:115px;
+  height:115px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:radial-gradient(circle at 30% 20%,var(--m-line),var(--m-bg) 75%);
+  box-shadow:inset 1px 2px 2px var(--p-accent)
+}
+
+.mini-orbit>span,.mini-orbit>em {
+  position:absolute;
+  background:var(--m-bg);
+  border:1px solid var(--m-line);
+  padding:8px 19px;
+  border-radius:7px;
+  font-size:30px
+}
+
+.mini-orbit>span {
+  left:12%;
+  top:24%;
+  transform:rotate(-10deg)
+}
+
+.mini-orbit>em {
+  right:12%;
+  bottom:20%;
+  transform:rotate(9deg)
+}
+
+.gallery-note {
+  padding:40px 4.5% 65px;
+  font-size:12px;
+  color:var(--p-muted);
+  max-width:600px
+}
+
+@keyframes satellite-float {
+  0%,100% {
+    translate:0 0
+  }
+  50% {
+    translate:0 -12px
+  }
+}
+
+@keyframes planet-breathe {
+  0%,100% {
+    scale:1
+  }
+  50% {
+    scale:1.035
+  }
+}
+
+.motion-paused * {
+  animation-play-state:paused!important
+}
+
+@media(min-width:1600px) {
+  .orbit-detail,.orbit-how,.gallery-grid,.gallery-intro {
+    max-width:1450px;
+    margin-left:auto;
+    margin-right:auto
+  }
+  .orbit-hero {
+    min-height:820px
+  }
+  .orbit-universe {
+    height:500px
+  }
+}
+
+@media(max-width:1050px) {
+  .orbit-satellite {
+    min-width:140px;
+    padding-right:12px
+  }
+  .satellite-0 {
+    left:10%
+  }
+  .satellite-1 {
+    right:9%
+  }
+  .satellite-2 {
+    left:16%
+  }
+  .satellite-3 {
+    right:15%
+  }
+  .gallery-art {
+    height:270px
+  }
+}
+
+@media(max-width:760px) {
+  .proto-review {
+    padding-inline:5%;
+    font-size:9px
+  }
+  .proto-directions a {
+    padding:5px 9px;
+    font-size:9px
+  }
+  .proto-nav {
+    height:85px;
+    padding-inline:5%;
+    gap:12px
+  }
+  .proto-logo {
+    font-size:24px
+  }
+  .proto-logo>span:first-child {
+    font-size:31px
+  }
+  .proto-nav nav {
+    display:none
+  }
+  .proto-nav .proto-cta {
+    padding:11px 13px;
+    font-size:11px;
+    gap:16px
+  }
+  .proto-footer {
+    flex-wrap:wrap;
+    padding:24px 5%;
+    gap:20px
+  }
+  .proto-footer>span:nth-child(2) {
+    order:3;
+    width:100%;
+    font-size:9px
+  }
+  .proto-footer>a {
+    margin-left:auto
+  }
+  .proto-closing {
+    padding:65px 5% 75px
+  }
+  .proto-closing h2 {
+    font-size:44px
+  }
+  .proto-closing p {
+    font-size:12px
+  }
+  .orbit-heading {
+    padding-top:25px
+  }
+  .orbit-heading .proto-eyebrow {
+    font-size:7px;
+    letter-spacing:.06em
+  }
+  .orbit-heading h1 {
+    font-size:clamp(39px,8.7vw,62px);
+    margin-top:24px
+  }
+  .orbit-heading .proto-sub {
+    font-size:12px
+  }
+  .orbit-hero {
+    min-height:0
+  }
+  .orbit-universe {
+    height:390px;
+    margin-top:0
+  }
+  .orbital-plane {
+    width:720px;
+    height:720px;
+    top:58%
+  }
+  .orbit-planet {
+    width:160px;
+    height:160px;
+    top:51%
+  }
+  .orbit-planet>span {
+    font-size:66px
+  }
+  .orbit-satellite {
+    padding:10px 12px 10px 36px;
+    min-width:110px;
+    border-radius:8px
+  }
+  .orbit-satellite>span {
+    left:11px;
+    top:12px;
+    font-size:18px
+  }
+  .orbit-satellite b {
+    font-size:9px
+  }
+  .orbit-satellite small {
+    font-size:7px
+  }
+  .satellite-0 {
+    left:5%;
+    top:15%
+  }
+  .satellite-1 {
+    right:4%;
+    top:23%
+  }
+  .satellite-2 {
+    left:3%;
+    top:63%
+  }
+  .satellite-3 {
+    right:3%;
+    top:71%
+  }
+  .orbit-coordinate {
+    font-size:6px;
+    bottom:3%
+  }
+  .orbit-core {
+    top:78%;
+    font-size:7px
+  }
+  .orbit-core b {
+    font-size:11px
+  }
+  .orbit-controls {
+    display:block;
+    margin:0 5%;
+    padding:16px 0
+  }
+  .orbit-controls>span {
+    display:none
+  }
+  .orbit-controls>div {
+    justify-content:space-between;
+    gap:0
+  }
+  .orbit-controls button {
+    font-size:9px;
+    padding:10px 8px
+  }
+  .orbit-detail {
+    display:block;
+    margin-inline:5%;
+    padding:20px 0 30px
+  }
+  .orbit-detail h2 {
+    font-size:25px;
+    margin:16px 0 10px
+  }
+  .orbit-detail p {
+    max-width:400px;
+    font-size:12px
+  }
+  .orbit-how {
+    display:block;
+    padding:50px 5%
+  }
+  .orbit-how h2 {
+    font-size:35px
+  }
+  .orbit-steps {
+    margin-top:30px;
+    gap:12px
+  }
+  .step-symbol {
+    height:100px;
+    font-size:40px
+  }
+  .orbit-steps h3 {
+    font-size:11px
+  }
+  .orbit-steps small {
+    margin-top:15px
+  }
+  .gallery-intro {
+    padding:35px 5%
+  }
+  .gallery-intro h1 {
+    font-size:45px
+  }
+  .gallery-intro .proto-eyebrow {
+    font-size:8px
+  }
+  .gallery-grid {
+    grid-template-columns:1fr;
+    padding-inline:5%;
+    gap:40px
+  }
+  .gallery-art {
+    height:340px
+  }
+  .gallery-card>small {
+    margin-top:18px
+  }
+  .mini-orbit>i {
+    width:400px
+  }
+  .gallery-note {
+    padding-inline:5%
+  }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  .proto *,.proto *:before,.proto *:after {
+    animation:none!important;
+    transition:none!important;
+    scroll-behavior:auto!important
+  }
+  .proto-motion {
+    display:none!important
+  }
+}
+
+@media print {
+  .proto *,.proto *:before,.proto *:after {
+    animation:none!important;
+    transition:none!important
+  }
+  .proto-review,.proto-motion {
+    display:none!important
+  }
+  .proto {
+    overflow:visible
+  }
+  .proto-nav {
+    height:75px
+  }
+  .gallery-grid {
+    grid-template-columns:repeat(3,1fr)
+  }
+  .gallery-art {
+    height:240px
+  }
+}
