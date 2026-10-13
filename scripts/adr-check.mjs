@@ -96,7 +96,7 @@ const REVISIT_MIN_CHARS = 60;
 const OBSERVED_MIN_CHARS = 120;
 const PLACEHOLDER_RE = /^(tbd|todo|t\.b\.d\.?|n\/a|none|none yet|nothing yet|\(none\)|-|—)\.?$/i;
 // A path-looking inline-code token: a known top-level directory plus a relative
-// path. Root files (`Dockerfile`, `vercel.json`) are deliberately NOT matched —
+// path. Root files (`Dockerfile`, `cron-schedules.json`) are deliberately NOT matched —
 // requiring a slash keeps env names and identifiers out of the path check.
 const PATH_RE = /^(?:src|scripts|docs|test-unit|test-llm|tests|uat|public|\.github|\.claude)\/[A-Za-z0-9._[\]\-/]+$/;
 

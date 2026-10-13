@@ -1,6 +1,6 @@
 ---
 product: "Adamant (systedo-case)"
-stack: "Next.js 16 App Router + React 19 + TypeScript; Auth.js v5 (Google) + firebase-admin/Firestore in prod, node:sqlite under .data/ in local dev behind the same store interfaces; Vercel serverless; zero-dependency repo tooling (ADR-0008)"
+stack: "Next.js 16 App Router + React 19 + TypeScript; Auth.js v5 (Google) + firebase-admin/Firestore in prod, node:sqlite under .data/ in local dev behind the same store interfaces; Docker / local run, no hosted deployment; zero-dependency repo tooling (ADR-0008)"
 vault: ["C:/Users/kazda/kiro/systedo-case/.architect"]
 vault_subdir: Architect
 context_map: context-map.json

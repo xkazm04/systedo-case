@@ -3,7 +3,11 @@
  *  (node --import ./test-llm/setup.mjs --test). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { robotsPolicy } from "@/app/robots";
+// SITE_URL is read once at import. With no NEXT_PUBLIC_SITE_URL the origin falls back to
+// the local dev origin (http://localhost:3000), so pin a hosted-style origin first: the
+// production policy is only ever used with an https origin an operator configured.
+process.env.NEXT_PUBLIC_SITE_URL = "https://example.test";
+const { robotsPolicy } = await import("@/app/robots");
 
 test("production: crawlable, hides /app + /api, advertises the sitemap", () => {
   const policy = robotsPolicy(true);

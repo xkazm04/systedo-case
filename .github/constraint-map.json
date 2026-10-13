@@ -400,7 +400,7 @@
     {
       "id": "no-push",
       "ledgerId": "red actions need the operator",
-      "rule": "Never push, and especially never to master — Vercel ships master on push, so the push is the release.",
+      "rule": "Never push, and especially never to master — master is the release branch, so the push is the release.",
       "statedIn": { "file": "AGENTS.md", "quote": "and especially any push to `master`" },
       "enforcement": [
         { "kind": "permission", "name": ".claude/settings.json", "note": "Claude Code denies git push and the gate-bypass forms at the permission layer" },
@@ -493,13 +493,13 @@
     {
       "id": "env-manifest",
       "rule": "The deploy target is declared as data, and every change to what production runs moves the declaration in the same diff.",
-      "statedIn": { "file": "AGENTS.md", "quote": "The deploy target is declared, and the declaration is diffed against the tree" },
+      "statedIn": { "file": "AGENTS.md", "quote": "The run target is declared, and the declaration is diffed against the tree" },
       "enforcement": [
         { "kind": "test", "name": "test-unit/environment-manifest.test.mjs", "note": "runs the same comparison the CLI runs, on every build — inside test:unit → check:ci → .husky/pre-push" },
         { "kind": "gate", "name": "env:manifest:check", "note": "the readable half: prints the target, then exits 1 on drift" }
       ],
       "rung": "partial",
-      "gapNote": "It reads the REPOSITORY, not the platform. A cron, a Node version, a framework bump or an env var that drifts between committed files is caught on the machine that did it; what is actually configured in the Vercel project — whether a secret is set, which region a function landed in, whether the Firestore TTL policy exists — needs an API token and stays the operator's (docs/deploy.md § Post-deploy verification). The manifest's own `cannotSee` list is asserted non-empty so that gap stays stated rather than assumed."
+      "gapNote": "It reads the REPOSITORY, not the platform. A cron, a Node version, a framework bump or an env var that drifts between committed files is caught on the machine that did it; what is actually configured on a host — whether a secret is set, which region a function landed in, whether the Firestore TTL policy exists — stays the operator's (docs/deploy.md § Operator checks). The manifest's own `cannotSee` list is asserted non-empty so that gap stays stated rather than assumed."
     },
     {
       "id": "strict-frontier",

@@ -1,7 +1,7 @@
 /** The `conversion-rollup` ledger step: recompute every project's conversion summary
  *  from its ledger rows, then age the old rows out. Registered in
  *  src/lib/cron/ledgers.ts — that one line in LEDGER_STEPS is the whole registration
- *  ceremony (no new route, no new `vercel.json` entry, no new guard; see WP F4).
+ *  ceremony (no new route, no new `cron-schedules.json` entry, no new guard; see WP F4).
  *
  *  Due EVERY tick, and it needs no sent-guard claim because the work is IDEMPOTENT
  *  by construction: the summary is a pure function of the retained rows written with

@@ -18,7 +18,7 @@
     { "name": "auth", "description": "The Auth.js v5 catch-all handler." },
     { "name": "byom", "description": "Bring-your-own-model: per-user encrypted provider keys and the per-operation model matrix." },
     { "name": "campaigns", "description": "Ad accounts, campaign reads, analysis and the Sklik/Google control plane." },
-    { "name": "cron", "description": "The six scheduled jobs declared in vercel.json, behind a constant-time CRON_SECRET check." },
+    { "name": "cron", "description": "The six scheduled jobs declared in cron-schedules.json, behind a constant-time CRON_SECRET check." },
     { "name": "eval", "description": "LLM evaluation telemetry." },
     { "name": "experiments", "description": "Hosted landing-page experiments." },
     { "name": "feed", "description": "The public outbound product feed for merchant channels." },
@@ -46,7 +46,7 @@
       "cronBearer": {
         "type": "http",
         "scheme": "bearer",
-        "description": "The CRON_SECRET bearer token, compared in constant time by src/lib/cron-auth.ts. Vercel's scheduler holds it; so does whatever uptime monitor polls /api/health."
+        "description": "The CRON_SECRET bearer token, compared in constant time by src/lib/cron-auth.ts. The cron runner (scripts/cron-runner.mjs) holds it; so does whatever uptime monitor polls /api/health."
       },
       "pathToken": {
         "type": "apiKey",

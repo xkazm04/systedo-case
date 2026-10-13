@@ -51,12 +51,6 @@
         "publish": { "issues": "write" }
       }
     },
-    "post-deploy.yml": {
-      "top": { "contents": "read" },
-      "jobs": {
-        "verify": { "contents": "read" }
-      }
-    },
     "revert-drill.yml": {
       "top": { "contents": "read" },
       "jobs": {

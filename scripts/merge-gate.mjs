@@ -21,7 +21,7 @@
  *
  *  Runs blocking as part of `npm run check:ci`. That matters here more than the
  *  CI run does: .husky/pre-push runs `check:ci` before any push that updates
- *  master, and Vercel ships master on push — so softening a required check
+ *  master, and a push to master is the release — so softening a required check
  *  blocks the release act itself, on the machine of whoever did the softening.
  *
  *  What it deliberately does NOT do: reach for the GitHub API to compare against

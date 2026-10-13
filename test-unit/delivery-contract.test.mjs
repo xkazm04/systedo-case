@@ -63,8 +63,8 @@ test("the review runs on the push path too, not only on pull requests", () => {
     scripts["check:ci"] ?? "",
     /review:agent:gate/,
     "`check:ci` no longer runs the rubric review. On this repo's landing path (direct push to master, " +
-      "Vercel ships on push) that leaves Part A unable to stop anything: agent-review.yml's verdict arrives " +
-      "after the deploy has started. Put `npm run review:agent:gate` back, or move the review off " +
+      "a push to master is the release) that leaves Part A unable to stop anything: agent-review.yml's verdict arrives " +
+      "after the push has landed. Put `npm run review:agent:gate` back, or move the review off " +
       ".github/required-checks.json and say why."
   );
 });
@@ -82,7 +82,7 @@ test("the pre-push hook still runs the full gate before a master push", () => {
   assert.match(
     hook,
     /npm run check:ci/,
-    ".husky/pre-push no longer runs check:ci. Vercel ships master on push, so this hook is the only thing " +
+    ".husky/pre-push no longer runs check:ci. a push to master is the release, so this hook is the only thing " +
       "that proves the gate BEFORE the release act."
   );
   assert.match(hook, /refs\/heads\/master/, "the hook must still recognise a push that updates master.");

@@ -5,7 +5,7 @@
  *  either lossy or unbounded: it is due every tick, it retries ONLY what is due,
  *  it gives up at DELIVERY_MAX_ATTEMPTS, and it closes a delivery whose endpoint was
  *  deleted or switched off instead of retrying against nothing forever. Also pinned:
- *  the step is registered, so shipping it required no route or vercel.json change.
+ *  the step is registered, so shipping it required no route or cron-schedules.json change.
  *
  *  Run with --experimental-test-module-mocks. */
 import { test, mock } from "node:test";

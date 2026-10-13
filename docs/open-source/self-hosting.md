@@ -11,7 +11,7 @@ switch. What works today, per section:
 | §3 | SQLite as the production store (`LOCAL_DB=true` legal under `SELF_HOSTED`) | **implemented**; Gap 2 (`db:backup` script) and the index-migration test hole remain **open** |
 | §4 | BYOM ungated in self-host; provider order no longer keyed off `NODE_ENV` | **implemented**; the two image-route hard 400s and BYOM vision/embeddings remain **open** |
 | §5 | Dockerfile (standalone, non-root, node:24) + docker-compose + `/app/.data` volume | **implemented** |
-| §6 | Cron sidecar (`scripts/cron-runner.mjs`, schedules read from `vercel.json`) | **implemented** |
+| §6 | Cron sidecar (`scripts/cron-runner.mjs`, schedules read from `cron-schedules.json`) | **implemented** |
 | — | Firestore-only campaign modules (impact.md Gap 3: alerts, mutations, control-plane, `google/token.ts`, `account/sessions.ts`…) | **open — the main blocker**: live Google Ads sync and the campaigns write-paths still 500 on a Firestore-less install |
 | — | Self-host-honest plan/usage UI; `NEXT_PUBLIC_SOURCE_REPO_URL` footer wiring | **open** |
 
@@ -248,14 +248,15 @@ sections once `SELF_HOSTED` exists as a real variable.
 
 ### Docs split
 
-`docs/deploy.md` stays as the **cloud/Vercel** runbook, unchanged. Self-hosting
-gets this document and, once implemented, a quick start at the top of it.
+`docs/deploy.md` is the operator contract for any instance (variables, stores, gates,
+operator checks); the Vercel-specific parts were removed on 2026-10-13 when the repo
+became local open source only. This document is the container path.
 
 ---
 
 ## 6. Crons
 
-Five jobs live in `vercel.json`, all `GET`, all `maxDuration: 300`, all gated by
+Five jobs live in `cron-schedules.json`, all `GET`, all `maxDuration: 300`, all gated by
 `cronAuthorized(request)` in `src/lib/cron-auth.ts` (Bearer `CRON_SECRET`, both
 sides SHA-256'd then `timingSafeEqual`, **failing closed** — no secret means
 crons are silently disabled rather than open).

@@ -14,7 +14,7 @@ name: Supply chain
 #                        a "report it later" class of problem.
 #
 # Explicitly OUT OF SCOPE for this repo: SBOM generation and artifact signing. This
-# is a single Vercel-deployed app with no distributed build artifact for anyone to
+# is a single self-hosted app with no distributed build artifact for anyone to
 # verify — declaring them out of scope is more honest than a checkbox job.
 on:
   push:

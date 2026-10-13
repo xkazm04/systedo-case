@@ -179,7 +179,7 @@ present a "self-host for a team" option as if the offline store covered it.
 ### cron-alerts
 
 - **unlocks**: the five scheduled jobs under `/api/cron/*` (schedules in
-  `vercel.json`, constant-time guard in `src/lib/cron-auth.ts`), transactional
+  `cron-schedules.json`, constant-time guard in `src/lib/cron-auth.ts`), transactional
   alert e-mails via Resend, and an optional outgoing webhook for alerts and the
   weekly digest.
 - **keys**: `CRON_SECRET` (any secret — the scheduler sends it as a Bearer

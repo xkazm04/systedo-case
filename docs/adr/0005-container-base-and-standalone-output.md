@@ -50,7 +50,7 @@ container concern.
 - The standalone bundle carries its own minimal `node_modules` but *not*
   `.next/static` or `public`, so both are copied explicitly. A missing copy here
   fails as a styleless page, not as a build error.
-- `scripts/cron-runner.mjs` and `vercel.json` ride along in the image so the
+- `scripts/cron-runner.mjs` and `cron-schedules.json` ride along in the image so the
   cron sidecar runs from the same image and reads the same schedule source the
   cloud deploy uses — one schedule, two hosts.
 

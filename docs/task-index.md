@@ -65,8 +65,8 @@ is a red build, not a dead link somebody finds later.
 |---|---|---|
 | Starting the app locally with no keys | [`README.md`](../README.md) § Two-minute local start | `npm run seed:local` then `npm run dev:local` — fully offline `/app` |
 | Connecting real Google sign-in and Ads | [`SETUP.md`](../SETUP.md) | The cloud-connected walkthrough. Partly stale — it predates the offline path |
-| Deploying, env names, crons, rollback, host rename | [`docs/deploy.md`](deploy.md) | The Vercel runbook, and the delivery contract that makes a push the release act |
-| Knowing what production actually runs — runtime, schedules, every env var | [`.github/environments.json`](../.github/environments.json) | The deploy target declared as data, diffed against the tree on every build (`npm run env:manifest`). It reads the repository, not the Vercel project, and says so |
+| Running an instance, env names, crons, rollback | [`docs/deploy.md`](deploy.md) | The operator contract (no hosted deployment), and the delivery contract that makes a push to master the release act |
+| Knowing what production actually runs — runtime, schedules, every env var | [`.github/environments.json`](../.github/environments.json) | The deploy target declared as data, diffed against the tree on every build (`npm run env:manifest`). It reads the repository, not any host, and says so |
 | Getting a bad change back out | [`docs/runbooks/revert-drill.md`](runbooks/revert-drill.md) | The measured drill, so the answer is a number and not a hope |
 | A credential has leaked, or is due to be replaced | [`docs/runbooks/credential-rotation.md`](runbooks/credential-rotation.md) | The rotation procedure per credential class, which of the four shapes it is, and the `AUTH_SECRET` trap that orphans every stored tenant token. Data in [`.github/credential-rotation.json`](../.github/credential-rotation.json) |
 | Running it on your own machine or server | [`docs/open-source/self-hosting.md`](open-source/self-hosting.md) | The self-hosted design, its operator password, and what it deliberately does not need |

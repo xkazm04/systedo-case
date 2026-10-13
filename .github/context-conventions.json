@@ -149,8 +149,8 @@
           "unfenced": false
         },
         {
-          "note": "A seventh cron is a three-part diff: the route, the schedule in vercel.json, and the entry in .github/environments.json. Two of the three is a build that goes red at the manifest, which is the good outcome; the bad one is a schedule the platform fires into a route nobody declared.",
-          "cites": ["vercel.json", ".github/environments.json"],
+          "note": "A seventh cron is a three-part diff: the route, the schedule in cron-schedules.json, and the entry in .github/environments.json. Two of the three is a build that goes red at the manifest, which is the good outcome; the bad one is a schedule the platform fires into a route nobody declared.",
+          "cites": ["cron-schedules.json", ".github/environments.json"],
           "unfenced": false
         }
       ]

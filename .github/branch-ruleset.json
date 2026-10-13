@@ -37,7 +37,7 @@
     "and permanently so: it needs a token, so it can never sit in check:ci.",
     "",
     "BYPASS, DELIBERATELY. `bypass_actors` grants repository admins an always-bypass.",
-    "docs/deploy.md § Delivery contract records that master ships to Vercel ON PUSH and the",
+    "docs/deploy.md § Delivery contract records that master is the release branch and the",
     "maintainer pushes directly; without this entry the ruleset would refuse the release act",
     "itself. What governs the maintainer is .husky/pre-push, which runs the same blocking set",
     "locally. Removing the bypass is a deployment-model change, not a hardening tweak.",

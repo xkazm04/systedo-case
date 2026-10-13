@@ -3,7 +3,7 @@
  *  the link to the configured recipients (+ in-app + webhook). Reuses the share
  *  link, alert inbox and email infra.
  *
- *  Guarded by CRON_SECRET; runs daily (vercel.json) and self-filters by cadence.
+ *  Guarded by CRON_SECRET; runs daily (cron-schedules.json) and self-filters by cadence.
  *  Automatic delivery covers connected live accounts (the cron's user set). */
 import { forEachSyncPair, resolvePairTenant } from "@/lib/cron/fan-out";
 import { createSharedReport } from "@/lib/campaigns/shared-report";

@@ -54,7 +54,7 @@
     {
       "adr": "docs/adr/0005-container-base-and-standalone-output.md",
       "seam": "Node 24 Alpine, and `output: \"standalone\"` only under `ADAMANT_DOCKER_BUILD`",
-      "why": "The build output shape is decided in exactly these two files, and the conditional is the whole decision: a standalone build turned on unconditionally changes what Vercel ships.",
+      "why": "The build output shape is decided in exactly these two files, and the conditional is the whole decision: a standalone build turned on unconditionally changes what the container image ships.",
       "governs": ["Dockerfile", "next.config.ts"]
     },
     {

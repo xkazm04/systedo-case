@@ -26,7 +26,7 @@ services:
       replicas: 1
 
   # --- Optional: cron sidecar (docs/open-source/self-hosting.md §6) -----------
-  # Fires the five /api/cron/* routes on their vercel.json schedules with
+  # Fires the five /api/cron/* routes on their cron-schedules.json schedules with
   # `Authorization: Bearer ${CRON_SECRET}`. Requires CRON_SECRET in .env (the
   # routes fail closed without it, and the runner refuses to start). The app
   # works without this service — all five jobs are background refreshes — but

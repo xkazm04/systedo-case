@@ -79,7 +79,7 @@ sync, and the connector queries it with your OAuth token.
 
 ## Cloud features (env-gated where they need a service)
 
-- **Scheduled sync + alerting** — `/api/cron/sync` (hourly via `vercel.json`,
+- **Scheduled sync + alerting** — `/api/cron/sync` (hourly via `cron-schedules.json`,
   `CRON_SECRET`-guarded) re-syncs every connected user and emails them on newly
   critical campaigns. Email via **Resend** (`RESEND_API_KEY`); logs without it.
 - **Apply recommendations** — pause a campaign in Google Ads from the budget-move

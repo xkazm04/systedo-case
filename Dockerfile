@@ -5,9 +5,8 @@
 #
 # Three stages so the runtime image carries neither the toolchain nor the dev
 # dependencies. The build sets ADAMANT_DOCKER_BUILD=1, which is the ONLY thing
-# that flips next.config.ts to `output: "standalone"` — Vercel does its own
-# tracing, so that mode is a container concern and must not change how cloud
-# deploys are packaged.
+# that flips next.config.ts to `output: "standalone"` — that mode is a container
+# concern and must not change a plain `next build`.
 #
 # The image needs no secrets to build: with nothing configured every AI
 # operation degrades to its deterministic demo result (a product property, not
@@ -62,13 +61,13 @@ USER node
 
 # The standalone bundle carries its own minimal node_modules; `static` and
 # `public` are served from disk and are NOT included in it, so both are copied
-# explicitly. cron-runner + vercel.json (its schedule source) ride along so the
+# explicitly. cron-runner + cron-schedules.json (its schedule source) ride along so the
 # cron sidecar can run from this same image (see docker-compose.yml).
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
 COPY --from=build --chown=node:node /app/scripts/cron-runner.mjs ./scripts/cron-runner.mjs
-COPY --from=build --chown=node:node /app/vercel.json ./vercel.json
+COPY --from=build --chown=node:node /app/cron-schedules.json ./cron-schedules.json
 
 EXPOSE 3000
 VOLUME ["/app/.data"]

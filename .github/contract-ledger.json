@@ -182,7 +182,7 @@
       "measure": { "kind": "allowlist", "rule": "secret-in-log" },
       "ceiling": {
         "max": 0,
-        "reason": "Nothing credential-shaped has ever had to reach console. Vercel's log retention outlives the incident, so an allowlisted entry here is a secret with a retention policy attached — the fix is always to log the identifier's shape rather than its value.",
+        "reason": "Nothing credential-shaped has ever had to reach console. Any log sink's retention outlives the incident, so an allowlisted entry here is a secret with a retention policy attached — the fix is always to log the identifier's shape rather than its value.",
         "accepted": { "on": "2026-08-30", "reviewBy": null }
       },
       "breaches": []
