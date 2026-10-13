@@ -7578,7 +7578,11 @@
           "revision": 37,
           "changedAt": "2026-09-29",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/cost-model/compute.ts:44 Context and repository searches found business-cost arithmetic, goal persistence, and deterministic cohort projections rather than model-evaluation wiring, so this context does not instantiate an eval harness.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:7ccead00b7f92aba",
+          "evaluatedRevision": 37
         },
         {
           "subject": "mcp-tools",
@@ -9984,11 +9988,11 @@
           "revision": 37,
           "changedAt": "2026-09-29",
           "confidence": "strong",
-          "state": "conformant",
-          "evidence": "src/lib/llm/quality.ts:228-239 judgeVendor/isSelfJudged explicitly flags Anthropic-family model cells as self-judged by the Sonnet judge (own-family bias named, not hidden); QualityCell.judges (17-26) is read rather than assumed to be a median; measurementAgeDays/isMeasurementStale (156-175) surfaces a stale baked matrix in the UI instead of presenting it as current.",
-          "evaluatedAt": "2026-08-31",
-          "evaluatedAgainst": "sha256:5215e21162717d59",
-          "stale": true
+          "state": "deviation",
+          "evidence": "src/lib/llm/quality.ts:136 The scorecard ranks models by their means without checking candidate variance or judge disagreement, so its published order has no measured resolution precondition.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:7ccead00b7f92aba",
+          "evaluatedRevision": 37
         },
         {
           "subject": "agent-memory",
@@ -10186,7 +10190,11 @@
           "revision": 37,
           "changedAt": "2026-09-29",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/llm/models.ts:41 The transport used by the quality judge resolves a moving Sonnet alias rather than a concrete version, allowing the measuring instrument to change between runs.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:7ccead00b7f92aba",
+          "evaluatedRevision": 37
         },
         {
           "subject": "model-call-outcome-integrity",
@@ -12798,7 +12806,11 @@
           "revision": 37,
           "changedAt": "2026-09-29",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/app/kvalita-modelu/page.tsx:48 The public quality page admits its ranking whenever baked scores exist, without requiring evidence that candidate differences exceed measurement noise.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:7ccead00b7f92aba",
+          "evaluatedRevision": 37
         },
         {
           "subject": "test-harness",
@@ -13348,7 +13360,11 @@
           "revision": 37,
           "changedAt": "2026-09-29",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/app/modules/profit/useProfitState.ts:52 Context and repository searches found deterministic profit calculations and saved margin scenarios, with no model-evaluation wiring for this context, so the subject's nondeterministic-evaluation precondition does not hold.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:7ccead00b7f92aba",
+          "evaluatedRevision": 37
         },
         {
           "subject": "budget-reallocation-prescription",

@@ -454,19 +454,54 @@
       "context": "llm-byom-keys",
       "subject": "eval-harness",
       "bundle": "software-engineering",
-      "state": "conformant",
-      "evaluatedAt": "2026-08-31",
-      "worker": "w7-systedo-llm",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T03:34:29.554Z",
+      "worker": "af3c8acf-47c7-4f5e-8918-073631f1d811",
       "techniques": [
         {
-          "technique": "judge-stability",
-          "verdict": "conformant",
-          "evidence": "src/lib/llm/quality.ts:228-239 — judgeVendor + isSelfJudged flag own-family bias per cell"
+          "technique": "assertion-vs-judgment",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/quality.ts:68 Schema-invalid outputs retain graded quality scores; the opened matrix runner judges served cells regardless of validity instead of screening invalid outputs before judging."
         },
         {
-          "technique": "measurement-revision",
-          "verdict": "conformant",
-          "evidence": "src/lib/llm/quality.ts:152-175 — STALENESS_THRESHOLD_DAYS + isMeasurementStale surface baked-matrix age"
+          "technique": "judge-stability",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/quality-scores.ts:9 The baked instrument identity is an alias, without a resolved dated model or judge-packet version; naming home-team bias does not provide a disinterested judge or cross-family panel."
+        },
+        {
+          "technique": "outcome-conditioned-cost",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/quality.ts:113 Each model's cost mean uses its own positive-cost cells, including invalid outputs, without a common successful-task subset and its denominator."
+        },
+        {
+          "technique": "pairing-schedule",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/quality.ts:108 The opened producer and consumer use absolute-scored matrix cells, not a pairwise arena or comparison graph."
+        },
+        {
+          "technique": "resolution-precondition",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/quality.ts:82 Per-operation winners are selected by any strictly larger score without a variance or instrument-resolution check."
+        },
+        {
+          "technique": "treatment-election-rate",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/byom/request.ts:23 Provider selection is imposed before generation; the matrix varies assigned models rather than offering a capability the candidate can elect."
+        },
+        {
+          "technique": "uncontrolled-games-beside-the-win-rate",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/quality.ts:109 These wins count operation-level absolute-score leaders, not mirrored head-to-head games."
+        }
+      ],
+      "superseded": [
+        {
+          "state": "conformant",
+          "evidence": "src/lib/llm/quality.ts:228-239 judgeVendor/isSelfJudged explicitly flags Anthropic-family model cells as self-judged by the Sonnet judge (own-family bias named, not hidden); QualityCell.judges (17-26) is read rather than assumed to be a median; measurementAgeDays/isMeasurementStale (156-175) surfaces a stale baked matrix in the UI instead of presenting it as current.",
+          "evaluatedAt": "2026-08-31",
+          "worker": null,
+          "reason": "replaced by af3c8acf-47c7-4f5e-8918-073631f1d811"
         }
       ]
     },
@@ -1307,6 +1342,85 @@
         }
       ],
       "registryProposal": "Scheduled job execution infrastructure and run record persistence belong to job-coordination as the golden path explicitly disclaims, so matching on 'assembly' and 'configuration' is misleading."
+    },
+    "11708691-80f8-458d-a1fe-be426e381024/eval-harness": {
+      "context": "llm-core-providers",
+      "subject": "eval-harness",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T03:34:29.554Z",
+      "worker": "af3c8acf-47c7-4f5e-8918-073631f1d811",
+      "techniques": [
+        {
+          "technique": "assertion-vs-judgment",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/telemetry.ts:127 The opened quality runner invokes the ordinary wrapper for candidates and judges; this recorder writes their calls into the same Firestore telemetry collection without a dry-evaluation option or evaluation marker."
+        },
+        {
+          "technique": "judge-stability",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/models.ts:63 The quality judge uses the default quality tier after the generation-phase override is cleared; this resolves to sonnet, while metadata reports claude-sonnet rather than the actual dated model."
+        }
+      ]
+    },
+    "591346d5-8bec-44cc-bc20-75f1ea2a7454/eval-harness": {
+      "context": "profit-analytics",
+      "subject": "eval-harness",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T03:34:29.554Z",
+      "worker": "af3c8acf-47c7-4f5e-8918-073631f1d811",
+      "techniques": [
+        {
+          "technique": "comparison-modes",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/profit/useProfitState.ts:400 The comparison recomputes business metrics under saved margins; it does not compare sampled model or agent outputs."
+        },
+        {
+          "technique": "scenario-design",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/profit/useProfitState.ts:375 The scenarios store user-selected margin sets, not evaluation inputs and expected model-output properties."
+        }
+      ]
+    },
+    "2493c871-b977-4008-92e8-879d4bb47a54/eval-harness": {
+      "context": "cost-goals-ltv",
+      "subject": "eval-harness",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T03:34:29.554Z",
+      "worker": "af3c8acf-47c7-4f5e-8918-073631f1d811",
+      "techniques": [
+        {
+          "technique": "eval-economics",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cost-model/compute.ts:42 Costs represent the business's operating overhead, not model-call spend or an evaluation matrix budget."
+        },
+        {
+          "technique": "scenario-design",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ltv/resolve.ts:28 The fixtures are illustrative customer cohorts used for business projections, not scenarios administered to model or agent candidates."
+        }
+      ]
+    },
+    "b80db15f-cdad-41a3-86bd-7d3d06c4ceaf/eval-harness": {
+      "context": "platform-misc-api",
+      "subject": "eval-harness",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T03:34:29.554Z",
+      "worker": "af3c8acf-47c7-4f5e-8918-073631f1d811",
+      "techniques": [
+        {
+          "technique": "resolution-precondition",
+          "verdict": "deviation",
+          "evidence": "src/app/kvalita-modelu/page.tsx:50 This publishes the opened overview's strongest-first ranking unconditionally after the nonempty-data check; neither this page nor the delegated ranking path checks variance or emits a measured tie."
+        }
+      ]
     }
   }
 }
