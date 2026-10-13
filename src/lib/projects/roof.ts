@@ -34,7 +34,44 @@ export type Summarizer = (ctx: SummaryContext) => Promise<RoomSummary>;
 /** Module key → summarizer. Filled area by area (Phase 4); an absent key is an
  *  entry tile. Kept as a lazy import map so a roof only loads the summarizers of
  *  the rooms it shows. */
-export const SUMMARIZERS: Partial<Record<string, () => Promise<{ default: Summarizer }>>> = {};
+export const SUMMARIZERS: Partial<Record<string, () => Promise<{ default: Summarizer }>>> = {
+  // Performance
+  zisk: () => import("@/lib/report-metrics/room-summary"),
+  ltv: () => import("@/lib/ltv/room-summary"),
+  // Reach
+  "klicova-slova": () => import("@/lib/organic-channels/visibility-summary"),
+  "sklad-sezonnost": () => import("@/lib/inventory/room-summary"),
+  // Local
+  recenze: () => import("@/lib/local-signals/reviews-summary"),
+  mapa: () => import("@/lib/local-signals/ladder-summary"),
+  // Studio
+  "experimenty-lp": () => import("@/lib/lp-exp/room-summary"),
+  // Channels
+  kanaly: () => import("@/lib/organic-channels/room-summary"),
+  schranka: () => import("@/lib/speed-lead/room-summary"),
+  leady: () => import("@/lib/leads/room-summary"),
+  twin: () => import("@/lib/twin/room-summary"),
+};
+
+/** Pick the locale's copy — summaries are tiny, so two strings beat a dictionary. */
+export function say(locale: SupportedLocale, cs: string, en: string): string {
+  return locale === "en" ? en : cs;
+}
+
+/** A whole number with locale grouping. */
+export function count(locale: SupportedLocale, n: number): string {
+  return new Intl.NumberFormat(locale === "en" ? "en-GB" : "cs-CZ", { maximumFractionDigits: 0 }).format(n);
+}
+
+/** CZK, compact above 10 000 (e.g. "CZK 1.2M" / "1,2 mil. Kč"). */
+export function czk(locale: SupportedLocale, n: number): string {
+  return new Intl.NumberFormat(locale === "en" ? "en-GB" : "cs-CZ", {
+    style: "currency",
+    currency: "CZK",
+    notation: Math.abs(n) >= 10_000 ? "compact" : "standard",
+    maximumFractionDigits: Math.abs(n) >= 10_000 ? 1 : 0,
+  }).format(n);
+}
 
 export async function summarizeRoom(key: string, ctx: SummaryContext): Promise<RoomSummary | null> {
   const load = SUMMARIZERS[key];

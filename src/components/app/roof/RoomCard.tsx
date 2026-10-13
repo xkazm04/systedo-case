@@ -3,6 +3,7 @@
  *  A module without a summarizer is a plain entry tile (ADR-0013 allows it and
  *  counts it). The whole card is one link into the room. Server component. */
 import Link from "next/link";
+import { connection } from "next/server";
 import { ModuleIcon } from "@/components/app/icon-map";
 import Provenance from "@/components/kit/Provenance";
 import { moduleBlurb, moduleHref, moduleLabel, type ModuleDef } from "@/lib/projects/modules";
@@ -55,6 +56,8 @@ export default async function RoomCard({
   userId: string;
   locale: SupportedLocale;
 }) {
+  // A summary reads the tenant's live state (and the clock): request-time, never prerendered.
+  await connection();
   const summary = await summarizeRoom(module.key, { project, userId, locale });
   const status = summary ? STATUS[summary.status] : null;
   return (
