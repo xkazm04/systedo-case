@@ -191,5 +191,10 @@ kpi-sim/*
 /.claude/rules/ai-registry-media-generation.md
 /.claude/rules/ai-registry-software-engineering.md
 /.claude/rules/ai-registry-localization.md
+/.ai/skill-runs.local.jsonl
 # END ai-registry linked skills
 .architect/
+.contest/
+.contest-stage/
+.contest-stage-shot.mjs
+.contest-stage-vykon.mjs
