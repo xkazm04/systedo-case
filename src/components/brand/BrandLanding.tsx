@@ -1,67 +1,53 @@
-import { getServerLocale } from "@/lib/i18n/locale";
-import { localizedFeatureNavItems, localizedNavItems } from "@/lib/nav";
-import Crossroad from "@/components/brand/crossroad/Crossroad";
-import {
-  CROSSROAD_HREFS,
-  FEATURE_CROSSROAD_HREFS,
-  type CrossroadItem,
-} from "@/components/brand/crossroad/meta";
-import LandingHero from "@/components/brand/landing/LandingHero";
-import LandingProof from "@/components/brand/landing/LandingProof";
-import LandingClosing from "@/components/brand/landing/LandingClosing";
-import LandingModules from "@/components/brand/landing/LandingModules";
-import LandingFaq from "@/components/brand/landing/LandingFaq";
-import HomeFreeChannelsBand from "@/components/marketing/kanaly/HomeFreeChannelsBand";
-import HomePathWalkthrough from "@/components/marketing/kanaly/HomePathWalkthrough";
-
 /* ---------------------------------------------------------------------------
-   Adamant — homepage (Monolith direction)
-   The chosen brand direction: an unbreakable obsidian monument. This file is the
-   COMPOSER: each band lives in its own section component (brand/landing/*, and
-   the free-channel band under marketing/kanaly/), which is what keeps the page
-   editable without growing a single file past the 200-LOC rubric. The site-wide
-   subtle facet pattern lives on <main> (see globals.css .bg-facets).
+   Adamant: the homepage, the Optic Bench (ADR-0014; docs/roadmap/
+   app-redesign-plan.md §2.2). A faithful port of the contest-winning landing
+   (.contest/arena/adamant-landing/judging/entries/A/variant-3).
 
-   Section order is the story: what the product does for someone with no budget
-   comes BEFORE the paid-performance proof band, because the free-channel path is
-   the first job it can do for a visitor who has never bought a click
-   (docs/ship/2026-08-28-kanaly-core-path.md §6 C1). It is then WALKED before it
-   is proven — the claim band says what happens, the walkthrough shows the real
-   output of each step, and only then does the paid proof band quote numbers.
-   After the proof: what is actually in the product (module grid, derived from the
-   registry), the case-study crossroad, and the four questions everybody asks.
+   One beam, three moves: a detector measures, a prism triages, a lens
+   generates. The page is a walk along an optical bench: 00 the source (hero),
+   01-03 the stations, 04 the room of lamps (eight module groups), 05 the five
+   apertures (the zero-budget path), 06 the ledger (what each channel honestly
+   is), 07 the close.
+
+   This file is the COMPOSER. Markup is server-rendered in brand/optic/*; the
+   client islands are the hero canvas (lazy), the hall, the rooms and one
+   scroll controller. The site nav and footer stay the root layout's: the
+   stage is measured under the sticky nav rather than replacing it.
 --------------------------------------------------------------------------- */
+import "./optic/styles/base.css";
+import "./optic/styles/hero.css";
+import "./optic/styles/bench.css";
+import "./optic/styles/hall.css";
+import "./optic/styles/rooms.css";
+import "./optic/styles/path.css";
+import SpriteDefs from "./optic/defs/SpriteDefs";
+import Hero from "./optic/hero/Hero";
+import Bench from "./optic/bench/Bench";
+import Hall from "./optic/hall/Hall";
+import Path from "./optic/path/Path";
+import Ledger from "./optic/ledger/Ledger";
+import Close from "./optic/ledger/Close";
+import StationRooms from "./optic/rooms/StationRooms";
+import LampRoom from "./optic/hall/LampRoom";
+import OpticController from "./optic/fx/OpticController";
 
-export default async function BrandLanding() {
-  const locale = await getServerLocale();
-
-  // The homepage crossroad: the four case-study destinations that used to live in
-  // the header nav, plus the public feature pages. Localized labels/blurbs come
-  // from the shared nav model, but ORDER is single-sourced from the href tuples,
-  // so a nav reorder can't silently invert the crossroad. Each card's icon and
-  // illustration join on the client (see crossroad/meta).
-  const navByHref = new Map(
-    [...localizedNavItems(locale), ...localizedFeatureNavItems(locale)].map((i) => [i.href, i])
-  );
-  const crossroad: CrossroadItem[] = [];
-  for (const href of [...CROSSROAD_HREFS, ...FEATURE_CROSSROAD_HREFS]) {
-    const item = navByHref.get(href);
-    if (item) crossroad.push(item);
-    else if (process.env.NODE_ENV !== "production") {
-      console.warn(`[crossroad] no nav item for ${href} — a homepage destination was silently dropped.`);
-    }
-  }
-
+export default function BrandLanding() {
   return (
     <>
-      <LandingHero />
-      <HomeFreeChannelsBand />
-      <HomePathWalkthrough />
-      <LandingProof />
-      <LandingModules />
-      <Crossroad items={crossroad} />
-      <LandingFaq />
-      <LandingClosing />
+      <div className="ob">
+        <SpriteDefs />
+        <Hero />
+        <Bench />
+        <Hall />
+        <Path />
+        <Ledger />
+        <Close />
+        <StationRooms />
+        <LampRoom />
+        <OpticController />
+      </div>
+      <div className="ob-grain" aria-hidden="true" />
+      <div className="ob-vignette" aria-hidden="true" />
     </>
   );
 }

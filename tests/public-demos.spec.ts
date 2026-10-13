@@ -3,7 +3,7 @@ import { test, expect, type Page } from "@playwright/test";
 /**
  * Smoke coverage for every PUBLIC surface that claims to demo the product:
  *
- *   /                   the homepage — its three demonstrating bands
+ *   /                   the homepage — the bench, a station room, the hall, the ledger
  *   /kampane            campaign triage on the demo tenant
  *   /knihovna           the winning-patterns library
  *   /socialni           the social center
@@ -42,41 +42,39 @@ async function gotoPublic(page: Page, path: string) {
 }
 
 test.describe("public demo surfaces", () => {
-  test("/ demonstrates the core path, the module registry and the FAQ", async ({ page }) => {
+  test("/ walks the bench, opens a station room and lets Back close it", async ({ page }) => {
     await gotoPublic(page, "/");
 
-    // 1. THE WALKTHROUGH. Its whole claim is that each step shows the product's
-    // real output, so the assertions are on DERIVED values, not on prose: the
-    // demo fixture's own domain (src/lib/demo/projects.ts) in the open first
-    // step, and a ranked list whose fit scores are numbers.
-    const walk = page.locator("#core-path");
-    await expect(walk).toBeVisible();
-    await expect(walk.getByText("mionelo.cz")).toBeVisible();
+    // 1. WHAT AND FOR WHOM, in the first screen: the plain-language promise and
+    // both conversion paths sit in the hero, next to the h1.
+    const hero = page.locator("#ob-source");
+    await expect(hero.getByText(/e-shops and the agencies|e-shopy a agentury/)).toBeVisible();
+    await expect(hero.locator('a[href="/app"]')).toBeVisible();
+    await expect(hero.locator('a[href="/dashboard"]')).toBeVisible();
 
-    // The stepper is a native <details name> accordion — zero client JS. The
-    // ranked panel is in the HTML but closed, and opening it is what a reader
-    // does. Both halves are asserted: if the accordion silently stopped
-    // toggling, "the rows exist in the DOM" would still pass on its own.
-    const ranked = walk.locator("ol > li");
-    await expect(ranked).toHaveCount(3);
-    await expect(ranked.first()).toBeHidden();
-    await walk.getByText(/Dostanete seřazený plán|You get a ranked plan/).click();
-    await expect(ranked.first()).toBeVisible();
-    // A fit score, i.e. a number the seeded plan computed — not a typed claim.
-    await expect(ranked.first()).toContainText(/\d+/);
+    // 2. THE BENCH: three stations, each a named move (measure, triage, generate).
+    const bench = page.locator("#ob-bench");
+    await expect(bench.getByRole("heading", { level: 2, name: /^(Measure|Měřit)$/ })).toHaveCount(1);
+    await expect(bench.getByRole("heading", { level: 2, name: /^(Generate|Tvořit)$/ })).toHaveCount(1);
 
-    // 2. THE MODULE GRID, derived from src/lib/projects/modules.ts. Assert a
-    // section heading AND a module name from the registry: a grid that rendered
-    // its framing copy with an empty module list would pass the first alone.
-    const modules = page.locator("#moduly");
-    await expect(modules.getByRole("heading", { name: /^(Akvizice|Acquisition)$/ })).toBeVisible();
-    await expect(modules.getByText(/^(Kanály zdarma|Free channels)$/).first()).toBeVisible();
+    // 3. A ROOM OWNS A URL. Opening a station adds #station-1 and shows a modal
+    // dialog; browser Back removes the hash and closes it (the contest variant's
+    // known limit, fixed in the port). Asserted on the hash AND the dialog, so a
+    // room that closed without giving the history entry back would still fail.
+    await page.locator("#ob-st-0").getByRole("button", { name: /Open the station|Otevřít stanici/ }).click();
+    await expect(page).toHaveURL(/#station-1$/);
+    const room = page.getByRole("dialog", { name: /The detector|Detektor/ });
+    await expect(room).toBeVisible();
+    await page.goBack();
+    await expect(page).not.toHaveURL(/#station-1$/);
+    await expect(room).toBeHidden();
 
-    // 3. THE FAQ. Same accordion; the answer carries a link into /cena, which is
-    // where the "free during validation" claim is substantiated.
-    const faq = page.locator("#faq");
-    await faq.getByRole("heading", { name: /Kolik to stojí|What does it cost/ }).click();
-    await expect(faq.getByRole("link", { name: /bezplatném plánu|free plan covers/ })).toBeVisible();
+    // 4. THE HALL: eight module groups, each a real button that opens its room.
+    await expect(page.locator("[data-ob-lamp]")).toHaveCount(8);
+
+    // 5. THE LEDGER states each channel honestly: Google Ads is the one live sync.
+    const ledger = page.locator("#ob-ledger");
+    await expect(ledger.getByText(/The only live-data connector|Jediný konektor se živými daty/)).toBeVisible();
   });
 
   test("/kampane reaches one of its two terminal states", async ({ page }) => {
