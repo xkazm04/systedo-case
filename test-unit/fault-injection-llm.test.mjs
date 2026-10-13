@@ -53,7 +53,7 @@ const { LlmCallError, ByomUserError } = await import("@/lib/llm/errors");
 // surface of the replacement, so omitting it made `adapters.ts` fail to LINK ("does not provide an
 // export named 'extractJson'") and the file died before a single scenario ran. Capture the genuine
 // helper first — importing it here, ahead of `mock.module`, binds the real implementation.
-const { extractJson, extractJsonTraced } = await import("@/lib/llm/claude");
+const { extractJson, extractJsonTraced, buildCliPrompt } = await import("@/lib/llm/claude");
 
 // ── the injectable providers ─────────────────────────────────────────────────
 //
@@ -82,6 +82,13 @@ mock.module("@/lib/llm/claude", {
     claudeAvailable: () => configured.has("claude"),
     runClaude: async () => ({ value: next("claude"), rung: "direct" }),
     extractJson,
+    // The research stance (./claude-research, ADR-0016) links against these. It is
+    // not a fault seam here — no scenario passes a capability — so the spawn throws
+    // loudly if anything ever reaches it, rather than starting a real CLI child.
+    buildCliPrompt,
+    spawnCli: async () => {
+      throw new Error("spawnCli reached in the fault-injection suite");
+    },
   },
 });
 mock.module("@/lib/llm/codex", {
