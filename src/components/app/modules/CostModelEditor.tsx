@@ -55,8 +55,8 @@ const T = {
     // The cost model is stored unit-less and rendered everywhere as CZK (fmtCZK) —
     // the overhead/per-order fields are koruny in BOTH locales. The EN label used to
     // say "USD", telling English users to enter dollars for a value shown ~22× off as
-    // Kč. There is no stored currency dimension, so the honest label is "Kč" here too.
-    currencyUnit: "Kč",
+    // Kč. English writes that stored koruna unit as "CZK" (operator ruling 2026-09-14, docs/i18n/style-en.md).
+    currencyUnit: "CZK",
   },
 } as const;
 

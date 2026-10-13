@@ -23,9 +23,17 @@ rule below has an **ID** for Pass B to cite.
 the first fan-out wave, where it was the dominant source-side defect. Everything
 below it is still bootstrap and still unproven.
 
-### EN-SPELLING · the catalog has no spelling standard — do not assume one
+### EN-SPELLING · ✅ RULED 2026-09-14: US English (supersedes the parked note below)
 
-Two agents independently queued "US-normalizing" fixes, reverted them after
+> **Operator decision, fleet-wide, 2026-09-14: US spelling on every surface**
+> (registry rule EN-SPELLING, `copy-contract.json` `variant: "US"`, enforced by
+> `npm run copy:check`). It extends the 2026-08-06 `-ize` ruling (glossary.md,
+> review-cs A6) to the whole variant. Count at adoption: US 72 forms, UK 3
+> (`colour`, `modelled`, `labelled`), baselined as debt. The note and table below
+> are **superseded** and kept as the evidence the decision was taken on. Their
+> lesson still holds.
+
+*Superseded note (2026-08-06):* Two agents independently queued "US-normalizing" fixes, reverted them after
 grepping, and both reported the `en` column as "consistently British". **A
 measurement over the 3 286 `en` values says otherwise** — it is genuinely
 mixed, and each agent had generalised from whichever cluster it happened to hit:
@@ -72,6 +80,25 @@ The house authority for English is the **[Microsoft Writing Style
 Guide](https://learn.microsoft.com/style-guide/welcome/)** — the en-source
 counterpart to the per-language localization guides. Name one authority and
 stay with it; do not mix guides row by row.
+
+## ID mapping to the registry (added 2026-09-14)
+
+The IDs in this file are this repo's own and stay citable, with their evidence.
+The registry's `localization/english` subject holds the general rule under its
+own ID. `copy:check` findings and new reviews cite the registry ID.
+
+| This file | Registry ID(s) | Note |
+|---|---|---|
+| EN-SPELLING | EN-SPELLING, EN-VARIANT | ruled US 2026-09-14 |
+| EN-ARTICLE | EN-ARTICLE, EN-ARTICLE-DEM, EN-ARTICLE-GENERIC | validated evidence stays here |
+| EN-VERBAL | EN-LABEL, EN-ACTIVE, EN-NOUN-PILE | no single equivalent; directional (cs → en) |
+| EN-REFLEXIVE | EN-REFLEXIVE | |
+| EN-ASPECT | EN-PERFECT, EN-PROGRESSIVE | |
+| EN-ORDER | EN-ORDER | |
+| EN-FALSE-FRIEND | EN-FALSE-FRIEND | |
+| EN-SENTENCE-CASE | EN-CASE | |
+| EN-DASH | EN-DASH, EN-SPACING | house ban = contract `dash.emDash: "ban"`; space before `; : ! ?` is EN-SPACING |
+| EN-ONE-WORD | EN-ONE-TERM | glossary.md stays the termbase |
 
 ---
 

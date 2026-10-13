@@ -13,3 +13,12 @@
 # pushed history at 27379f47, and a full-history scan would report it on every push forever.
 27379f47f903bf3249fcb130c428a60fccba0f2f:test-unit/secret-scan-sensitivity.test.mjs:generic-api-key:96
 27379f47f903bf3249fcb130c428a60fccba0f2f:test-unit/secret-scan-sensitivity.test.mjs:generic-api-key:99
+#
+# Why these two exist: the linkedin-client-id rule matched a CODE IDENTIFIER, not a credential. Both
+# lines are in commit 584ebd98 (2026-07-14) and the matched text is the exported provider constant
+# `linkedinProvider` (providers.ts line 119: its declaration; social-providers.test.mjs line 9: its
+# import). The file never carried a LinkedIn client id or secret literal; the app reads them from
+# LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET at runtime. Verified 2026-10-13 by reading both lines
+# at that commit. One commit, one file, one rule, one line each.
+584ebd98c8140400aa391a63477d6434ed8b58ef:src/lib/social/providers.ts:linkedin-client-id:119
+584ebd98c8140400aa391a63477d6434ed8b58ef:test-unit/social-providers.test.mjs:linkedin-client-id:9

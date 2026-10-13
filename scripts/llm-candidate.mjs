@@ -72,9 +72,11 @@ const say = (s = "") => {
 
 const spec = JSON.parse(readFileSync(new URL("../test-llm/model-candidates.json", import.meta.url), "utf8"));
 const candidates = (spec.candidates ?? []).filter((c) => !ONLY || c.path === ONLY);
+const awaitingCandidates = (spec.awaitingCandidates ?? []).filter((c) => !ONLY || c.path === ONLY);
 
-if (ONLY && !candidates.length) {
-  console.error(`llm candidate: no candidate called "${ONLY}". Known: ${(spec.candidates ?? []).map((c) => c.path).join(", ")}.`);
+if (ONLY && !candidates.length && !awaitingCandidates.length) {
+  const known = [...(spec.candidates ?? []), ...(spec.awaitingCandidates ?? [])].map((c) => c.path).join(", ");
+  console.error(`llm candidate: no candidate surface called "${ONLY}". Known: ${known}.`);
   process.exit(1);
 }
 
@@ -98,6 +100,18 @@ function publish() {
   }
 }
 
+for (const pending of awaitingCandidates) {
+  say(`  ${pending.path}: awaiting a successor to ${pending.serving} (checked ${pending.checkedOn}).`);
+}
+if (awaitingCandidates.length) say("");
+
+if (ONLY && !candidates.length) {
+  say("llm candidate: no announced successor can be rehearsed for this surface, so nothing is claimed.");
+  publish();
+  write({ schema: 1, status: "awaiting-candidate", measuredAt, candidates: [], awaitingCandidates });
+  process.exit(0);
+}
+
 /** Which candidates can actually be rehearsed — one with no key configured is a
  *  `skipped`, named, rather than a silent absence. */
 const runnable = candidates.filter((c) => String(process.env[c.keyEnv] ?? "").trim() !== "");
@@ -108,7 +122,7 @@ if (!runnable.length) {
   say(`llm candidate: no key configured (${needs}) — nothing can be rehearsed, so nothing is claimed.`);
   say('           (This is a `skipped`, not a pass: a rehearsal that did not run proves nothing about the swap.)');
   publish();
-  write({ schema: 1, status: "skipped", reason: `no key configured (${needs})`, measuredAt, candidates: [] });
+  write({ schema: 1, status: "skipped", reason: `no key configured (${needs})`, measuredAt, candidates: [], awaitingCandidates });
   process.exit(0);
 }
 
@@ -204,6 +218,7 @@ write({
   shapeFailures: totalShapeFailures,
   unserved: totalUnserved,
   candidates: results,
+  awaitingCandidates,
 });
 publish();
 

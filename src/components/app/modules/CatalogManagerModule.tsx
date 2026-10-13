@@ -19,9 +19,8 @@ import { SYNC_PROVIDERS } from "@/lib/inventory/providers";
 import type { PublicConnection } from "@/lib/inventory/connection-store";
 import type { WarehouseConnection } from "@/lib/inventory/warehouse";
 import type { ProjectType } from "@/lib/projects/types";
-import type { IconKey } from "@/lib/projects/icon-keys";
 import { OfferingCard, type OfferingCommit } from "./catalog/OfferingCard";
-import { CATALOG_PAGE_SIZE, INPUT_BASE, offeringMatchesQuery } from "./catalog/offering-edit";
+import { CATALOG_PAGE_SIZE, INPUT_BASE, KIND_META, PRIMARY_KIND, offeringMatchesQuery } from "./catalog/offering-edit";
 
 const T = {
   cs: {
@@ -35,6 +34,7 @@ const T = {
     saved: "Uloženo",
     saveError: "Uložení selhalo",
     namePh: "Název",
+    currencyUnit: "Kč",
     products: "Produkty",
     plans: "Plány",
     services: "Služby",
@@ -125,6 +125,9 @@ const T = {
     saved: "Saved",
     saveError: "Save failed",
     namePh: "Name",
+    // Catalog prices are koruny in both locales; Czech writes "Kč", English "CZK"
+    // (operator ruling 2026-09-14, docs/i18n/style-en.md).
+    currencyUnit: "CZK",
     products: "Products",
     plans: "Plans",
     services: "Services",
@@ -210,21 +213,7 @@ const T = {
  *  OfferingCard can type its stable `t` prop against the same keys. */
 export type CatalogT = TFn<keyof (typeof T)["cs"]>;
 
-const KIND_META: Record<OfferingKind, { titleKey: "products" | "plans" | "services"; icon: IconKey }> = {
-  product: { titleKey: "products", icon: "catalog" },
-  plan: { titleKey: "plans", icon: "app" },
-  service: { titleKey: "services", icon: "local" },
-};
-
 const inputBase = INPUT_BASE;
-
-const PRIMARY_KIND: Record<ProjectType, OfferingKind> = {
-  eshop: "product",
-  app: "plan",
-  leadgen: "service",
-  content: "service",
-  local: "service",
-};
 
 export default function CatalogManagerModule({
   offerings,

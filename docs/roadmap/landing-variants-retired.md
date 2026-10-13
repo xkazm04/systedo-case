@@ -1,12 +1,14 @@
 # Retired: the `/lp` landing-page variants
 
-**Decision, 2026-08-28 — reversible.** The three exploratory landing-page
-variants and their comparison index are **deleted from the tree**. The shipped
-homepage (`src/components/brand/BrandLanding.tsx` + `src/components/brand/landing/*`
-+ the free-channel bands under `src/components/marketing/kanaly/`) is the single
-landing surface. This note is the only thing that survives them; the code itself
-survives in git history and can be restored in one command if the decision is
-wrong.
+> **Reopened and closed again on 2026-09-08.** `/lp` came back that day as a review sheet for
+> three research variants (`story` / `exhibit` / `instrument`, one information-distribution
+> strategy each, from [`docs/design/nextgen-landing.md`](../design/nextgen-landing.md)) after
+> a first single variant, `/lp/monolith`, had already been built and torn down. The owner
+> reviewed all three and deleted them the same day: none showed the potential hoped for, and
+> the lesson recorded is that a landing direction needs the owner's OWN specific references
+> and inputs before anything is built — a library derived from other people's videos is not
+> a brief. The pattern doc stays as the record of the reading; nothing else survives. Reason 2
+> below held again: a variant nobody asked for in those terms is a period piece on arrival.
 
 ## What was deleted
 

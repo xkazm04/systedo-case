@@ -51,7 +51,7 @@ registry:
   remote: github:xkazm04/ai-registry
   local: ../ai-registry
 knowledge:
-  domains: [media-generation, software-engineering]
+  domains: [marketing, media-generation, software-engineering, localization]
 
 # Shared skills this project uses, from the registry's skills/ lane. The LINK is machine
 # state (gitignored, made by ai-registry/scripts/link-skills.mjs); THIS list is the
@@ -63,9 +63,32 @@ skills:
   - consult
   - explorer
   - i18n-translate
+  - maintain
+  - native-copy
   - onboarding
   - perfect
   - project-populate
   - scan-sweep
   - tiger
   - uat
+
+# Scope - what this project does and deliberately does not do. Read by the registry's
+# scripts/build-fleet-map.mjs to classify subjects this project has NO context for: an
+# absence inside an out-of-scope category or subject is never proposed as a new direction;
+# every other in-domain absence is a `candidate` for the intake direction pass. Keys are
+# `<bundle>/<category>[/<subcategory>]` and `<bundle>/<subject>`. Decisions on proposed
+# directions live in .ai/directions/ledger.jsonl. DRAFT written by the registry on
+# 2026-09-02 from the purpose line and the project note - the owner edits this block, the
+# registry only reads it.
+scope:
+  does:
+    - measures advertising account performance and generates the content that follows from it; review loops
+  does_not:
+    - agent fleet runtime or companions
+    - recruiting, civic, game domains
+  out_of_scope_categories:
+    - software-engineering/llm-agent/companion
+    - software-engineering/llm-agent/runtime-and-io
+    - software-engineering/engineering-assessment
+  out_of_scope_subjects:
+  directions_ledger: .ai/directions/ledger.jsonl
