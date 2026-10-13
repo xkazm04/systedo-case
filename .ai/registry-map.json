@@ -4902,12 +4902,11 @@
           "changedAt": "2026-09-23",
           "confidence": "strong",
           "state": "deviation",
-          "evidence": "src/components/campaigns/CampaignTable.tsx:616 maps the entire filtered set with no window bound (all-client over the complete /api/campaigns payload, growth bet unwritten) and src/components/campaigns/table/derive.ts:140 closes the comparator with no identity tiebreaker, so the surface fails at scale and equal-keyed rows reshuffle across refreshes; filtering, counts, sort persistence and the typed no-match empty are realized (CampaignTable.tsx:438, :549, :530, :602; table/sort.ts:37; table/SortHeader.tsx:154), but the loading state is a full-surface spinner that unmounts the chrome (CampaignsClient.tsx:338).",
-          "evaluatedAt": "2026-09-20",
-          "evaluatedAgainst": "sha256:9ac911984c10d3d5",
-          "evaluatedRevision": 5,
-          "revisionsBehind": 7,
-          "stale": true
+          "evidence": "src/components/campaigns/table/derive.ts:140 Equal metric values compare as equal with no campaign id, so tied rows have no total order and can reshuffle when the same data is sorted again.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:b2b329111d190ae7",
+          "evaluatedRevision": 12,
+          "revisionsBehind": 7
         },
         {
           "subject": "campaign-anomaly-triage",
@@ -8330,11 +8329,14 @@
           "bundle": "software-engineering",
           "source": "conform",
           "confidence": "strong",
-          "state": "unknown",
-          "evidence": "added by /conform: the matcher scored this at zero; src/components/dashboard/ChannelTable.tsx is a per-channel metric comparison table with a totals row, the surface period-comparison-significance renders its numbers into. Not judged this run.",
+          "state": "deviation",
+          "evidence": "src/components/dashboard/ChannelTable.tsx:122 Zero channel rows still render the header and the totals footer with no settled empty naming that the channel mix is absent.",
           "digest": "sha256-b2:b2b329111d190ae7",
           "revision": 12,
-          "changedAt": "2026-09-23"
+          "changedAt": "2026-09-23",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:b2b329111d190ae7",
+          "evaluatedRevision": 12
         }
       ],
       "governance": "governed"
@@ -9819,11 +9821,14 @@
           "bundle": "software-engineering",
           "source": "conform",
           "confidence": "strong",
-          "state": "unknown",
-          "evidence": "added by /conform: the matcher scored this at zero; src/components/app/modules/LeadQualityModule.tsx renders a <table> of leads, and the context's sibling src/components/app/modules/leads/LeadTable.tsx (253 lines, source-filtered contact table) is absent from every context's paths — a context-map gap, not only a matcher gap. Not judged this run.",
+          "state": "deviation",
+          "evidence": "src/components/app/modules/LeadQualityModule.tsx:142 Sources with the same quality score compare equal, and the comparator never consults source identity, so tied rows keep whatever order the sort happened to preserve.",
           "digest": "sha256-b2:b2b329111d190ae7",
           "revision": 12,
-          "changedAt": "2026-09-23"
+          "changedAt": "2026-09-23",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:b2b329111d190ae7",
+          "evaluatedRevision": 12
         }
       ],
       "governance": "governed"
@@ -11339,11 +11344,14 @@
           "bundle": "software-engineering",
           "source": "conform",
           "confidence": "strong",
-          "state": "unknown",
-          "evidence": "added by /conform: the matcher scored this at zero; src/components/app/modules/CompareSeoTable.tsx:806 is a seven-column query comparison table (volume, difficulty, rank) and RankLadder.tsx / overview/PortfolioCompare.tsx are two more, all keyed on a display field (CompareSeoTable.tsx:827 key={r.query}) — row identity is the open question. Not judged this run.",
+          "state": "deviation",
+          "evidence": "src/components/app/modules/CompareSeoTable.tsx:696 A saved list that yields no comparison queries leaves the sample queries in the table, so the body is neither that list nor a settled empty for it.",
           "digest": "sha256-b2:b2b329111d190ae7",
           "revision": 12,
-          "changedAt": "2026-09-23"
+          "changedAt": "2026-09-23",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:b2b329111d190ae7",
+          "evaluatedRevision": 12
         }
       ],
       "governance": "governed"
@@ -13491,15 +13499,14 @@
           "source": "conform",
           "confidence": "strong",
           "state": "deviation",
-          "evidence": "added by /conform: the matcher scored this at zero; four of the context's paths are <table> comparison surfaces (profit/ChannelsTable.tsx:42, ProfitProductsPanel.tsx:104, ProfitScenariosPanel.tsx, profit/OverheadPanel.tsx). Verdict: src/components/app/modules/profit/ChannelsTable.tsx:56 maps rows with no empty-settled branch and src/components/app/modules/ProfitModule.tsx:115 renders it unguarded, so zero channels draw a header over a blank body instead of a typed empty; src/lib/profit/compute.ts:74 orders by netProfit with no identity tiebreaker. pagination not-applicable: the row set is the enumerated channel list, not a growing collection.",
-          "evaluatedAt": "2026-09-20",
-          "evaluatedAgainst": "sha256:9ac911984c10d3d5",
-          "evaluatedRevision": 5,
+          "evidence": "src/components/app/modules/profit/ChannelsTable.tsx:56 A period whose channel mix is empty still draws the column header and legend over a blank body, with no settled empty that says the mix is absent.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:b2b329111d190ae7",
+          "evaluatedRevision": 12,
           "digest": "sha256-b2:b2b329111d190ae7",
           "revision": 12,
           "changedAt": "2026-09-23",
-          "revisionsBehind": 7,
-          "stale": true
+          "revisionsBehind": 7
         }
       ],
       "governance": "governed"

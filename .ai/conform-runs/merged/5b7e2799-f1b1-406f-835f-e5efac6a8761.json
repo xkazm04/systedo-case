@@ -1,0 +1,304 @@
+{
+ "schema": "conform-run/1",
+ "worker": "5b7e2799-f1b1-406f-835f-e5efac6a8761",
+ "subject": "table",
+ "evaluatedAt": "2026-10-13T13:27:15.850453+00:00",
+ "provider": "grok",
+ "model": "grok-4.7",
+ "pairs": [
+  {
+   "context": "campaign-table",
+   "subject": "table",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/campaigns/table/derive.ts:140 Equal metric values compare as equal with no campaign id, so tied rows have no total order and can reshuffle when the same data is sorted again.",
+   "techniques": [
+    {
+     "technique": "client-server-split",
+     "verdict": "deviation",
+     "evidence": "src/components/campaigns/useCampaigns.ts:45 One request loads the whole synced collection; filter, sort, and the full row set then run on the client, and no upper bound or flip-to-server guard is written."
+    },
+    {
+     "technique": "filtering",
+     "verdict": "deviation",
+     "evidence": "src/components/campaigns/CampaignTable.tsx:506 Keystroke search updates the shown/total count in place, but that count is a plain span, not a status message, so the row change is silent to assistive tech."
+    },
+    {
+     "technique": "loading-and-empty-states",
+     "verdict": "deviation",
+     "evidence": "src/components/campaigns/CampaignsClient.tsx:320 The first fetch returns this centered pulse instead of the table, so the header, filters, and footer never mount while data is in flight."
+    },
+    {
+     "technique": "pagination",
+     "verdict": "deviation",
+     "evidence": "src/components/campaigns/CampaignTable.tsx:577 The sorted view is mounted in full; there is no page, cursor, or size, so the window is the entire filtered account."
+    },
+    {
+     "technique": "performance",
+     "verdict": "conformant",
+     "evidence": "src/components/campaigns/CampaignTable.tsx:589 Rows are keyed by campaign id, and the triage pass is memoized on campaigns, changes, goals, and series rather than on each keystroke."
+    },
+    {
+     "technique": "sorting",
+     "verdict": "deviation",
+     "evidence": "src/components/campaigns/table/derive.ts:140 The numeric comparator stops at equal values; severity only tie-breaks on cost, and name stops at localeCompare, so distinct rows can stay unordered."
+    }
+   ]
+  },
+  {
+   "context": "profit-analytics",
+   "subject": "table",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/profit/ChannelsTable.tsx:56 A period whose channel mix is empty still draws the column header and legend over a blank body, with no settled empty that says the mix is absent.",
+   "techniques": [
+    {
+     "technique": "client-server-split",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/profit/useProfitState.ts:208 The client holds the period's complete channel rows and sorts them there; no server window sits under that sort."
+    },
+    {
+     "technique": "filtering",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/profit/ProfitControls.tsx:43 The period control swaps the whole precomputed mix; the tables have no row predicate, so entered-versus-applied does not arise."
+    },
+    {
+     "technique": "loading-and-empty-states",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/profit/ChannelsTable.tsx:56 The body is only the map; zero channel rows produce no typed empty, including the single-source live mix that arrives as an empty channel list."
+    },
+    {
+     "technique": "pagination",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/profit/ChannelsTable.tsx:3 Each row is one channel in the mix (authored channels, or one row per blended ad platform), not a growing record log that needs offset or keyset."
+    },
+    {
+     "technique": "performance",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/profit/ChannelsTable.tsx:57 The channel scorecard keys rows by channel and mounts the whole mix, which is the right depth on a handful of rows."
+    },
+    {
+     "technique": "sorting",
+     "verdict": "deviation",
+     "evidence": "src/lib/profit/compute.ts:74 Net profit is the only term, so two channels with the same profit have no identity order."
+    }
+   ]
+  },
+  {
+   "context": "dashboard-kpi",
+   "subject": "table",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/dashboard/ChannelTable.tsx:122 Zero channel rows still render the header and the totals footer with no settled empty naming that the channel mix is absent.",
+   "techniques": [
+    {
+     "technique": "client-server-split",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/DashboardClient.tsx:187 The page already holds the full channel mix and derives every row on the client; nothing sorts inside a server-truncated window."
+    },
+    {
+     "technique": "filtering",
+     "verdict": "not-applicable",
+     "evidence": "src/components/dashboard/vykon/ChannelsSection.tsx:87 The CSV exports every channel row it was given; the table has no filter bar whose draft could diverge from the rows."
+    },
+    {
+     "technique": "loading-and-empty-states",
+     "verdict": "deviation",
+     "evidence": "src/components/dashboard/ChannelTable.tsx:122 The tbody is only that map, so an empty mix (the single-account live blend) is a blank body rather than a typed empty."
+    },
+    {
+     "technique": "pagination",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/report-metrics/blend.ts:40 A live mix is one row per closed ad platform, and the case-study mix is the fixed channel list in the performance dataset, so offset-versus-keyset does not arise."
+    },
+    {
+     "technique": "performance",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/ChannelTable.tsx:124 Rows are keyed by channel and the whole small breakdown stays mounted, which matches a mix of a handful of channels."
+    },
+    {
+     "technique": "sorting",
+     "verdict": "deviation",
+     "evidence": "src/lib/metrics/channels.ts:76 Revenue is the only comparison term, so channels with equal revenue have no identity tiebreak."
+    }
+   ],
+   "registryProposal": "Pagination says a table with no window bound has decided to fail at some size, but it never exempts a closed catalog (one row per ad platform, or an authored mix of seven). A full .map is then both the right breakdown and the unbounded-table failure. Spell that a closed catalog or an aggregate whose cardinality is that catalog makes window mechanics not-applicable."
+  },
+  {
+   "context": "lead-management",
+   "subject": "table",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/LeadQualityModule.tsx:142 Sources with the same quality score compare equal, and the comparator never consults source identity, so tied rows keep whatever order the sort happened to preserve.",
+   "techniques": [
+    {
+     "technique": "client-server-split",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/LeadQualityModule.tsx:250 The scorecard is drawn from the full sources array in the same render that ordered it; there is no server window under a client re-sort."
+    },
+    {
+     "technique": "filtering",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/LeadQualityModule.tsx:146 That filter only chooses which sources feed the campaign drill-down; the scorecard has no user predicate, so entered-versus-applied does not arise."
+    },
+    {
+     "technique": "loading-and-empty-states",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/LeadQualityModule.tsx:279 The drift table mounts only when prior-period trends exist, and the scorecard renders the already resolved source tier rather than an in-flight empty."
+    },
+    {
+     "technique": "pagination",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/lead-quality/import.ts:159 The table is one row per source group, the aggregate of the leads, so choosing offset versus keyset for a lead log does not arise."
+    },
+    {
+     "technique": "performance",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/LeadQualityModule.tsx:251 Scorecard rows are keyed by source and the whole aggregate stays mounted."
+    },
+    {
+     "technique": "sorting",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/LeadQualityModule.tsx:142 Quality score is the only term; equal scores do not fall through to the source identity."
+    }
+   ]
+  },
+  {
+   "context": "map-pack-seo-comparison",
+   "subject": "table",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/CompareSeoTable.tsx:696 A saved list that yields no comparison queries leaves the sample queries in the table, so the body is neither that list nor a settled empty for it.",
+   "techniques": [
+    {
+     "technique": "client-server-split",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/CompareSeoTable.tsx:676 The client loads every saved keyword list, then scores and renders the comparison subset locally, with no written growth bound."
+    },
+    {
+     "technique": "filtering",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/CompareSeoTable.tsx:763 The control says the selected list has no comparison queries while the rows stay on the sample set."
+    },
+    {
+     "technique": "loading-and-empty-states",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/CompareSeoTable.tsx:696 Zero comparison queries from the selected list do not settle to an empty body; the sample rows stay on screen."
+    },
+    {
+     "technique": "pagination",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/CompareSeoTable.tsx:825 Every scored query is mounted; the comparison table has no page or cursor, and the keyword-list fetch has no size cap."
+    },
+    {
+     "technique": "performance",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/CompareSeoTable.tsx:827 Query rows are keyed by the query string, and scoring is memoized on the source queries and weights."
+    },
+    {
+     "technique": "sorting",
+     "verdict": "deviation",
+     "evidence": "src/lib/mappack/compute.ts:212 Current rank and climb can both tie, and the comparator never appends the keyword id; the SEO score sort (score only) has the same hole."
+    }
+   ]
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-13T13:27:15.850453+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "table"
+   ],
+   "techniques": [
+    "client-server-split",
+    "filtering",
+    "loading-and-empty-states",
+    "pagination",
+    "performance",
+    "sorting"
+   ],
+   "deviations": 1,
+   "context": "campaign-table",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T13:27:15.850453+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "table"
+   ],
+   "techniques": [
+    "client-server-split",
+    "filtering",
+    "loading-and-empty-states",
+    "pagination",
+    "performance",
+    "sorting"
+   ],
+   "deviations": 1,
+   "context": "profit-analytics",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T13:27:15.850453+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "table"
+   ],
+   "techniques": [
+    "client-server-split",
+    "filtering",
+    "loading-and-empty-states",
+    "pagination",
+    "performance",
+    "sorting"
+   ],
+   "deviations": 1,
+   "context": "dashboard-kpi",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T13:27:15.850453+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "table"
+   ],
+   "techniques": [
+    "client-server-split",
+    "filtering",
+    "loading-and-empty-states",
+    "pagination",
+    "performance",
+    "sorting"
+   ],
+   "deviations": 1,
+   "context": "lead-management",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T13:27:15.850453+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "table"
+   ],
+   "techniques": [
+    "client-server-split",
+    "filtering",
+    "loading-and-empty-states",
+    "pagination",
+    "performance",
+    "sorting"
+   ],
+   "deviations": 1,
+   "context": "map-pack-seo-comparison",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  }
+ ]
+}
