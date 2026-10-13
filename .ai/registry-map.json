@@ -2348,7 +2348,11 @@
           "revision": 25,
           "changedAt": "2026-10-06",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/app/api/ai/route.ts:16 Searches of src/app/api/ai for hibernated, sessionRegistry, writeScope, sweeper, and incarnation found none; one POST runs one named generation mode after abuse and quota guards.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:3eafb649495c9498",
+          "evaluatedRevision": 26
         },
         {
           "subject": "guest-execution-bounding",
@@ -8040,7 +8044,11 @@
           "revision": 25,
           "changedAt": "2026-10-06",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/cron/fan-out.ts:56 Searches of src/lib/cron and src/lib/cron-auth.ts for hibernated, sessionRegistry, writeScope, sweeper, and incarnation found none; the spine walks linked account-project pairs for scheduled email and sync.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:3eafb649495c9498",
+          "evaluatedRevision": 26
         },
         {
           "subject": "agent-runtime-assembly",
@@ -15702,7 +15710,11 @@
           "revision": 25,
           "changedAt": "2026-10-06",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/session.ts:3 Searches of these lib files for hibernated, sessionRegistry, writeScope, sweeper, and incarnation found none; session means one Auth.js user read memoized for a single server request.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:3eafb649495c9498",
+          "evaluatedRevision": 26
         },
         {
           "subject": "agent-instruction-files",
@@ -17780,7 +17792,11 @@
           "revision": 25,
           "changedAt": "2026-10-06",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/outbound/event-types.ts:32 Searches of src/lib/outbound, the project webhooks routes, and the webhook UI for hibernated, sessionRegistry, writeScope, sweeper, and incarnation found none; this bus fans one project event to at most three signed HTTP endpoints.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:3eafb649495c9498",
+          "evaluatedRevision": 26
         },
         {
           "subject": "agent-runtime-assembly",

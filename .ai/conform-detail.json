@@ -2938,6 +2938,412 @@
           "evidence": "src/lib/mappack/compute.ts:212 Current rank and climb can both tie, and the comparator never appends the keyword id; the SEO score sort (score only) has the same hole."
         }
       ]
+    },
+    "outbound-event-bus/fleet-orchestration": {
+      "context": "Outbound event bus",
+      "subject": "fleet-orchestration",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T21:55:02.628Z",
+      "worker": "4f9a7667-04ac-46b3-94ed-88a5e91f770d",
+      "techniques": [
+        {
+          "technique": "absent-status-passthrough",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/types.ts:92 Every delivery row carries this closed status; no session record arrives without a status to pass through."
+        },
+        {
+          "technique": "brief-carries-the-session",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/event-types.ts:10 The vocabulary is webhook event names for customer receivers, not a brief for a fresh agent session."
+        },
+        {
+          "technique": "completion-claim-verification",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/endpoint-health.ts:41 Endpoint standing is derived from delivery HTTP outcomes, not a delegate done-claim checked against an artifact."
+        },
+        {
+          "technique": "coordination-failure-triage",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/drain.ts:1 Failure handling is one delivery sender, not a multi-agent trace classified before a redesign."
+        },
+        {
+          "technique": "deliberation-as-an-elected-turn",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/emit.ts:61 Fan-out is a code loop over subscribed endpoints; no model elects a deliberation turn."
+        },
+        {
+          "technique": "durable-fleet-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/after-response.ts:14 What survives a frozen function is a webhook row, not a session-registry mirror reconciled before new admissions."
+        },
+        {
+          "technique": "evidence-outranks-a-liveness-claim",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/drain.ts:16 A lapsed send claim is an idempotent retry fenced by holder; the technique excludes expiring leases and idempotent steps."
+        },
+        {
+          "technique": "heterogeneous-model-panels",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/send.ts:78 Delivery is one HTTP POST, not N models convened on one question."
+        },
+        {
+          "technique": "hibernation-and-resume",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/endpoint-health.ts:32 Dead means three exhausted endpoint retry budgets, not a parked session with a resume contract."
+        },
+        {
+          "technique": "inherited-state-provenance",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/config-store.ts:5 Stored state is the project's endpoint blob, not a previous attempt's directory handed to a new worker."
+        },
+        {
+          "technique": "lifecycle-signals",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/drain.ts:7 The sweep reaps webhook delivery claims, not session signals plus a staleness sweeper."
+        },
+        {
+          "technique": "outbound-compute-plane",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/send.ts:65 The app dials customer webhook URLs; there is no executor plane long-polling a control plane."
+        },
+        {
+          "technique": "parallel-dispatch",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/event-types.ts:37 The cap is three webhook endpoints per project, not concurrent agent sessions with write sets."
+        },
+        {
+          "technique": "result-harvest",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/WebhookDeliveryLog.tsx:3 The log lists HTTP deliveries for settings, not a roster account of agent-session results."
+        },
+        {
+          "technique": "session-registry",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/projects/[id]/webhooks/route.ts:1 The route owns per-project webhook endpoints, not one entry per agent session."
+        },
+        {
+          "technique": "soft-budget-under-the-hard-cap",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/retry-step.ts:29 RETRY_BATCH bounds one drain tick; there is no model loop with a brief budget under an enforced cap."
+        },
+        {
+          "technique": "substrate-reconciliation",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/config-store.ts:8 Endpoints and deliveries are app-database rows, not containers or worktrees to converge."
+        },
+        {
+          "technique": "worker-trajectory-anatomy",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/types.ts:99 Worker means the delivery-claim holder, not an agent trajectory with a recovery budget."
+        }
+      ],
+      "registryProposal": "outbound-compute-plane is an executor long-poll topology; a product webhook push to customer URLs shares the word outbound and is outside it. A one-line exclusion would stop that mis-map."
+    },
+    "d5522378-2f5d-4d29-9632-c7d6de708116/fleet-orchestration": {
+      "context": "cron-scheduler",
+      "subject": "fleet-orchestration",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T21:55:02.628Z",
+      "worker": "4f9a7667-04ac-46b3-94ed-88a5e91f770d",
+      "techniques": [
+        {
+          "technique": "absent-status-passthrough",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/run-record.ts:17 The recorded fact is a cron success boolean, not a session status a relay might invent."
+        },
+        {
+          "technique": "brief-carries-the-session",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/insight-brief.ts:4 The digest brief is deterministic metric lines with no LLM and no dispatched session."
+        },
+        {
+          "technique": "completion-claim-verification",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/run.ts:7 The helper stores the cron's own outcome; no delegate reports done against an artifact."
+        },
+        {
+          "technique": "coordination-failure-triage",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/ledgers.ts:136 Due steps run serially as bookkeeping; there is no multi-agent failure corpus to classify."
+        },
+        {
+          "technique": "deliberation-as-an-elected-turn",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/schedule.ts:22 The period decision is a date compare, not an elected model turn."
+        },
+        {
+          "technique": "durable-fleet-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/runs-store.ts:4 Durable rows are cron invocations, not a session mirror reconciled before admitting work."
+        },
+        {
+          "technique": "evidence-outranks-a-liveness-claim",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/sent-guard.ts:5 The claim is an idempotency period for a send, not a session self-report competing with a work record."
+        },
+        {
+          "technique": "heterogeneous-model-panels",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/insight-brief.ts:43 Insights are selected by the dashboard ranking function, not by N models on one question."
+        },
+        {
+          "technique": "hibernation-and-resume",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/run-record.ts:7 Old objects are cron records capped at 20, not parked sessions with a resume contract."
+        },
+        {
+          "technique": "inherited-state-provenance",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/pairs.ts:39 Each unit is the user's current linked account and project, not a previous attempt's tree with a mandate."
+        },
+        {
+          "technique": "lifecycle-signals",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/ledgers.ts:133 The runner isolates ledger steps; it does not take session lifecycle signals or sweep silent sessions."
+        },
+        {
+          "technique": "outbound-compute-plane",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron-auth.ts:1 Vercel calls these routes inbound with a bearer secret; no executor plane dials out."
+        },
+        {
+          "technique": "parallel-dispatch",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/fan-out.ts:91 Pairs are awaited one by one in the cron process; there is no session slot door or write-set admission."
+        },
+        {
+          "technique": "result-harvest",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/run-record.ts:19 Counts are tenant job tallies on one cron invocation, not a session roster's terminal accounts."
+        },
+        {
+          "technique": "session-registry",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/run-record.ts:27 The record is one row per cron fire, not one state-machine entry per agent session."
+        },
+        {
+          "technique": "soft-budget-under-the-hard-cap",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/insight-brief.ts:75 The slice keeps three insight lines for an email; it is not a model-loop budget under a hard cap."
+        },
+        {
+          "technique": "substrate-reconciliation",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/ledgers.ts:11 The registry is an in-process step list on one HTTP cron route, not containers or worktrees."
+        },
+        {
+          "technique": "worker-trajectory-anatomy",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/fan-out.ts:57 A thrown tenant job is caught and the loop continues; there is no agent trajectory or step-budget kill."
+        }
+      ],
+      "registryProposal": "fan-out and brief here mean agent-session dispatch; a serial per-tenant email loop and a no-LLM digest section use the same words. The use_when already requires sessions."
+    },
+    "d933c7ad-af48-44fb-9b86-126b70d1574a/fleet-orchestration": {
+      "context": "session-firebase-core",
+      "subject": "fleet-orchestration",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T21:55:02.628Z",
+      "worker": "4f9a7667-04ac-46b3-94ed-88a5e91f770d",
+      "techniques": [
+        {
+          "technique": "absent-status-passthrough",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/session.ts:15 The value is the Auth.js user or null for this request; nothing projects a missing session-lifecycle status."
+        },
+        {
+          "technique": "brief-carries-the-session",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/plans.ts:11 The AI quantity is a daily plan quota, not a brief for a dispatched worker."
+        },
+        {
+          "technique": "completion-claim-verification",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/usage.ts:6 Stored facts are daily usage counters, not a parent verdict on a delegate artifact."
+        },
+        {
+          "technique": "coordination-failure-triage",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/admin.ts:20 Admin is an email allowlist; there are no multi-agent traces to classify."
+        },
+        {
+          "technique": "deliberation-as-an-elected-turn",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/env.ts:8 This module parses integer env knobs; it does not record why a dispatcher chose a fan-out."
+        },
+        {
+          "technique": "durable-fleet-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/firebase.ts:18 Firebase Admin is a lazy client singleton, not a durable mirror of fleet entries."
+        },
+        {
+          "technique": "evidence-outranks-a-liveness-claim",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/db.ts:18 The sqlite handle is reused across hot reload; no staleness budget is compared with a work record."
+        },
+        {
+          "technique": "heterogeneous-model-panels",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/plans.ts:7 byom is a billing plan, not a convened panel of independently trained models."
+        },
+        {
+          "technique": "hibernation-and-resume",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/firebase.ts:10 Credential preflight fails closed; nothing parks a session identity for resume."
+        },
+        {
+          "technique": "inherited-state-provenance",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/data.ts:7 Shared input is a static JSON import, not a previous attempt's directory with provenance and a mandate."
+        },
+        {
+          "technique": "lifecycle-signals",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/session.ts:14 Presence is whether Auth.js returned a user on this request, not session signals plus a sweeper."
+        },
+        {
+          "technique": "outbound-compute-plane",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/db.ts:2 Local sqlite holds rate limits and, in LOCAL_DB, users and projects; there is no remote executor plane."
+        },
+        {
+          "technique": "parallel-dispatch",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/env.ts:11 The number parsed here is a daily spend ceiling, not admission of concurrent sessions."
+        },
+        {
+          "technique": "result-harvest",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/export.ts:15 This builds a CSV download name, not a run-level account of session results."
+        },
+        {
+          "technique": "session-registry",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/session.ts:18 The id is the signed-in user for this request, not a minted agent-session entry with status and claims."
+        },
+        {
+          "technique": "soft-budget-under-the-hard-cap",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/plans.ts:19 Plan limits are daily commercial quotas, not a soft iteration budget under a hard cap in a brief."
+        },
+        {
+          "technique": "substrate-reconciliation",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/api/route-utils.ts:23 These helpers build HTTP errors; nothing here deletes containers or worktrees."
+        },
+        {
+          "technique": "worker-trajectory-anatomy",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/usage.ts:24 unmetered() turns off commercial counters; it does not watch or kill an agent trajectory."
+        }
+      ]
+    },
+    "3ded3f67-54d2-409e-bea8-4d1b8b82401a/fleet-orchestration": {
+      "context": "ai-dispatch-api",
+      "subject": "fleet-orchestration",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T21:55:02.628Z",
+      "worker": "4f9a7667-04ac-46b3-94ed-88a5e91f770d",
+      "techniques": [
+        {
+          "technique": "absent-status-passthrough",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/dispatch.ts:189 A cache hit returns a stored generation; no layer is asked to fill in a missing session status."
+        },
+        {
+          "technique": "brief-carries-the-session",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/dispatch.ts:136 The prompt is this request's generation input and is masked on the way out; it is not a brief for a separate session."
+        },
+        {
+          "technique": "completion-claim-verification",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/status/route.ts:3 Status is a free preflight of demo mode and quota; it does not check a delegate artifact."
+        },
+        {
+          "technique": "coordination-failure-triage",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/modes.ts:25 A bad tool body is HTTP 422; there is no multi-agent failure distribution to route."
+        },
+        {
+          "technique": "deliberation-as-an-elected-turn",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/route.ts:61 The named mode runs immediately; nothing records an elected deliberation before the call."
+        },
+        {
+          "technique": "durable-fleet-state",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/dispatch.ts:173 runMetered applies cache, quota, and one generation; it does not reconcile a fleet registry at startup."
+        },
+        {
+          "technique": "evidence-outranks-a-liveness-claim",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/grounding.ts:19 Staleness here is report-metric caveat text for grounding, not a decision that a session is dead."
+        },
+        {
+          "technique": "heterogeneous-model-panels",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/status/route.ts:38 Claude, Gemini, and Codex are probed to see which single provider would serve, not convened as independent seats."
+        },
+        {
+          "technique": "hibernation-and-resume",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/route.ts:14 The handler lives for one POST; it does not park a session identity for a later resume."
+        },
+        {
+          "technique": "inherited-state-provenance",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/grounding.ts:1 Grounding loads project stores into this request; it does not hand a new worker a previous attempt's directory."
+        },
+        {
+          "technique": "lifecycle-signals",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/route.ts:19 The guard is abuse and quota on the HTTP call, not session signals plus a staleness sweeper."
+        },
+        {
+          "technique": "outbound-compute-plane",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/grounding.ts:9 Resolvers read project data in-process; no executor dials in from another network."
+        },
+        {
+          "technique": "parallel-dispatch",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/route.ts:58 The slot is released when this one request ends; the route does not admit a wave or assign write sets."
+        },
+        {
+          "technique": "result-harvest",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/dispatch.ts:9 The result is one metered generation or an error response, not a roster of session outcomes."
+        },
+        {
+          "technique": "session-registry",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/modes.ts:3 MODE_TABLE is one row per generation tool, not a registry of live agent sessions."
+        },
+        {
+          "technique": "soft-budget-under-the-hard-cap",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/dispatch.ts:169 The path is one cache lookup and at most one generation, not a loop with two iteration limits."
+        },
+        {
+          "technique": "substrate-reconciliation",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/status/route.ts:31 GET reports provider availability and remaining quota; it creates no containers or worktrees."
+        },
+        {
+          "technique": "worker-trajectory-anatomy",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/ai/dispatch.ts:132 A mode runs its registered generator once; nothing records trajectory steps or a recovery-budget kill."
+        }
+      ]
     }
   }
 }
