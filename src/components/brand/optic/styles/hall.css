@@ -1,0 +1,62 @@
+/* =====================================================================
+   OPTIC BENCH - Station 04, the room of lamps: eight module groups, each a
+   hanging lamp in its own spectral hue. Compact: a 2x4 grid of lamps.
+   ===================================================================== */
+.ob-hall { position: relative; padding: var(--sp-7) var(--pad); background: linear-gradient(to bottom, var(--ob-room-1), var(--ob-room-0) 35%, #0a090d); overflow: clip; border-top: 1px solid var(--ob-hair-lo); }
+.ob-hall-stage { position: relative; display: flex; flex-direction: column; max-width: 44rem; margin: 0 auto; --hue: var(--color-amber); --hue-line: color-mix(in srgb, var(--hue) 60%, transparent); }
+.ob-hall-kicker { order: 0; margin-bottom: 1.1rem; }
+.ob-hall-centre { order: 1; min-height: 15.5rem; display: grid; align-content: start; gap: 0.6rem; }
+.ob-hc-kick { font: 400 var(--fs-label)/1 var(--ob-f-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--hue); }
+.ob-hc-name { font: 300 clamp(2.5rem, 12vw, 3.8rem)/0.98 var(--ob-f-display); letter-spacing: -0.02em; color: #fff; }
+.ob-hc-cap { font: 400 var(--fs-label)/1.4 var(--ob-f-mono); color: var(--ob-ink-2); letter-spacing: 0.04em; }
+.ob-hc-cap b { color: var(--ob-ink); font-weight: 500; }
+.ob-hc-eg { display: none; }
+.ob-hall-centre .ob-hc-open { justify-self: start; color: var(--hue); border-bottom-color: var(--hue); }
+.ob-hc-name, .ob-hc-kick { transition: opacity 0.35s; }
+.ob-hall-centre.is-swap .ob-hc-name, .ob-hall-centre.is-swap .ob-hc-kick { opacity: 0; }
+.ob-hall-cone { display: none; }
+.ob-lamps { order: 2; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2rem 0.6rem; margin-top: 1.6rem; }
+.ob-lampwrap { position: relative; display: flex; justify-content: center; }
+.ob-cord { display: none; }
+.ob-lamp { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; width: 100%; min-height: 44px; padding: 0.5rem 0.3rem 0.8rem; border-radius: 2px; text-align: center; }
+.ob .ob-lamp { padding: 0.5rem 0.3rem 0.8rem; }
+.ob-lamp-art { width: min(42vw, 150px); height: auto; overflow: visible; --a: 0.62; transition: filter 0.6s var(--ease); }
+.ob-lamp-num { font: 400 var(--fs-label)/1.3 var(--ob-f-mono); color: var(--ob-ink-2); letter-spacing: 0.06em; }
+.ob-lamp-num i { font-style: normal; color: var(--hue); margin-right: 0.5em; }
+.ob-lamp.is-lit .ob-lamp-art { --a: 1; filter: drop-shadow(0 0 12px color-mix(in srgb, var(--hue) 70%, transparent)); }
+.ob-lamp.is-lit .ob-lamp-num { color: var(--ob-ink); }
+.ob-hall-hint { order: 3; margin-top: 1.4rem; font: 400 var(--fs-label)/1.4 var(--ob-f-mono); color: var(--ob-ink-3); letter-spacing: 0.04em; }
+
+@media (min-width: 1100px) and (min-aspect-ratio: 5/4) {
+  .ob-hall { height: var(--vh); min-height: 0; padding: 0; }
+  .ob-hall-stage { position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 16); height: calc(var(--u) * 9); max-width: none; margin: 0; display: block; transform: translate(-50%, -50%) scale(var(--hs, 1)); transform-origin: 50% 45%; }
+  .ob-hall-kicker { position: absolute; left: calc(var(--u) * 0.9); bottom: calc(var(--u) * 0.4); margin: 0; }
+  .ob-hall-hint { position: absolute; right: calc(var(--u) * 0.9); bottom: calc(var(--u) * 0.4); margin: 0; text-align: right; }
+  .ob-lamps { position: absolute; inset: 0; display: block; margin: 0; pointer-events: none; }
+  .ob-lampwrap { position: absolute; left: calc(var(--u) * (1.65 + var(--i) * 1.81)); top: 0; width: 0; display: block; }
+  .ob-cord { display: block; position: absolute; left: 0; top: 0; width: 1px; height: calc(var(--u) * var(--cord)); background: linear-gradient(to bottom, transparent, var(--ob-hair-hi)); transform: translateX(-0.5px); }
+  .ob .ob-lamp { position: absolute; left: calc(var(--u) * -0.8); top: calc(var(--u) * (var(--cord) - 0.04)); width: calc(var(--u) * 1.6); padding: 0; pointer-events: auto; gap: 0; min-height: 0; }
+  .ob-lamp-art { width: 100%; transform-origin: 50% 2%; }
+  .ob-lamp-num { position: absolute; left: 0; right: 0; top: calc(var(--u) * 2.42); font-size: var(--fs-label); white-space: nowrap; }
+  .ob-lamp-num span { display: none; }
+  .ob-lamp::after { content: ""; position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 2.4); height: calc(var(--u) * 2.4); transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none; background: radial-gradient(circle, color-mix(in srgb, var(--hue) 26%, transparent), transparent 65%); opacity: 0; transition: opacity 0.6s var(--ease); }
+  .ob-lamp.is-lit::after { opacity: 1; }
+  .ob-hall-cone { display: block; position: absolute; left: 0; top: 0; width: calc(var(--u) * 7); height: calc(var(--u) * 5); overflow: visible; pointer-events: none; transform: translate(calc(var(--u) * (1.65 + var(--ci, 2) * 1.81 - 3.5)), calc(var(--u) * var(--cy, 3.4))); transition: transform 0.8s var(--ease); -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.55) 38%, transparent 74%); mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.55) 38%, transparent 74%); }
+  .ob-hall-cone line { stroke: var(--hue); stroke-opacity: 0.4; stroke-width: 1; vector-effect: non-scaling-stroke; transition: stroke 0.6s; }
+  .ob-hall-cone .ob-cone-h { stroke-opacity: 0.12; stroke-width: 7; }
+  .ob-hall-centre { position: absolute; left: calc(var(--u) * 0.9); right: calc(var(--u) * 0.9); top: calc(var(--u) * 4.45); min-height: 0; height: calc(var(--u) * 4); text-align: center; justify-items: center; gap: calc(var(--u) * 0.12); align-content: start; }
+  .ob-hc-name { font-size: calc(var(--u) * 1.5); white-space: nowrap; }
+  .ob-hc-name::after { content: ""; display: block; width: calc(var(--u) * 3.2); height: 1px; margin: calc(var(--u) * 0.22) auto 0; background: linear-gradient(90deg, transparent, var(--hue), transparent); box-shadow: 0 0 14px var(--hue); }
+  .ob-hall-centre .ob-chips { justify-content: center; max-width: calc(var(--u) * 12.4); gap: calc(var(--u) * 0.09); }
+  .ob-hall-centre .ob-hc-open { margin-top: calc(var(--u) * 0.05); justify-self: center; }
+  .ob-hc-eg { display: inline; }
+}
+@media (min-width: 1100px) and (min-aspect-ratio: 5/4) and (prefers-reduced-motion: no-preference) {
+  .ob-lamp-art { animation: ob-sway 8s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -1.3s); }
+  .ob-lamp:hover .ob-lamp-art, .ob-lamp:focus-visible .ob-lamp-art { animation-play-state: paused; }
+  .ob .ob-lamp { opacity: 0; transform: translateY(calc(var(--u) * -0.9)); transition: opacity 0.9s var(--ease), transform 1.1s var(--ease); transition-delay: calc(var(--i) * 70ms); }
+  .ob-hall.is-in .ob-lamp { opacity: 1; transform: none; }
+  .ob-hall { transition: transform 0.95s var(--ease), filter 0.8s var(--ease), opacity 0.7s var(--ease); }
+  .ob[data-room="lamp"] .ob-hall { transform: scale(1.1); filter: blur(7px); opacity: 0; }
+}
+@keyframes ob-sway { from { transform: rotate(-0.7deg); } to { transform: rotate(0.7deg); } }

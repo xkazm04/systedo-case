@@ -1,0 +1,67 @@
+/* =====================================================================
+   OPTIC BENCH - 00 Source (the hero). Compact composition is the default;
+   the wide 16:9 stage is layered on in the media query. The canvas is a
+   lazy client island; everything readable here is server-rendered text.
+   ===================================================================== */
+.ob-hero { position: relative; touch-action: pan-y; min-height: var(--vh); padding: 28px var(--pad) 0; overflow: clip; isolation: isolate; background: radial-gradient(ellipse 80% 60% at 70% 80%, rgba(255, 176, 0, 0.04), transparent 70%), linear-gradient(to bottom, var(--ob-room-0), var(--ob-room-1)); }
+.ob-optics { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; touch-action: pan-y; }
+.ob-hero-stage { position: relative; z-index: 2; max-width: 34rem; }
+.ob-hero-plate { margin-bottom: 0.9rem; }
+.ob-hero-title { font: 300 clamp(2.5rem, 12.2vw, 3.9rem)/0.98 var(--ob-f-display); letter-spacing: -0.018em; margin: 0 0 1rem; text-shadow: 0 2px 30px rgba(7, 7, 10, 0.8); }
+.ob-hero-title .ob-t1, .ob-hero-title .ob-t2 { display: block; }
+.ob-hero-title em { font-style: italic; font-weight: 300; color: #fff; }
+.ob-plain { font: 400 1.0625rem/1.5 var(--ob-f-body); color: var(--ob-ink); max-width: 31rem; margin-bottom: 1.25rem; text-shadow: 0 1px 18px rgba(7, 7, 10, 0.9); }
+.ob-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 1.1rem; }
+.ob-honest { font: 400 0.9375rem/1.5 var(--ob-f-mono); color: var(--ob-ink-2); letter-spacing: 0.01em; }
+.ob-honest b { color: var(--ob-amber); font-weight: 500; margin: 0 0.2em; font-size: 1.1em; }
+.ob-hero-fig { display: none; }
+.ob-fan-labels, .ob-apex-tag, .ob-tilt, .ob-scroll-cue { display: none; }
+.ob-skip-intro { position: absolute; z-index: 6; right: var(--pad); top: 12px; font: 400 0.9375rem/1 var(--ob-f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ob-ink-2); border: 1px solid var(--ob-hair-lo); padding: 0.8em 1.1em; border-radius: 1px; background: rgba(7, 7, 10, 0.5); transition: opacity 0.5s, color 0.2s, border-color 0.2s; }
+.ob .ob-skip-intro { border: 1px solid var(--ob-hair-lo); }
+.ob-skip-intro:hover { color: var(--ob-ink); border-color: var(--ob-hair-hi); }
+.ob-skip-intro.is-gone { opacity: 0; pointer-events: none; visibility: hidden; }
+
+/* the arrival: the headline rises in beats (motion only when it is welcome) */
+@media (prefers-reduced-motion: no-preference) {
+  .ob-hero-title .ob-t1, .ob-hero-title .ob-t2, .ob-plain, .ob-actions, .ob-honest, .ob-hero-plate { opacity: 0; transform: translateY(0.4em); animation: ob-rise 0.9s var(--ease) forwards; }
+  .ob-hero-plate { animation-delay: 0.05s; }
+  .ob-hero-title .ob-t1 { animation-delay: 0.15s; }
+  .ob-hero-title .ob-t2 { animation-delay: 0.32s; }
+  .ob-plain { animation-delay: 0.5s; }
+  .ob-actions { animation-delay: 0.66s; }
+  .ob-honest { animation-delay: 0.8s; }
+}
+@media (prefers-reduced-motion: reduce) { .ob-skip-intro { display: none; } }
+@keyframes ob-rise { to { opacity: 1; transform: none; } }
+@keyframes ob-fade { to { opacity: 1; } }
+
+@media (min-width: 1100px) and (min-aspect-ratio: 5/4) {
+  .ob-hero { height: var(--vh); min-height: 0; padding: 0; }
+  .ob-hero-stage { position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 16); height: calc(var(--u) * 9); max-width: none; transform: translate(-50%, -50%); }
+  .ob-hero-plate { position: absolute; left: calc(var(--u) * 0.9); top: calc(var(--u) * 1.2); margin: 0; }
+  .ob-hero-title { position: absolute; left: calc(var(--u) * 0.86); top: calc(var(--u) * 1.62); margin: 0; font-size: calc(var(--u) * 1.04); line-height: 0.98; white-space: nowrap; }
+  .ob-hero-title .ob-t2 { margin-top: calc(var(--u) * 0.74); }
+  .ob-hero-stage .ob-plain { position: absolute; left: calc(var(--u) * 0.9); top: calc(var(--u) * 5.05); width: calc(var(--u) * 6.4); max-width: none; margin: 0; font-size: max(17px, calc(var(--u) * 0.262)); line-height: 1.42; }
+  .ob-hero-stage .ob-actions { position: absolute; left: calc(var(--u) * 0.9); top: calc(var(--u) * 6.62); margin: 0; gap: calc(var(--u) * 0.2); }
+  .ob-btn-lg { padding: 0.95em 1.55em; }
+  .ob-hero-stage .ob-honest { position: absolute; left: calc(var(--u) * 0.9); top: calc(var(--u) * 7.82); margin: 0; font-size: var(--fs-label); white-space: nowrap; }
+  .ob-hero-fig { display: block; position: absolute; right: calc(var(--u) * 0.9); top: calc(var(--u) * 1.2); text-align: right; font-size: var(--fs-label); line-height: 1.5; }
+  .ob-skip-intro { top: auto; right: auto; left: calc((100% - var(--u) * 16) / 2 + var(--u) * 0.9); bottom: calc((100% - var(--u) * 9) / 2 + var(--u) * 0.4 + 18px); }
+  .ob-fan-labels { display: block; position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+  .ob-fan-labels li { position: absolute; left: 0; top: 0; white-space: nowrap; font: 400 var(--fs-label)/1 var(--ob-f-mono); letter-spacing: 0.06em; color: var(--h); opacity: 0; transition: opacity 0.8s; }
+  .ob-fan-labels li.is-on { opacity: 1; }
+  .ob-apex-tag { display: block; position: absolute; left: 0; top: 0; z-index: 3; font: 400 var(--fs-label)/1 var(--ob-f-mono); color: var(--ob-ink-2); pointer-events: none; opacity: 0; transition: opacity 0.8s; }
+  .ob-apex-tag.is-on { opacity: 1; }
+  .ob-tilt { display: inline-flex; align-items: center; gap: 0.7em; position: absolute; z-index: 6; right: calc((100% - var(--u) * 16) / 2 + var(--u) * 0.9); bottom: calc((100% - var(--u) * 9) / 2 + var(--u) * 0.38); font: 400 var(--fs-label)/1 var(--ob-f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ob-ink-3); padding: 0.7em 0.9em; border-radius: 1px; }
+  .ob .ob-tilt { border: 1px solid transparent; }
+  .ob .ob-tilt:hover, .ob .ob-tilt:focus-visible { color: var(--ob-ink); border-color: var(--ob-hair-lo); }
+  .ob-tilt .ob-arr { width: 1.2em; }
+  .ob-scroll-cue { display: inline-flex; align-items: center; gap: 0.8em; position: absolute; z-index: 6; left: 50%; transform: translateX(-50%); bottom: calc((100% - var(--u) * 9) / 2 + var(--u) * 0.38); font: 400 var(--fs-label)/1 var(--ob-f-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ob-ink-2); text-decoration: none; padding: 0.7em 0.9em; }
+  .ob-scroll-cue:hover { color: var(--ob-ink); }
+  .ob-scroll-cue .ob-arr { width: 1.5em; }
+}
+@media (min-width: 1100px) and (min-aspect-ratio: 5/4) and (prefers-reduced-motion: no-preference) {
+  .ob-scroll-cue { opacity: 0; animation: ob-fade 1s var(--ease) 2.6s forwards; }
+  .ob-scroll-cue .ob-arr { animation: ob-nudge 2.4s ease-in-out infinite; }
+}
+@keyframes ob-nudge { 0%, 100% { transform: rotate(90deg) translateX(0); } 50% { transform: rotate(90deg) translateX(0.35em); } }

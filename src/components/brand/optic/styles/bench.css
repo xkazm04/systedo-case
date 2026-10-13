@@ -1,0 +1,111 @@
+/* =====================================================================
+   OPTIC BENCH - the bench: three stations (measure, triage, generate).
+   Compact and reduced motion: stations stack with the same art, each art
+   cropped to its subject by CSS (--cx/--cy/--cw/--ch is the crop box in the
+   1600x900 drawing), so the server markup is right before any script runs.
+   Pinned (wide, motion allowed): the bench pins under the nav and a camera
+   travels sideways through the stations as the page scrolls.
+   ===================================================================== */
+.ob-bench { position: relative; background: linear-gradient(to bottom, var(--ob-room-1), var(--ob-room-0) 30%, var(--ob-room-1)); }
+.ob-bench-pin { position: relative; }
+.ob-station { position: relative; padding: calc(var(--sp-7) - 8px) var(--pad) var(--sp-6); border-top: 1px solid var(--ob-hair-lo); overflow: clip; }
+.ob-st-far { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.ob-st-far::before { content: attr(data-n); position: absolute; right: -0.06em; top: 0.1em; font: 300 clamp(8rem, 46vw, 16rem)/1 var(--ob-f-display); color: transparent; -webkit-text-stroke: 1px rgba(237, 234, 227, 0.075); letter-spacing: -0.04em; }
+.ob-stage { position: relative; display: flex; flex-direction: column; gap: 1rem; max-width: 44rem; margin: 0 auto; }
+.ob-st-near { order: 1; margin-bottom: 0.2rem; }
+.ob-art { order: 2; position: relative; width: 100%; aspect-ratio: calc(var(--cw) / var(--ch)); overflow: hidden; }
+.ob-art > svg { position: absolute; max-width: none; width: calc(1600 / var(--cw) * 100%); height: calc(900 / var(--ch) * 100%); left: calc(var(--cx) / var(--cw) * -100%); top: calc(var(--cy) / var(--ch) * -100%); }
+.ob-labs { order: 3; display: flex; flex-direction: column; gap: 1rem; }
+.ob-cap { order: 4; }
+.ob-st-near .ob-plate { margin-bottom: 0.4rem; }
+.ob-verb { font: 300 clamp(3.4rem, 17vw, 5.4rem)/0.95 var(--ob-f-display); letter-spacing: -0.02em; }
+.ob-cap .ob-lead { margin-bottom: 0.5rem; max-width: 30rem; }
+.ob-cap .ob-sub { margin-bottom: 0.6rem; max-width: 30rem; }
+.ob-lab.ob-deco { display: none; }
+.ob-legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: center; font: 400 var(--fs-label)/1.3 var(--ob-f-mono); color: var(--ob-ink-2); }
+.ob-legend i { font-style: normal; color: var(--h); letter-spacing: 0.04em; }
+.ob-legend i::before { content: ""; display: inline-block; width: 1.6em; height: 2px; background: var(--h); vertical-align: middle; margin-right: 0.5em; }
+.ob-bands-h { font: 400 var(--fs-label)/1.3 var(--ob-f-mono); color: var(--ob-ink-2); letter-spacing: 0.04em; }
+.ob-bands { display: grid; gap: 0.55rem; }
+.ob-bands li { font: 400 var(--fs-label)/1.25 var(--ob-f-mono); color: var(--ob-ink); display: flex; gap: 0.7em; align-items: baseline; border-left: 2px solid var(--h); padding-left: 0.7em; }
+.ob-bands li b { font-weight: 500; color: var(--h); }
+.ob-bands li small { margin-left: auto; font-size: var(--fs-label); color: var(--h); letter-spacing: 0.06em; text-transform: uppercase; }
+.ob-proof { border: 1px solid var(--ob-hair-lo); padding: 1rem 1.1rem; display: grid; gap: 0.5rem; position: relative; }
+.ob-proof-h { font: 400 var(--fs-label)/1.3 var(--ob-f-mono); color: var(--ob-ink-2); letter-spacing: 0.06em; }
+.ob-ad-url { font: 400 var(--fs-label)/1.3 var(--ob-f-mono); color: var(--ob-ink-3); }
+.ob-ad-head { font: 500 1.35rem/1.2 var(--ob-f-body); color: #fff; min-height: 1.2em; }
+.ob-ad-desc { font: 400 1rem/1.45 var(--ob-f-body); color: var(--ob-ink-2); min-height: 2.9em; }
+.ob-gauge { display: flex; align-items: center; gap: 0.8em; font: 400 var(--fs-label)/1 var(--ob-f-mono); color: var(--ob-ink-2); }
+.ob-g-bar { flex: 1; height: 6px; position: relative; --fill: 1; background: repeating-linear-gradient(90deg, rgba(237, 234, 227, 0.14) 0 calc(100% / 30 - 2px), transparent calc(100% / 30 - 2px) calc(100% / 30)); }
+.ob-g-bar::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, var(--color-s-green) 0 calc(100% / 30 - 2px), transparent calc(100% / 30 - 2px) calc(100% / 30)); clip-path: inset(0 calc((1 - var(--fill)) * 100%) 0 0); }
+.ob-g-bar-d { background: repeating-linear-gradient(90deg, rgba(237, 234, 227, 0.14) 0 calc(100% / 90 - 1px), transparent calc(100% / 90 - 1px) calc(100% / 90)); }
+.ob-g-bar-d::after { background: repeating-linear-gradient(90deg, var(--color-s-green) 0 calc(100% / 90 - 1px), transparent calc(100% / 90 - 1px) calc(100% / 90)); }
+.ob-g-num { color: var(--color-s-green); min-width: 4.2ch; text-align: right; }
+.ob-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.2rem; }
+.ob-tags li { font: 400 var(--fs-label)/1 var(--ob-f-mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 0.55em 0.8em; border: 1px solid var(--ob-hair); color: var(--ob-ink); }
+.ob-bench-rail, .ob-bench-hint, .ob-a-scan { display: none; }
+
+@media (min-width: 1100px) and (min-aspect-ratio: 5/4) {
+  .ob-station { height: var(--vh); padding: 0; border-top: 0; }
+  .ob-stage { position: absolute; left: 50%; top: 50%; width: calc(var(--u) * 16); height: calc(var(--u) * 9); max-width: none; margin: 0; display: block; transform: translate(-50%, -50%); }
+  .ob-art { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; overflow: visible; }
+  .ob-art > svg { inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .ob-st-near { position: absolute; inset: 0; margin: 0; pointer-events: none; }
+  .ob-st-near .ob-plate { position: absolute; left: calc(var(--u) * 0.9); top: calc(var(--u) * 1.2); margin: 0; }
+  .ob-verb { position: absolute; left: calc(var(--u) * 0.84); top: calc(var(--u) * 1.5); margin: 0; font-size: calc(var(--u) * 1.9); line-height: 0.95; white-space: nowrap; }
+  .ob-labs { position: absolute; inset: 0; display: block; pointer-events: none; }
+  .ob-labs > * { pointer-events: auto; }
+  .ob-cap { position: absolute; left: calc(var(--u) * 0.9); top: calc(var(--u) * var(--cy-cap, 5.55)); width: calc(var(--u) * var(--cw-cap, 4.6)); }
+  .ob-cap .ob-lead { font-size: var(--fs-lead); margin-bottom: calc(var(--u) * 0.12); }
+  .ob-cap .ob-sub { font-size: var(--fs-small); margin-bottom: calc(var(--u) * 0.1); }
+  .ob-lab.ob-deco { display: block; }
+  .ob-lab, .ob-legend, .ob-bands-h, .ob-bands li, .ob-proof { position: absolute; left: calc(var(--x) * var(--u)); top: calc(var(--y) * var(--u)); }
+  .ob-lab { font: 400 var(--fs-label)/1.25 var(--ob-f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ob-ink-2); white-space: nowrap; }
+  .ob-lab small { display: block; margin-top: 0.3em; font-size: var(--fs-label); letter-spacing: 0.04em; text-transform: none; color: var(--ob-ink-3); }
+  .ob-lab-c { transform: translateX(-50%); }
+  .ob-legend { white-space: nowrap; gap: 0 calc(var(--u) * 0.3); }
+  .ob-bands-h { white-space: nowrap; }
+  .ob-bands { display: block; }
+  .ob-bands li { display: block; transform: translateY(-50%); border-left: 0; padding-left: 0; white-space: nowrap; }
+  .ob-bands li::before { content: ""; position: absolute; left: calc(var(--u) * -0.12); top: 50%; width: calc(var(--u) * 0.07); height: calc(var(--u) * 0.07); border-radius: 50%; transform: translateY(-50%); background: var(--h); }
+  .ob-bands li small { display: block; margin: 0.28em 0 0 1.6em; letter-spacing: 0.1em; }
+  .ob-bands li b { margin-right: 0.5em; }
+  .ob .ob-proof { width: calc(var(--u) * 4.7); padding: calc(var(--u) * 0.12) calc(var(--u) * 0.14) calc(var(--u) * 0.1) calc(var(--u) * 0.3); border: 0; gap: calc(var(--u) * 0.11); }
+  .ob-ad-head { font-size: calc(var(--u) * 0.31); min-height: 0; }
+  .ob-ad-desc { font-size: max(16px, calc(var(--u) * 0.215)); min-height: 0; }
+  .ob-tags li { padding: 0.6em 0.85em; }
+  .ob-st-far { overflow: visible; }
+  .ob-st-far::before { right: calc(var(--u) * -0.3); top: calc(var(--u) * -0.6); font-size: calc(var(--u) * 9.5); }
+}
+
+/* the pinned camera: horizontal travel, wide screens with motion allowed */
+@media (min-width: 1100px) and (min-aspect-ratio: 5/4) and (prefers-reduced-motion: no-preference) {
+  .ob-bench { height: calc(var(--vh) * 3.9); }
+  .ob-bench-pin { position: sticky; top: var(--nav-h); height: var(--vh); overflow: clip; }
+  .ob-bench-world { position: absolute; left: 0; top: 0; height: 100%; width: 300%; display: flex; will-change: transform; }
+  .ob-bench-world > .ob-station { flex: 0 0 calc(100% / 3); height: 100%; }
+  .ob-st-near, .ob-st-far { will-change: transform; }
+  .ob-bench-rail { display: flex; position: absolute; left: 50%; bottom: calc((100% - var(--u) * 9) / 2 + var(--u) * 0.3); transform: translateX(-50%); z-index: 8; gap: calc(var(--u) * 1.5); padding: 0 0.5rem; }
+  .ob-bench-rail button { display: flex; flex-direction: column; align-items: center; gap: 0.55rem; min-width: calc(var(--u) * 1.7); min-height: 44px; padding: 0.4rem 0.6rem 0.2rem; color: var(--ob-ink-3); font: 400 var(--fs-label)/1 var(--ob-f-mono); letter-spacing: 0.14em; text-transform: uppercase; position: relative; transition: color 0.25s; }
+  .ob-bench-rail button b { font-weight: 400; font-size: var(--fs-label); color: inherit; }
+  .ob-bench-rail button::before { content: ""; display: block; order: 3; width: 100%; height: 1px; background: var(--ob-hair-lo); }
+  .ob-bench-rail button:hover, .ob-bench-rail button[aria-current="step"] { color: var(--ob-ink); }
+  .ob-bench-rail button[aria-current="step"]::before { background: var(--ob-amber); height: 2px; }
+  .ob-bench-hint { display: block; position: absolute; z-index: 7; right: calc((100% - var(--u) * 16) / 2 + var(--u) * 0.9); bottom: calc((100% - var(--u) * 9) / 2 + var(--u) * 0.36); font: 400 var(--fs-label)/1.3 var(--ob-f-mono); letter-spacing: 0.08em; color: var(--ob-ink-3); text-transform: uppercase; transition: opacity 0.5s; }
+
+  /* active-station life: traces scan, beams breathe */
+  .ob-station .ob-a-scan { display: block; opacity: 0; }
+  .ob-station.is-active .ob-a-scan { opacity: 1; animation: ob-scan 5.5s linear infinite; }
+  .ob-station.is-active .ob-det-spot { animation: ob-pulse 3s ease-in-out infinite; }
+  .ob-station .ob-fl, .ob-station .ob-cl { transform: scale(var(--g, 1)); }
+
+  /* the camera pushes in while a station room is open */
+  .ob-bench-pin { transition: transform 0.95s var(--ease), filter 0.8s var(--ease), opacity 0.7s var(--ease); }
+  .ob[data-room="st"] .ob-bench-pin { transform: scale(1.16); filter: blur(7px); opacity: 0; }
+}
+/* wide + reduced motion: stations stack, same art and layout */
+@media (min-width: 1100px) and (min-aspect-ratio: 5/4) and (prefers-reduced-motion: reduce) {
+  .ob-station { height: calc(var(--u) * 9 + 4rem); }
+}
+@keyframes ob-scan { from { transform: translateX(0); } to { transform: translateX(428px); } }
+@keyframes ob-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }

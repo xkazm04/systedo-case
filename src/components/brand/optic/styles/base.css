@@ -1,0 +1,149 @@
+/* =====================================================================
+   OPTIC BENCH landing (ADR-0014) - base: stage geometry, aliases onto the
+   Phase 1 tokens, buttons, small type kinds, the engraved art vocabulary.
+   Every class is prefixed `ob-` so nothing here can leak into the app.
+   Ported from .contest/arena/adamant-landing/judging/entries/A/variant-3.
+
+   Geometry: the wide composition sits on a 16:9 stage measured in one unit,
+   --u = min(width/16, height/9). The site nav stays on top (it is in flow and
+   sticky), so the stage height is the viewport minus the nav. `.ob` is an
+   inline-size container, so 100cqw is the page width without the scrollbar.
+   Wide  = (min-width:1100px) and (min-aspect-ratio:5/4)
+   Pinned = wide and no reduced-motion preference.
+   ===================================================================== */
+
+.ob {
+  --nav-h: 65px;
+  --vh: calc(100svh - var(--nav-h));
+  --vw: 100cqw;
+  --u: min(calc(100cqw / 16), calc(var(--vh) / 9));
+
+  --ob-room-0: var(--color-room-0);
+  --ob-room-1: var(--color-room-1);
+  --ob-room-2: var(--color-room-2);
+  --ob-ink: var(--color-ink);
+  --ob-ink-2: var(--color-muted);
+  --ob-ink-3: var(--color-navy-500);
+  --ob-hair: var(--color-hair-mid);
+  --ob-hair-hi: var(--color-hair-hi);
+  --ob-hair-mid: var(--color-hair-mid);
+  --ob-hair-lo: var(--color-hair);
+  --ob-amber: var(--color-amber);
+  --ob-amber-hi: var(--color-amber-hi);
+  --ob-amber-ink: var(--color-amber-ink);
+  --ob-f-display: var(--font-display);
+  --ob-f-body: var(--font-sans);
+  --ob-f-mono: var(--font-mono);
+  --fs-label: 0.9375rem;
+  --fs-small: 1rem;
+  --fs-body: 1rem;
+  --fs-lead: 1.125rem;
+  --fs-btn: 1.0625rem;
+  --sp-6: 2.5rem;
+  --sp-7: 4rem;
+  --ease: cubic-bezier(0.22, 0.7, 0.1, 1);
+  --pad: 20px;
+
+  container-type: inline-size;
+  position: relative;
+  background: var(--ob-room-0);
+  color: var(--ob-ink);
+  font-family: var(--ob-f-body);
+  line-height: 1.55;
+  overflow-x: clip;
+}
+@media (min-width: 1100px) and (min-aspect-ratio: 5/4) {
+  .ob {
+    --fs-label: max(15px, calc(var(--u) * 0.185));
+    --fs-small: max(16px, calc(var(--u) * 0.2));
+    --fs-body: max(16px, calc(var(--u) * 0.235));
+    --fs-lead: max(18px, calc(var(--u) * 0.285));
+    --fs-btn: max(16px, calc(var(--u) * 0.215));
+    --pad: calc(var(--u) * 0.9);
+  }
+}
+html.ob-room-open { overflow: hidden; }
+
+:where(.ob) :where(h1, h2, h3, p, ul, ol, figure) { margin: 0; padding: 0; }
+:where(.ob) :where(ul, ol) { list-style: none; }
+:where(.ob) :where(button) { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+:where(.ob) :where(em) { font-style: italic; }
+:where(.ob) :where(svg, canvas) { display: block; max-width: 100%; }
+.ob :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; border-radius: 2px; }
+.ob .ob-btn-amber:focus-visible { outline-color: #fff; }
+.ob-sr { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.ob-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ---------- art vocabulary (unscoped classes: they also style <use> clones) ---------- */
+.ob-a-ln, .ob-a-l2, .ob-a-l3, .ob-a-gl, .ob-a-bm, .ob-a-bh, .ob-a-rc, .ob-a-rh, .ob-a-t, .ob-a-glint, .ob-a-scan { vector-effect: non-scaling-stroke; fill: none; }
+.ob-a-ln { stroke: var(--color-hair-hi); stroke-width: 1.1; }
+.ob-a-l2 { stroke: var(--color-hair); stroke-width: 1; }
+.ob-a-l3 { stroke: var(--color-hair); stroke-width: 1; stroke-dasharray: 3 5; }
+.ob-a-gl { fill: rgba(237, 234, 227, 0.035); stroke: var(--color-hair-hi); stroke-width: 1.1; }
+.ob-a-ht { fill: url(#ob-hatch); }
+.ob-a-tk { fill: none; stroke: var(--color-hair-mid); }
+.ob-a-tk-maj { stroke: var(--color-hair-hi); }
+.ob-a-bm { stroke: #fff; stroke-width: 1.5; }
+.ob-a-bm-dim { stroke: rgba(255, 255, 255, 0.8); }
+.ob-a-bh { stroke: rgba(255, 244, 226, 0.13); stroke-width: 9; }
+.ob-a-rc { stroke-width: 1.4; stroke-linecap: round; }
+.ob-a-rh { stroke-width: 8; opacity: 0.13; stroke-linecap: round; }
+.ob-a-t { stroke-width: 1.4; stroke-linejoin: round; }
+.ob-a-t1 { stroke: var(--color-s-blue); }
+.ob-a-t2 { stroke: var(--color-s-cyan); stroke-dasharray: 6 4; }
+.ob-a-t3 { stroke: var(--color-s-green); }
+.ob-a-glint { stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.4; }
+.ob-a-scan { stroke: rgba(255, 176, 0, 0.9); stroke-width: 1; }
+/* lamps */
+.ob-l, .ob-l2 { fill: none; vector-effect: non-scaling-stroke; stroke: var(--hue, #fff); }
+.ob-l { stroke-width: 1.3; stroke-opacity: var(--a, 0.62); }
+.ob-l2 { stroke-width: 1; stroke-opacity: calc(var(--a, 0.62) * 0.55); }
+.ob-lf { fill: var(--hue, #fff); fill-opacity: calc(var(--a, 0.62) * 0.07); }
+.ob-lh { fill: var(--hue, #fff); fill-opacity: calc(var(--a, 0.62) * 0.42); }
+
+/* ---------- static grain + vignette (landing only; the grain never moves) ---------- */
+.ob-grain {
+  position: fixed; inset: 0; z-index: 40; pointer-events: none; opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.4 -.35'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+.ob-vignette { position: fixed; inset: 0; z-index: 39; pointer-events: none; background: radial-gradient(ellipse 120% 100% at 50% 46%, transparent 52%, rgba(0, 0, 0, 0.5) 100%); }
+
+/* ---------- buttons ---------- */
+.ob-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.75em; min-height: 44px; padding: 0.9em 1.45em; border: 1px solid transparent; border-radius: 2px; font: 500 var(--fs-btn)/1 var(--ob-f-body); letter-spacing: 0.01em; text-decoration: none; white-space: nowrap; cursor: pointer; transition: background-color 0.25s, color 0.25s, border-color 0.25s, box-shadow 0.35s, transform 0.2s; }
+.ob-btn .ob-arr { width: 1.7em; height: 0.72em; transition: transform 0.35s var(--ease); }
+.ob-btn:hover .ob-arr, .ob-btn:focus-visible .ob-arr { transform: translateX(0.3em); }
+.ob-btn:active { transform: translateY(1px); }
+.ob-btn-amber { background: var(--ob-amber); color: var(--ob-amber-ink); font-weight: 600; box-shadow: inset 0 0 0 3px var(--ob-amber), inset 0 0 0 4px rgba(20, 14, 0, 0.38), 0 0 0 1px rgba(255, 176, 0, 0.55), 0 0 38px rgba(255, 176, 0, 0.26); }
+.ob-btn-amber:hover { background: var(--ob-amber-hi); box-shadow: inset 0 0 0 3px var(--ob-amber-hi), inset 0 0 0 4px rgba(20, 14, 0, 0.38), 0 0 0 1px rgba(255, 197, 61, 0.7), 0 0 56px rgba(255, 176, 0, 0.42); }
+.ob-btn-ghost { color: var(--ob-ink); border-color: var(--ob-hair-hi); background: rgba(7, 7, 10, 0.35); }
+.ob-btn-ghost:hover { border-color: var(--ob-ink); background: rgba(237, 234, 227, 0.08); }
+.ob-btn-sm { min-height: 40px; padding: 0.6em 1.05em; font-size: 0.9375rem; }
+.ob-btn-xl { font-size: max(1.2rem, calc(var(--u) * 0.3)); padding: 1em 1.9em; }
+.ob-open { display: inline-flex; align-items: center; gap: 0.8em; min-height: 44px; padding: 0.6em 0; font: 500 var(--fs-small)/1.2 var(--ob-f-body); color: var(--ob-amber); border-bottom: 1px solid rgba(255, 176, 0, 0.55); letter-spacing: 0.01em; transition: color 0.2s, border-color 0.2s; }
+.ob-open .ob-arr { width: 1.7em; height: 0.7em; transition: transform 0.35s var(--ease); }
+.ob-open:hover { color: var(--ob-amber-hi); border-color: var(--ob-amber-hi); }
+.ob-open:hover .ob-arr { transform: translateX(0.35em); }
+.ob-arr { width: 1.6em; height: 0.7em; flex: none; overflow: visible; }
+.ob-arr-l { transform: scaleX(-1); }
+.ob-arr-d { transform: rotate(90deg); }
+
+/* ---------- small type kinds ---------- */
+.ob-plate, .ob-kicker, .ob-fig { font: 400 var(--fs-label)/1.4 var(--ob-f-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--ob-ink-2); }
+.ob-plate span, .ob-kicker span, .ob-fig span { color: var(--ob-amber); margin-right: 0.8em; letter-spacing: 0.14em; }
+.ob-fig { text-transform: none; letter-spacing: 0.04em; color: var(--ob-ink-3); }
+.ob-fig span { text-transform: uppercase; }
+.ob-tag { display: inline-block; font: 500 var(--fs-label)/1 var(--ob-f-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ob-amber-ink); background: var(--ob-amber); padding: 0.32em 0.55em; margin-right: 0.8em; border-radius: 1px; }
+.ob-h-sec { font: 300 clamp(2.1rem, 9vw, 3.2rem)/1.02 var(--ob-f-display); letter-spacing: -0.015em; }
+.ob-lead { font: 400 var(--fs-lead)/1.42 var(--ob-f-body); color: var(--ob-ink); }
+.ob-sub { font: 400 var(--fs-small)/1.5 var(--ob-f-body); color: var(--ob-ink-2); }
+
+/* ---------- chips (hall + lamp rooms) ---------- */
+.ob-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.ob-chips li { font: 400 var(--fs-label)/1 var(--ob-f-mono); letter-spacing: 0.04em; padding: 0.7em 0.95em; border: 1px solid var(--hue-line, var(--ob-hair)); color: var(--ob-ink); border-radius: 1px; opacity: 0; transform: translateY(0.5em); transition: opacity 0.5s var(--ease), transform 0.6s var(--ease); transition-delay: calc(var(--n, 0) * 55ms); }
+.ob-chips.is-in li { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ob-chips li { opacity: 1; transform: none; transition: none; }
+  .ob-btn .ob-arr, .ob-open .ob-arr { transition: none; }
+}
