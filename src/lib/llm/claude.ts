@@ -192,9 +192,18 @@ export function buildCliPrompt(system: string, prompt: string, schema: object): 
   ].join("\n");
 }
 
-function runCli(input: string, opts: { tier?: ModelTier; signal?: AbortSignal } = {}): Promise<string> {
+/** Spawn one CLI child with a GIVEN argv and settle on its output. The spawn
+ *  mechanics (env scrub, timeout, abort, kill ladder, stdin hygiene) are shared;
+ *  the argv is the stance, and each stance owns its own (ADR-0016): `cliArgs` here
+ *  for no-tools generation, `researchCliArgs` in ./claude-research for web research.
+ *  Exported for that sibling only — callers go through generateStructured. */
+export function spawnCli(
+  input: string,
+  opts: { args: string[]; cwd?: string; timeoutMs?: number; signal?: AbortSignal }
+): Promise<string> {
   return new Promise((resolve, reject) => {
-    const { tier, signal } = opts;
+    const { signal, args, cwd } = opts;
+    const timeoutMs = opts.timeoutMs ?? CLAUDE_TIMEOUT_MS;
     // An already-fired signal must not spawn a CLI child at all. A caller abort is
     // a deliberate stop (`aborted`); an already-elapsed wrapper deadline is a
     // `timeout` (retryable).
@@ -206,17 +215,16 @@ function runCli(input: string, opts: { tier?: ModelTier; signal?: AbortSignal } 
       }
       return;
     }
-    const args = cliArgs(tier);
     const child = isWindows
-      ? spawn("cmd", ["/c", "claude", ...args], { windowsHide: true, env: cliEnv() })
-      : spawn("claude", args, { env: cliEnv() });
+      ? spawn("cmd", ["/c", "claude", ...args], { windowsHide: true, env: cliEnv(), cwd })
+      : spawn("claude", args, { env: cliEnv(), cwd });
 
     let stdout = "";
     let stderr = "";
     const timer = setTimeout(() => {
       killChild(child);
-      reject(new LlmCallError("timeout", `Claude CLI vypršel po ${CLAUDE_TIMEOUT_MS} ms.`, { provider: "claude" }));
-    }, CLAUDE_TIMEOUT_MS);
+      reject(new LlmCallError("timeout", `Claude CLI vypršel po ${timeoutMs} ms.`, { provider: "claude" }));
+    }, timeoutMs);
     // The composed signal (caller abort OR wrapper deadline) fired: kill the child
     // instead of burning a concurrency slot on output nobody will read. Classify a
     // deadline fire as a retryable timeout and a real caller abort as `aborted`.
@@ -378,8 +386,8 @@ export async function runClaude(args: {
   tier?: ModelTier;
   signal?: AbortSignal;
 }): Promise<ExtractedJson> {
-  const out = await runCli(buildCliPrompt(args.system, args.prompt, args.schema), {
-    tier: args.tier,
+  const out = await spawnCli(buildCliPrompt(args.system, args.prompt, args.schema), {
+    args: cliArgs(args.tier),
     signal: args.signal,
   });
   const parsed = extractJsonTraced(out);

@@ -20,6 +20,7 @@ import { languageViolations } from "./language-check";
 import { partitionViolations } from "../ai/tools/_shared";
 import type { SupportedLocale } from "../format";
 import { claudeAvailable, runClaude } from "./claude";
+import { researchAvailable, runClaudeResearch, RESEARCH_TIMEOUT_MS } from "./claude-research";
 import { codexAvailable, runCodex } from "./codex";
 import { geminiAvailable, runGemini } from "./gemini";
 import { addUsage, estimateCostUsd, type TokenUsage } from "./cost";
@@ -99,6 +100,12 @@ export interface GenerateArgs<T> {
    *  output nobody will read. An abort is non-retryable, never falls over to
    *  another provider, and never degrades to the demo. */
   signal?: AbortSignal;
+  /** A capability only one engine has (ADR-0015/0016). `"web-research"` routes the
+   *  call to the Claude CLI's separate `research` stance — WebSearch + WebFetch, no
+   *  other tool — and to nothing else: not BYOM, not the gateway, not Gemini. When
+   *  the stance is unavailable on this machine the call degrades to `demo()`, which
+   *  for a research op is the curated catalog, never a pretend search. */
+  capability?: "web-research";
 }
 
 /** Append an authoritative language directive for non-default locales so the AI
@@ -166,6 +173,18 @@ const codexProvider: Provider = {
   // like the Claude CLI path (the wrapper omits estCostUsd rather than claiming $0).
   run: async (c) => {
     const out = await runCodex({ system: c.system, prompt: c.prompt, schema: c.schema, tier: c.tier, signal: c.signal });
+    return { parsed: out.value, usage: undefined, extraction: out.rung };
+  },
+};
+
+/** The `research` stance as a provider (ADR-0016). Same model tags and pricing
+ *  posture as the generation CLI (unpriced, subscription-billed), its own argv. */
+const claudeResearchProvider: Provider = {
+  modelFor: claudeProvider.modelFor,
+  available: researchAvailable,
+  deadlineFloorMs: RESEARCH_TIMEOUT_MS,
+  run: async (c) => {
+    const out = await runClaudeResearch({ system: c.system, prompt: c.prompt, schema: c.schema, tier: c.tier, signal: c.signal });
     return { parsed: out.value, usage: undefined, extraction: out.rung };
   },
 };
@@ -288,8 +307,11 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
 
   // BYOM (when the request carries a resolved key) goes first, with the app's env
   // providers as the recoverable-fallback tail; absent BYOM this is today's order.
-  const byom = getByomContext();
-  const providers = resolveProviders(dev, byom);
+  // A capability call has exactly one engine and never borrows another's (ADR-0016).
+  const byom = args.capability ? undefined : getByomContext();
+  const providers = args.capability
+    ? [claudeResearchProvider].filter((p) => p.available())
+    : resolveProviders(dev, byom);
 
   // The locale override goes on the PROMPT, never the system prompt, so the
   // fingerprint (system + schema) — and the golden/coverage gate — is unchanged.
@@ -300,7 +322,7 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
   // retry, the cross-seat fallback and the LightTrack record, so repeating any of it here would
   // double every exhausted-seat attempt and every event row (see ./gateway-generate.ts). BYOM
   // still wins — a subscriber's own key is theirs to spend, not the operator's seats.
-  if (!byom) {
+  if (!byom && !args.capability) {
     const route = await gatewayRouteFor(toolId);
     if (route) {
       return generateViaGateway(args, { route, toolId, promptHash, attribution, effectivePrompt, start });
