@@ -2016,7 +2016,11 @@
           "revision": 27,
           "changedAt": "2026-10-06",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/ai/useAiTool.ts:63 Grep across the context for agent runtime assembly constructs found only React UI components and client hooks that submit single-turn generation requests to an HTTP API, proving the agent runtime assembly precondition does not hold.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:9036e979656a8dc5",
+          "evaluatedRevision": 27
         },
         {
           "subject": "prompt-assembly",
@@ -8030,7 +8034,11 @@
           "revision": 27,
           "changedAt": "2026-10-06",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/cron/schedule.ts:8 Grep of the context and repo for agent runtime assembly constructs found only scheduled job timing, sent-guard idempotency locks, and execution records, which belong to job coordination rather than agent runtime assembly.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:9036e979656a8dc5",
+          "evaluatedRevision": 27
         },
         {
           "subject": "job-coordination",
@@ -9737,7 +9745,11 @@
           "revision": 27,
           "changedAt": "2026-10-06",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/leads/conversion-events.ts:33 Grep of the context and repo for agent runtime assembly constructs found only lead CRM stages, offline conversion exports, and Google Ads upload steps, proving the agent runtime assembly precondition does not hold.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:9036e979656a8dc5",
+          "evaluatedRevision": 27
         },
         {
           "subject": "native-guest-interop",
@@ -12982,7 +12994,11 @@
           "revision": 27,
           "changedAt": "2026-10-06",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/app/api/eval/telemetry/route.ts:16 Grep of the context routes for agent runtime assembly constructs found only standard Next.js API endpoints serving operator eval telemetry and platform metrics, proving the agent runtime assembly precondition does not hold.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:9036e979656a8dc5",
+          "evaluatedRevision": 27
         },
         {
           "subject": "agent-memory",
@@ -17671,7 +17687,11 @@
           "revision": 27,
           "changedAt": "2026-10-06",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/outbound/event-types.ts:26 Grep of the context and repo for agent runtime assembly constructs found only outbound webhook dispatch and HMAC signing for operational notification topics, proving the agent runtime assembly precondition does not hold.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:9036e979656a8dc5",
+          "evaluatedRevision": 27
         },
         {
           "subject": "outbound-notifications",

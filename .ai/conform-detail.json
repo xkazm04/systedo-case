@@ -1142,6 +1142,171 @@
       "evaluatedTs": "2026-10-13T01:38:31.872Z",
       "worker": "ccdd06c6-f7ba-48a4-8638-fbefee45f904",
       "techniques": []
+    },
+    "outbound-event-bus/agent-runtime-assembly": {
+      "context": "Outbound event bus",
+      "subject": "agent-runtime-assembly",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T02:36:22.520Z",
+      "worker": "291b5c36-0349-4401-b097-60de6ff28427",
+      "techniques": [
+        {
+          "technique": "honest-hook-registry",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/event-types.ts:28 Precondition does not hold: the event vocabulary defines outbound HTTP webhook notification topics rather than in-process extension hooks for an agent loop."
+        },
+        {
+          "technique": "host-routes-win",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/projects/[id]/webhooks/route.ts:44 Precondition does not hold: routes are static Next.js App Router handlers with no contributed extension router mounting or shadow resolution."
+        },
+        {
+          "technique": "operator-tier-code-loading",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/types.ts:46 Precondition does not hold: endpoint configuration specifies event filters and target URLs without loading in-process code or registering execution entry points."
+        },
+        {
+          "technique": "bounded-projection-of-external-work",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/outbound/emit.ts:26 Precondition does not hold: delivery outbox records asynchronous HTTP post status instead of projecting long-running remote tool server jobs into an agent loop."
+        }
+      ],
+      "registryProposal": "Generic keywords such as 'event', 'store', and 'log' in the registry's grounding index cause false positive matching against webhook dispatchers and storage models."
+    },
+    "d248872f-eefa-40f7-8757-50f220334ff7/agent-runtime-assembly": {
+      "context": "platform-ops-api",
+      "subject": "agent-runtime-assembly",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T02:36:22.520Z",
+      "worker": "291b5c36-0349-4401-b097-60de6ff28427",
+      "techniques": [
+        {
+          "technique": "host-routes-win",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/auth/[...nextauth]/route.ts:5 Precondition does not hold: routes are static Next.js App Router handlers with no contributed extension router mounting or shadow resolution."
+        },
+        {
+          "technique": "guard-input-custody",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/eval/telemetry/route.ts:18 Precondition does not hold: the guard is an HTTP handler authorization check against server admin email configuration rather than an agent containment guard reading writable working tree files."
+        },
+        {
+          "technique": "operator-tier-code-loading",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/usage/route.ts:6 Precondition does not hold: platform usage endpoint provides read-only JSON responses with no dynamic extension code loading."
+        },
+        {
+          "technique": "bounded-projection-of-external-work",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/health/route.ts:16 Precondition does not hold: health route monitors cron execution timestamps from a database rather than projecting long-running external tool server jobs into an agent loop."
+        }
+      ],
+      "registryProposal": "Keywords like 'route' and 'background' match standard HTTP API route handlers and background metrics endpoints that do not assemble an agent runtime."
+    },
+    "9c32aaab-b57d-4912-aa00-1e00b877253e/agent-runtime-assembly": {
+      "context": "lead-management",
+      "subject": "agent-runtime-assembly",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T02:36:22.520Z",
+      "worker": "291b5c36-0349-4401-b097-60de6ff28427",
+      "techniques": [
+        {
+          "technique": "checkpoint-mode-custody",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/leads/conversion-events.ts:41 Precondition does not hold: models offline conversion event rows for ad networks rather than conversational graph checkpoints with full versus delta mode custody."
+        },
+        {
+          "technique": "guard-input-custody",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/leads/conversion-events.ts:12 Precondition does not hold: data sanitization enforces PII-free lead attribution records rather than constraining agent write reach over security guard policy files."
+        },
+        {
+          "technique": "bounded-projection-of-external-work",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/conversions/drain-step.ts:53 Precondition does not hold: conversion drain is a scheduled batch job uploading offline conversions to Google Ads API, not an agent loop projecting remote tool execution."
+        },
+        {
+          "technique": "operator-tier-code-loading",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/conversions/registry.ts:16 Precondition does not hold: conversion exporters are statically compiled code objects in a hardcoded TypeScript array with no dynamic extension loading."
+        }
+      ],
+      "registryProposal": "Indexing terms like 'store', 'backend', and 'storage' falsely matches offline conversion event ledgers and CRM datastores to agent runtime state custody."
+    },
+    "5a8fbddc-b714-4c30-93a7-7021bca96c21/agent-runtime-assembly": {
+      "context": "ai-assistant-core",
+      "subject": "agent-runtime-assembly",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T02:36:22.520Z",
+      "worker": "291b5c36-0349-4401-b097-60de6ff28427",
+      "techniques": [
+        {
+          "technique": "additive-input-at-the-call-boundary",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/useAiTool.ts:175 Precondition does not hold: useAiTool manages single-turn HTTP fetch requests where re-invocations abort previous in-flight requests, not a multi-turn agent loop with model-call boundaries for additive input injection."
+        },
+        {
+          "technique": "checkpoint-mode-custody",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/useAiTool.ts:38 Precondition does not hold: state persistence is browser localStorage caching of JSON generation history for UI tab restore, not graph checkpointer execution with delta vs full modes."
+        },
+        {
+          "technique": "bounded-projection-of-external-work",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/useAiTool.ts:50 Precondition does not hold: operations are synchronous HTTP requests aborted by client timeouts rather than long-running background tasks projected into an agent loop under leases."
+        },
+        {
+          "technique": "guard-input-custody",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/AiPreflight.tsx:57 Precondition does not hold: preflight reads user quota and provider availability from a server endpoint to display informational UI banners rather than evaluating policy files constrained against agent write reach."
+        },
+        {
+          "technique": "assembly-identity",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/AiAssistant.tsx:62 Precondition does not hold: tab array defines front-end UI navigation across static tool forms rather than an assembled agent runtime with policy parameters and hook chains."
+        }
+      ],
+      "registryProposal": "Lexical matching on 'tool' and 'hook' collides with client-side React hooks and UI navigation tabs, misidentifying presentation components as an agent execution runtime."
+    },
+    "d5522378-2f5d-4d29-9632-c7d6de708116/agent-runtime-assembly": {
+      "context": "cron-scheduler",
+      "subject": "agent-runtime-assembly",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T02:36:22.520Z",
+      "worker": "291b5c36-0349-4401-b097-60de6ff28427",
+      "techniques": [
+        {
+          "technique": "bounded-projection-of-external-work",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/schedule.ts:21 Precondition does not hold: sent-guard manages cron job period idempotency rather than an agent loop projecting remote tool execution states."
+        },
+        {
+          "technique": "guard-input-custody",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron-auth.ts:16 Precondition does not hold: cron route authorization reads an infrastructure secret from environment variables rather than enforcing containment policy over an autonomous agent."
+        },
+        {
+          "technique": "operator-tier-code-loading",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/ledgers.ts:56 Precondition does not hold: ledger steps are code modules registered in statically compiled source code with no dynamic extension code loading."
+        },
+        {
+          "technique": "indeterminate-closure-on-interruption",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/cron/run.ts:11 Precondition does not hold: records completed cron run outcomes (counts and errors) in job coordination storage rather than resolving interrupted in-flight agent tool calls with indeterminate synthetic status."
+        }
+      ],
+      "registryProposal": "Scheduled job execution infrastructure and run record persistence belong to job-coordination as the golden path explicitly disclaims, so matching on 'assembly' and 'configuration' is misleading."
     }
   }
 }
