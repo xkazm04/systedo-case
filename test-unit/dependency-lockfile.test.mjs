@@ -68,7 +68,6 @@ const REGISTRY = "https://registry.npmjs.org/";
 const INSTALL_SCRIPTS = {
   "node_modules/@firebase/util": "firebase-admin's shared utilities; the script is Firebase's own postinstall.",
   "node_modules/@google/genai": "the Gemini SDK, the app's production LLM provider.",
-  "node_modules/@sentry/cli": "downloads the Sentry CLI binary for its platform (@sentry/nextjs).",
   "node_modules/fsevents": "macOS file-watching native addon; optional, and dev-only.",
   "node_modules/protobufjs": "gRPC wire format for firebase-admin; pinned by an override in package.json.",
   "node_modules/unrs-resolver": "the ESLint resolver's native binding (dev-only, via eslint-config-next).",
