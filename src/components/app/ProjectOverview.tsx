@@ -23,8 +23,7 @@ import {
   kpiLabel,
   kpiHint,
   type KpiFormat,
-  type KpiMetric,
-} from "@/lib/projects/modules";
+  type KpiMetric, moduleHref as registryModuleHref } from "@/lib/projects/modules";
 import { projectTypeMeta, PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
 import { getAdviceLedger } from "@/lib/advice/store";
 import { recordAdviceSighting } from "@/lib/advice/record";
@@ -112,9 +111,7 @@ export default async function ProjectOverview({
   const t = await getT(T);
   const locale = await getServerLocale();
 
-  const moduleHref =
-    hrefForModule ??
-    ((projectId: string, key: string) => (key ? `/app/${projectId}/${key}` : `/app/${projectId}`));
+  const moduleHref = hrefForModule ?? registryModuleHref;
 
   /* ----------------------------------------------------------- single project */
   if (projects.length <= 1) {

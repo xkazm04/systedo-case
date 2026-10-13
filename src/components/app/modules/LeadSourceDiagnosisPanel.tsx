@@ -27,6 +27,7 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import { useDiagnosisPersistence } from "@/components/ai/useDiagnosisPersistence";
 import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
 import { DiagnosisActions, DiagnosisAlreadyResolvedNote, DiagnosisHistory, DiagnosisSampleNote, DiagnosisSaveError } from "@/components/ai/DiagnosisTracking";
+import { moduleHref } from "@/lib/projects/modules";
 
 export type { LeadSourceSeed };
 
@@ -129,7 +130,7 @@ export default function LeadSourceDiagnosisPanel({
     }
   }, [status, data, persist]);
 
-  const handoff = { href: projectId ? `/app/${projectId}/kampane` : "/app", label: t("handoff") };
+  const handoff = { href: projectId ? `${moduleHref(projectId, "kampane")}` : "/app", label: t("handoff") };
   const activeLead = active && active.kind === "lead-source" ? active : null;
   // Direction 2: a stored diagnosis is stale when its source's current seed digest
   // differs (per-source, keyed by the diagnosis subject = the source name).

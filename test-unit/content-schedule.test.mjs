@@ -344,7 +344,8 @@ test("the seeding + link-back contract is wired at both ends", () => {
   // the calendar seeds through the EXISTING bridge, not a new one
   assert.ok(board.includes("briefSeedKey(projectId)"), "reuses the brief-seed sessionStorage key");
   assert.ok(board.includes("planSlotSeed(post)"), "seeds from the slot's own content");
-  assert.ok(/router\.push\(`\/app\/\$\{projectId\}\/obsahovy-engine`\)/.test(board));
+  // ADR-0013: the Content engine is a room under Studio, reached through moduleHref.
+  assert.ok(board.includes('router.push(`${moduleHref(projectId, "obsahovy-engine")}`)'), "hands off to the Content engine room");
   // …and the engine links what it produced back to that slot, recording the asset
   // itself in the content library rather than copying it onto the board
   assert.ok(engine.includes("onSavedToLibrary"), "the link-back rides the library save");

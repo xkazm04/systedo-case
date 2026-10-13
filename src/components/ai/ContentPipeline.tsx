@@ -30,6 +30,7 @@ import {
 } from "@/lib/ai/pipeline";
 import { useAiTool } from "./useAiTool";
 import { usePersistedForm } from "./usePersistedForm";
+import { moduleHref } from "@/lib/projects/modules";
 import {
   CharCount,
   CopyButton,
@@ -352,7 +353,7 @@ export default function ContentPipeline() {
         setSendError(t("sendFailed"));
         return;
       }
-      router.push(`/app/${pid}/distribuce`);
+      router.push(`${moduleHref(pid, "distribuce")}`);
     } catch {
       setSendError(t("sendFailed"));
     } finally {

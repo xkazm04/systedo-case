@@ -14,6 +14,7 @@ import Link from "next/link";
 import { Button, Pill } from "@/components/ui";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import type { ConnectorMeta } from "@/lib/leads/connectors/types";
+import { moduleHref } from "@/lib/projects/modules";
 
 const T = {
   cs: {
@@ -140,7 +141,7 @@ export default function LeadConnectors({
         <p className="mt-3 text-xs text-muted">
           {t("manualHint")}{" "}
           <Link
-            href={`/app/${projectId}/leady`}
+            href={`${moduleHref(projectId, "leady")}`}
             className="font-medium text-brand-accent underline-offset-2 hover:underline"
           >
             {t("openLeads")} →

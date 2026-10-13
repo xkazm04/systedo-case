@@ -32,7 +32,7 @@ import { Info } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import { useProject } from "@/lib/projects/context";
 import { isDemoProjectId } from "@/lib/projects/demo";
-import { isModuleAvailable } from "@/lib/projects/modules";
+import { isModuleAvailable, moduleHref } from "@/lib/projects/modules";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import { SOCIAL_PLATFORM_LABELS, type SocialPlatform } from "@/lib/social/types";
 import { draftResponseMeta, type SocialDraftMeta } from "@/lib/social/draft-meta";
@@ -210,7 +210,7 @@ export default function ContentSchedule({
     } finally {
       setLeavingId(null);
     }
-    router.push(`/app/${projectId}/obsahovy-engine`);
+    router.push(`${moduleHref(projectId, "obsahovy-engine")}`);
   }
 
   function setBody(id: string, body: string, persistIt = false) {
@@ -353,7 +353,7 @@ export default function ContentSchedule({
             {t("noChannelBody")}{" "}
             {socialLinked && (
               <Link
-                href={`/app/${projectId}/socialni`}
+                href={`${moduleHref(projectId, "socialni")}`}
                 className="font-semibold text-brand-accent hover:opacity-80"
               >
                 {t("noChannelLink")}

@@ -289,7 +289,7 @@ test("the library list discloses provenance, honors ?entry= and cleans its point
   const { readFileSync } = await import("node:fs");
   const list = readFileSync(new URL("../src/components/ai/SavedContentLibrary.tsx", import.meta.url), "utf8");
   const page = readFileSync(
-    new URL("../src/app/app/[projectId]/ulozeny-obsah/page.tsx", import.meta.url),
+    new URL("../src/app/app/[projectId]/studio/ulozeny-obsah/page.tsx", import.meta.url),
     "utf8"
   );
   // (b) a demo/degraded entry is distinguishable from real, complete output

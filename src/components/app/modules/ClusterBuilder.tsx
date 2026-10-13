@@ -20,6 +20,7 @@ import {
 } from "@/components/ai/primitives";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { moduleHref } from "@/lib/projects/modules";
 
 const T = {
   cs: {
@@ -147,7 +148,7 @@ export default function ClusterBuilder() {
     } catch {
       /* non-critical — the brief tool still opens, just unseeded */
     }
-    router.push(`/app/${project.id}/obsahovy-engine`);
+    router.push(`${moduleHref(project.id, "obsahovy-engine")}`);
   };
 
   return (

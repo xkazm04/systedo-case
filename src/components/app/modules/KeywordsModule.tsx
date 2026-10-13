@@ -6,6 +6,7 @@ import KeywordResearch, { type BriefSeed } from "@/components/ai/KeywordResearch
 import SavedKeywordLists from "@/components/ai/SavedKeywordLists";
 import { useProject } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
+import { moduleHref } from "@/lib/projects/modules";
 
 /** Keywords module = research + saved lists, wired exactly like the AI workspace:
  *  saving a list refreshes the list panel, and "create brief" hands the selected
@@ -21,7 +22,7 @@ export default function KeywordsModule({ initialSeed }: { initialSeed?: string }
     } catch {
       /* non-critical — the brief tool still opens, just unseeded */
     }
-    router.push(`/app/${project.id}/obsahovy-engine`);
+    router.push(`${moduleHref(project.id, "obsahovy-engine")}`);
   }
 
   return (

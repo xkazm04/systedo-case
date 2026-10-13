@@ -28,6 +28,7 @@ import {
   type SignpostContext,
 } from "@/lib/organic-channels/next-step";
 import OptionCard from "./OptionCard";
+import { moduleHref } from "@/lib/projects/modules";
 
 const T = {
   cs: {
@@ -218,7 +219,7 @@ export default function ChannelWizard({
     // straight to training (nothing left to abandon).
     if (chosenMode === "twin" && !voiceTrained && lastInQueue) {
       advanceQueue();
-      router.push(`/app/${project.id}/twin?from=kanaly`);
+      router.push(`${moduleHref(project.id, "twin")}?from=kanaly`);
       return;
     }
     advanceQueue();

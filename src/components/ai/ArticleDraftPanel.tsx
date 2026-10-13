@@ -16,6 +16,7 @@ import { sendArticleToDistributionAction } from "@/components/app/modules/distri
 import type { AiResponse, ArticleDraftRequest, ArticleDraftResult, BriefResult } from "@/lib/ai-types";
 import type { CreativeSummary } from "@/lib/images/types";
 import { useAiTool } from "./useAiTool";
+import { moduleHref } from "@/lib/projects/modules";
 import {
   LoadingTimer,
   PromptDisclosure,
@@ -433,7 +434,7 @@ export default function ArticleDraftPanel({
         setSendError(t("sendFailed"));
         return;
       }
-      router.push(`/app/${pid}/distribuce`);
+      router.push(`${moduleHref(pid, "distribuce")}`);
     } catch {
       setSendError(t("sendFailed"));
     } finally {

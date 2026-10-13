@@ -25,6 +25,7 @@ import VariantAiStatus from "./VariantAiStatus";
 import VariantLinkRow from "./VariantLinkRow";
 import { useVariantDraft } from "./useVariantDraft";
 import { reportDistributionPublish } from "./report-publish";
+import { moduleHref } from "@/lib/projects/modules";
 
 /** Tone used for the AI repurposing — friendly/human matches the demo content. */
 const REPURPOSE_TONE: Tone = "pratelsky";
@@ -180,7 +181,7 @@ export default function VariantCard({
         return;
       }
       handedOff();
-      router.push(`/app/${project.id}/socialni`);
+      router.push(`${moduleHref(project.id, "socialni")}`);
     } catch {
       setError(t("connectError"));
     } finally {

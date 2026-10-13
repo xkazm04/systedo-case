@@ -8,6 +8,7 @@
 import { replySeedKey, type ReplySeed } from "@/lib/twin/reply-seed";
 import { isTwinChannel } from "@/lib/twin/types";
 import type { Contact } from "@/lib/leads/types";
+import { moduleHref } from "@/lib/projects/modules";
 
 /** The twin channel to answer a contact on: their preferred one when known, else
  *  the absorbed speed-to-lead inbox — which is exactly what an unanswered enquiry
@@ -25,7 +26,7 @@ export function inboundTextFor(c: Contact, fallback: string): string {
 }
 
 export function schrankaHref(projectId: string): string {
-  return `/app/${projectId}/schranka?from=leady`;
+  return `${moduleHref(projectId, "schranka")}?from=leady`;
 }
 
 /** Write the seed. Returns false when storage is unavailable — the caller still

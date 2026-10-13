@@ -28,6 +28,7 @@ import {
 } from "@/lib/seo-compare/compute";
 import type { CompareIntent, CompareQuery } from "@/lib/seo-compare/sample";
 import type { KeywordList } from "@/lib/keywords/types";
+import { moduleHref } from "@/lib/projects/modules";
 
 const T = {
   cs: {
@@ -705,7 +706,7 @@ export default function CompareSeoTable({
     } catch {
       /* non-critical — the brief tool still opens, just unseeded */
     }
-    router.push(`/app/${project.id}/obsahovy-engine`);
+    router.push(`${moduleHref(project.id, "obsahovy-engine")}`);
   }
 
   // `competition` is NOT a UI string: the brief tool interpolates it into its Czech

@@ -28,6 +28,7 @@ import { getOrganicChannels } from "@/lib/organic-channels/store";
 import { sanitizeChannelState } from "@/lib/organic-channels/types";
 import { channelSendAt, type ContentPost } from "@/lib/content-schedule/sample";
 import { cadenceRules } from "./cadence";
+import { moduleHref } from "@/lib/projects/modules";
 import {
   channelKeyFromContentChannel,
   channelKeyFromPlatform,
@@ -91,7 +92,7 @@ async function socialItems(uid: string, projectId: string): Promise<PublishingIt
       at,
       title: title(p.content, p.platform),
       status,
-      href: `/app/${projectId}/socialni`,
+      href: `${moduleHref(projectId, "socialni")}`,
     });
   }
   return out;
@@ -129,7 +130,7 @@ async function contentPlanItems(
       at,
       title: title(post.title, post.service),
       status,
-      href: `/app/${projectId}/obsah-plan`,
+      href: `${moduleHref(projectId, "obsah-plan")}`,
     });
   }
   return out;
@@ -163,7 +164,7 @@ async function twinItems(
       at: d.sentAt,
       title: title(d.reply, d.contact || d.channel),
       status: "sent",
-      href: `/app/${projectId}/schranka`,
+      href: `${moduleHref(projectId, "schranka")}`,
     });
   }
   return out;
@@ -186,7 +187,7 @@ async function distributionItems(uid: string, projectId: string): Promise<Publis
         at: v.updatedAt,
         title: title(article.title, v.channel),
         status: "sent",
-        href: `/app/${projectId}/distribuce`,
+        href: `${moduleHref(projectId, "distribuce")}`,
       });
     }
   }

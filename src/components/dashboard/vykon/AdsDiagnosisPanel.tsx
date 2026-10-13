@@ -30,6 +30,7 @@ import {
   DiagnosisSaveError,
 } from "@/components/ai/DiagnosisTracking";
 import AdsDiagnosisReading from "./AdsDiagnosisReading";
+import { moduleHref } from "@/lib/projects/modules";
 
 const T = {
   cs: {
@@ -103,7 +104,7 @@ export default function AdsDiagnosisPanel({
     }
   }, [status, data, persist]);
 
-  const handoff = { href: projectId ? `/app/${projectId}/kampane` : "/app", label: t("handoff") };
+  const handoff = { href: projectId ? `${moduleHref(projectId, "kampane")}` : "/app", label: t("handoff") };
   const activeAds = active && active.kind === "ads" ? active : null;
   const isStale = (d: StoredDiagnosis) =>
     currentDigest ? digestFreshness(d.inputDigest, currentDigest) === "stale" : false;

@@ -16,7 +16,7 @@ import Link from "next/link";
 import { ArrowRight } from "@/components/icons";
 import { useProject } from "@/lib/projects/context";
 import { useT } from "@/lib/i18n/client";
-import { isModuleAvailable } from "@/lib/projects/modules";
+import { isModuleAvailable, moduleHref } from "@/lib/projects/modules";
 import type { ProjectType } from "@/lib/projects/types";
 import {
   VISIBILITY_PLAN_MODULES,
@@ -114,7 +114,7 @@ export default function VisibilityPlanCard({
           {hops.map((key) => (
             <Link
               key={key}
-              href={`/app/${project.id}/${key}?from=plan-viditelnosti`}
+              href={`${moduleHref(project.id, key)}?from=plan-viditelnosti`}
               className="group inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:border-brand-300 hover:text-brand-700"
             >
               {t(key)}

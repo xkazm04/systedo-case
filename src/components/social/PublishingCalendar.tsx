@@ -24,6 +24,7 @@ import type {
   PublishingSource,
 } from "@/lib/publishing/types";
 import CadenceMeter from "./CadenceMeter";
+import { moduleHref } from "@/lib/projects/modules";
 
 const T = {
   cs: {
@@ -157,7 +158,7 @@ export default function PublishingCalendar() {
               {(byDay.get(iso) ?? []).map((item) => (
                 <Link
                   key={item.id}
-                  href={item.href ?? `/app/${pid}/socialni`}
+                  href={item.href ?? `${moduleHref(pid, "socialni")}`}
                   className={`block rounded-md border p-1.5 transition-opacity hover:opacity-80 ${SOURCE_CHIP[item.source]}`}
                 >
                   <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide">

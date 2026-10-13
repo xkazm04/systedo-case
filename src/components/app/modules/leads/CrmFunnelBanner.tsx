@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { Check } from "@/components/icons";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
+import { moduleHref } from "@/lib/projects/modules";
 
 const T = {
   cs: {
@@ -49,7 +50,7 @@ export default async function CrmFunnelBanner({
           {t("live", { count })}
         </span>
         <Link
-          href={`/app/${projectId}/leady`}
+          href={`${moduleHref(projectId, "leady")}`}
           className="rounded-pill border border-line bg-surface px-3 py-1.5 font-semibold text-navy-700 transition-colors hover:border-brand-300"
         >
           {t("open")}

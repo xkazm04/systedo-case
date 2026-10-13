@@ -179,10 +179,10 @@ test("titles are chip-sized and whitespace-collapsed, and every item deep-links 
   const { items } = await resolvePublishingCalendar(UID, PID);
   const byId = Object.fromEntries(items.map((i) => [i.id, i]));
   assert.equal(byId["social:p1"].title, "Nová zimní směs ořechů");
-  assert.equal(byId["social:p1"].href, `/app/${PID}/socialni`);
-  assert.equal(byId["content-plan:s1"].href, `/app/${PID}/obsah-plan`);
-  assert.equal(byId["twin:d1"].href, `/app/${PID}/schranka`);
-  assert.equal(byId["distribution:abc123:LinkedIn"].href, `/app/${PID}/distribuce`);
+  assert.equal(byId["social:p1"].href, `/app/${PID}/channels/socialni`);
+  assert.equal(byId["content-plan:s1"].href, `/app/${PID}/local/obsah-plan`);
+  assert.equal(byId["twin:d1"].href, `/app/${PID}/channels/schranka`);
+  assert.equal(byId["distribution:abc123:LinkedIn"].href, `/app/${PID}/channels/distribuce`);
 });
 
 test("a twin draft borrows its channel from the track that says who speaks there", async () => {

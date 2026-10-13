@@ -18,6 +18,7 @@ import type { ChannelNext } from "@/lib/organic-channels/next-step";
 import { CATEGORY_LABELS, EFFORT_LABELS, MODE_LABELS, NEXT_LABELS, STAGE_LABELS } from "./labels";
 import ChannelStageMoves from "./ChannelStageMoves";
 import ChannelMeasuredLink from "./ChannelMeasuredLink";
+import { moduleHref } from "@/lib/projects/modules";
 
 const T = {
   cs: {
@@ -145,7 +146,7 @@ export default function ChannelPlaybook({
             <span className={`pill ${STAGE_LABELS[stage].tone}`}>{STAGE_LABELS[stage][L]}</span>
             {track?.mode && <span className={`pill ${MODE_LABELS[track.mode].tone}`}>{MODE_LABELS[track.mode][L]}</span>}
             {track?.maxPerWeek && channelKind(channel.category) !== "listing" && (
-              <Link href={`/app/${projectId}/socialni`} title={t("cadenceEnforced")} className="pill bg-navy-50 text-muted transition-colors hover:text-navy-800">{t("cadence", { n: track.maxPerWeek })}</Link>
+              <Link href={`${moduleHref(projectId, "socialni")}`} title={t("cadenceEnforced")} className="pill bg-navy-50 text-muted transition-colors hover:text-navy-800">{t("cadence", { n: track.maxPerWeek })}</Link>
             )}
             <button
               type="button"

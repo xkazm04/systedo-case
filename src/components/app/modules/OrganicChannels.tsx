@@ -19,7 +19,7 @@ import { LoadingTimer, RefineBar, ResultMeta, TimeoutState, ToolError } from "@/
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import { promptSafeName } from "@/lib/projects/name";
 import { seedFromChannel } from "@/lib/content-engine/seed";
-import { isModuleAvailable } from "@/lib/projects/modules";
+import { isModuleAvailable, moduleHref } from "@/lib/projects/modules";
 import { createFormatters } from "@/lib/format";
 import type { ChannelResearchResult } from "@/lib/ai-types";
 import type { ProjectType } from "@/lib/projects/types";
@@ -313,7 +313,7 @@ export default function OrganicChannels({
     } catch {
       /* storage unavailable — still navigate; the engine opens unseeded */
     }
-    router.push(`/app/${project.id}/obsahovy-engine?from=kanaly`);
+    router.push(`${moduleHref(project.id, "obsahovy-engine")}?from=kanaly`);
   };
 
   /** The row CTA: deep-link when the step lives in another module, else act here. */

@@ -12,6 +12,7 @@
 import type { StockRow } from "./compute";
 import type { AlertState } from "@/lib/campaigns/alert-suppression";
 import type { SupportedLocale } from "@/lib/format";
+import { moduleHref } from "@/lib/projects/modules";
 
 /** Where a proposed budget move sits: freshly proposed, the operator has accepted
  *  (saved) it, or dismissed it. No "applied" — nothing is executed. */
@@ -191,6 +192,6 @@ export function stockAlertPayload(
     title: t.title(rows.length),
     body: items.map((i) => `${i.name}: ${i.reason}`).join(" · "),
     items,
-    href: `/app/${projectId}/sklad-sezonnost`,
+    href: `${moduleHref(projectId, "sklad-sezonnost")}`,
   };
 }

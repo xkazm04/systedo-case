@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { ArrowRight } from "@/components/icons";
 import { useT, useFormatters } from "@/lib/i18n/client";
+import { moduleHref } from "@/lib/projects/modules";
 
 export interface ReportBeyondData {
   ltvCac: number;
@@ -65,7 +66,7 @@ export default function ReportBeyond({ projectId, data }: { projectId: string; d
       <div className="grid gap-4 sm:grid-cols-2">
         {/* LTV / cohorts */}
         <Link
-          href={`/app/${projectId}/ltv`}
+          href={`${moduleHref(projectId, "ltv")}`}
           className="group rounded-lg border border-line bg-canvas p-4 transition-colors hover:border-brand-300"
         >
           <div className="flex items-center justify-between">
@@ -81,7 +82,7 @@ export default function ReportBeyond({ projectId, data }: { projectId: string; d
 
         {/* Stock & seasonality */}
         <Link
-          href={`/app/${projectId}/sklad-sezonnost`}
+          href={`${moduleHref(projectId, "sklad-sezonnost")}`}
           className="group rounded-lg border border-line bg-canvas p-4 transition-colors hover:border-brand-300"
         >
           <div className="flex items-center justify-between">

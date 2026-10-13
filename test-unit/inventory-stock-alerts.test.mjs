@@ -110,7 +110,7 @@ test("stockAlertPayload: critical when any hard pause, with cs/en text + deep-li
   assert.equal(cs.type, "critical"); // a hard pause is present
   assert.equal(cs.items.length, 2);
   assert.match(cs.title, /2 SKU/);
-  assert.equal(cs.href, "/app/proj-1/sklad-sezonnost");
+  assert.equal(cs.href, "/app/proj-1/reach/sklad-sezonnost");
   assert.match(cs.body, /vyprodáno/); // cs pause phrasing
 
   const en = stockAlertPayload(rows, "proj-1", "en");

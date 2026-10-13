@@ -12,6 +12,7 @@ import DraftHealth from "@/components/social/DraftHealth";
 import type { SocialDraftMeta } from "@/lib/social/draft-meta";
 import { slotProgress } from "@/lib/content-schedule/compute";
 import type { ContentPost } from "@/lib/content-schedule/sample";
+import { moduleHref } from "@/lib/projects/modules";
 
 const T = {
   cs: {
@@ -208,7 +209,7 @@ export default function ContentScheduleSlot({
           </button>
           {p.libraryEntryId && (
             <Link
-              href={`/app/${projectId}/ulozeny-obsah?entry=${encodeURIComponent(p.libraryEntryId)}`}
+              href={`${moduleHref(projectId, "ulozeny-obsah")}?entry=${encodeURIComponent(p.libraryEntryId)}`}
               className="text-xs font-medium text-muted underline-offset-2 transition-colors hover:text-navy-800 hover:underline"
             >
               {t("savedDraft")}

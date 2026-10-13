@@ -31,6 +31,7 @@ import { listDiagnoses } from "@/lib/diagnoses/store";
 import { shouldRunWeeklyDiagnosis } from "@/lib/diagnoses/schedule";
 import { runTenantDiagnoses, type DigestDiagnosisResult } from "@/lib/diagnoses/digest-run";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
+import { moduleHref } from "@/lib/projects/modules";
 import {
   insightBriefAlertBody,
   insightBriefHtml,
@@ -240,7 +241,7 @@ export async function GET(request: Request) {
             title: "Přehled týdne",
             body: briefBody,
             items: [],
-            href: `/app/${project.id}/vykon`,
+            href: `${moduleHref(project.id, "vykon")}`,
           });
           insightHtml = insightBriefHtml(insightLines, resolved.live, "cs");
         }
