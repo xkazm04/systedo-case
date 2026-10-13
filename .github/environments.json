@@ -1,10 +1,12 @@
 {
   "$comment": [
-    "THE DEPLOY TARGET, DECLARED. Fifteen gates run before a change lands here and past the",
-    "merge there was nothing: no environment manifest, no drift check, nothing an agent could",
-    "read to know what runs where. Vercel's project settings are a dashboard, and a dashboard is",
-    "not reviewable, not diffable and not reversible — so 'the production environment drifted",
-    "from what the repo assumes' was a state no check in this repository could go red for.",
+    "THE RUN TARGET, DECLARED. Fifteen gates run before a change lands here, and what a run",
+    "environment looks like was something nothing in the repository could read: no environment",
+    "manifest, no drift check, nothing an agent could read to know what runs where. Since",
+    "2026-10-13 this repository is local open source only (Dockerfile, docker-compose.yml,",
+    "npm run dev:local) and has no hosted deployment. Any host's settings screen is a dashboard,",
+    "and a dashboard is not reviewable, not diffable and not reversible — so 'the environment",
+    "drifted from what the repo assumes' is a state this file keeps checkable.",
     "",
     "This file is the smallest declaration of that target which is still worth diffing in a pull",
     "request: the runtime the platform must give us, the schedules it must fire, and every",
@@ -15,15 +17,14 @@
     "→ .husky/pre-push).",
     "",
     "BE EXACT ABOUT WHAT THIS CAN AND CANNOT SEE. Everything below is checked against COMMITTED",
-    "data — package.json, vercel.json, next.config.ts, .env.example, docs/deploy.md, the",
-    "workflows. So it catches the drift that starts in the repository: a cron added to vercel.json",
+    "data — package.json, cron-schedules.json, next.config.ts, .env.example, docs/deploy.md, the",
+    "workflows. So it catches the drift that starts in the repository: a cron added to cron-schedules.json",
     "and to no schedule anyone declared, a Node bump in one workflow and not the others, a new",
     "env var read by the code and classified nowhere, a variable that must never be set in",
-    "production quietly moving into the required list. It CANNOT read the Vercel project: what",
-    "is actually configured there today, whether a secret is set, which region a function runs",
-    "in. That half needs an API token and is the operator's (docs/deploy.md § Post-deploy",
-    "verification) — `cannotSee` below says so in the file rather than leaving a reader to",
-    "assume otherwise.",
+    "production quietly moving into the required list. It CANNOT read a host: what is actually",
+    "configured there today, whether a secret is set, which region a function runs in. That half",
+    "is the operator's (docs/deploy.md § Operator checks) — `cannotSee` below says so in the file",
+    "rather than leaving a reader to assume otherwise.",
     "",
     "WHEN THIS GOES RED, the fix is never to delete the row: the row firing IS the drift being",
     "caught. Move the declaration in the same diff as the change it describes, which is one line",
@@ -57,23 +58,13 @@
 
   "environments": [
     {
-      "id": "production",
-      "platform": "vercel",
+      "id": "self-hosted",
+      "platform": "container",
       "branch": "master",
-      "promotion": "push. Vercel ships master on push, so the push IS the release act — there is no PR stage between a developer and production (docs/deploy.md § Delivery contract).",
+      "promotion": "none — there is no hosted deployment. An operator who runs the image builds it from a checkout (`docker compose up -d --build`, docs/open-source/self-hosting.md); nothing ships on a push.",
       "gate": ".husky/pre-push runs `npm run check:ci` before any push that updates master; the same checks are required status checks on a pull request (.github/required-checks.json, .github/branch-ruleset.json).",
-      "rollback": "docs/deploy.md § Deploy + rollback (Vercel) — re-alias the previous deployment; the operator's action, rehearsed weekly by .github/workflows/revert-drill.yml for everything that needs no production access.",
-      "dataStore": "firestore",
-      "nodeEnv": "production"
-    },
-    {
-      "id": "preview",
-      "platform": "vercel",
-      "branch": "*",
-      "promotion": "automatic per push to a non-default branch; never aliased to the production domain.",
-      "gate": "the same required checks run on the pull request.",
-      "rollback": "not applicable — a preview is discarded, never promoted.",
-      "dataStore": "firestore",
+      "rollback": "docs/deploy.md § Deploy + rollback — rebuild the image from the last good commit; rehearsed weekly by .github/workflows/revert-drill.yml for everything that needs no host access.",
+      "dataStore": "sqlite",
       "nodeEnv": "production"
     },
     {
@@ -89,7 +80,7 @@
   ],
 
   "crons": {
-    "$comment": "Declared here and compared set-for-set against vercel.json, and each path must resolve to a route module. Every one is guarded by CRON_SECRET through src/lib/cron-auth.ts, which fails CLOSED when the secret is unset.",
+    "$comment": "Declared here and compared set-for-set against cron-schedules.json, and each path must resolve to a route module. Every one is guarded by CRON_SECRET through src/lib/cron-auth.ts, which fails CLOSED when the secret is unset.",
     "guardedBy": "CRON_SECRET",
     "schedules": [
       { "path": "/api/cron/sync", "schedule": "0 * * * *", "does": "ad-platform data-in sync" },
@@ -107,11 +98,11 @@
   },
 
   "cannotSee": [
-    "what is actually configured in the Vercel project today — this reads the repository, not the platform",
+    "what is actually configured on whatever host runs the image today — this reads the repository, not the platform",
     "whether a declared secret is SET, and what its value is (that is `npm run doctor` locally and the operator's dashboard in production)",
-    "function region, memory and concurrency, which Vercel decides from its own defaults and the per-route `maxDuration` exports",
+    "container CPU, memory and concurrency, which the operator's runtime decides",
     "the Firestore TTL policy on `llmTelemetry`, which is created once per project with gcloud and is not code-deployable (docs/deploy.md § Telemetry retention)",
-    "DNS, the custom domain and the production alias — all of them operator actions under their own account"
+    "DNS, TLS and the public hostname — all of them operator actions under their own account"
   ],
 
   "$env": [
@@ -236,7 +227,7 @@
       "class": "build",
       "scope": "server",
       "source": "code",
-      "note": "next.config.ts — emits the standalone server for container builds only. Never set on Vercel."
+      "note": "next.config.ts — emits the standalone server for container builds only. Set by the Dockerfile only."
     },
     "DEV_INSPECT": {
       "class": "build",

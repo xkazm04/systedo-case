@@ -13,7 +13,7 @@
  *  reproducible — but only for entries that carry an `integrity` hash and a
  *  registry `resolved` URL. An entry sourced from a git ref, a bare tarball URL, or
  *  http, or one with no integrity hash, installs code that nothing verifies, and it
- *  is one hand-edit or one `npm i <url>` away. Master ships to Vercel on push
+ *  is one hand-edit or one `npm i <url>` away. A push to master is the release
  *  (docs/deploy.md), so "the release" is a push, and a check that only runs
  *  afterwards is not a guardrail.
  *
@@ -143,7 +143,7 @@ test("the packages that run code at install time are exactly the pinned set", ()
 test("every dependency package.json declares is actually in the lockfile", () => {
   // Drift between the manifest and the lockfile means `npm ci` installs a tree the
   // manifest does not describe. npm itself fails on this — but only after somebody
-  // runs an install, which on the push-to-deploy path is the Vercel build.
+  // runs an install, which on the release path is the image build.
   const declared = [...Object.keys(pkg.dependencies ?? {}), ...Object.keys(pkg.devDependencies ?? {})];
   assert.ok(declared.length > 0, "package.json declares no dependencies at all — that cannot be right.");
   const missing = declared.filter((name) => !lock.packages?.[`node_modules/${name}`]);

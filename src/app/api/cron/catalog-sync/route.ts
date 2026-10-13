@@ -4,7 +4,7 @@
  *  runCatalogSync as the on-demand sync (merge strategy, so manual items survive).
  *
  *  Guarded by CRON_SECRET (Vercel Cron sends it as a Bearer token). Schedule lives in
- *  vercel.json. Server-only. */
+ *  cron-schedules.json. Server-only. */
 import { cronAuthorized } from "@/lib/cron-auth";
 import { listAllConnections } from "@/lib/inventory/connection-store";
 import { decryptToken } from "@/lib/inventory/token-crypto";

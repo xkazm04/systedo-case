@@ -177,7 +177,7 @@ export function buildDoctorReport(env, probes) {
     status: set(env.CRON_SECRET) ? (set(env.RESEND_API_KEY) ? "on" : "demo") : "off",
     detail: set(env.CRON_SECRET)
       ? cronBits.join(" · ")
-      : "bez CRON_SECRET není plánovaná synchronizace chráněná (Vercel Cron ho posílá jako Bearer token)",
+      : "bez CRON_SECRET není plánovaná synchronizace chráněná (plánovač ho posílá jako Bearer token)",
     hint:
       set(env.CRON_SECRET) && set(env.RESEND_API_KEY)
         ? undefined

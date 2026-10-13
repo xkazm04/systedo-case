@@ -4,7 +4,7 @@
  *
  *  WHY THIS EXISTS. Everything else in this repository verifies a change on the
  *  way IN — the goldens, the quality bake, the budget gate, the rubric review,
- *  the checkpoint check. Vercel ships `master` on push, so the push IS the
+ *  the checkpoint check. A push to `master` is the release, so the push IS the
  *  release act (docs/deploy.md § Delivery contract), and ~97% of the pushes are
  *  agent-written. The way back out was written down in
  *  docs/runbooks/revert-drill.md and, by that file's own admission, never once
@@ -27,8 +27,8 @@
  *             that dies mid-run still puts the tree back.
  *
  *  WHAT IT DELIBERATELY DOES NOT DO. It never touches git, never pushes, and
- *  never promotes: flipping the production alias is a production action under the
- *  operator's name (AGENTS.md § Red), and `vercel promote <last-good-url>` stays
+ *  never promotes: redeploying a previous build is a production action under the
+ *  operator's name (AGENTS.md § Red), and rebuilding the last good commit stays
  *  the operator's leg with its steps in docs/deploy.md § Deploy + rollback. This
  *  drill measures how fast a bad change is CAUGHT and proves it can be taken back
  *  out cleanly; it does not claim to have rolled anything back.
@@ -283,7 +283,7 @@ try {
     failure =
       `nothing caught the "${seed.id}" seed. It passed ` +
       `${LAYERS.map((l) => l.id).join(" and ")} — on this repository's landing path that change would have ` +
-      "been pushed, and Vercel would have shipped it.";
+      "been pushed to master.";
   }
 } finally {
   // RESTORE — the repository half of a rollback, and the reason this runs in a
@@ -316,7 +316,7 @@ say(
 );
 say("");
 say(
-  "The promote leg is the operator's and is not rehearsed here: `vercel promote <last-good-deployment-url>` " +
+  "The redeploy leg is the operator's and is not rehearsed here: rebuild the image from the last good commit " +
     "(docs/deploy.md § Deploy + rollback). What this drill measures is how long a bad change survives the " +
     "gates, and that removing it restores the tree."
 );

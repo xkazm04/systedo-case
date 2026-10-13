@@ -222,7 +222,7 @@ const RULES = [
     title: "Credential-shaped identifier passed to console",
     why:
       "SECURITY.md's promise is that the LLM chokepoint logs operation names, token counts and " +
-      "cost — not credentials. Vercel and container logs are a second copy of anything printed.",
+      "cost — not credentials. Platform and container logs are a second copy of anything printed.",
     run: () =>
       scan(
         "codeOnly",

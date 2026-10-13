@@ -1,26 +1,24 @@
 /** The deploy target is declared, and the declaration still describes the tree.
  *
- *  THE PROBLEM. Every gate in this repository verifies a change on the way IN, and
- *  `master` ships on push — so the release act is a push that fifteen checks have
- *  already blessed. Past that point there was nothing: no environment manifest, no
- *  drift check, nothing an agent could read to know what runs where. The production
- *  target was described in a dashboard (not reviewable, not diffable) and in prose
- *  (nothing compares it to the tree), which means "the environment drifted from what
- *  the repository assumes" was a state no build could go red for. That asymmetry is
- *  where a well-gated repository still ships a surprise.
+ *  THE PROBLEM. Every gate in this repository verifies a change on the way IN. What a
+ *  run environment assumes was described in a host dashboard (not reviewable, not
+ *  diffable) and in prose (nothing compares it to the tree), which means "the
+ *  environment drifted from what the repository assumes" was a state no build could go
+ *  red for. This repository is local open source with no hosted deployment (since
+ *  2026-10-13), and the declaration still keeps the container and local targets honest.
  *
  *  `.github/environments.json` is the declaration and `scripts/env-manifest.mjs` is
  *  the comparison. This file is what makes the comparison BLOCK: it runs the exact
  *  function the CLI runs, so `npm run test:unit` → `npm run check:ci` →
  *  `.husky/pre-push` refuses a push where the two have come apart — a cron added to
- *  vercel.json that nothing declares, a Node bump in one workflow and not the others,
+ *  cron-schedules.json that nothing declares, a Node bump in one workflow and not the others,
  *  a new environment variable classified nowhere, a variable that must never be set
  *  in production drifting into the list a deployment may set.
  *
  *  WHAT IT DOES NOT CLAIM. It reads the repository, not the platform: whether a
- *  secret is actually set in the Vercel project, which region a function landed in,
- *  whether the Firestore TTL policy exists. That half needs an API token and is the
- *  operator's (docs/deploy.md § Post-deploy verification), and the manifest's own
+ *  secret is actually set on the host, which region a function landed in,
+ *  whether the Firestore TTL policy exists. That half is the operator's
+ *  (docs/deploy.md § Operator checks), and the manifest's own
  *  `cannotSee` list says so — asserted below, because a check that overstated its
  *  reach would leave the gap invisible AND believed closed.
  *
@@ -52,8 +50,8 @@ const CLASSES = new Set(["required", "optional", "local", "selfhosted", "bench",
 test("the manifest declares a target rather than a shape", () => {
   assert.equal(manifest.schema, 1, `${MANIFEST_PATH} changed schema — the readers have to follow it.`);
   assert.ok(
-    (manifest.environments ?? []).some((e) => e.id === "production"),
-    `${MANIFEST_PATH} declares no \`production\` environment, which is the one the push ships to.`
+    (manifest.environments ?? []).some((e) => e.id === "self-hosted"),
+    `${MANIFEST_PATH} declares no \`self-hosted\` environment, which is the one the container image runs in.`
   );
   for (const e of manifest.environments ?? []) {
     for (const key of ["id", "platform", "branch", "promotion", "rollback", "dataStore", "nodeEnv"]) {
@@ -62,7 +60,7 @@ test("the manifest declares a target rather than a shape", () => {
   }
   assert.ok(
     (manifest.crons?.schedules ?? []).length > 0,
-    "the manifest declares no schedules, and vercel.json fires six. A cron runs against production on its own."
+    "the manifest declares no schedules, and cron-schedules.json fires six. A cron runs against the data on its own."
   );
   assert.ok(
     manifest.crons?.guardedBy,
@@ -110,7 +108,7 @@ test("the check refuses a manifest that has drifted (it is wired, not decorative
   undeclaredCron.manifest.crons.schedules = undeclaredCron.manifest.crons.schedules.slice(1);
   assert.ok(
     environmentFindings(undeclaredCron).some((f) => f.startsWith("C1 crons")),
-    "a cron that vercel.json fires and the manifest does not declare is not reported."
+    "a cron that cron-schedules.json fires and the manifest does not declare is not reported."
   );
 
   const bumpedNode = clone();
@@ -142,7 +140,7 @@ test("the manifest is honest about the half it cannot read", () => {
   // believed closed.
   assert.ok(
     (manifest.cannotSee ?? []).length >= 3,
-    `${MANIFEST_PATH} no longer lists what it cannot see. It reads the repository, not the Vercel project — a `
+    `${MANIFEST_PATH} no longer lists what it cannot see. It reads the repository, not the host — a `
       + "reader who forgets that will believe a green build says the platform is configured."
   );
 });

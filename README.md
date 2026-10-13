@@ -176,8 +176,11 @@ before a human opens the diff. It is not a convention, it is a job:
   (LLM-as-judge scores across every AI operation); method and the latest
   measured BYOM table are in
   [`docs/testing/llm-quality-matrix.md`](./docs/testing/llm-quality-matrix.md).
-- **Deploying the hosted flavour (Vercel):** [`docs/deploy.md`](./docs/deploy.md)
-  — env names, crons, rollback, host rename. Cloud-connected setup (Google
+- **Running it yourself (no hosted deployment):** `npm run dev:local`, or
+  `docker compose up -d --build` — [`docs/deploy.md`](./docs/deploy.md) has the env
+  names, crons and rollback, and
+  [`docs/open-source/self-hosting.md`](./docs/open-source/self-hosting.md) the container
+  path. Cloud-connected setup (Google
   sign-in + Ads sync) is walked through in [`SETUP.md`](./SETUP.md), which is
   **partly stale** — it predates the offline path and narrates the maintainer's
   own GCP project.

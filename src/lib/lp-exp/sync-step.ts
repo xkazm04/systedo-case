@@ -1,7 +1,7 @@
 /** W3-B — the `lp-sync` ledger step: fold every hosted experiment's arm counters back
  *  into the experiment itself, then age the counters out. Registered in
  *  src/lib/cron/ledgers.ts — that one line in LEDGER_STEPS is the whole registration
- *  ceremony (no new route, no new `vercel.json` entry, no new guard; see WP F4).
+ *  ceremony (no new route, no new `cron-schedules.json` entry, no new guard; see WP F4).
  *
  *  This is the step that makes the whole work package mean something. Until it runs,
  *  a hosted page is counting views and conversions into a table nothing reads;

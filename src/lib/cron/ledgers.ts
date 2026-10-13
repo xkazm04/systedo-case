@@ -6,10 +6,10 @@
  *  Why a registry: every ledger-shaped background job (drain a conversion queue,
  *  retry a webhook, roll up go-link clicks, read social metrics back) wants the
  *  same three things — a schedule, a CRON_SECRET guard, and a durable run record.
- *  Giving each one its own `vercel.json` entry burns a platform cron slot per job
+ *  Giving each one its own `cron-schedules.json` entry burns a platform cron slot per job
  *  and spreads the guard across N route files. Instead ONE guarded route
  *  (`/api/cron/ledgers`) iterates this registry, so a later WP ships a step by
- *  appending to {@link LEDGER_STEPS} and NOBODY edits `vercel.json` again.
+ *  appending to {@link LEDGER_STEPS} and NOBODY edits `cron-schedules.json` again.
  *
  *  The two invariants that make that safe:
  *   1. **Failure isolation.** One step throwing, rejecting or returning
@@ -40,7 +40,7 @@ import { twinDispatchStep } from "@/lib/twin/dispatch-step";
 import { conversionDrainStep } from "@/lib/conversions/drain-step";
 
 /** The cron name this registry runs under — the `cron` key of its run records,
- *  the `vercel.json` path's last segment, and the `/api/health` staleness key. */
+ *  the `cron-schedules.json` path's last segment, and the `/api/health` staleness key. */
 export const LEDGERS_CRON = "ledgers";
 
 /** What one step reports about its own work. `counts` is the step's headline

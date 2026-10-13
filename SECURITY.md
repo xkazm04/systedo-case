@@ -214,9 +214,8 @@ deliberately non-blocking.
 
 ## Where secrets come from
 
-Secrets are read from the environment at runtime — Vercel project environment
-variables for the hosted deployment, a `.env` file or the orchestrator's secret
-store for a self-hosted one. They are never committed, never pasted into an issue
+Secrets are read from the environment at runtime — a `.env` file or the
+orchestrator's secret store for a self-hosted deployment. They are never committed, never pasted into an issue
 or a PR description, and never included in a prompt or a log line. The LLM
 chokepoint logs operation names, token counts and cost — not credentials.
 

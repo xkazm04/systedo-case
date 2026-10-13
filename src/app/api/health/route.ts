@@ -17,7 +17,7 @@ import { listRecentCronRuns } from "@/lib/cron/runs-store";
 import { projectCronHealth, type CronHealth } from "@/lib/cron/run-record";
 
 /** How stale a cron's last run may get before it is flagged, keyed by cron name.
- *  Derived from vercel.json's schedules × a 2× TOLERANCE that absorbs scheduling
+ *  Derived from cron-schedules.json's schedules × a 2× TOLERANCE that absorbs scheduling
  *  drift and a single missed tick without crying wolf:
  *    sync + social       — hourly  (0 * * * *)   → 2h
  *    ledgers             — hourly  (30 * * * *)  → 2h

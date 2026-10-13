@@ -76,9 +76,9 @@
       "rung": "red",
       "list": "deny",
       "rule": "Never push, and especially never to master.",
-      "quote": "`git push`, and especially any push to `master` — Vercel ships master on push, so the push *is* the release.",
+      "quote": "`git push`, and especially any push to `master` — master is the release branch, so the push *is* the release.",
       "patterns": ["Bash(git push:*)"],
-      "why": "Vercel ships master on push, so a push is a release under the operator's name. `.husky/pre-push` runs `check:ci` and verifies; it does not prevent, and `SYSTEDO_SKIP_GATE=1` is the operator's escape hatch rather than the agent's. Denied here so the release act is one an operator performs deliberately, in their own shell or through `.claude/settings.local.json`."
+      "why": "Master is the release branch, so a push is a release under the operator's name. `.husky/pre-push` runs `check:ci` and verifies; it does not prevent, and `SYSTEDO_SKIP_GATE=1` is the operator's escape hatch rather than the agent's. Denied here so the release act is one an operator performs deliberately, in their own shell or through `.claude/settings.local.json`."
     },
     {
       "id": "no-secret-movement",

@@ -1,5 +1,5 @@
-/** Shared Bearer-token guard for the Vercel Cron endpoints. Vercel sends
- *  `Authorization: Bearer <CRON_SECRET>` when the env var is set.
+/** Shared Bearer-token guard for the cron endpoints. The scheduler
+ *  (scripts/cron-runner.mjs) sends `Authorization: Bearer <CRON_SECRET>`.
  *
  *  Fails CLOSED: with no CRON_SECRET configured, nobody is authorized (the crons
  *  stay disabled) rather than open. Compares in constant time — both sides are

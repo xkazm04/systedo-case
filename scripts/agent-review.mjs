@@ -13,8 +13,8 @@
  *  not belt-and-braces, it is the only place the rubric can stop THIS repo's
  *  actual landing path. Master ships by direct push (docs/deploy.md § Delivery
  *  contract), so "required status check on a pull request" never fires for most
- *  changes, and agent-review.yml's verdict on a push arrives after Vercel has
- *  already started building. `.husky/pre-push` runs check:ci before any push that
+ *  changes, and agent-review.yml's verdict on a push arrives after the
+ *  push has already landed. `.husky/pre-push` runs check:ci before any push that
  *  updates refs/heads/master — so with this stage inside it, a blocking finding
  *  refuses the push instead of commenting on the release.
  *

@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /** Self-host cron sidecar (docs/open-source/self-hosting.md §6, option 1).
  *
- *  Vercel's platform scheduler does not exist off Vercel, but the five cron
- *  routes are already HTTP-shaped and CRON_SECRET-gated — so the self-host
- *  equivalent is just a tiny in-process scheduler firing the same authenticated
- *  GETs on the same schedules. This runner reads the schedules from vercel.json
+ *  There is no platform scheduler here, but the cron
+ *  routes are already HTTP-shaped and CRON_SECRET-gated — so the scheduler
+ *  is just a tiny in-process one firing authenticated GETs on the declared
+ *  schedules. This runner reads the schedules from cron-schedules.json
  *  (the single source of truth; nothing is duplicated here), matches them in
- *  UTC exactly as Vercel does, and fires each due route with
+ *  UTC (the standard cron convention), and fires each due route with
  *  `Authorization: Bearer ${CRON_SECRET}`.
  *
  *  Run it as the compose `cron` service (same image as the app), on a VPS via
@@ -29,7 +29,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROUTE_BUDGET_MS = 300_000; // the routes' own maxDuration in vercel.json
+const ROUTE_BUDGET_MS = 300_000; // the routes' own maxDuration export
 const TICK_MS = 60_000;
 
 const target = (process.env.CRON_TARGET || "http://localhost:3000").replace(/\/+$/, "");
@@ -45,18 +45,18 @@ if (!secret) {
   process.exit(1);
 }
 
-/** vercel.json is the schedule's single source of truth. Resolved relative to
+/** cron-schedules.json is the schedule's single source of truth Resolved relative to
  *  this file so the runner works from any working directory. */
-const vercelJsonPath = join(dirname(fileURLToPath(import.meta.url)), "..", "vercel.json");
-const crons = JSON.parse(readFileSync(vercelJsonPath, "utf8")).crons;
+const schedulesPath = join(dirname(fileURLToPath(import.meta.url)), "..", "cron-schedules.json");
+const crons = JSON.parse(readFileSync(schedulesPath, "utf8")).crons;
 if (!Array.isArray(crons) || crons.length === 0) {
-  console.error(`[cron-runner] no crons found in ${vercelJsonPath}`);
+  console.error(`[cron-runner] no crons found in ${schedulesPath}`);
   process.exit(1);
 }
 
-/** Minimal 5-field cron matcher — supports exactly what vercel.json uses:
+/** Minimal 5-field cron matcher — supports exactly what cron-schedules.json uses:
  *  numbers and "*" (per field). Anything fancier is a loud startup error, not a
- *  silently-never-firing schedule. Matches in UTC, like Vercel. */
+ *  silently-never-firing schedule. Matches in UTC. */
 function parseField(field, name, min, max) {
   if (field === "*") return null; // wildcard
   const n = Number(field);

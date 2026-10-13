@@ -1,6 +1,6 @@
 /** Scheduled social publishing: publish posts whose scheduled time has arrived,
  *  for every user with a connected account. Guarded by CRON_SECRET; schedule in
- *  vercel.json. Publishing is simulated in demo mode (see lib/social/publish). */
+ *  cron-schedules.json. Publishing is simulated in demo mode (see lib/social/publish). */
 import { getAccount, getAccountToken, listConnectedSocialUserIds } from "@/lib/social/connection";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { listProjects } from "@/lib/projects/store";

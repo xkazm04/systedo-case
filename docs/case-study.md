@@ -315,14 +315,17 @@ Konvence pro nové store/DB moduly: čisté typy a helpery patří do sesterské
 
 ---
 
-## Nasazení (Vercel)
+## Spuštění (bez hostovaného nasazení)
 
-**Statický web (veřejné stránky).** Stačí samotný import:
+Původně se projekt nasazoval na Vercel; to bylo odstraněno (2026-10-13) a repozitář
+je pouze lokální open source.
 
-1. Naimportujte repozitář na [vercel.com/new](https://vercel.com/new).
+**Statický web (veřejné stránky).** Stačí lokální spuštění:
+
+1. `npm install && npm run dev` (nebo `docker compose up -d --build`).
 2. (Volitelně) přidejte `GEMINI_API_KEY` pro reálné generování inzerátů (bez něj
    běží AI asistent v ukázkovém režimu) a `GEMINI_MODEL` pro volbu produkčního modelu.
-3. Deploy — pro veřejné stránky není potřeba databáze ani další konfigurace.
+3. Pro veřejné stránky není potřeba databáze ani další konfigurace.
 
 **Plné `/app` rozhraní (Auth + Firestore + cron).** Vyžaduje navíc `AUTH_SECRET`,
 `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, přístup k Firestore a `CRON_SECRET`

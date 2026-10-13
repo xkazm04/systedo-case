@@ -1,15 +1,11 @@
 /** Canonical site origin, resolved from the deploy environment so OG tags,
- *  canonical links and share URLs are correct regardless of the Vercel project
- *  or custom domain. Shared by the root metadata and any component that needs
+ *  canonical links and share URLs are correct for whatever host or custom
+ *  domain runs the app. Shared by the root metadata and any component that needs
  *  an absolute URL (e.g. the article ShareBar). The literal is the LAST-RESORT
- *  fallback (a non-Vercel build with no NEXT_PUBLIC_SITE_URL): the canonical
- *  adamant host per docs/deploy.md ("Host rename", decision 2026-08-04) — never
- *  the retired systedo-case name. */
-export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "https://adamant.vercel.app");
+ *  fallback (no NEXT_PUBLIC_SITE_URL): the local dev origin. There is no hosted
+ *  deployment (Vercel removed 2026-10-13); whoever hosts the app sets
+ *  NEXT_PUBLIC_SITE_URL. */
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 /** Absolute canonical URL for a path (leading slash optional). */
 export function canonical(path = "/"): string {

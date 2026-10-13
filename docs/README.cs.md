@@ -98,18 +98,20 @@ npm run dev:local
 cp .env.example .env.local   # doplňte GEMINI_API_KEY
 ```
 
-## Nasazení (Vercel)
+## Spuštění (bez hostovaného nasazení)
 
-1. Import repozitáře na [vercel.com/new](https://vercel.com/new) — veřejné
-   stránky nasadíte bez další konfigurace.
-2. Plné `/app` rozhraní vyžaduje `AUTH_SECRET`, `GOOGLE_CLIENT_ID/SECRET`,
-   Firestore a `CRON_SECRET` (+ volitelně Resend a Creative Studio klíče).
-   Runbook: [`docs/deploy.md`](./deploy.md); cloudový postup (Google přihlášení +
-   Ads sync): [`SETUP.md`](../SETUP.md) — částečně zastaralý, předchází offline
-   cestě.
+Projekt je pouze lokální open source, žádné hostované nasazení neexistuje.
 
-Kanonická URL se řeší env-first (`NEXT_PUBLIC_SITE_URL` →
-`VERCEL_PROJECT_PRODUCTION_URL` → fallback) — viz `src/lib/site.ts`.
+1. Lokálně a offline: `npm run dev:local` (viz Rychlý start výše).
+2. Kontejner: `docker compose up -d --build`, aplikace běží na
+   `http://localhost:3000` ([`docs/open-source/self-hosting.md`](./open-source/self-hosting.md)).
+3. Plné `/app` rozhraní s Google přihlášením vyžaduje `AUTH_SECRET`,
+   `GOOGLE_CLIENT_ID/SECRET`, Firestore a `CRON_SECRET` (+ volitelně Resend a
+   Creative Studio klíče). Runbook: [`docs/deploy.md`](./deploy.md); cloudový
+   postup: [`SETUP.md`](../SETUP.md) — částečně zastaralý, předchází offline cestě.
+
+Kanonická URL se řeší env-first (`NEXT_PUBLIC_SITE_URL` → `http://localhost:3000`)
+— viz `src/lib/site.ts`.
 
 ## Licence a self-hosting
 
