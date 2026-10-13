@@ -2560,6 +2560,160 @@
         "at": "2026-10-13T11:52:38.402993+00:00",
         "reason": "reviewer (sonnet): The deviation anchor src/lib/margins.ts:34 is outside this context's files. The fabrication it describes happens in src/lib/profit/compute.ts and overhead.ts, which belong to the profit-finance context. The context's own cost-model code rejects invalid margins."
       }
+    },
+    "e1945e31-8233-4219-9ee3-8a9d3a0681cc/settings": {
+      "context": "account-settings",
+      "subject": "settings",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T12:54:35.140Z",
+      "worker": "9b90159c-52e8-42ad-90ba-011d88f0b709",
+      "techniques": [
+        {
+          "technique": "cross-source-precedence-chain",
+          "verdict": "deviation",
+          "evidence": "src/lib/integrations/status.ts:111 probeSklikUserToken's catch answers false; compute.ts then lets sklikEnvToken win and labels the row sklik-env-token."
+        },
+        {
+          "technique": "read-batching",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/integrations/status.ts:166 These are independent probes of different stores, not keys of one settings table, so a bulk settings read is not the precondition."
+        },
+        {
+          "technique": "config-backup-and-restore",
+          "verdict": "not-applicable",
+          "evidence": "src/app/app/[projectId]/integrace/page.tsx:3 The board reads server-side environment and project config; there is no operator-owned local settings file to rotate."
+        },
+        {
+          "technique": "applied-defaults-ledger",
+          "verdict": "not-applicable",
+          "evidence": "src/app/app/[projectId]/aktivita/page.tsx:35 An empty live feed is replaced by a display sample, not by re-applying shipped rows into a user-editable stored collection."
+        }
+      ]
+    },
+    "1f6c178e-ebf8-4d4b-bb52-e10892c074b5/settings": {
+      "context": "onboarding-settings",
+      "subject": "settings",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T12:54:35.140Z",
+      "worker": "9b90159c-52e8-42ad-90ba-011d88f0b709",
+      "techniques": [
+        {
+          "technique": "save-experience",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/ProjectDataSources.tsx:55 The Sklik switch commits on click and reverts on failure, while ProjectSettings keeps name, type, domain, and color until submit; no beforeunload or dirty guard is present in either file."
+        },
+        {
+          "technique": "key-registry",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/ProjectSettings.tsx:85 The form writes a fixed set of project fields, not a string key space that could accept an unregistered key."
+        },
+        {
+          "technique": "read-batching",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/ProjectSettings.tsx:56 The form reads one project object from context, so there is no per-key settings fan-out to batch."
+        },
+        {
+          "technique": "config-backup-and-restore",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/ProjectSettings.tsx:82 Edits are PATCHed to the server project API; the local file is not the authority."
+        },
+        {
+          "technique": "inherited-default-override",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/ProjectDataSources.tsx:46 Sklik linkage is a stored boolean the owner flips; the component does not follow a live source that a delete would re-attach."
+        }
+      ]
+    },
+    "ed374616-ff33-4cfb-af7b-01bc9f2c2126/settings": {
+      "context": "byom-ai-configuration",
+      "subject": "settings",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T12:54:35.140Z",
+      "worker": "9b90159c-52e8-42ad-90ba-011d88f0b709",
+      "techniques": [
+        {
+          "technique": "save-experience",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/ByomKeys.tsx:514 setActive PATCHes immediately; saveModels waits for a button. A search of the Byom components found no beforeunload, unsaved, or dirty guard. A failed key save does keep the pasted draft."
+        },
+        {
+          "technique": "read-batching",
+          "verdict": "conformant",
+          "evidence": "src/components/hooks/useByomConfig.ts:60 Keys and the matrix share one /api/byom fetch, and patchByomConfig writes the returned config into that same store."
+        },
+        {
+          "technique": "key-registry",
+          "verdict": "conformant",
+          "evidence": "src/app/api/byom/matrix/route.ts:35 OPERATION_IDS is built from BYOM_OPERATIONS, and an unknown tool id is rejected on set and clear."
+        },
+        {
+          "technique": "typed-accessors",
+          "verdict": "conformant",
+          "evidence": "src/app/api/byom/matrix/route.ts:40 The matrix write rejects a vendor, model, or reasoning value outside the catalog before it is stored."
+        },
+        {
+          "technique": "inherited-default-override",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/ByomMatrix.tsx:193 The empty choice DELETEs the operation override so it follows the active vendor again; picking a vendor stores an explicit assignment."
+        },
+        {
+          "technique": "config-backup-and-restore",
+          "verdict": "not-applicable",
+          "evidence": "src/components/hooks/useByomConfig.ts:41 BYOM configuration is loaded from the server API, not from an operator-owned local file."
+        }
+      ]
+    },
+    "96c8fbd1-421a-4330-8ccd-b10e44fa39ec/settings": {
+      "context": "campaign-alerts-control",
+      "subject": "settings",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T12:54:35.140Z",
+      "worker": "9b90159c-52e8-42ad-90ba-011d88f0b709",
+      "techniques": [
+        {
+          "technique": "cross-source-precedence-chain",
+          "verdict": "deviation",
+          "evidence": "src/lib/microsite-identity.ts:72 Invalid accents are filtered out by HEX.test and the chain continues to a lower source or the compiled default; the returned object does not name which source won."
+        },
+        {
+          "technique": "author-declared-include-graph",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/microsite-identity.ts:10 The order is written in the resolver, not named by a configuration file as includes."
+        },
+        {
+          "technique": "in-place-document-patch",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/microsite-identity.ts:74 The campaign card builds a fresh identity value; these components do not patch a long-lived settings document."
+        },
+        {
+          "technique": "config-backup-and-restore",
+          "verdict": "not-applicable",
+          "evidence": "src/components/campaigns/MicrositeCard.tsx:83 Identity inputs are fetched from server routes, not overwritten as a local settings file."
+        },
+        {
+          "technique": "read-batching",
+          "verdict": "not-applicable",
+          "evidence": "src/components/campaigns/ControlPlane.tsx:103 The control plane loads one change-set ledger, not a fan-out of settings keys."
+        },
+        {
+          "technique": "setting-kinds",
+          "verdict": "not-applicable",
+          "evidence": "src/components/campaigns/ControlPlane.tsx:21 This is an approval workflow for budget moves, not a stored ceiling or preference key."
+        },
+        {
+          "technique": "settings-audit-and-history",
+          "verdict": "not-applicable",
+          "evidence": "src/components/campaigns/ControlPlane.tsx:33 The ledger is change-set history for spend actions, not a record of settings keys with old and new values."
+        }
+      ]
     }
   }
 }

@@ -1467,7 +1467,11 @@
           "revision": 13,
           "changedAt": "2026-09-05",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/integrations/status.ts:9 The integration board behind the Integrace page turns a probe that throws into the same false or none as a missing connection, so an unreadable user Sklik token falls through to the deployment env token instead of stopping the chain.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:85c48ec5bdb5581f",
+          "evaluatedRevision": 13
         },
         {
           "subject": "test-harness",
@@ -4252,7 +4256,11 @@
           "revision": 13,
           "changedAt": "2026-09-05",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/ByomKeys.tsx:352 ByomKeys commits the active vendor on click while model and fast-model drafts in the same card wait for Save models, so one settings section mixes immediate and explicit save and does not guard a dirty model draft.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:85c48ec5bdb5581f",
+          "evaluatedRevision": 13
         },
         {
           "subject": "credential-vault",
@@ -4673,7 +4681,11 @@
           "revision": 13,
           "changedAt": "2026-09-05",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/microsite-identity.ts:18 MicrositeCard resolves white-label identity per field and a present accent that fails the hex check is skipped, so the next source or the hardcoded Mionelo default supplies the colour with no provenance and no stop.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:85c48ec5bdb5581f",
+          "evaluatedRevision": 13
         }
       ],
       "governance": "governed"
@@ -12177,7 +12189,11 @@
           "revision": 13,
           "changedAt": "2026-09-05",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/ProjectSettings.tsx:103 Project settings mounts an immediate Sklik write in the same view as an explicit Save changes form, so one surface uses both save models and neither file guards navigation while the form is dirty.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:85c48ec5bdb5581f",
+          "evaluatedRevision": 13
         },
         {
           "subject": "prompt-assembly",

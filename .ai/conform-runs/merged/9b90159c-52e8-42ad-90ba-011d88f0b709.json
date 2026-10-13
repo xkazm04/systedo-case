@@ -1,0 +1,304 @@
+{
+ "schema": "conform-run/1",
+ "worker": "9b90159c-52e8-42ad-90ba-011d88f0b709",
+ "subject": "settings",
+ "evaluatedAt": "2026-10-13T12:54:35.140494+00:00",
+ "provider": "grok",
+ "model": "grok-4.7",
+ "pairs": [
+  {
+   "context": "account-settings",
+   "subject": "settings",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/integrations/status.ts:9 The integration board behind the Integrace page turns a probe that throws into the same false or none as a missing connection, so an unreadable user Sklik token falls through to the deployment env token instead of stopping the chain.",
+   "techniques": [
+    {
+     "technique": "cross-source-precedence-chain",
+     "verdict": "deviation",
+     "evidence": "src/lib/integrations/status.ts:111 probeSklikUserToken's catch answers false; compute.ts then lets sklikEnvToken win and labels the row sklik-env-token."
+    },
+    {
+     "technique": "read-batching",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/integrations/status.ts:166 These are independent probes of different stores, not keys of one settings table, so a bulk settings read is not the precondition."
+    },
+    {
+     "technique": "config-backup-and-restore",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/integrace/page.tsx:3 The board reads server-side environment and project config; there is no operator-owned local settings file to rotate."
+    },
+    {
+     "technique": "applied-defaults-ledger",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/aktivita/page.tsx:35 An empty live feed is replaced by a display sample, not by re-applying shipped rows into a user-editable stored collection."
+    }
+   ]
+  },
+  {
+   "context": "onboarding-settings",
+   "subject": "settings",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/ProjectSettings.tsx:103 Project settings mounts an immediate Sklik write in the same view as an explicit Save changes form, so one surface uses both save models and neither file guards navigation while the form is dirty.",
+   "techniques": [
+    {
+     "technique": "save-experience",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/ProjectDataSources.tsx:55 The Sklik switch commits on click and reverts on failure, while ProjectSettings keeps name, type, domain, and color until submit; no beforeunload or dirty guard is present in either file."
+    },
+    {
+     "technique": "key-registry",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/ProjectSettings.tsx:85 The form writes a fixed set of project fields, not a string key space that could accept an unregistered key."
+    },
+    {
+     "technique": "read-batching",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/ProjectSettings.tsx:56 The form reads one project object from context, so there is no per-key settings fan-out to batch."
+    },
+    {
+     "technique": "config-backup-and-restore",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/ProjectSettings.tsx:82 Edits are PATCHed to the server project API; the local file is not the authority."
+    },
+    {
+     "technique": "inherited-default-override",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/ProjectDataSources.tsx:46 Sklik linkage is a stored boolean the owner flips; the component does not follow a live source that a delete would re-attach."
+    }
+   ]
+  },
+  {
+   "context": "projects-api",
+   "subject": "settings",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/app/api/projects/[id]/onboarding/route.ts:48 A dismiss save rebuilds the onboarding document from a read that has already been turned into null, so a failed load is written back as an empty document and the stored scan is dropped.",
+   "techniques": [
+    {
+     "technique": "in-place-document-patch",
+     "verdict": "deviation",
+     "evidence": "src/app/api/projects/[id]/onboarding/route.ts:47 The flags-only path treats a thrown read as an empty document and saveOnboarding writes that result."
+    },
+    {
+     "technique": "settings-audit-and-history",
+     "verdict": "deviation",
+     "evidence": "src/lib/metrics/goal-history.ts:72 A goal correction for a month deletes that month's previous entry and stores only the new amount; the project PATCH activity detail lists field names only."
+    },
+    {
+     "technique": "typed-accessors",
+     "verdict": "deviation",
+     "evidence": "src/lib/project-state/store.ts:129 getProjectState is generic, the state route stores body.data after a size check, and a corrupt blob is returned as the same null as a missing key."
+    },
+    {
+     "technique": "key-registry",
+     "verdict": "conformant",
+     "evidence": "src/app/api/projects/[id]/state/[key]/route.ts:29 HTTP get and put both reject a key that is not in PROJECT_STATE_KEYS with http true. No reaper field was judged from the spec's shape."
+    },
+    {
+     "technique": "cross-source-precedence-chain",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/project-state/store.ts:2 LOCAL_DB selects one backend for the blob; it does not layer several sources for the same setting."
+    },
+    {
+     "technique": "config-backup-and-restore",
+     "verdict": "not-applicable",
+     "evidence": "src/app/api/projects/[id]/state/[key]/route.ts:48 The state route writes a server-held blob, which this technique excludes."
+    },
+    {
+     "technique": "presence-decides-precedence",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/project-state/keys.ts:43 The store is writable by the application, so a rename is a migration problem, not a read-only dual-name grace period."
+    },
+    {
+     "technique": "inherited-default-override",
+     "verdict": "not-applicable",
+     "evidence": "src/app/api/projects/[id]/route.ts:55 sklikLinked is stored as the boolean the client sent; the route does not treat absence as a subscription to a live source."
+    }
+   ],
+   "registryProposal": "key-registry requires a reaper at registration, but the only registration record in this repo is owner, version, and http; without a positive reaper artifact a missing reaper cannot be anchored except by treating the struct as proof of absence."
+  },
+  {
+   "context": "byom-ai-configuration",
+   "subject": "settings",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/ByomKeys.tsx:352 ByomKeys commits the active vendor on click while model and fast-model drafts in the same card wait for Save models, so one settings section mixes immediate and explicit save and does not guard a dirty model draft.",
+   "techniques": [
+    {
+     "technique": "save-experience",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/ByomKeys.tsx:514 setActive PATCHes immediately; saveModels waits for a button. A search of the Byom components found no beforeunload, unsaved, or dirty guard. A failed key save does keep the pasted draft."
+    },
+    {
+     "technique": "read-batching",
+     "verdict": "conformant",
+     "evidence": "src/components/hooks/useByomConfig.ts:60 Keys and the matrix share one /api/byom fetch, and patchByomConfig writes the returned config into that same store."
+    },
+    {
+     "technique": "key-registry",
+     "verdict": "conformant",
+     "evidence": "src/app/api/byom/matrix/route.ts:35 OPERATION_IDS is built from BYOM_OPERATIONS, and an unknown tool id is rejected on set and clear."
+    },
+    {
+     "technique": "typed-accessors",
+     "verdict": "conformant",
+     "evidence": "src/app/api/byom/matrix/route.ts:40 The matrix write rejects a vendor, model, or reasoning value outside the catalog before it is stored."
+    },
+    {
+     "technique": "inherited-default-override",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/ByomMatrix.tsx:193 The empty choice DELETEs the operation override so it follows the active vendor again; picking a vendor stores an explicit assignment."
+    },
+    {
+     "technique": "config-backup-and-restore",
+     "verdict": "not-applicable",
+     "evidence": "src/components/hooks/useByomConfig.ts:41 BYOM configuration is loaded from the server API, not from an operator-owned local file."
+    }
+   ]
+  },
+  {
+   "context": "campaign-alerts-control",
+   "subject": "settings",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/microsite-identity.ts:18 MicrositeCard resolves white-label identity per field and a present accent that fails the hex check is skipped, so the next source or the hardcoded Mionelo default supplies the colour with no provenance and no stop.",
+   "techniques": [
+    {
+     "technique": "cross-source-precedence-chain",
+     "verdict": "deviation",
+     "evidence": "src/lib/microsite-identity.ts:72 Invalid accents are filtered out by HEX.test and the chain continues to a lower source or the compiled default; the returned object does not name which source won."
+    },
+    {
+     "technique": "author-declared-include-graph",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/microsite-identity.ts:10 The order is written in the resolver, not named by a configuration file as includes."
+    },
+    {
+     "technique": "in-place-document-patch",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/microsite-identity.ts:74 The campaign card builds a fresh identity value; these components do not patch a long-lived settings document."
+    },
+    {
+     "technique": "config-backup-and-restore",
+     "verdict": "not-applicable",
+     "evidence": "src/components/campaigns/MicrositeCard.tsx:83 Identity inputs are fetched from server routes, not overwritten as a local settings file."
+    },
+    {
+     "technique": "read-batching",
+     "verdict": "not-applicable",
+     "evidence": "src/components/campaigns/ControlPlane.tsx:103 The control plane loads one change-set ledger, not a fan-out of settings keys."
+    },
+    {
+     "technique": "setting-kinds",
+     "verdict": "not-applicable",
+     "evidence": "src/components/campaigns/ControlPlane.tsx:21 This is an approval workflow for budget moves, not a stored ceiling or preference key."
+    },
+    {
+     "technique": "settings-audit-and-history",
+     "verdict": "not-applicable",
+     "evidence": "src/components/campaigns/ControlPlane.tsx:33 The ledger is change-set history for spend actions, not a record of settings keys with old and new values."
+    }
+   ]
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-13T12:54:35.140494+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "settings"
+   ],
+   "techniques": [
+    "applied-defaults-ledger",
+    "config-backup-and-restore",
+    "cross-source-precedence-chain",
+    "read-batching"
+   ],
+   "deviations": 1,
+   "context": "account-settings",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T12:54:35.140494+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "settings"
+   ],
+   "techniques": [
+    "config-backup-and-restore",
+    "inherited-default-override",
+    "key-registry",
+    "read-batching",
+    "save-experience"
+   ],
+   "deviations": 1,
+   "context": "onboarding-settings",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T12:54:35.140494+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "settings"
+   ],
+   "techniques": [
+    "config-backup-and-restore",
+    "cross-source-precedence-chain",
+    "in-place-document-patch",
+    "inherited-default-override",
+    "key-registry",
+    "presence-decides-precedence",
+    "settings-audit-and-history",
+    "typed-accessors"
+   ],
+   "deviations": 1,
+   "context": "projects-api",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T12:54:35.140494+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "settings"
+   ],
+   "techniques": [
+    "config-backup-and-restore",
+    "inherited-default-override",
+    "key-registry",
+    "read-batching",
+    "save-experience",
+    "typed-accessors"
+   ],
+   "deviations": 1,
+   "context": "byom-ai-configuration",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T12:54:35.140494+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "settings"
+   ],
+   "techniques": [
+    "author-declared-include-graph",
+    "config-backup-and-restore",
+    "cross-source-precedence-chain",
+    "in-place-document-patch",
+    "read-batching",
+    "setting-kinds",
+    "settings-audit-and-history"
+   ],
+   "deviations": 1,
+   "context": "campaign-alerts-control",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  }
+ ]
+}
