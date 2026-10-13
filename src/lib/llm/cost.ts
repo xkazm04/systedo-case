@@ -40,8 +40,21 @@ interface Rate {
 // the new key here or estimateCostUsd returns null (unpriced) for it. The join to
 // src/lib/llm/models.ts is CHECKED, not conventional: test-unit/llm-cost-rates.test.mjs
 // asserts every metered model tag models.ts can produce has a row here.
+//
+// THAT CHECK HAS A BLIND SPOT, AND 2026-09-02 WALKED INTO IT. The gemini rows are
+// keyed by the CONSTANT, not by a string literal, so when GEMINI_MODEL moved from
+// gemini-3-flash-preview to gemini-3.8-flash the KEY followed automatically and the
+// rates test stayed green - while the VALUE below still described the preview's
+// pricing, understating the new model by 10x. A computed key proves a row EXISTS for
+// the current model; nothing here proves the row is that model's. When you bump
+// GEMINI_MODEL, the number underneath it is a separate edit that no test will ask for.
 export const RATES: Record<string, Rate> = {
-  [GEMINI_MODEL]: { inPerMTok: 0.075, outPerMTok: 0.3 },
+  // gemini-3.8-flash, announced 2026-09-02. INTRODUCTORY rate: 0.75/3.75 runs through
+  // 2026-12-31 and doubles to 1.50/7.50 on 2027-01-01. The intro figure is the right
+  // one here because this estimate is shown to a user as what the app is spending now,
+  // not used for cross-model comparison - but it is wrong from that date, and only
+  // this comment says so.
+  [GEMINI_MODEL]: { inPerMTok: 0.75, outPerMTok: 3.75 },
   // Fast tier (flash-lite class) — roughly half the flash rate, so the cheaper
   // routing of light tools stays visible (and honest) in the cost telemetry.
   [GEMINI_MODEL_FAST]: { inPerMTok: 0.0375, outPerMTok: 0.15 },

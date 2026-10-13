@@ -1,7 +1,13 @@
 {
   "$comment": [
-    "Who is on the hook for each of the 16 GROUPS in context-map.json — the join .github/CODEOWNERS",
+    "Who is on the hook for each of the 12 GROUPS in context-map.json — the join .github/CODEOWNERS",
     "does not make.",
+    "",
+    "Sixteen until 2026-09-02, when the four TWINNED groups the 2026-07-30 scan produced were merged",
+    "in context-map.json. Four of the rows below used to exist only to say that their group was 'the",
+    "scan's second X group' with the same owner, the same rank and the same exposure as its twin —",
+    "which is this file recording, in writing, that the taxonomy had stopped deciding anything. The",
+    "reasons those rows carried are folded into the survivors rather than deleted.",
     "",
     "CODEOWNERS is drawn per FILE and deliberately narrow: it names ~15 law files where a change needs",
     "the maintainer's eyes, and says in its own first line that everything else is open season. That is",
@@ -40,7 +46,7 @@
   ],
 
   "schema": 1,
-  "measuredOn": "2026-09-01",
+  "measuredOn": "2026-09-02",
   "map": "context-map.json",
   "codeowners": ".github/CODEOWNERS",
 
@@ -57,28 +63,14 @@
       "domain": "feature",
       "owner": "@xkazm04",
       "triageRank": 2,
-      "why": "The LLM chokepoint's callers. A change here is a prompt that ships, and the golden, budget and model pins are all downstream of it."
-    },
-    {
-      "group": "AI & Content Generation",
-      "domain": "feature",
-      "owner": "@xkazm04",
-      "triageRank": 2,
-      "why": "The second AI group the 2026-07-30 scan produced. Same exposure as AI & Content Engine — every registered llm-tool sits in one of the two, and which one is an artefact of the scan rather than a decision."
-    },
-    {
-      "group": "Campaign Management",
-      "domain": "feature",
-      "owner": "@xkazm04",
-      "triageRank": 3,
-      "why": "The Sklik and Google write rails. SKLIK_WRITES_ENABLED is armed from this group's code and AGENTS.md § Red says an agent may never widen it."
+      "why": "The LLM chokepoint and every one of its callers — a change here is a prompt that ships, and the golden, budget and model pins are all downstream of it. Absorbed the scan's second AI group on 2026-09-02: every registered llm-tool sat in one of the two and which one was an artefact of the scan rather than a decision."
     },
     {
       "group": "Campaign & Ads Management",
       "domain": "feature",
       "owner": "@xkazm04",
       "triageRank": 3,
-      "why": "The scan's second campaigns group, holding the tenant-key builder the whole store seam is made of (ADR-0002). A wrong key is a cross-project read that nothing 401s."
+      "why": "The Sklik and Google write rails — SKLIK_WRITES_ENABLED is armed from this group's code and AGENTS.md § Red says an agent may never widen it — plus the tenant-key builder the whole store seam is made of (ADR-0002), where a wrong key is a cross-project read that nothing 401s. Absorbed Campaign Management on 2026-09-02: those two halves of one seam were split across two indistinguishable names."
     },
     {
       "group": "Lead & CRM Management",
@@ -92,14 +84,7 @@
       "domain": "feature",
       "owner": "@xkazm04",
       "triageRank": 4,
-      "why": "Drafts that leave the machine under the operator's name. The review gate in `schranka` is what stands between a generated post and a published one."
-    },
-    {
-      "group": "Social Media",
-      "domain": "feature",
-      "owner": "@xkazm04",
-      "triageRank": 4,
-      "why": "The scan's smaller social group (2 contexts). Same outbound exposure as Social & Content Publishing."
+      "why": "Drafts that leave the machine under the operator's name. The review gate in `schranka` is what stands between a generated post and a published one. Absorbed the scan's two-context Social Media group on 2026-09-02 — same outbound exposure, indistinguishable name."
     },
     {
       "group": "Project & Catalog",
@@ -117,7 +102,7 @@
     },
     {
       "group": "Authenticated Product Shell",
-      "domain": "feature",
+      "domain": "shared",
       "owner": "@xkazm04",
       "triageRank": 6,
       "why": "Session and per-project tenancy resolution for /app. Correctness here is the difference between a project switcher and an IDOR."
@@ -127,14 +112,7 @@
       "domain": "feature",
       "owner": "@xkazm04",
       "triageRank": 7,
-      "why": "Reads and aggregates rather than writes. A wrong number is a wrong decision, not a wrong charge."
-    },
-    {
-      "group": "Performance & Analytics",
-      "domain": "feature",
-      "owner": "@xkazm04",
-      "triageRank": 7,
-      "why": "The scan's second analytics group. Same posture — read-side, and the place a spend figure is most likely to be quietly wrong."
+      "why": "Reads and aggregates rather than writes: a wrong number is a wrong decision, not a wrong charge — and it is where a spend figure is most likely to be quietly wrong. Absorbed Performance & Analytics on 2026-09-02; the two had the same posture and the same rank, and differed only in which noun came first."
     },
     {
       "group": "Local SEO & Maps",

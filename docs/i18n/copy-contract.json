@@ -1,0 +1,36 @@
+{
+  "_notes": [
+    "2026-09-14 --init over the sources below: US forms 72 (catalog x19, color x15, analyzing x8, colors x4, analyze x3); UK forms 3 (modelled x1, colour x1, labelled x1) - migration debt, baselined, not swept.",
+    "2026-09-14 operator decision (fleet-wide): variant US. Supersedes the parked EN-SPELLING decision in constructions-en.md / review-cs.md A6; see style-en.md.",
+    "dashes at adoption: em 106, en 24 (spaced 6), hyphen-as-dash 0. 2026-09-14 operator decision (fleet-wide): em dash banned in product copy; restates the house rule of 2026-08-06. The 106 existing em dashes are debt in the baseline. The standalone no-data placeholder glyph and code comments are out of scope.",
+    "quotes: curly double 125, straight double 9 -> curly (house rule, style-en.md Punctuation). ellipsis: character 161, three dots 0 -> char.",
+    "case: 4 of 307 judgeable heading-class strings are Title Case (1%) -> sentence case everywhere, no title-case element class.",
+    "coverage at adoption: 4216 strings (3425 fragments) in 405 files before excludes; exclamation marks 3.",
+    "Sources read only the English side: per-component `const T = { cs, en }` dictionaries skip the cs branch. Excluded surfaces that are Czech by design or not product copy: design-system page, dev inspector, brand prototypes, the Czech opengraph image (contract.md known mismatch). Czech route metadata in src/app/*/page.tsx and Czech sample inputs (EXAMPLE objects) are still read and sit in the baseline."
+  ],
+  "variant": "US",
+  "sources": [
+    { "path": "src/lib/i18n/messages.ts", "kind": "ts-module" },
+    { "path": "src/components/**/*.tsx", "kind": "jsx" },
+    { "path": "src/app/**/*.tsx", "kind": "jsx" }
+  ],
+  "exclude": [
+    "**/*.test.tsx",
+    "**/*.spec.tsx",
+    "**/*.stories.tsx",
+    "src/app/design-system/**",
+    "src/app/_dev-inspector/**",
+    "src/components/brand/prototypes/**",
+    "src/app/opengraph-image.tsx"
+  ],
+  "dash": { "emDash": "ban" },
+  "quotes": "curly",
+  "ellipsis": "char",
+  "case": { "style": "sentence" },
+  "terms": {
+    "accept": ["Google Ads", "Google Shopping", "Google Business Profile", "Performance Max", "PMax", "PNO", "Adamant", "Systedo", "Heureka", "Zboží.cz", "Firmy.cz", "Seznam", "Sklik", "Meta", "Claude", "Gemini"],
+    "reject": []
+  },
+  "rules": {},
+  "baseline": ".ai/copy-baseline.json"
+}

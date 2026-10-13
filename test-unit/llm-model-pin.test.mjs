@@ -72,9 +72,13 @@ test("the pin file accounts for EVERY model constant, by pinning it or excluding
 });
 
 test("the check BITES: a model id that moved is a finding, naming the constant", () => {
-  // The drill. `gemini-3-flash-preview` → the shape of its own GA rename, which is
-  // the most likely real version of this event.
-  const moved = source.replace('GEMINI_MODEL = "gemini-3-flash-preview"', 'GEMINI_MODEL = "gemini-3-flash"');
+  // The drill: move the id the way it actually moves. Re-anchored 2026-09-02 when
+  // GEMINI_MODEL went preview -> GA (gemini-3-flash-preview -> gemini-3.8-flash), which
+  // is the event this test was written for and the one that broke its old anchor. The
+  // fixture now simulates the NEXT most likely move, a point release within the GA line.
+  // If you are reading this because the assert below fired, the id moved again: re-anchor
+  // on whatever GEMINI_MODEL is today. A silently non-patching fixture asserts nothing.
+  const moved = source.replace('GEMINI_MODEL = "gemini-3.8-flash"', 'GEMINI_MODEL = "gemini-3.9-flash"');
   assert.notEqual(moved, source, "the fixture no longer patches anything — re-anchor it on the current source.");
   const findings = comparePins(moved, pins);
   assert.ok(findings.length >= 1, "a changed model id produced no finding — the pin check has stopped detecting.");

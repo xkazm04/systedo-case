@@ -39,6 +39,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { bySeam, normalizeDiagnosticFile, seamRegressions } from "../scripts/typecheck-strict.mjs";
+import { chainStages } from "../scripts/lib/chain.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
@@ -58,10 +59,11 @@ const scripts = pkg.scripts ?? {};
 const STRICT_SCRIPT = "typecheck:strict";
 const STRICT_CONFIG = "tsconfig.strict.json";
 
-/** The stages `check:ci` chains, read the same way scripts/gate-timings.mjs reads
- *  them, so "is it in the chain?" has one answer here and there. */
-const chainStages = [...String(scripts["check:ci"] ?? "").matchAll(/npm run ([\w:-]+)/g)].map((m) => m[1]);
-const inChain = chainStages.includes(STRICT_SCRIPT);
+/** The stages `check:ci` chains, read through the same parser scripts/gate-timings.mjs
+ *  uses (scripts/lib/chain.mjs), so "is it in the chain?" has one answer here and
+ *  there rather than two regexes that agree until they do not. */
+const chain = chainStages(pkg);
+const inChain = chain.includes(STRICT_SCRIPT);
 
 test("the script and the project it names both exist", () => {
   assert.ok(

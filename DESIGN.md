@@ -490,7 +490,10 @@ CSS- and JS-driven motion read as one hand.
 
 **The Reduced-Motion Kill Switch.** A single global block collapses every animation and
 transition to 0.01ms and disables smooth scrolling; the infinite loading pulse is stopped
-outright and pinned at full opacity. Every motion primitive additionally short-circuits
+outright and pinned at full opacity. **A scroll- or view-timeline animation ignores
+`animation-duration`, so that global block does not reach it** — `.reveal-on-scroll` is switched off BY NAME in both the reduced-motion and print
+blocks. Adding a timeline-driven class without adding it to both lists ships a page that
+still animates for a reader who asked it not to. Every motion primitive additionally short-circuits
 to a static render via `useReducedMotion()`. No content is ever hidden by a motion
 preference — `both` fill means an un-run animation would otherwise leave a section at
 opacity 0, which is why the kill switch settles to the *end* state, never the start.
@@ -533,6 +536,9 @@ opacity 0, which is why the kill switch settles to the *end* state, never the st
   change border. Nothing lifts on hover.
 - **Don't** layer `.bg-facets` and `.bg-dotgrid`, and don't raise the pattern opacity to
   make the lattice legible. It is ambient by design.
+- **Don't** ship a scroll- or view-timeline animation without adding its class to the
+  reduced-motion AND print kill lists by name. The universal duration override cannot
+  neutralise a timeline, and a `both` fill will leave the content invisible.
 - **Don't** ship an entrance animation without confirming the global reduced-motion block
   settles it to its *end* state — an `animation-fill-mode: both` entrance that isn't
   neutralized leaves content invisible.
