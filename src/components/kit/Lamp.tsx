@@ -25,7 +25,7 @@ export default function Lamp({
   return (
     <Link
       href={href}
-      className="group optic-panel grid content-start gap-3 px-4 pb-4 pt-3 transition-colors hover:bg-white/[0.03] focus-visible:outline-offset-4"
+      className="group optic-panel grid h-full content-start gap-3 px-4 pb-4 pt-3 transition-colors hover:bg-white/[0.03] focus-visible:outline-offset-4"
     >
       <AreaArt
         motif={area.motif}

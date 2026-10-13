@@ -7,6 +7,7 @@ import { MODULES, moduleLabel, moduleBlurb } from "@/lib/projects/modules";
 import { getServerLocale } from "@/lib/i18n/locale";
 import SampleDataNote from "@/components/app/SampleDataNote";
 import ReturnHint from "@/components/app/ReturnHint";
+import RoomTrail from "@/components/app/roof/RoomTrail";
 
 export default async function ModulePage({
   moduleKey,
@@ -42,10 +43,11 @@ export default async function ModulePage({
       </Suspense>
       <div className="mb-7 flex flex-col gap-4 border-b border-line pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-navy-800 sm:text-[28px]">
+          {moduleKey !== undefined ? <RoomTrail moduleKey={moduleKey} /> : null}
+          <h2 className="font-display text-4xl font-light leading-none tracking-tight text-ink sm:text-5xl">
             {heading}
           </h2>
-          {desc && <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{desc}</p>}
+          {desc && <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">{desc}</p>}
         </div>
         {/* Right side, opposite the title. Static server `actions` render here;
             a client module can also portal header content (e.g. Campaigns' KPI

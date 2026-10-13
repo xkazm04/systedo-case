@@ -491,7 +491,7 @@ function ProjectCard({ project, accounts }: { project: Project; accounts: Linkab
   const rawMeta = PROJECT_TYPE_META[project.type];
   const { locale } = useLocale();
   const meta = projectTypeMeta(project.type, locale);
-  const moduleCount = modulesFor(project.type).filter((m) => m.section !== "system").length;
+  const moduleCount = modulesFor(project.type).filter((m) => m.area !== "settings").length;
   const t = useT(T);
   const link = projectAdsLink(project, accounts);
   const [duplicating, setDuplicating] = useState(false);

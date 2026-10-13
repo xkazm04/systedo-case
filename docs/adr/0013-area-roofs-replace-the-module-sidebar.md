@@ -10,7 +10,7 @@ Plan: `docs/roadmap/app-redesign-plan.md` §3.
 
 The authed product is 37 modules in 7 sections. All of them are declared in
 `src/lib/projects/modules.ts`, and the sidebar shows 24–28 of them per project
-type (`src/components/app/AppSidebar.tsx`, `src/components/app/nav/SectionRailNav.tsx`).
+type (`src/components/app/AppSidebar.tsx`, the section rail, since replaced by `src/components/app/nav/AreaRailNav.tsx`).
 Each module is a separate destination with its own route folder under
 `src/app/app/[projectId]/`, and most are drawn as a dashboard of their own.
 

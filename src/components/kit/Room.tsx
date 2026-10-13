@@ -48,7 +48,7 @@ export default function Room({
           </ol>
         </nav>
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <h1 className="font-display text-4xl font-light leading-none tracking-tight text-ink sm:text-5xl">{title}</h1>
+          <h2 className="font-display text-4xl font-light leading-none tracking-tight text-ink sm:text-5xl">{title}</h2>
           {aside}
         </div>
         {lead ? <p className="max-w-2xl text-base text-muted">{lead}</p> : null}

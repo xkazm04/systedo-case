@@ -13,12 +13,12 @@ import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
   MODULES,
-  SECTION_ORDER,
+  AREA_ORDER,
   moduleBlurb,
   moduleLabel,
-  sectionLabel,
+  areaLabel,
   type ModuleDef,
-  type ModuleSection,
+  type ModuleArea,
 } from "@/lib/projects/modules";
 import {
   PROJECT_TYPES,
@@ -38,7 +38,6 @@ const T = {
     colModule: "Modul",
     modulesShort: "modulů",
     modulesOn: "zapnuto",
-    system: "Systém",
     reset: "Obnovit výchozí",
     legendCore: "vždy zapnuto",
     legendOn: "zapnuto",
@@ -64,7 +63,6 @@ const T = {
     colModule: "Module",
     modulesShort: "modules",
     modulesOn: "on",
-    system: "System",
     reset: "Reset to default",
     legendCore: "always on",
     legendOn: "on",
@@ -86,8 +84,8 @@ const T = {
   },
 } as const;
 
-function groupedModules(): [ModuleSection, ModuleDef[]][] {
-  return SECTION_ORDER.map((s) => [s, MODULES.filter((m) => m.section === s)] as [ModuleSection, ModuleDef[]]);
+function groupedModules(): [ModuleArea, ModuleDef[]][] {
+  return AREA_ORDER.map((a) => [a, MODULES.filter((m) => m.area === a)] as [ModuleArea, ModuleDef[]]);
 }
 
 /** Read-only comparison mark for a non-active column. */
@@ -202,7 +200,7 @@ export default function CreateProjectForm({
                       colSpan={PROJECT_TYPES.length + 1}
                       className="border-b border-line bg-canvas px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted"
                     >
-                      {sectionLabel(sec, locale) || t("system")}
+                      {areaLabel(sec, locale)}
                     </td>
                   </tr>
                   {list.map((m) => (

@@ -3,8 +3,9 @@
  *  live there now, and the reply is drafted in the twin's trained voice. Old bookmarks
  *  and in-app links keep working. */
 import { redirect } from "next/navigation";
+import { moduleHref } from "@/lib/projects/modules";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  redirect(`/app/${projectId}/schranka`);
+  redirect(moduleHref(projectId, "schranka"));
 }

@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "path";
+import { movedModuleRoutes } from "./src/lib/projects/modules";
 
 const nextConfig: NextConfig = {
   // Container builds only (the Dockerfile sets ADAMANT_DOCKER_BUILD=1): emit the
@@ -24,6 +25,18 @@ const nextConfig: NextConfig = {
   // route (not one request per link) and caches it on the client for the session.
   cacheComponents: true,
   partialPrefetching: true,
+
+  // ADR-0013: modules moved from flat /app/[id]/<key> URLs to rooms nested under
+  // their area (/app/[id]/<area>/<key>). Every old URL answers 308 to its new
+  // home, generated from the registry so a room that moves later redirects for
+  // free. `report` is not a module; it moved with Výkon into Performance.
+  async redirects() {
+    const moved = [...movedModuleRoutes(), { from: "report", to: "performance/report" }];
+    return moved.flatMap(({ from, to }) => [
+      { source: `/app/:projectId/${from}`, destination: `/app/:projectId/${to}`, permanent: true },
+      { source: `/app/:projectId/${from}/:rest*`, destination: `/app/:projectId/${to}/:rest*`, permanent: true },
+    ]);
+  },
 
   async headers() {
     // Content-Security-Policy in REPORT-ONLY mode — derived from what the app

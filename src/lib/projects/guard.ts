@@ -17,7 +17,8 @@
 import { notFound, redirect } from "next/navigation";
 import { currentUserId } from "@/lib/session";
 import { getProject } from "./store";
-import { isModuleAvailable } from "./modules";
+import { areasFor, isModuleAvailable } from "./modules";
+import type { AreaKey } from "./areas";
 import type { Project } from "./types";
 
 export async function requireProjectModule(
@@ -32,5 +33,20 @@ export async function requireProjectModule(
   // Return the resolved userId (non-null — the guard asserted it) alongside the
   // project so callers don't re-fetch currentUserId or defensively re-handle a
   // nullability the guard already eliminated.
+  return { project, userId };
+}
+
+/** Guard for an area roof under /app/[projectId]/{area} (ADR-0013): the same
+ *  session and ownership rules as a module, and a 404 when the project's type has
+ *  no module in the area (an e-shop has no Local roof). */
+export async function requireProjectArea(
+  projectId: string,
+  area: AreaKey
+): Promise<{ project: Project; userId: string }> {
+  const userId = await currentUserId();
+  if (!userId) redirect("/app");
+  const project = await getProject(userId, projectId);
+  if (!project) notFound();
+  if (!areasFor(project.type).includes(area)) notFound();
   return { project, userId };
 }

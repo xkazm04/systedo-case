@@ -12,9 +12,9 @@ import { External, Logo, Menu } from "@/components/icons";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import JourneyBeacon from "@/components/site/JourneyBeacon";
 import FeedbackButton from "@/components/app/FeedbackButton";
-import SectionRailNav, { type NavGroup } from "@/components/app/nav/SectionRailNav";
+import AreaRailNav, { type NavGroup } from "@/components/app/nav/AreaRailNav";
 import { ProjectProvider } from "@/lib/projects/context";
-import { MODULES, moduleLabel, sectionLabel, SECTION_ORDER } from "@/lib/projects/modules";
+import { AREA_ORDER, MODULES, areaLabel, moduleLabel } from "@/lib/projects/modules";
 import type { ModuleDef } from "@/lib/projects/modules";
 import { projectTypeMeta, type Project } from "@/lib/projects/types";
 import { demoHref } from "@/lib/demo/projects";
@@ -30,7 +30,6 @@ const T = {
     startFree: "Vyzkoušet zdarma",
     openMenu: "Otevřít menu",
     closeMenu: "Zavřít menu",
-    system: "Systém",
   },
   en: {
     demo: "Live demo",
@@ -39,7 +38,6 @@ const T = {
     startFree: "Start free",
     openMenu: "Open menu",
     closeMenu: "Close menu",
-    system: "System",
   },
 } as const;
 
@@ -60,17 +58,20 @@ function SidebarBody({
 }) {
   const typeLabel = projectTypeMeta(project.type, locale).label;
 
-  // The demo shows every module (not filtered by type), grouped by section.
-  const groups: NavGroup[] = SECTION_ORDER.map((section) => ({
-    section,
-    label: sectionLabel(section, locale) || t("system"),
-    items: MODULES.filter((m) => m.section === section),
+  // The demo shows every module (not filtered by type), grouped by area. The demo
+  // has no roofs, so each lamp previews its area's modules instead of navigating.
+  const groups: NavGroup[] = AREA_ORDER.map((area) => ({
+    area,
+    label: areaLabel(area, locale),
+    items: MODULES.filter((m) => m.area === area),
   })).filter((g) => g.items.length > 0);
+  const activeArea = MODULES.find((m) => m.key === activeKey)?.area ?? "home";
 
   return (
-    <SectionRailNav
+    <AreaRailNav
       groups={groups}
-      activeKey={activeKey}
+      activeArea={activeArea}
+      isRoofActive={false}
       locale={locale}
       hrefFor={(key) => demoHref(key)}
       isActive={(m: ModuleDef) => m.key === activeKey}

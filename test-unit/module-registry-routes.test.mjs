@@ -1,120 +1,136 @@
-/** Direction 2 — registry↔route drift guard. Two failure modes this pins down:
- *   1. a MODULES entry whose `key` has no folder under src/app/app/[projectId]/
- *      (a sidebar link that 404s), and
- *   2. a module-looking route folder with NO registry entry (an orphan page you can
- *      only reach by typing the URL) — save a documented exemption list.
- *  Plus a byte-for-byte pin of `modulesFor`'s output per project type, so the new
+/** Direction 2 — registry↔route drift guard, over the area tree (ADR-0013).
+ *  Failure modes this pins down:
+ *   1. a MODULES entry whose route segment (`moduleSegment`: flat for Home and
+ *      settings, the area slug for a roof module, `<area>/<key>` for a room) has
+ *      no page under src/app/app/[projectId]/ (a sidebar link that 404s),
+ *   2. a route folder that is neither a module, an area roof, nor a documented
+ *      exemption (an orphan page you can only reach by typing the URL),
+ *   3. a moved module without a redirect from its old flat URL.
+ *  Plus a byte-for-byte pin of `modulesFor`'s output per project type, so the
  *  explicit `order` field can never silently reorder the sidebar. Pure (fs + the
  *  framework-free registry); no backend. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-const { MODULES, modulesFor } = await import("@/lib/projects/modules");
+const { MODULES, modulesFor, moduleSegment, movedModuleRoutes, areasFor, AREA_ORDER } = await import(
+  "@/lib/projects/modules"
+);
+const { AREAS } = await import("@/lib/projects/areas");
 const { PROJECT_TYPES } = await import("@/lib/projects/types");
 
 const ROUTES_DIR = join(process.cwd(), "src", "app", "app", "[projectId]");
 
 /** Route folders that intentionally have NO registry entry:
- *   • report          — the shareable data-report/chat surface (reached from Výkon),
- *                        not a sidebar module.
- *   • obsah           — legacy redirect → obsahovy-engine (kept for old bookmarks).
- *   • rychla-reakce   — retired redirect → schranka (absorbed as the `leads` channel).
+ *   • performance/report — the shareable data-report/chat surface (reached from
+ *                          Výkon), not a sidebar module.
+ *   • obsah              — legacy redirect → obsahovy-engine (old bookmarks).
+ *   • rychla-reakce      — retired redirect → schranka (absorbed as the `leads` channel).
  *  Add here (with a reason) when a route deliberately isn't a sidebar module. */
-const ROUTE_EXEMPTIONS = new Set(["report", "obsah", "rychla-reakce"]);
+const ROUTE_EXEMPTIONS = new Set(["performance/report", "obsah", "rychla-reakce"]);
 
-/** The route segment folders that actually render a page. */
-function routeFolders() {
-  return readdirSync(ROUTES_DIR, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
-    .map((e) => e.name);
+const AREA_SLUGS = new Set(AREAS.map((a) => a.slug).filter(Boolean));
+
+/** Every folder under [projectId] that renders a page, as a relative segment. */
+function pageSegments(dir = ROUTES_DIR, prefix = "") {
+  const out = [];
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (!e.isDirectory()) continue;
+    const seg = prefix ? `${prefix}/${e.name}` : e.name;
+    if (existsSync(join(dir, e.name, "page.tsx"))) out.push(seg);
+    out.push(...pageSegments(join(dir, e.name), seg));
+  }
+  return out;
 }
 
-test("every MODULES key maps to a real route folder (key '' = the overview page)", () => {
-  const folders = new Set(routeFolders());
+test("every MODULES entry maps to a real page (key '' = the project root)", () => {
   for (const m of MODULES) {
-    if (m.key === "") continue; // "" is the [projectId]/page.tsx overview, not a subfolder
-    assert.ok(
-      folders.has(m.key),
-      `module "${m.key}" has no folder at src/app/app/[projectId]/${m.key}/`
-    );
+    const seg = moduleSegment(m);
+    const page = seg ? join(ROUTES_DIR, ...seg.split("/"), "page.tsx") : join(ROUTES_DIR, "page.tsx");
+    assert.ok(existsSync(page), `module "${m.key}" has no page at src/app/app/[projectId]/${seg}/page.tsx`);
   }
 });
 
-test("every module-looking route folder has a registry entry (or a documented exemption)", () => {
-  const keys = new Set(MODULES.map((m) => m.key));
-  for (const folder of routeFolders()) {
-    if (keys.has(folder) || ROUTE_EXEMPTIONS.has(folder)) continue;
+test("every page folder is a module, an area roof, a nested route of one, or an exemption", () => {
+  const segs = new Set(MODULES.map((m) => moduleSegment(m)).filter(Boolean));
+  for (const seg of pageSegments()) {
+    if (segs.has(seg) || AREA_SLUGS.has(seg) || ROUTE_EXEMPTIONS.has(seg)) continue;
+    // A page nested inside a module's own folder (a sub-route of the room) is the module's.
+    if ([...segs].some((s) => seg.startsWith(`${s}/`))) continue;
     assert.fail(
-      `route folder "${folder}" has no MODULES entry and isn't in ROUTE_EXEMPTIONS — ` +
+      `route folder "${seg}" has no MODULES entry, is not an area roof and isn't in ROUTE_EXEMPTIONS — ` +
         `either register it or add it to the exemption list with a reason.`
     );
   }
 });
 
 test("no stale exemption — every exempted folder still exists", () => {
-  const folders = new Set(routeFolders());
   for (const ex of ROUTE_EXEMPTIONS) {
-    assert.ok(folders.has(ex), `exempted folder "${ex}" no longer exists — prune the exemption`);
+    assert.ok(existsSync(join(ROUTES_DIR, ...ex.split("/"), "page.tsx")), `exempted route "${ex}" no longer exists`);
+  }
+});
+
+test("every area slug has a roof page, and a roof module IS the roof", () => {
+  for (const a of AREAS) {
+    if (!a.slug) continue;
+    assert.ok(existsSync(join(ROUTES_DIR, a.slug, "page.tsx")), `area "${a.key}" has no roof page`);
+  }
+  assert.equal(moduleSegment(MODULES.find((m) => m.key === "vykon")), "performance");
+});
+
+test("every module that moved has a redirect from its old flat URL", () => {
+  const moved = new Map(movedModuleRoutes().map((r) => [r.from, r.to]));
+  for (const m of MODULES) {
+    const seg = moduleSegment(m);
+    if (!m.key || seg === m.key) continue;
+    assert.equal(moved.get(m.key), seg, `module "${m.key}" moved to "${seg}" without a redirect`);
+  }
+  // A redirect source must never shadow a live page.
+  for (const from of moved.keys()) {
+    assert.ok(!existsSync(join(ROUTES_DIR, from, "page.tsx")), `"${from}" redirects away but still has a page`);
   }
 });
 
 // --- sort pin: current rendering must stay byte-identical ------------------
-// Captured from `modulesFor` at the time the explicit `order` field was introduced.
-// A diff here means the sidebar order changed — intentional edits update this map.
-// 2026-08-22: `settings` split out of `system` as a first-level rail area — the four
-// configure-the-workspace modules (ucet, branding, integrace, nastaveni) now render
-// as their own group ABOVE the operational system drawer (katalog, spotreba,
-// mesicni-report, aktivita). That is the only movement in this map.
+// 2026-10-13 (ADR-0013): modules are grouped by AREA (home, performance, reach,
+// local, studio, channels, then the settings menu), not by the old sections.
+// Within an area the registry `order` still decides. A diff here means the
+// sidebar order changed — intentional edits update this map.
 const EXPECTED_ORDER = {
-  eshop: ["", "vykon", "start", "kampane", "klicova-slova", "sklad-sezonnost", "obsahovy-engine", "kreativa", "produktova-kreativa", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "leady", "knihovna", "reporty", "zisk", "ltv", "ucet", "branding", "integrace", "nastaveni", "katalog", "spotreba", "mesicni-report", "aktivita"],
-  app: ["", "vykon", "start", "kampane", "klicova-slova", "srovnani-seo", "obsahovy-engine", "experimenty-lp", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "leady", "knihovna", "reporty", "ltv", "ucet", "branding", "integrace", "nastaveni", "katalog", "spotreba", "mesicni-report", "aktivita"],
-  leadgen: ["", "vykon", "start", "kampane", "klicova-slova", "lokalni", "obsahovy-engine", "ulozeny-obsah", "kanaly", "twin", "sprava-kanalu", "schranka", "leady", "knihovna", "reporty", "kvalita-leadu", "ucet", "branding", "integrace", "nastaveni", "katalog", "spotreba", "mesicni-report", "aktivita"],
-  content: ["", "vykon", "start", "klicova-slova", "obsahovy-engine", "kreativa", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "distribuce", "leady", "reporty", "publikum", "ucet", "branding", "integrace", "nastaveni", "katalog", "spotreba", "mesicni-report", "aktivita"],
-  local: ["", "vykon", "start", "kampane", "klicova-slova", "lokalni", "mapa", "obsahovy-engine", "recenze", "obsah-plan", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "leady", "reporty", "ucet", "branding", "integrace", "nastaveni", "katalog", "spotreba", "mesicni-report", "aktivita"],
+  eshop: ["", "start", "vykon", "knihovna", "reporty", "zisk", "ltv", "mesicni-report", "kampane", "klicova-slova", "sklad-sezonnost", "obsahovy-engine", "kreativa", "produktova-kreativa", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "leady", "katalog", "ucet", "branding", "spotreba", "aktivita", "integrace", "nastaveni"],
+  app: ["", "start", "vykon", "knihovna", "reporty", "ltv", "mesicni-report", "kampane", "klicova-slova", "srovnani-seo", "obsahovy-engine", "experimenty-lp", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "leady", "katalog", "ucet", "branding", "spotreba", "aktivita", "integrace", "nastaveni"],
+  leadgen: ["", "start", "vykon", "knihovna", "reporty", "kvalita-leadu", "mesicni-report", "kampane", "klicova-slova", "lokalni", "obsahovy-engine", "ulozeny-obsah", "kanaly", "twin", "sprava-kanalu", "schranka", "leady", "katalog", "ucet", "branding", "spotreba", "aktivita", "integrace", "nastaveni"],
+  content: ["", "start", "vykon", "reporty", "publikum", "mesicni-report", "klicova-slova", "obsahovy-engine", "kreativa", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "distribuce", "leady", "katalog", "ucet", "branding", "spotreba", "aktivita", "integrace", "nastaveni"],
+  local: ["", "start", "vykon", "reporty", "mesicni-report", "kampane", "klicova-slova", "recenze", "obsah-plan", "lokalni", "mapa", "obsahovy-engine", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "leady", "katalog", "ucet", "branding", "spotreba", "aktivita", "integrace", "nastaveni"],
 };
 
 test("modulesFor output is pinned per project type (order field preserves rendering)", () => {
   for (const type of PROJECT_TYPES) {
-    assert.deepEqual(
-      modulesFor(type).map((m) => m.key),
-      EXPECTED_ORDER[type],
-      `sidebar order drifted for "${type}"`
-    );
+    assert.deepEqual(modulesFor(type).map((m) => m.key), EXPECTED_ORDER[type], `sidebar order drifted for "${type}"`);
   }
 });
 
-test("order values are unique and section-monotonic (a real tiebreak)", () => {
+test("order values are unique and area-monotonic (a real tiebreak)", () => {
   const orders = MODULES.map((m) => m.order);
   assert.equal(new Set(orders).size, orders.length, "duplicate order values");
-  // Within each section, order must strictly increase in registry appearance — that's
-  // what makes (section, order) reproduce the previous stable-by-section output.
-  const bySection = new Map();
-  for (const m of MODULES) {
-    const prev = bySection.get(m.section);
-    if (prev !== undefined) assert.ok(m.order > prev, `order not increasing in section ${m.section}`);
-    bySection.set(m.section, m.order);
-  }
+  for (const m of MODULES) assert.ok(AREA_ORDER.includes(m.area), `module "${m.key}" has unknown area "${m.area}"`);
 });
 
-// --- ADR-0009: the free-channels module leads its section --------------------
-// Premise check for the milestone's "move kanaly to first in comms" item: it was
-// ALREADY first (order 5, the lowest in the section), so no registry edit was
-// made. That is worth pinning rather than re-deriving — the next reader of the
-// gap list would otherwise repeat the same investigation, and a later `comms`
-// entry with a lower `order` would silently demote the module the checklist now
-// sends every new tenant to first.
-test("kanaly is the first module in the comms section, for every type that has it", () => {
-  const comms = MODULES.filter((m) => m.section === "comms");
-  assert.equal(
-    comms.reduce((lo, m) => (m.order < lo.order ? m : lo)).key,
-    "kanaly",
-    "kanaly must hold the lowest order in `comms`"
-  );
+// --- ADR-0013: an area appears only where the type has rooms in it -----------
+test("Local is a roof only for the types that have a Local room", () => {
+  assert.deepEqual(areasFor("local"), ["home", "performance", "reach", "local", "studio", "channels"]);
+  assert.deepEqual(areasFor("leadgen"), ["home", "performance", "reach", "local", "studio", "channels"]);
+  for (const t of ["eshop", "app", "content"]) assert.ok(!areasFor(t).includes("local"), `${t} must not see Local`);
+});
+
+// --- ADR-0009: the free-channels module leads its area -----------------------
+// The checklist sends every new tenant to kanaly first; a later `channels` entry
+// with a lower `order` would silently demote it on the Channels roof and rail.
+test("kanaly is the first module in the channels area, for every type that has it", () => {
   for (const type of PROJECT_TYPES) {
-    const inSection = modulesFor(type).filter((m) => m.section === "comms");
-    if (inSection.length === 0) continue;
-    assert.equal(inSection[0].key, "kanaly", `comms does not lead with kanaly for "${type}"`);
+    const inArea = modulesFor(type).filter((m) => m.area === "channels");
+    if (inArea.length === 0) continue;
+    assert.equal(inArea[0].key, "kanaly", `channels does not lead with kanaly for "${type}"`);
   }
 });

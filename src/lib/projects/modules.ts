@@ -4,70 +4,46 @@
  *  Adding/retargeting a module is one edit here. Framework-free (no React). */
 import type { IconKey } from "./icon-keys";
 import { PROJECT_TYPES, type ProjectType } from "./types";
+import { AREAS, type AreaKey } from "./areas";
 import type { SupportedLocale } from "@/lib/format";
 
-/** Sidebar grouping. Order here defines render order. */
-export type ModuleSection =
-  | "main"
-  | "growth"
-  | "studio"
-  | "comms"
-  | "insights"
-  | "settings"
-  | "system";
+/** Where a module lives (ADR-0013): one of the six areas, or the settings
+ *  utility menu (workspace configuration and operational tools — not a roof).
+ *  Order here defines render order. */
+export type ModuleArea = AreaKey | "settings";
 
-/** `settings` is pinned directly above `system`: the four modules that configure
- *  the workspace itself (project settings, integrations, account, branding) were
- *  buried in an unlabeled `system` drawer next to the operational tools (catalog,
- *  usage, monthly report, activity). Splitting them gives "where do I change
- *  something" its own first-level rail glyph. */
-export const SECTION_ORDER: ModuleSection[] = [
-  "main",
-  "growth",
-  "studio",
-  "comms",
-  "insights",
-  "settings",
-  "system",
-];
+export const AREA_ORDER: ModuleArea[] = [...AREAS.map((a) => a.key), "settings"];
 
-/** Section headers (cs). `system` is unlabeled — it sits pinned at the bottom. */
-export const SECTION_LABELS: Record<ModuleSection, string> = {
-  main: "Přehled",
-  growth: "Akvizice",
-  studio: "Tvorba",
-  comms: "Komunikace",
-  insights: "Analýza",
+/** Area headers (cs). */
+export const AREA_LABELS: Record<ModuleArea, string> = {
+  ...(Object.fromEntries(AREAS.map((a) => [a.key, a.label])) as Record<AreaKey, string>),
   settings: "Nastavení",
-  system: "",
 };
 
-/** Section headers (en). */
-export const SECTION_LABELS_EN: Record<ModuleSection, string> = {
-  main: "Overview",
-  growth: "Acquisition",
-  studio: "Studio",
-  comms: "Communication",
-  insights: "Insights",
+/** Area headers (en). */
+export const AREA_LABELS_EN: Record<ModuleArea, string> = {
+  ...(Object.fromEntries(AREAS.map((a) => [a.key, a.labelEn])) as Record<AreaKey, string>),
   settings: "Settings",
-  system: "",
 };
+
+/** The module whose page IS its area's roof rather than a room under it. */
+export const ROOF_MODULE: Partial<Record<AreaKey, string>> = { home: "", performance: "vykon" };
 
 export interface ModuleDef {
   /** route segment under /app/[projectId]/ ("" = the project overview/home) */
   key: string;
   /** Explicit render position — the module's canonical registry index, used as the
-   *  intra-section tiebreak in `modulesFor`'s sort. Making order a value (not merely
+   *  intra-area tiebreak in `modulesFor`'s sort. Making order a value (not merely
    *  "wherever the entry sits in the array") means a reorder is an `order` edit, and a
    *  test can pin the exact rendered sequence. Monotonic across the array, so within
-   *  any one section these values reproduce registry appearance order exactly. */
+   *  any one area these values reproduce registry appearance order exactly. */
   order: number;
   /** sidebar label (cs) */
   label: string;
   /** sidebar label (en) */
   labelEn: string;
   icon: IconKey;
-  section: ModuleSection;
+  area: ModuleArea;
   /** project types this module is available for */
   availableFor: ProjectType[];
   /** short description for tooltips / empty states (cs) */
@@ -91,7 +67,7 @@ export const MODULES: ModuleDef[] = [
     label: "Přehled",
     labelEn: "Overview",
     icon: "overview",
-    section: "main",
+    area: "home",
     availableFor: ALL,
     blurb: "Souhrn výkonu projektu a rychlé akce.",
     blurbEn: "Project performance summary and quick actions.",
@@ -102,7 +78,7 @@ export const MODULES: ModuleDef[] = [
     label: "Výkon",
     labelEn: "Performance",
     icon: "dashboard",
-    section: "main",
+    area: "performance",
     availableFor: ALL,
     blurb: "Návštěvy, náklady, konverze, obrat a PNO s historií a kanály.",
     blurbEn: "Visits, cost, conversions, revenue and PNO with history and channels.",
@@ -113,7 +89,7 @@ export const MODULES: ModuleDef[] = [
     label: "Start",
     labelEn: "Get started",
     icon: "start",
-    section: "main",
+    area: "home",
     availableFor: ALL,
     blurb: "Naskenujte svůj web, naplňte aplikaci vaší firmou a připojte data.",
     blurbEn: "Scan your website, seed the app with your business and connect your data.",
@@ -124,7 +100,7 @@ export const MODULES: ModuleDef[] = [
     label: "Kampaně",
     labelEn: "Campaigns",
     icon: "campaigns",
-    section: "growth",
+    area: "reach",
     availableFor: ["eshop", "app", "leadgen", "local"],
     blurb: "Kampaně z Google Ads a Skliku, triáž, AI vyhodnocení a přesuny rozpočtu.",
     blurbEn: "Campaigns from Google Ads and Sklik, triage, AI evaluation and budget moves.",
@@ -135,7 +111,7 @@ export const MODULES: ModuleDef[] = [
     label: "Klíčová slova",
     labelEn: "Keywords",
     icon: "keywords",
-    section: "growth",
+    area: "reach",
     availableFor: ALL,
     blurb: "Výzkum klíčových slov se záměrem a uloženými seznamy.",
     blurbEn: "Keyword research with intent classification and saved lists.",
@@ -146,7 +122,7 @@ export const MODULES: ModuleDef[] = [
     label: "Kanály zdarma",
     labelEn: "Free channels",
     icon: "channels",
-    section: "comms",
+    area: "channels",
     availableFor: ALL,
     blurb: "Kde se zviditelnit bez rozpočtu na reklamu: katalogy, komunity, obsah a partnerství s plánem prvních kroků.",
     blurbEn: "Where to get seen without an ad budget: directories, communities, content and partnerships with a first-steps playbook.",
@@ -157,7 +133,7 @@ export const MODULES: ModuleDef[] = [
     label: "Obsahový engine",
     labelEn: "Content engine",
     icon: "content",
-    section: "studio",
+    area: "studio",
     availableFor: ALL,
     blurb: "Tematické klastry a upadající obsah v přehledu; z každé mezery AI brief, koncept článku a distribuci.",
     blurbEn: "Topic clusters and decaying content at a glance; from every gap an AI brief, article draft and distribution.",
@@ -168,7 +144,7 @@ export const MODULES: ModuleDef[] = [
     label: "Recenze",
     labelEn: "Reviews",
     icon: "reviews",
-    section: "studio",
+    area: "local",
     availableFor: ["local"],
     blurb: "Schránka recenzí: filtrování, sentiment, AI návrh odpovědi, označení majiteli a šablony.",
     blurbEn: "Review inbox: filtering, sentiment, AI reply drafts, flag-for-owner and saved-reply macros.",
@@ -179,7 +155,7 @@ export const MODULES: ModuleDef[] = [
     label: "Plán obsahu",
     labelEn: "Content schedule",
     icon: "schedule",
-    section: "studio",
+    area: "local",
     availableFor: ["local"],
     blurb: "Plánovač příspěvků na Google Business Profile: náměty z katalogu a kalendář na 4 týdny.",
     blurbEn: "Google Business Profile post planner: catalog-grounded ideas and a 4-week calendar.",
@@ -190,7 +166,7 @@ export const MODULES: ModuleDef[] = [
     label: "Sociální sítě",
     labelEn: "Social media",
     icon: "social",
-    section: "comms",
+    area: "channels",
     availableFor: ["eshop", "app", "content", "local"],
     blurb: "Návrh příspěvků, plánování publikace a schránka zpráv.",
     blurbEn: "Post drafting, publication scheduling and message inbox.",
@@ -201,7 +177,7 @@ export const MODULES: ModuleDef[] = [
     label: "Kreativa",
     labelEn: "Creative",
     icon: "creative",
-    section: "studio",
+    area: "studio",
     availableFor: ["eshop", "content"],
     blurb: "Generování vizuálů s hodnocením kvality a odstraněním pozadí.",
     blurbEn: "Visual generation with quality scoring and background removal.",
@@ -212,7 +188,7 @@ export const MODULES: ModuleDef[] = [
     label: "Knihovna vzorů",
     labelEn: "Patterns library",
     icon: "patterns",
-    section: "insights",
+    area: "performance",
     availableFor: ["eshop", "app", "leadgen"],
     blurb: "Osvědčené vzory odvozené z vašich výsledků, které ladí AI.",
     blurbEn: "Proven patterns derived from your results that fine-tune the AI.",
@@ -223,7 +199,7 @@ export const MODULES: ModuleDef[] = [
     label: "Reporty",
     labelEn: "Reports",
     icon: "reports",
-    section: "insights",
+    area: "performance",
     availableFor: ALL,
     blurb: "Sdílené reporty pro klienty a white-label microsite.",
     blurbEn: "Shared client reports and white-label microsite.",
@@ -234,7 +210,7 @@ export const MODULES: ModuleDef[] = [
     label: "Zisk",
     labelEn: "Profit",
     icon: "profit",
-    section: "insights",
+    area: "performance",
     availableFor: ["eshop"],
     blurb: "Marže a POAS: optimalizace na zisk z reklamy, ne jen na ROAS.",
     blurbEn: "Margins and POAS: optimize for ad profit, not just ROAS.",
@@ -245,7 +221,7 @@ export const MODULES: ModuleDef[] = [
     label: "Produktová kreativa",
     labelEn: "Product creative",
     icon: "catalog",
-    section: "studio",
+    area: "studio",
     availableFor: ["eshop"],
     blurb: "Z produktového feedu generujte inzeráty a sestavte PMax asset group.",
     blurbEn: "Generate ads from the product feed and build a PMax asset group.",
@@ -256,7 +232,7 @@ export const MODULES: ModuleDef[] = [
     label: "Sklad & sezónnost",
     labelEn: "Stock & seasonality",
     icon: "season",
-    section: "growth",
+    area: "reach",
     availableFor: ["eshop"],
     blurb: "Pacing rozpočtu podle sezónnosti a skladu, pauza u docházejících SKU.",
     blurbEn: "Budget pacing by seasonality and stock, pause on low-inventory SKUs.",
@@ -267,7 +243,7 @@ export const MODULES: ModuleDef[] = [
     label: "CAC → LTV",
     labelEn: "CAC → LTV",
     icon: "ltv",
-    section: "insights",
+    area: "performance",
     // E-shops care about repeat-purchase / CAC-payback economics too — the module
     // is project-type-aware (customer / repeat-purchase framing for eshop).
     availableFor: ["app", "eshop"],
@@ -280,7 +256,7 @@ export const MODULES: ModuleDef[] = [
     label: "LP experimenty",
     labelEn: "LP experiments",
     icon: "experiment",
-    section: "studio",
+    area: "studio",
     availableFor: ["app"],
     blurb: "A/B testy landing pages podle klastrů klíčových slov, vítěz dle CVR.",
     blurbEn: "A/B tests for landing pages by keyword cluster, winner chosen by CVR.",
@@ -291,7 +267,7 @@ export const MODULES: ModuleDef[] = [
     label: "Srovnání & SEO",
     labelEn: "Compare & SEO",
     icon: "compare",
-    section: "growth",
+    area: "reach",
     availableFor: ["app"],
     blurb: "High-intent obsah: dotazy typu alternativa, vs a cena seřazené dle příležitosti.",
     blurbEn: "High-intent content: alternative, vs and pricing queries ranked by opportunity.",
@@ -302,7 +278,7 @@ export const MODULES: ModuleDef[] = [
     label: "Kvalita leadů",
     labelEn: "Lead quality",
     icon: "quality",
-    section: "insights",
+    area: "performance",
     availableFor: ["leadgen"],
     blurb: "Zpětná vazba z CRM: cena za kvalifikovaný lead, ne za levný lead.",
     blurbEn: "CRM feedback: cost per qualified lead, not just the cheapest lead.",
@@ -316,7 +292,7 @@ export const MODULES: ModuleDef[] = [
     label: "Twin",
     labelEn: "Twin",
     icon: "twin",
-    section: "comms",
+    area: "channels",
     availableFor: ALL,
     blurb:
       "Komunikační dvojče firmy: natrénujte hlas z reálných zpráv, které jste poslali. Tímto hlasem pak píše ve schránce, na sítích i v distribuci.",
@@ -329,7 +305,7 @@ export const MODULES: ModuleDef[] = [
     label: "Správa kanálů",
     labelEn: "Channel management",
     icon: "autonomy",
-    section: "comms",
+    area: "channels",
     availableFor: ALL,
     blurb:
       "Kde smí twin mluvit, jak samostatně a čím se zpráva doručí (včetně hranice jistoty, nad kterou schvaluje sám).",
@@ -342,7 +318,7 @@ export const MODULES: ModuleDef[] = [
     label: "Schránka zpráv",
     labelEn: "Message box",
     icon: "inbox",
-    section: "comms",
+    area: "channels",
     // The old `rychla-reakce` speed-to-lead inbox lives on here as the `leads`
     // channel (SLA clock + BANT qualification intact), and the Socials inbox hands
     // its replies in too — one review surface for everything the twin writes.
@@ -358,7 +334,7 @@ export const MODULES: ModuleDef[] = [
     label: "Lokální dominance",
     labelEn: "Local dominance",
     icon: "local",
-    section: "growth",
+    area: "local",
     availableFor: ["leadgen", "local"],
     blurb: "Pokrytí služba×oblast, mezery ve stránkách a reputace z recenzí.",
     blurbEn: "Service × area coverage, page gaps and reputation from reviews.",
@@ -369,7 +345,7 @@ export const MODULES: ModuleDef[] = [
     label: "Mapa & pozice",
     labelEn: "Map & rankings",
     icon: "map",
-    section: "growth",
+    area: "local",
     availableFor: ["local"],
     blurb: "Pozice v mapách (vy vs. konkurence) na reálné mapě, podíl na proklicích a žebříček pozic klíčových slov.",
     blurbEn: "Map pack (you vs. competitors) on a real map, share of clicks and a keyword ranking ladder.",
@@ -380,7 +356,7 @@ export const MODULES: ModuleDef[] = [
     label: "Distribuce",
     labelEn: "Distribution",
     icon: "distribute",
-    section: "comms",
+    area: "channels",
     availableFor: ["content"],
     blurb: "Jeden článek → varianty na sítě a newsletter s atribucí podle kanálu.",
     blurbEn: "One article → variants for social networks and newsletter with channel attribution.",
@@ -391,7 +367,7 @@ export const MODULES: ModuleDef[] = [
     label: "Publikum & výnos",
     labelEn: "Audience & revenue",
     icon: "audience",
-    section: "insights",
+    area: "performance",
     availableFor: ["content"],
     blurb: "Trychtýř odběratelů, segmenty a výnos (RPM / sponzoring).",
     blurbEn: "Subscriber funnel, segments and revenue (RPM / sponsorship).",
@@ -402,7 +378,7 @@ export const MODULES: ModuleDef[] = [
     label: "Katalog",
     labelEn: "Catalog",
     icon: "store",
-    section: "system",
+    area: "settings",
     availableFor: ALL,
     blurb: "Produkty, plány nebo služby: ceny, marže, dostupnost a povaha (online/lokální). Zdroj, ze kterého čerpají ostatní moduly.",
     blurbEn: "Products, plans or services: prices, margins, availability and nature (online/local). The source the other modules read from.",
@@ -413,7 +389,7 @@ export const MODULES: ModuleDef[] = [
     label: "Účet & zabezpečení",
     labelEn: "Account & security",
     icon: "account",
-    section: "settings",
+    area: "settings",
     availableFor: ALL,
     blurb: "Profil, přehled zabezpečení, odhlášení a žádost o smazání účtu.",
     blurbEn: "Profile, a security overview, sign-out and an account-deletion request.",
@@ -424,7 +400,7 @@ export const MODULES: ModuleDef[] = [
     label: "Branding",
     labelEn: "Branding",
     icon: "creative",
-    section: "settings",
+    area: "settings",
     availableFor: ALL,
     blurb: "Brand accent a logo pro klientské reporty a web (s živým náhledem hlavičky).",
     blurbEn: "Brand accent and logo for client reports and the microsite (with a live header preview).",
@@ -435,7 +411,7 @@ export const MODULES: ModuleDef[] = [
     label: "Spotřeba",
     labelEn: "Usage",
     icon: "usage",
-    section: "system",
+    area: "settings",
     availableFor: ALL,
     blurb: "Spotřeba AI podle operace a modelu za období: náklady, tokeny, podíl a export CSV.",
     blurbEn: "AI usage by operation and model over a period: cost, tokens, share and CSV export.",
@@ -446,7 +422,7 @@ export const MODULES: ModuleDef[] = [
     label: "Měsíční report",
     labelEn: "Monthly report",
     icon: "reports",
-    section: "system",
+    area: "performance",
     availableFor: ALL,
     blurb: "Klientský souhrn výkonu za období: KPI dlaždice, AI narativ, tisk a export.",
     blurbEn: "A client-ready performance recap: KPI tiles, an AI narrative, print and export.",
@@ -457,7 +433,7 @@ export const MODULES: ModuleDef[] = [
     label: "Aktivita",
     labelEn: "Activity",
     icon: "activity",
-    section: "system",
+    area: "settings",
     availableFor: ALL,
     blurb: "Sjednocená časová osa akcí napříč moduly a AI: filtr podle modulu, závažnosti a období, export CSV.",
     blurbEn: "A unified timeline of module + AI actions: filter by module, severity and window, export CSV.",
@@ -468,7 +444,7 @@ export const MODULES: ModuleDef[] = [
     label: "Integrace",
     labelEn: "Integrations",
     icon: "integrations",
-    section: "settings",
+    area: "settings",
     availableFor: ALL,
     blurb: "Stav napojení: připravenost konektorů (reklama, AI, recenze, reporty, infrastruktura) pro nasazení.",
     blurbEn: "Integration status: connector readiness (advertising, AI, reviews, reports, infrastructure) for deployment.",
@@ -479,7 +455,7 @@ export const MODULES: ModuleDef[] = [
     label: "Nastavení",
     labelEn: "Settings",
     icon: "settings",
-    section: "settings",
+    area: "settings",
     availableFor: ALL,
     blurb: "Název, branding, napojení Google Ads a typ projektu.",
     blurbEn: "Name, branding, Google Ads connection and project type.",
@@ -496,7 +472,7 @@ export const MODULES: ModuleDef[] = [
     label: "Uložený obsah",
     labelEn: "Saved content",
     icon: "library",
-    section: "studio",
+    area: "studio",
     availableFor: ALL,
     blurb: "Uložené briefy a koncepty článků z Obsahového enginu: u projektu, ne jen v prohlížeči.",
     blurbEn: "Saved briefs and article drafts from the Content engine: kept with the project, not just in your browser.",
@@ -510,22 +486,59 @@ export const MODULES: ModuleDef[] = [
     label: "Leady",
     labelEn: "Leads",
     icon: "leads",
-    section: "comms",
+    area: "channels",
     availableFor: ALL,
     blurb: "Kontakty a poptávky s fází, skóre a SLA odpočtem: co vyřídit teď, celá databáze a časová osa.",
     blurbEn: "Contacts and enquiries with stage, score and an SLA clock: what to handle now, the full database and a timeline.",
   },
 ];
 
-/** Modules available for a project type, grouped by section then by explicit
- *  intra-section `order`. Sorting on `order` (not relying on a stable sort over the
+/** Modules available for a project type, grouped by area then by explicit
+ *  intra-area `order`. Sorting on `order` (not relying on a stable sort over the
  *  raw array) makes the sequence explicit and testable; because `order` is the
  *  canonical registry index it reproduces the previous registry-order output byte
  *  for byte. */
 export function modulesFor(type: ProjectType): ModuleDef[] {
   return MODULES.filter((m) => m.availableFor.includes(type)).sort(
-    (a, b) => SECTION_ORDER.indexOf(a.section) - SECTION_ORDER.indexOf(b.section) || a.order - b.order
+    (a, b) => AREA_ORDER.indexOf(a.area) - AREA_ORDER.indexOf(b.area) || a.order - b.order
   );
+}
+
+/** The areas a project type actually has: an area with no available module is
+ *  not shown (ADR-0013 — `local` sees Local, `eshop` does not). Home always is. */
+export function areasFor(type: ProjectType): AreaKey[] {
+  const present = new Set(modulesFor(type).map((m) => m.area));
+  return AREAS.map((a) => a.key).filter((k) => k === "home" || present.has(k));
+}
+
+/** The URL segment of a module under /app/[projectId] (ADR-0013). Home and
+ *  settings modules stay flat; a roof module is its area's slug; every other
+ *  module is a room nested under its area. */
+export function moduleSegment(m: Pick<ModuleDef, "key" | "area">): string {
+  if (m.area === "home" || m.area === "settings") return m.key;
+  const area = AREAS.find((a) => a.key === m.area)!;
+  if (ROOF_MODULE[m.area] === m.key) return area.slug;
+  return `${area.slug}/${m.key}`;
+}
+
+/** Absolute href of a module for a project. Unknown keys fall back to the flat
+ *  path, which the redirects in next.config.ts still resolve. */
+export function moduleHref(projectId: string, key: string): string {
+  const m = MODULES.find((x) => x.key === key);
+  const seg = m ? moduleSegment(m) : key;
+  return `/app/${projectId}${seg ? `/${seg}` : ""}`;
+}
+
+/** Absolute href of an area roof for a project. */
+export function areaHref(projectId: string, area: AreaKey): string {
+  const slug = AREAS.find((a) => a.key === area)!.slug;
+  return `/app/${projectId}${slug ? `/${slug}` : ""}`;
+}
+
+/** Old flat URL → nested URL, for every module that moved (the 308s in
+ *  next.config.ts are generated from this, so a new room redirects for free). */
+export function movedModuleRoutes(): Array<{ from: string; to: string }> {
+  return MODULES.filter((m) => m.key && moduleSegment(m) !== m.key).map((m) => ({ from: m.key, to: moduleSegment(m) }));
 }
 
 /** Whether a route segment is a valid module for the given type (for 404s). */
@@ -609,9 +622,9 @@ export function moduleBlurb(m: ModuleDef, locale: SupportedLocale): string {
   return locale === "en" ? m.blurbEn : m.blurb;
 }
 
-/** Resolve a section header for the active locale. */
-export function sectionLabel(s: ModuleSection, locale: SupportedLocale): string {
-  return locale === "en" ? SECTION_LABELS_EN[s] : SECTION_LABELS[s];
+/** Resolve an area header for the active locale. */
+export function areaLabel(a: ModuleArea, locale: SupportedLocale): string {
+  return locale === "en" ? AREA_LABELS_EN[a] : AREA_LABELS[a];
 }
 
 /** Resolve a KPI label for the active locale. */

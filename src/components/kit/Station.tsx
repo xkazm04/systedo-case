@@ -16,6 +16,7 @@ export default function Station({
   hue,
   art,
   id,
+  numbered = true,
   children,
 }: {
   step: StationStep;
@@ -28,6 +29,8 @@ export default function Station({
   /** Optional engraved motif drawn at the right of the head (desktop only). */
   art?: ReactNode;
   id?: string;
+  /** False for a band outside the Measure → Triage → Act sequence (a roof's rooms). */
+  numbered?: boolean;
   children: ReactNode;
 }) {
   const headingId = id ? `${id}-title` : undefined;
@@ -38,14 +41,16 @@ export default function Station({
         style={hue ? ({ "--station-hue": hue } as React.CSSProperties) : undefined}
       >
         <p className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.14em] text-muted">
-          <span aria-hidden className="text-ink">
-            {NUMERAL[step]}
-          </span>
+          {numbered ? (
+            <span aria-hidden className="text-ink">
+              {NUMERAL[step]}
+            </span>
+          ) : null}
           {eyebrow}
         </p>
-        <h2 id={headingId} className="font-display text-4xl font-light leading-none tracking-tight text-ink sm:text-5xl">
+        <h3 id={headingId} className="font-display text-4xl font-light leading-none tracking-tight text-ink sm:text-5xl">
           {title}
-        </h2>
+        </h3>
         {purpose ? <p className="max-w-xl text-base text-muted">{purpose}</p> : null}
         {art ? (
           <div aria-hidden className="pointer-events-none absolute right-0 top-5 hidden w-40 lg:block">
