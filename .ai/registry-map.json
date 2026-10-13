@@ -2609,7 +2609,11 @@
           "revision": 3,
           "changedAt": "2026-09-20",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/ai/tools/channel-research.ts:314 normalizeChannelResearch keeps every named channel and sorts it by fit, with no stage that can refuse an offer before the score exists.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:0b185ece14e341e1",
+          "evaluatedRevision": 3
         },
         {
           "subject": "mcp-tools",
@@ -12313,7 +12317,11 @@
           "revision": 3,
           "changedAt": "2026-09-20",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/ai/tools/channel-research.ts:72 Regenerate asks the model to rank every free channel by fit, and the pin path stores that list with no admissibility question recorded before the score.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:0b185ece14e341e1",
+          "evaluatedRevision": 3
         },
         {
           "subject": "profit-on-ad-spend-economics",
@@ -12415,7 +12423,11 @@
           "revision": 3,
           "changedAt": "2026-09-20",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/organic-channels/types.ts:278 The plan sanitizer drops a channel only when it has no name, then clamps a fit onto every other channel, and a search of this module for an admissibility gate found no link test and no refusal reason.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:0b185ece14e341e1",
+          "evaluatedRevision": 3
         },
         {
           "subject": "agent-memory",

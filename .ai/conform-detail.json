@@ -1523,6 +1523,135 @@
           "evidence": "src/lib/onboarding/site-fetch.ts:91 The hero's one-page limit still matches this fetch. I did not find a false claim left standing as a correction."
         }
       ]
+    },
+    "2ed8a000-3407-40e1-9ba6-d78b2f872776/zero-budget-channel-planning": {
+      "context": "organic-channels-keywords",
+      "subject": "zero-budget-channel-planning",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T08:18:32.386Z",
+      "worker": "50415da4-5a2b-403c-aafb-d5a03abde385",
+      "techniques": [
+        {
+          "technique": "admissibility-before-fit-and-effort",
+          "verdict": "deviation",
+          "evidence": "src/lib/organic-channels/types.ts:278 Searched organic-channels and channel-research for admissib, link-scheme, qualify, enrol, and a refusal reason; the only drop before scoring is an empty name."
+        },
+        {
+          "technique": "channel-family-taxonomy-by-lifecycle-kind",
+          "verdict": "conformant",
+          "evidence": "src/lib/organic-channels/next-step.ts:145 channelKind folds directory and marketplace to listing, community and social to conversational, newsletter to push, PR and partnership to pr, and unknown to content. A done stage derives no step. A live manual conversational channel with no inbox source falls through to create-content."
+        },
+        {
+          "technique": "fit-effort-quick-win-rule",
+          "verdict": "conformant",
+          "evidence": "src/lib/organic-channels/types.ts:283 Missing fit becomes 60 and out-of-range fit is clamped. The seeded plan sorts by fit descending. The start-here filter lives on the Kanály page."
+        },
+        {
+          "technique": "grounding-precedence-catalog-over-scan",
+          "verdict": "conformant",
+          "evidence": "src/lib/organic-channels/grounding.ts:216 Catalog offering wins outright; scan keywords only top up; a sample catalog and placeholder rows are stripped before the prompt; a failed competitor read stays unavailable."
+        },
+        {
+          "technique": "keyword-to-channel-visibility-plan",
+          "verdict": "conformant",
+          "evidence": "src/lib/organic-channels/visibility-plan.ts:249 carriesContent is content or conversational, so listing, outreach, and push get no query. Done channels are skipped. Content matches the brief keyword. Negatives are dropped. Measured clicks are stamped and do not sort the rows."
+        },
+        {
+          "technique": "measured-clicks-beside-not-inside-fit",
+          "verdict": "conformant",
+          "evidence": "src/lib/organic-channels/outcomes.ts:173 A zero window renders no badge. /go answers 302 with Cache-Control no-store, skips bot and unfurl user-agents, counts off the response path, and a failed link read returns 503."
+        },
+        {
+          "technique": "owned-push-as-its-own-kind",
+          "verdict": "deviation",
+          "evidence": "src/lib/organic-channels/types.ts:266 Newsletter folds to push and is not dealt a query, but any track may store a chosen 1–14 weekly cap. The newsletter seed's first action is a monthly rhythm, not obtaining a complaint measurement."
+        }
+      ],
+      "registryProposal": "channel-family-taxonomy-by-lifecycle-kind says a query is dealt only to the content kind, while keyword-to-channel-visibility-plan and the golden path also deal queries to communities and social. The code follows the latter."
+    },
+    "ded249fd-c7e8-48ea-a4c8-6a4e80381972/zero-budget-channel-planning": {
+      "context": "organic-channels",
+      "subject": "zero-budget-channel-planning",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T08:18:32.386Z",
+      "worker": "50415da4-5a2b-403c-aafb-d5a03abde385",
+      "techniques": [
+        {
+          "technique": "admissibility-before-fit-and-effort",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/channel-research.ts:72 The Kanály regenerate prompt ranks by fit. The POST /organic-channels route persists sanitizeChannelState, which does not refuse a channel with a reason."
+        },
+        {
+          "technique": "channel-family-taxonomy-by-lifecycle-kind",
+          "verdict": "conformant",
+          "evidence": "src/lib/organic-channels/next-step.ts:128 The page builds a signpost from live module state. Editing a channel keeps its stage. A deep link falls back when the target module is absent for the project type."
+        },
+        {
+          "technique": "fit-effort-quick-win-rule",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/OrganicChannels.tsx:188 Start-here is the first untracked low-effort channel at fit 70 or above, and the callout is absent when none remain. The callout does not label 70 as a convention. Regenerated plans keep tracks and surface orphans."
+        },
+        {
+          "technique": "grounding-precedence-catalog-over-scan",
+          "verdict": "conformant",
+          "evidence": "src/app/app/[projectId]/kanaly/page.tsx:56 The page passes the sample flag into the shared grounding builder and shows a distinct warning when the competitor read failed."
+        },
+        {
+          "technique": "keyword-to-channel-visibility-plan",
+          "verdict": "conformant",
+          "evidence": "src/lib/organic-channels/visibility-plan.ts:168 The page renders the shared visibility plan. Only content and conversational kinds can receive a query, so a newsletter does not."
+        },
+        {
+          "technique": "measured-clicks-beside-not-inside-fit",
+          "verdict": "conformant",
+          "evidence": "src/components/app/visibility/VisibilityPlanRow.tsx:119 The row draws a click badge only when a count is present. The channel table uses the same null-on-nothing badge beside fit."
+        },
+        {
+          "technique": "owned-push-as-its-own-kind",
+          "verdict": "deviation",
+          "evidence": "src/components/app/channels/ChannelWizard.tsx:159 The setup wizard appends a posts-per-week step for every kind and defaults it to 3. A newsletter therefore gets a chosen cap with no complaint or unsubscribe measurement."
+        }
+      ]
+    },
+    "9f9e2abc-db0d-4a9f-ac47-fd39d3b9b8b4/zero-budget-channel-planning": {
+      "context": "ai-tools-campaigns-research",
+      "subject": "zero-budget-channel-planning",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T08:18:32.386Z",
+      "worker": "50415da4-5a2b-403c-aafb-d5a03abde385",
+      "techniques": [
+        {
+          "technique": "admissibility-before-fit-and-effort",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/channel-research.ts:314 The loop pushes every named channel after clamping fit. Nothing records who chose an outbound link or what the channel spends that is not hours."
+        },
+        {
+          "technique": "channel-family-taxonomy-by-lifecycle-kind",
+          "verdict": "conformant",
+          "evidence": "src/lib/ai/tools/channel-research.ts:222 An unknown category on the wire becomes content. The kind fold and the derived next step are not in this tool."
+        },
+        {
+          "technique": "fit-effort-quick-win-rule",
+          "verdict": "conformant",
+          "evidence": "src/lib/ai/tools/channel-research.ts:234 Unparseable fit becomes 60 and other values clamp to 0–100. The prompt asks for effort, 6–9 channels, and 2–4 first actions, ranked by fit."
+        },
+        {
+          "technique": "measured-clicks-beside-not-inside-fit",
+          "verdict": "conformant",
+          "evidence": "src/lib/ai/tools/channel-research.ts:136 The measured block restates the anti-fabrication clause and tells the model that a channel which brings people belongs higher and that channels absent from the list have no measured claim. The new fit is a new generation, not a numeric blend into the stored score."
+        },
+        {
+          "technique": "owned-push-as-its-own-kind",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/channel-research.ts:62 The system prompt lists the newsletter inside owned content with the blog and YouTube. The category enum still has a separate newsletter value, which the kind map treats as push."
+        }
+      ]
     }
   }
 }
