@@ -14263,7 +14263,11 @@
           "revision": 53,
           "changedAt": "2026-10-06",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "test-unit/projects-guard-adoption.test.mjs:40 The ownership adoption gate accepts a guard name appearing only in a comment, so it can report compliance for a route that never invokes the guard.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:6e635d76a310aa4b",
+          "evaluatedRevision": 53
         },
         {
           "subject": "agent-runtime-assembly",

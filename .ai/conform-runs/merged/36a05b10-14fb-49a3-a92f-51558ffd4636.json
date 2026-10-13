@@ -1,0 +1,62 @@
+{
+ "schema": "conform-run/1",
+ "worker": "36a05b10-14fb-49a3-a92f-51558ffd4636",
+ "subject": "quality-gates",
+ "evaluatedAt": "2026-10-13T00:24:42.764770+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "projects-core",
+   "subject": "quality-gates",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "test-unit/projects-guard-adoption.test.mjs:40 The ownership adoption gate accepts a guard name appearing only in a comment, so it can report compliance for a route that never invokes the guard.",
+   "techniques": [
+    {
+     "technique": "match-the-resolved-artifact",
+     "verdict": "deviation",
+     "evidence": "test-unit/projects-guard-adoption.test.mjs:31 The subsequent guard-presence assertion searches raw source without removing comments or checking executable use; an in-memory comment-only probe satisfied it with zero guard calls."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "quality-gates",
+   "context": "cron-scheduler",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "quality-gates",
+   "context": "ai-pipeline-limits",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "quality-gates",
+   "context": "onboarding-flow",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "quality-gates",
+   "context": "site-chrome",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-13T00:24:42.764770+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "quality-gates"
+   ],
+   "techniques": [
+    "match-the-resolved-artifact"
+   ],
+   "deviations": 1,
+   "context": "projects-core",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}

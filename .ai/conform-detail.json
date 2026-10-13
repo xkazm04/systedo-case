@@ -1095,6 +1095,22 @@
         "at": "2026-10-12T23:29:23.838528+00:00",
         "reason": "reviewer (sonnet): Each not-applicable anchor is incidental: progress.ts:41 is a function docblock, registry.ts:16 is an exporter list, schedule.ts:21 is isNewPeriod, mutator.ts:401 is a rail-order comment, and send.ts:79 is nodeTransport. None of them shows that test-harness machinery is absent. The claimed searches "
       }
+    },
+    "195906bc-e723-476a-97db-5e4fdb2cc171/quality-gates": {
+      "context": "projects-core",
+      "subject": "quality-gates",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T00:24:42.764Z",
+      "worker": "36a05b10-14fb-49a3-a92f-51558ffd4636",
+      "techniques": [
+        {
+          "technique": "match-the-resolved-artifact",
+          "verdict": "deviation",
+          "evidence": "test-unit/projects-guard-adoption.test.mjs:31 The subsequent guard-presence assertion searches raw source without removing comments or checking executable use; an in-memory comment-only probe satisfied it with zero guard calls."
+        }
+      ]
     }
   }
 }
