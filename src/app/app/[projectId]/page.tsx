@@ -1,10 +1,12 @@
-/** Project home of /app/[projectId] — a cross-project portfolio overview across
+/** Project home of /app/[projectId] — the Home roof (ADR-0013): a lamp per area,
+ *  then a cross-project portfolio overview across
  *  all of the user's projects, with the routed project highlighted. Falls back to
  *  that project's own KPI view when the workspace holds a single project. */
 import { requireProjectModule } from "@/lib/projects/guard";
 import { listProjects } from "@/lib/projects/store";
 import ProjectOverview from "@/components/app/ProjectOverview";
 import OnboardingProgressCard from "@/components/app/OnboardingProgressCard";
+import HomeLamps from "@/components/app/roof/HomeLamps";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -17,6 +19,8 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     <>
       {/* Guides a new project through setup until every step is done or dismissed. */}
       <OnboardingProgressCard project={project} userId={userId} />
+      {/* ADR-0013: the Home roof opens onto every area the project has. */}
+      <HomeLamps project={project} />
       <ProjectOverview projects={projects} activeProjectId={project.id} />
     </>
   );

@@ -707,7 +707,7 @@
       ],
       "file_paths": [
         "src/components/app/AppSidebar.tsx",
-        "src/components/app/nav/SectionRailNav.tsx",
+        "src/components/app/nav/AreaRailNav.tsx",
         "src/components/app/icon-map.tsx"
       ],
       "group": "App Shell & Site",
@@ -936,7 +936,13 @@
         "src/components/brand/optic/rooms/StationRoomArt.tsx",
         "src/components/brand/optic/rooms/StationRooms.tsx",
         "src/components/brand/optic/rooms/roomHash.ts",
-        "src/components/brand/optic/spectrum.ts"
+        "src/components/brand/optic/spectrum.ts",
+        "src/components/brand/optic/styles/base.css",
+        "src/components/brand/optic/styles/bench.css",
+        "src/components/brand/optic/styles/hall.css",
+        "src/components/brand/optic/styles/hero.css",
+        "src/components/brand/optic/styles/path.css",
+        "src/components/brand/optic/styles/rooms.css"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
@@ -1488,13 +1494,13 @@
       "db_tables": [],
       "description": "Four module pages forming the paid-search campaign console inside the project shell: Kampaně (Google Ads overview with cost-model break-even), Klíčová slova (keyword research + saved lists), LP experimenty (landing-page A/B testing per keyword cluster with persisted experiments), and Srovnání & SEO (high-intent comparison-query opportunities grounded in organic conversion economics). All pages enforce a project-module guard before rendering.",
       "entry_points": [
-        "src/app/app/[projectId]/kampane/page.tsx"
+        "src/app/app/[projectId]/reach/kampane/page.tsx"
       ],
       "file_paths": [
-        "src/app/app/[projectId]/kampane/page.tsx",
-        "src/app/app/[projectId]/klicova-slova/page.tsx",
-        "src/app/app/[projectId]/experimenty-lp/page.tsx",
-        "src/app/app/[projectId]/srovnani-seo/page.tsx"
+        "src/app/app/[projectId]/reach/kampane/page.tsx",
+        "src/app/app/[projectId]/reach/klicova-slova/page.tsx",
+        "src/app/app/[projectId]/studio/experimenty-lp/page.tsx",
+        "src/app/app/[projectId]/reach/srovnani-seo/page.tsx"
       ],
       "group": "Campaign & Ads Management",
       "group_id": "a20d106f-8f46-4053-82a4-ff5cf46fa06f",
@@ -1853,7 +1859,7 @@
       "file_paths": [
         "src/app/app/[projectId]/katalog/page.tsx",
         "src/app/app/[projectId]/branding/page.tsx",
-        "src/app/app/[projectId]/sklad-sezonnost/page.tsx"
+        "src/app/app/[projectId]/reach/sklad-sezonnost/page.tsx"
       ],
       "group": "Project & Catalog",
       "group_id": "e4a4d67e-a44a-4b8d-9b59-6c6bd18ba324",
@@ -2062,14 +2068,14 @@
       "db_tables": [],
       "description": "Module pages powering the Obsahový engine (Content Engine): the unified Tvorba surface for generating all content types (articles, social copy, ads), the content plan calendar, a redirect from the legacy /obsah route, the saved-content library, and the distribution module that takes one article and produces channel-specific variants with attribution. These pages read catalog and project data server-side to ground AI output in the project's real offerings.",
       "entry_points": [
-        "src/app/app/[projectId]/obsahovy-engine/page.tsx"
+        "src/app/app/[projectId]/studio/obsahovy-engine/page.tsx"
       ],
       "file_paths": [
-        "src/app/app/[projectId]/obsahovy-engine/page.tsx",
+        "src/app/app/[projectId]/studio/obsahovy-engine/page.tsx",
         "src/app/app/[projectId]/obsah/page.tsx",
-        "src/app/app/[projectId]/obsah-plan/page.tsx",
-        "src/app/app/[projectId]/knihovna/page.tsx",
-        "src/app/app/[projectId]/distribuce/page.tsx"
+        "src/app/app/[projectId]/local/obsah-plan/page.tsx",
+        "src/app/app/[projectId]/performance/knihovna/page.tsx",
+        "src/app/app/[projectId]/channels/distribuce/page.tsx"
       ],
       "group": "AI & Content Engine",
       "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
@@ -2206,12 +2212,12 @@
       ],
       "description": "Creative Studio for AI image generation: two module pages (Kreativa for brand creatives, Produktová kreativa for product-specific images) backed by a full image API. The API generates N candidates via Leonardo, scores them with Gemini vision, persists the winner to the tenant library, and supports file retrieval, background removal, upload-by-reference, and attribution. Image generation consumes a per-user daily quota.",
       "entry_points": [
-        "src/app/app/[projectId]/kreativa/page.tsx",
+        "src/app/app/[projectId]/studio/kreativa/page.tsx",
         "src/app/api/images/route.ts"
       ],
       "file_paths": [
-        "src/app/app/[projectId]/kreativa/page.tsx",
-        "src/app/app/[projectId]/produktova-kreativa/page.tsx",
+        "src/app/app/[projectId]/studio/kreativa/page.tsx",
+        "src/app/app/[projectId]/studio/produktova-kreativa/page.tsx",
         "src/app/api/images/route.ts",
         "src/app/api/images/attribution/route.ts",
         "src/app/api/images/file/[id]/route.ts",
@@ -2381,7 +2387,8 @@
         "src/components/dashboard/report-chat-store.ts",
         "src/components/app/modules/ActivityModule.tsx",
         "src/components/dashboard/vykon/AdsDiagnosisPanel.tsx",
-        "src/components/dashboard/vykon/AdsDiagnosisReading.tsx"
+        "src/components/dashboard/vykon/AdsDiagnosisReading.tsx",
+        "src/components/dashboard/vykon/PerformanceStation.tsx"
       ],
       "group": "Analytics & Reporting",
       "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
@@ -3173,7 +3180,8 @@
         "src/lib/llm/request-context.ts",
         "src/lib/llm/gateway.ts",
         "src/lib/llm/gateway-generate.ts",
-        "src/lib/llm/repair-note.ts"
+        "src/lib/llm/repair-note.ts",
+        "src/lib/llm/claude-research.ts"
       ],
       "group": "AI & Content Engine",
       "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
@@ -3357,12 +3365,12 @@
       "db_tables": [],
       "description": "Three module pages for Local SEO project types: Lokální (service×area coverage gap analysis and reputation overview), Mapa & pozice (map pack rankings and keyword ladder grounded in the project's locality × service catalog), and Recenze (review inbox with sentiment summary, AI reply drafting, and saved-reply macros). These modules are gated to the 'local' project type and read the shared locality/service catalog spine.",
       "entry_points": [
-        "src/app/app/[projectId]/lokalni/page.tsx"
+        "src/app/app/[projectId]/local/lokalni/page.tsx"
       ],
       "file_paths": [
-        "src/app/app/[projectId]/lokalni/page.tsx",
-        "src/app/app/[projectId]/mapa/page.tsx",
-        "src/app/app/[projectId]/recenze/page.tsx"
+        "src/app/app/[projectId]/local/lokalni/page.tsx",
+        "src/app/app/[projectId]/local/mapa/page.tsx",
+        "src/app/app/[projectId]/local/recenze/page.tsx"
       ],
       "group": "Analytics & Reporting",
       "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
@@ -3925,11 +3933,11 @@
       ],
       "description": "Zero-spend organic visibility: the Kanály module page shows a ranked plan of directories, marketplaces, communities, and owned-content channels, each with a fit score and first-steps playbook grounded in the project's catalog. Users can regenerate the plan via AI (channel-research operation) and track each channel's status. The API routes persist the channel plan and competitor set (competitors ground the recap and social narrative).",
       "entry_points": [
-        "src/app/app/[projectId]/kanaly/page.tsx",
+        "src/app/app/[projectId]/channels/kanaly/page.tsx",
         "src/app/api/projects/[id]/organic-channels/route.ts"
       ],
       "file_paths": [
-        "src/app/app/[projectId]/kanaly/page.tsx",
+        "src/app/app/[projectId]/channels/kanaly/page.tsx",
         "src/app/api/projects/[id]/organic-channels/route.ts",
         "src/app/api/projects/[id]/competitors/route.ts",
         "src/components/app/visibility/VisibilityPlanCard.tsx",
@@ -4083,15 +4091,15 @@
       "db_tables": [],
       "description": "Six module pages covering the quantitative performance layer of a project: Výkon (Google Ads performance dashboard), Zisk (margin-aware POAS profit view), Spotřeba (LLM spend by operation/model from live telemetry), LTV (cohort CAC→LTV economics), Publikum (audience funnel + revenue segments), and Kvalita leadu (lead quality scoring). All pages resolve per-project datasets server-side and ground KPIs in the project's real metrics or graded sample data.",
       "entry_points": [
-        "src/app/app/[projectId]/vykon/page.tsx"
+        "src/app/app/[projectId]/performance/page.tsx"
       ],
       "file_paths": [
-        "src/app/app/[projectId]/vykon/page.tsx",
-        "src/app/app/[projectId]/zisk/page.tsx",
+        "src/app/app/[projectId]/performance/page.tsx",
+        "src/app/app/[projectId]/performance/zisk/page.tsx",
         "src/app/app/[projectId]/spotreba/page.tsx",
-        "src/app/app/[projectId]/ltv/page.tsx",
-        "src/app/app/[projectId]/publikum/page.tsx",
-        "src/app/app/[projectId]/kvalita-leadu/page.tsx"
+        "src/app/app/[projectId]/performance/ltv/page.tsx",
+        "src/app/app/[projectId]/performance/publikum/page.tsx",
+        "src/app/app/[projectId]/performance/kvalita-leadu/page.tsx"
       ],
       "group": "Analytics & Reporting",
       "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
@@ -4618,7 +4626,20 @@
         "src/lib/projects/icon-keys.ts",
         "src/lib/projects/name.ts",
         "src/lib/projects/provision.ts",
-        "src/lib/projects/areas.ts"
+        "src/lib/projects/areas.ts",
+        "src/lib/projects/nav-location.ts",
+        "src/lib/projects/roof.ts",
+        "src/app/app/[projectId]/reach/page.tsx",
+        "src/app/app/[projectId]/local/page.tsx",
+        "src/app/app/[projectId]/studio/page.tsx",
+        "src/app/app/[projectId]/channels/page.tsx",
+        "src/components/app/roof/AreaRoof.tsx",
+        "src/components/app/roof/AreaRoofPage.tsx",
+        "src/components/app/roof/RoomCard.tsx",
+        "src/components/app/roof/RoomTrail.tsx",
+        "src/components/app/roof/HomeLamps.tsx",
+        "src/lib/music/channel-catalog.ts",
+        "src/lib/music/track.ts"
       ],
       "group": "Authenticated Product Shell",
       "group_id": "e8028227-6d96-42a5-8d3a-fc7741b799a4",
@@ -4925,13 +4946,13 @@
       "db_tables": [],
       "description": "Three client-deliverable reporting module pages: Reporty (lists all shared campaign reports with links), Report (per-project campaign report viewer), and Měsíční report (a client-ready monthly performance recap with KPI tiles grounded in the project dataset and recap history). Monthly recap checks staleness and streams the current period's hash-matched history for narrative generation.",
       "entry_points": [
-        "src/app/app/[projectId]/mesicni-report/page.tsx",
-        "src/app/app/[projectId]/reporty/page.tsx"
+        "src/app/app/[projectId]/performance/mesicni-report/page.tsx",
+        "src/app/app/[projectId]/performance/reporty/page.tsx"
       ],
       "file_paths": [
-        "src/app/app/[projectId]/reporty/page.tsx",
-        "src/app/app/[projectId]/report/page.tsx",
-        "src/app/app/[projectId]/mesicni-report/page.tsx"
+        "src/app/app/[projectId]/performance/reporty/page.tsx",
+        "src/app/app/[projectId]/performance/report/page.tsx",
+        "src/app/app/[projectId]/performance/mesicni-report/page.tsx"
       ],
       "group": "Analytics & Reporting",
       "group_id": "efdc4481-1033-4eab-9d32-a7b9cf097092",
@@ -5235,11 +5256,11 @@
       ],
       "description": "Social media center: a module page (Sociální sítě) embedded in the project shell for drafting, scheduling, and reviewing posts, backed by four API routes. The posts route handles list/create/update/delete with platform-limit enforcement and simulated publishing in demo mode; accounts route manages connected platform credentials; messages route serves the inbox; and draft route is the AI-delegate endpoint for generating social copy via the shared AI dispatch core.",
       "entry_points": [
-        "src/app/app/[projectId]/socialni/page.tsx",
+        "src/app/app/[projectId]/channels/socialni/page.tsx",
         "src/app/api/social/posts/route.ts"
       ],
       "file_paths": [
-        "src/app/app/[projectId]/socialni/page.tsx",
+        "src/app/app/[projectId]/channels/socialni/page.tsx",
         "src/app/api/social/posts/route.ts",
         "src/app/api/social/accounts/route.ts",
         "src/app/api/social/draft/route.ts",
@@ -5693,13 +5714,13 @@
       ],
       "description": "The AI communication twin: three tightly-coupled module pages covering training (Twin — voice per channel distilled from real messages), channel management (Správa kanálů — where the twin may speak and its autonomy level per channel), and the unified message inbox (Schránka — reviews AI-drafted replies to leads and social messages). Rychlá reakce is an absorbed legacy inbox now merged into Schránka. Twin state (voice, style, channel config, draft outbox) is persisted via the twin API.",
       "entry_points": [
-        "src/app/app/[projectId]/twin/page.tsx",
+        "src/app/app/[projectId]/channels/twin/page.tsx",
         "src/app/api/projects/[id]/twin/route.ts"
       ],
       "file_paths": [
-        "src/app/app/[projectId]/twin/page.tsx",
-        "src/app/app/[projectId]/schranka/page.tsx",
-        "src/app/app/[projectId]/sprava-kanalu/page.tsx",
+        "src/app/app/[projectId]/channels/twin/page.tsx",
+        "src/app/app/[projectId]/channels/schranka/page.tsx",
+        "src/app/app/[projectId]/channels/sprava-kanalu/page.tsx",
         "src/app/app/[projectId]/rychla-reakce/page.tsx",
         "src/app/api/projects/[id]/twin/route.ts",
         "src/app/api/projects/[id]/twin/send/route.ts"

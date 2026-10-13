@@ -5,8 +5,8 @@ import { gotoAppHub } from "./support";
  * End-to-end coverage for the free-channel path — "Kanály zdarma" — the app's
  * zero-ad-budget core path (docs/ship/2026-08-28-kanaly-core-path.md §1.2):
  *
- *   /app/[projectId]/kanaly          — the ranked plan of free visibility channels
- *   /app/[projectId]/klicova-slova   — the SAME composed visibility plan, other end
+ *   /app/[projectId]/channels/kanaly — the ranked plan of free visibility channels
+ *   /app/[projectId]/reach/klicova-slova — the SAME composed visibility plan, other end
  *
  * Until this file the module had no e2e coverage at all (gap T2): 7 specs, none
  * touching `/kanaly`, while the module was rebuilt after the last UAT run. What it
@@ -66,7 +66,7 @@ function channelTable(page: Page) {
   return page.locator("table").first();
 }
 
-test.describe.serial("/app/[projectId]/kanaly — free-channel plan", () => {
+test.describe.serial("/app/[projectId]/channels/kanaly — free-channel plan", () => {
   /** Scratch project shared by the whole describe; deleted by the last test. */
   let projectId = "";
   /** The channel the wizard configured — asserted again after the reload. */
@@ -90,7 +90,7 @@ test.describe.serial("/app/[projectId]/kanaly — free-channel plan", () => {
 
   test("renders the visibility plan card and the ranked channel table", async ({ page }) => {
     test.skip(!projectId, "no scratch project");
-    await page.goto(`/app/${projectId}/kanaly`);
+    await page.goto(`/app/${projectId}/channels/kanaly`);
 
     await expect(moduleHeading(page, /Kanály zdarma|Free channels/)).toBeVisible({ timeout: 45_000 });
 
@@ -131,7 +131,7 @@ test.describe.serial("/app/[projectId]/kanaly — free-channel plan", () => {
 
   test("the seeded plan speaks the project's business — no placeholder filler", async ({ page }) => {
     test.skip(!projectId, "no scratch project");
-    await page.goto(`/app/${projectId}/kanaly`);
+    await page.goto(`/app/${projectId}/channels/kanaly`);
     await expect(moduleHeading(page, /Kanály zdarma|Free channels/)).toBeVisible({ timeout: 45_000 });
 
     // The card surfaces the top channel's first action, one of the three filled
@@ -159,7 +159,7 @@ test.describe.serial("/app/[projectId]/kanaly — free-channel plan", () => {
 
   test("a decision made in the wizard is pinned and survives a reload", async ({ page }) => {
     test.skip(!projectId, "no scratch project");
-    await page.goto(`/app/${projectId}/kanaly`);
+    await page.goto(`/app/${projectId}/channels/kanaly`);
     await expect(moduleHeading(page, /Kanály zdarma|Free channels/)).toBeVisible({ timeout: 45_000 });
 
     const table = channelTable(page);
@@ -211,7 +211,7 @@ test.describe.serial("/app/[projectId]/kanaly — free-channel plan", () => {
 
   test("/klicova-slova renders the same visibility plan", async ({ page }) => {
     test.skip(!projectId, "no scratch project");
-    await page.goto(`/app/${projectId}/klicova-slova`);
+    await page.goto(`/app/${projectId}/reach/klicova-slova`);
     await expect(moduleHeading(page, /Klíčová slova|Keywords/)).toBeVisible({ timeout: 45_000 });
 
     const card = planCard(page);

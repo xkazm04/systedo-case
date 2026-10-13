@@ -12,6 +12,7 @@ import ChannelsSection from "@/components/dashboard/vykon/ChannelsSection";
 import PnoGauge from "@/components/dashboard/vykon/PnoGauge";
 import AlertsPanel from "@/components/dashboard/vykon/AlertsPanel";
 import InsightsPanel from "@/components/dashboard/vykon/InsightsPanel";
+import PerformanceStation from "@/components/dashboard/vykon/PerformanceStation";
 import {
   anomalyImpact,
   bucketize,
@@ -187,53 +188,39 @@ export default function DashboardClient({
   const hasAlerts = topAnomalies.length > 0;
 
   return (
-    <div className="stagger space-y-6">
-      <PeriodHeader
-        period={period}
-        periodKey={periodKey}
-        onPeriodChange={setPeriodKey}
-        baseline={baseline}
-        onBaselineChange={setBaselineKey}
-        yoySupported={yoySupported}
-        truncated={result.truncated}
-        actualDays={result.actualDays}
-        reportHref={reportHref}
-      />
-
-      <KpiGrid
-        periodKey={periodKey}
-        totals={c}
-        result={result}
-        buckets={buckets}
-        goalPno={goalPno}
-        baseline={baseline}
-      />
-
-      {pacing && (
-        <GoalPacing
-          pacing={pacing}
-          history={monthlyAttainmentHistory(data.daily, data.goals.monthlyRevenue)}
+    <div className="stagger grid gap-14">
+      <PerformanceStation step="measure">
+        <PeriodHeader
+          period={period}
+          periodKey={periodKey}
+          onPeriodChange={setPeriodKey}
+          baseline={baseline}
+          onBaselineChange={setBaselineKey}
+          yoySupported={yoySupported}
+          truncated={result.truncated}
+          actualDays={result.actualDays}
+          reportHref={reportHref}
         />
-      )}
+        <KpiGrid periodKey={periodKey} totals={c} result={result} buckets={buckets} goalPno={goalPno} baseline={baseline} />
+        {pacing && <GoalPacing pacing={pacing} history={monthlyAttainmentHistory(data.daily, data.goals.monthlyRevenue)} />}
+        <TrendCard
+          ref={chartCardRef}
+          buckets={buckets}
+          compareBuckets={compareBuckets}
+          baseline={result.baseline}
+          trendMetric={trendMetric}
+          onMetricChange={setTrendMetric}
+          granularity={period.granularity}
+          anomalies={anomalies}
+          goalPno={goalPno}
+          chartFocus={chartFocus}
+          period={period}
+        />
+      </PerformanceStation>
 
-      <TrendCard
-        ref={chartCardRef}
-        buckets={buckets}
-        compareBuckets={compareBuckets}
-        baseline={result.baseline}
-        trendMetric={trendMetric}
-        onMetricChange={setTrendMetric}
-        granularity={period.granularity}
-        anomalies={anomalies}
-        goalPno={goalPno}
-        chartFocus={chartFocus}
-        period={period}
-      />
-
-      {/* channels + alerts + insights in the main column; PNO gauge + weekday
-          profile in the thin right rail */}
-      <div key={`channels-${periodKey}`} className="grid animate-fade-in gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-6">
+      {/* Triage: channels in the main column, the PNO gauge + weekday profile in the rail */}
+      <PerformanceStation step="triage">
+        <div key={`channels-${periodKey}`} className="grid animate-fade-in gap-6 lg:grid-cols-[1fr_320px]">
           <div ref={channelsRef} className="scroll-mt-6">
             <ChannelsSection
               channels={channels}
@@ -247,49 +234,51 @@ export default function DashboardClient({
               highlightChannel={channelFocus}
             />
           </div>
-          <div className={`grid gap-6 ${hasAlerts ? "md:grid-cols-2" : ""}`}>
-            {hasAlerts && (
-              <AlertsPanel
-                topAnomalies={explainedTop}
-                count={periodAnomalies.length}
-                impact={impact}
-                period={period}
-                onFocus={focusAlert}
-                coverage={coverage}
-              />
-            )}
-            <InsightsPanel
-              channels={channels}
-              revenueDelta={result.delta.revenue}
-              pno={c.pno}
-              goalPno={goalPno}
-              trends={trends}
-              profile={profile}
-              significance={result.significance}
+          <aside className="space-y-6">
+            <PnoGauge pno={c.pno} goalPno={goalPno} />
+            <WeekdayProfileCard profile={profile} />
+          </aside>
+        </div>
+      </PerformanceStation>
+
+      <PerformanceStation step="act">
+        <div className={`grid gap-6 ${hasAlerts ? "md:grid-cols-2" : ""}`}>
+          {hasAlerts && (
+            <AlertsPanel
+              topAnomalies={explainedTop}
+              count={periodAnomalies.length}
+              impact={impact}
+              period={period}
+              onFocus={focusAlert}
               coverage={coverage}
-              funnel={funnel}
-              baseline={baseline}
-              windowEndDate={result.points[result.points.length - 1]?.date ?? ""}
-              onFocusMetric={focusChart}
-              onMixShift={focusChannel}
-            />
-          </div>
-          {adsDiagnosis && (
-            <AdsDiagnosisPanel
-              projectId={adsDiagnosis.projectId}
-              initialDiagnosis={adsDiagnosis.initial}
-              history={adsDiagnosis.history}
-              currentDigest={adsDiagnosis.digest}
-              currentPno={adsDiagnosis.pno}
             />
           )}
+          <InsightsPanel
+            channels={channels}
+            revenueDelta={result.delta.revenue}
+            pno={c.pno}
+            goalPno={goalPno}
+            trends={trends}
+            profile={profile}
+            significance={result.significance}
+            coverage={coverage}
+            funnel={funnel}
+            baseline={baseline}
+            windowEndDate={result.points[result.points.length - 1]?.date ?? ""}
+            onFocusMetric={focusChart}
+            onMixShift={focusChannel}
+          />
         </div>
-
-        <aside className="space-y-6">
-          <PnoGauge pno={c.pno} goalPno={goalPno} />
-          <WeekdayProfileCard profile={profile} />
-        </aside>
-      </div>
+        {adsDiagnosis && (
+          <AdsDiagnosisPanel
+            projectId={adsDiagnosis.projectId}
+            initialDiagnosis={adsDiagnosis.initial}
+            history={adsDiagnosis.history}
+            currentDigest={adsDiagnosis.digest}
+            currentPno={adsDiagnosis.pno}
+          />
+        )}
+      </PerformanceStation>
     </div>
   );
 }
