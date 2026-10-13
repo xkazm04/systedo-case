@@ -13395,7 +13395,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/profit/OverheadPanel.tsx:136 The overhead panel colours contribution POAS using the ratio test r.contributionPoas >= 1, which colours zero-cost organic channels with positive contribution as negative losses because their guarded POAS is 0.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:7cfcba924d3986e7",
+          "evaluatedRevision": 1
         },
         {
           "subject": "eval-harness",
@@ -13517,7 +13521,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/profit/compute.ts:56 The profit computation falls back to a fabricated 45% margin for unknown channels instead of withholding the profit verdict and showing efficiency only.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:7cfcba924d3986e7",
+          "evaluatedRevision": 1
         },
         {
           "subject": "budget-reallocation-prescription",

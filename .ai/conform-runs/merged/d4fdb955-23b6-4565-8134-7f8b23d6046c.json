@@ -1,0 +1,217 @@
+{
+  "schema": "conform-run/1",
+  "worker": "d4fdb955-23b6-4565-8134-7f8b23d6046c",
+  "subject": "profit-on-ad-spend-economics",
+  "evaluatedAt": "2026-10-13T11:51:40.703690+00:00",
+  "provider": "agy",
+  "model": "gemini-3.8-flash-high",
+  "pairs": [
+    {
+      "context": "profit-analytics",
+      "subject": "profit-on-ad-spend-economics",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/components/app/modules/profit/OverheadPanel.tsx:136 The overhead panel colours contribution POAS using the ratio test r.contributionPoas >= 1, which colours zero-cost organic channels with positive contribution as negative losses because their guarded POAS is 0.",
+      "techniques": [
+        {
+          "technique": "break-even-roas-is-inverse-margin",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/profit/ChannelsTable.tsx:81 Renders gross break-even derived as 1 / margin beside each channel row."
+        },
+        {
+          "technique": "efficiency-is-not-profitability",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/profit/strings.ts:132 The table legend defines 'Profitable' as the ratio test ROAS ≥ break-even rather than net profit being non-negative."
+        },
+        {
+          "technique": "overhead-and-fulfilment-loading",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/profit/strings.ts:137 Discloses that fixed overhead is allocated across channels by revenue share to compute contribution POAS."
+        },
+        {
+          "technique": "profitable-means-net-profit-nonnegative",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/profit/OverheadPanel.tsx:136 Colours contribution POAS using the ratio test >= 1, styling zero-cost organic channels as losses because their guarded POAS evaluates to 0."
+        },
+        {
+          "technique": "ratio-vocabulary-one-guarded-divide",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/profit/SummaryBand.tsx:45 Displays portfolio POAS derived alongside ROAS from the shared guarded ratio vocabulary."
+        },
+        {
+          "technique": "response-curve-gate-and-marginal-return",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/profit/ReallocationTable.tsx:69 Discloses whether budget reallocation was driven by a fitted diminishing-returns curve or held linear with constant ROAS."
+        }
+      ]
+    },
+    {
+      "context": "profit-finance",
+      "subject": "profit-on-ad-spend-economics",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/lib/profit/compute.ts:56 The profit computation falls back to a fabricated 45% margin for unknown channels instead of withholding the profit verdict and showing efficiency only.",
+      "techniques": [
+        {
+          "technique": "break-even-roas-is-inverse-margin",
+          "verdict": "conformant",
+          "evidence": "src/lib/profit/core.ts:70 Derives break-even ROAS as 1 / margin, returning Infinity for non-positive margins."
+        },
+        {
+          "technique": "efficiency-is-not-profitability",
+          "verdict": "deviation",
+          "evidence": "src/lib/profit/compute.ts:56 Falls back to a default margin rather than withholding profitability claims and showing efficiency only when no margin is known."
+        },
+        {
+          "technique": "overhead-and-fulfilment-loading",
+          "verdict": "conformant",
+          "evidence": "src/lib/profit/reconcile.ts:14 Sets the 2 percentage-point threshold for material divergence between live blended margins and the persisted cost model."
+        },
+        {
+          "technique": "profitable-means-net-profit-nonnegative",
+          "verdict": "conformant",
+          "evidence": "src/lib/profit/compute.ts:45 Computes profitability strictly from non-negative net profit, preserving correct verdicts for zero-cost organic channels."
+        },
+        {
+          "technique": "ratio-vocabulary-one-guarded-divide",
+          "verdict": "deviation",
+          "evidence": "src/lib/profit/overhead.ts:47 Inlines a guarded divide rather than calling the shared poas or safe ratio helper from @/lib/metrics."
+        },
+        {
+          "technique": "response-curve-gate-and-marginal-return",
+          "verdict": "conformant",
+          "evidence": "src/lib/profit/compute.ts:251 Evaluates marginal POAS along fitted diminishing-returns curves, falling back to constant marginal profit when unfitted."
+        }
+      ]
+    },
+    {
+      "context": "performance-modules",
+      "subject": "profit-on-ad-spend-economics",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/app/app/[projectId]/performance/zisk/page.tsx:36 The Zisk page initialises channel margins with hardcoded defaults and fallback values for all channels instead of checking whether the merchant supplied margins and withholding profit claims if they did not.",
+      "techniques": [
+        {
+          "technique": "efficiency-is-not-profitability",
+          "verdict": "deviation",
+          "evidence": "src/app/app/[projectId]/performance/zisk/page.tsx:36 The Zisk page initialises channel margins with hardcoded defaults/fallbacks rather than withholding profit calculations when no merchant margin has been supplied."
+        },
+        {
+          "technique": "overhead-and-fulfilment-loading",
+          "verdict": "conformant",
+          "evidence": "src/app/app/[projectId]/performance/zisk/page.tsx:47 Loads the shared project cost model to seed the overhead view and keep profit numbers consistent across pages."
+        },
+        {
+          "technique": "response-curve-gate-and-marginal-return",
+          "verdict": "conformant",
+          "evidence": "src/app/app/[projectId]/performance/zisk/page.tsx:79 Fits server-side response curves per period, passing gated curves into the Zisk simulator."
+        }
+      ]
+    }
+  ],
+  "declined": [
+    {
+      "subject": "profit-on-ad-spend-economics",
+      "context": "organic-channels-keywords",
+      "reason": "withdrawn after review: reviewer (sonnet): The not-applicable anchors (types.ts:21 category list, :34 effort, :41 stage) are incidental. The context also includes keywords/types.ts, which has a spendEfficiency calculation on bid costs, and the grep terms (poas, breakEven, marginalPoas, grossProfit) don't rule out other ad-economics code."
+    },
+    {
+      "subject": "profit-on-ad-spend-economics",
+      "context": "cost-goals-ltv",
+      "reason": "withdrawn after review: reviewer (sonnet): The deviation anchor src/lib/margins.ts:34 is outside this context's files. The fabrication it describes happens in src/lib/profit/compute.ts and overhead.ts, which belong to the profit-finance context. The context's own cost-model code rejects invalid margins."
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-13T11:51:40.703690+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "profit-on-ad-spend-economics"
+      ],
+      "techniques": [
+        "break-even-roas-is-inverse-margin",
+        "efficiency-is-not-profitability",
+        "overhead-and-fulfilment-loading",
+        "profitable-means-net-profit-nonnegative",
+        "ratio-vocabulary-one-guarded-divide",
+        "response-curve-gate-and-marginal-return"
+      ],
+      "deviations": 1,
+      "context": "profit-analytics",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-13T11:51:40.703690+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "profit-on-ad-spend-economics"
+      ],
+      "techniques": [
+        "break-even-roas-is-inverse-margin",
+        "efficiency-is-not-profitability",
+        "overhead-and-fulfilment-loading",
+        "profitable-means-net-profit-nonnegative",
+        "ratio-vocabulary-one-guarded-divide",
+        "response-curve-gate-and-marginal-return"
+      ],
+      "deviations": 1,
+      "context": "profit-finance",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-13T11:51:40.703690+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "profit-on-ad-spend-economics"
+      ],
+      "techniques": [
+        "break-even-roas-is-inverse-margin",
+        "efficiency-is-not-profitability",
+        "overhead-and-fulfilment-loading",
+        "profitable-means-net-profit-nonnegative",
+        "ratio-vocabulary-one-guarded-divide",
+        "response-curve-gate-and-marginal-return"
+      ],
+      "deviations": 0,
+      "context": "organic-channels-keywords",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-13T11:51:40.703690+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "profit-on-ad-spend-economics"
+      ],
+      "techniques": [
+        "break-even-roas-is-inverse-margin",
+        "efficiency-is-not-profitability",
+        "overhead-and-fulfilment-loading",
+        "ratio-vocabulary-one-guarded-divide",
+        "response-curve-gate-and-marginal-return"
+      ],
+      "deviations": 1,
+      "context": "cost-goals-ltv",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-13T11:51:40.703690+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "profit-on-ad-spend-economics"
+      ],
+      "techniques": [
+        "efficiency-is-not-profitability",
+        "overhead-and-fulfilment-loading",
+        "response-curve-gate-and-marginal-return"
+      ],
+      "deviations": 1,
+      "context": "performance-modules",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    }
+  ]
+}
