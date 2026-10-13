@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+# managed by scripts/install-commit-hooks.mjs — delete this line to own the file
+#
+# Machine-readable authorship, without anyone remembering.
+#
+# ~97% of the commits here are agent-written and the log cannot say which, so a
+# commit made while an agent session is driving gets a `Co-Authored-By:` trailer
+# below a blank line. A PERSON'S commit gets none: the detection is
+# environment-based on purpose (scripts/commit-attribution.mjs), because claiming
+# an assistant wrote a human's commit is the same lie in the other direction.
+#
+# Runs for `git commit -m` too, which is how automation commits. Fails open — a
+# hook on every commit must never be the reason a commit cannot be made.
+node scripts/commit-attribution.mjs "$1" "$2"

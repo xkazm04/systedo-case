@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+# managed by scripts/install-commit-hooks.mjs — delete this line to own the file
+#
+# The commit-subject contract, at the one moment the message is still free to
+# change without rewriting history.
+#
+# Rubric A5 (scripts/commit-subject.mjs) already blocks a subject that narrates
+# the run instead of naming the change — but it runs on a DIFF, in
+# agent-review.yml and inside `npm run check:ci`, which is after the commit
+# exists. Here the fix is an edit instead of a rebase.
+#
+# Bypass, and own it:  git commit --no-verify
+node scripts/commit-check.mjs "$1" || exit 1
+
+# The braces for that belt: prepare-commit-msg appends the authorship trailer,
+# and this refuses an agent-written commit that still carries none.
+node scripts/commit-attribution.mjs --check "$1" || exit 1
