@@ -110,10 +110,9 @@ is a red build, not a dead link somebody finds later.
 
 ## Every ADR, by the seam it governs
 
-An ADR is the document you want when a change would make a seam behave
-differently. Each one is listed here so "is there a decision about this?" is
-answerable without opening eleven files; [`docs/adr/README.md`](adr/README.md)
-is the record's own index and explains how to write one.
+An ADR is the document you want when a change would make a seam behave differently. Each is
+listed here so "is there a decision about this?" needs no file-by-file search;
+[`docs/adr/README.md`](adr/README.md) is the record's own index and explains how to write one.
 
 | Seam you are about to change | ADR |
 |---|---|
@@ -129,3 +128,4 @@ is the record's own index and explains how to write one.
 | Reading one project across several ad accounts | [ADR-0010](adr/0010-project-reads-union-of-account-tenants.md) |
 | What may stop a change, and where that is written | [ADR-0011](adr/0011-required-checks-are-enumerated-in-the-repo.md) |
 | The generated regions of the guidance surface | [ADR-0012](adr/0012-generated-regions-are-data.md) |
+| The app redesign: areas and room routes, design kit, CLI engine, research stance, music type | [0013](adr/0013-area-roofs-replace-the-module-sidebar.md), [0014](adr/0014-dark-only-optic-bench-design-kit.md), [0015](adr/0015-local-first-claude-cli-engine.md), [0016](adr/0016-web-research-is-a-separate-cli-stance.md), [0017](adr/0017-music-project-type-and-track-offering.md) |

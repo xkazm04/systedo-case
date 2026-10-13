@@ -110,3 +110,23 @@ findings for the weekly triage; a human answers them.
   reasoning here — that the pre-push hook is the moment that matters — is about
   that topology. Behind a promotion step, the same enumeration would want to gate
   the promotion instead, and `check:ci` would stop being the place it belongs.
+
+## Consequences observed
+
+_Read back 2026-10-13 against the tree._
+
+- **The enumeration is real and in use.** `.github/required-checks.json` lists six
+  checks. `npm run merge-gate` is part of `check:ci`. The list has changed through
+  ordinary feature commits, such as the SAST gate becoming blocking and the a11y
+  budgets joining the E2E job, each in the same commit as the check it named.
+  That is the intended friction working rather than being routed around.
+- **The GitHub-side half is declared, and whether it is applied is still
+  unknown.** `.github/branch-ruleset.json` and `scripts/branch-protection.mjs`
+  exist. This read-back did not see a `protection:verify` result, so it cannot
+  say whether the ruleset GitHub enforces matches the file. The first revisit
+  trigger has therefore not been tested. Its absence is a missing observation,
+  not evidence that the two match.
+- **The third revisit trigger may be approaching.** ADR-0015 makes
+  Adamant local-first OSS. If master stops being the thing that ships on push to
+  Vercel, the reason the pre-push hook is "the moment that matters" weakens, and
+  this record should be re-read when that ADR is accepted.

@@ -113,3 +113,28 @@ same shape).
   made this a non-migration. A required field means the rows have been rewritten,
   and the argument for keeping the key per-account should be re-made rather than
   inherited.
+
+## Consequences observed
+
+_Read back 2026-10-13 against the tree. These are not measurements of tenants._
+
+- **The single source of truth held.** `src/lib/campaigns/provider-precedence.ts`
+  is still the one spec. Both sides of the agreement this record asked for import
+  it: the sync fan-out (`src/app/api/cron/sync/route.ts`) and the union read.
+  `test-unit/campaigns-source-union.test.mjs` pins the pairing. No second copy of
+  "which tenants does this project read" has appeared.
+- **Mixed currency shipped the way it was predicted.** `mixedCurrency` exists only
+  above one tenant. It is carried from `src/app/api/campaigns/state.ts` through
+  `src/components/campaigns/campaigns-state.ts` to the console, so a
+  single-source payload is unchanged.
+- **The "union read is not a union write" line is still holding.** The Sklik write
+  path exists in code (`src/lib/campaigns/mutator.ts`). It still resolves one
+  tenant and stays disarmed behind `SKLIK_WRITES_ENABLED`, and the owner's live
+  proof is still outstanding. So the third revisit trigger has not fired.
+- **The perf trigger cannot fire yet, because nothing measures it.**
+  `.github/perf-budgets.json` budgets no campaigns-console route. A tenant with
+  enough accounts to slow the fan-out would currently be noticed by a person, not
+  by a gate. Add the console to the budgets before relying on that trigger.
+- **The ground under the cloud half moved.** ADR-0015 makes local-first
+  the design target. That changes nothing in this record's mechanism, but most
+  tenants will now read the sqlite twin rather than Firestore.

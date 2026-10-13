@@ -21,9 +21,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Adamant (systedo-case) — agent guide
 
-Adtech marketing-automation suite ("Adamant", ex-Systedo). Czech-first (cs is the
-source locale, en derived). Public site at `/`, authed product at `/app` with
-per-project tenancy. Deploys to Vercel serverless.
+Adtech marketing-automation suite ("Adamant"). Local-first OSS on the operator's machine with
+signed-in LLM CLIs; hosted Vercel is the port (ADR-0015). English source, Czech transcreated
+(ADR-0006). Public site `/`; authed `/app`, per-project tenancy, six area roofs (ADR-0013).
 
 **This file is canonical.** `CLAUDE.md` is a shim (an `@AGENTS.md` import plus a generated
 context map) and `CONTRIBUTING.md` says the same things to a human. Where two disagree,
@@ -102,12 +102,12 @@ regenerates the artefact, and the file where an exception is recorded.
 2. Auth.js v5 (Google) + firebase-admin; prod sessions/data live in Firestore.
 3. Dual-store pattern: prod = Firestore; local dev = node:sqlite under `.data/` (`LOCAL_DB=true`). Same store interfaces, env-switched; `DEV_AUTH`/`LOCAL_DB` are ignored when `NODE_ENV=production`.
 4. Tenancy: the tenant key embeds userId (`u_{userId}_proj_{projectId}`) — no cross-user IDOR by construction.
-5. Every LLM text call goes through ONE chokepoint: `generateStructured()` in `src/lib/llm/index.ts` (dev = Claude CLI on subscription, prod = Gemini flash; no provider → demo mode).
+5. Every LLM text call goes through ONE chokepoint: `generateStructured()` in `src/lib/llm/index.ts` (local-first: Claude Code CLI by default, Gemini only in hosted `cloud` — ADR-0015; no provider → demo mode). Tools are a separate CLI stance, never a flag on the no-tools transport (ADR-0016).
 6. Non-chokepoint AI: Leonardo image gen + Gemini vision scoring + embeddings (Creative Studio, patterns RAG).
 7. Billing/abuse rails are server-enforced: `usage.consume()` Firestore txn, durable per-IP limits + global daily spend ceiling (`src/lib/ai/durable-limit.ts`) on all paid routes.
 8. i18n is colocated: each component owns `const T = { cs: {...}, en: {...} }` (`TDict`), consumed via `useT(T)` (client) / `await getT(T)` (server); central dict only for nav/footer chrome. Contract: `docs/i18n/contract.md`.
 9. Six crons in `vercel.json` → `/api/cron/*`, guarded by `CRON_SECRET` through `src/lib/cron-auth.ts` (constant-time).
-10. Design system: token-driven (`ink`/`muted`/`surface`/`brand-*`, dark mode via token overrides), shared `Button` in `src/components/ui.tsx`; conventions in `docs/design-system.md`.
+10. Design system: dark-only Optic Bench kit on semantic token roles (ADR-0014), shared `Button` in `src/components/ui.tsx`; conventions in `docs/design-system.md`.
 
 ## Conventions that bite
 

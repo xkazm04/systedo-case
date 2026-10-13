@@ -33,6 +33,11 @@ consequences. The long-form designs stay where they are —
 | [0010](0010-project-reads-union-of-account-tenants.md) | A project reads the union of its per-account tenants; the key stays per-account, sources are tagged, report sections blend on read | Accepted |
 | [0011](0011-required-checks-are-enumerated-in-the-repo.md) | What may stop a change is enumerated in `.github/required-checks.json` and verified by a gate, not remembered in a settings page | Accepted |
 | [0012](0012-generated-regions-are-data.md) | A generated region of the guidance surface carries data; an instruction inside one has to be read and accepted by a human before an agent obeys it | Accepted |
+| [0013](0013-area-roofs-replace-the-module-sidebar.md) | Six area roofs replace the module sidebar; modules become rooms nested under them | Accepted |
+| [0014](0014-dark-only-optic-bench-design-kit.md) | One dark-only brand, Optic Bench, carried by semantic token roles and a shared kit | Accepted |
+| [0015](0015-local-first-claude-cli-engine.md) | Adamant is local-first OSS, and the Claude Code CLI is its default LLM engine | Accepted |
+| [0016](0016-web-research-is-a-separate-cli-stance.md) | In-app web research is a separate CLI stance, never a flag on the generation transport | Accepted |
+| [0017](0017-music-project-type-and-track-offering.md) | A `music` project type, a `track` offering kind, and per-channel metrics that state their source | Accepted |
 
 ## Writing one
 
