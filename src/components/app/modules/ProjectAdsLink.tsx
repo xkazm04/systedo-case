@@ -234,7 +234,7 @@ export default function ProjectAdsLink({ accounts = [] }: { accounts?: LinkableA
               type="button"
               onClick={() => confirming?.run()}
               disabled={busy}
-              className="rounded-pill bg-coral-600 px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-colors hover:bg-coral-500 disabled:opacity-60"
+              className="rounded-pill bg-coral-600 px-5 py-2.5 text-sm font-semibold text-on-action shadow-card transition-colors hover:bg-coral-500 disabled:opacity-60"
             >
               {busy ? t("working") : confirming?.confirm}
             </button>

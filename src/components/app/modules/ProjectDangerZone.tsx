@@ -121,7 +121,7 @@ export default function ProjectDangerZone() {
             router.push("/app");
             router.refresh();
           }}
-          className="mt-4 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+          className="mt-4 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-on-action transition-colors hover:bg-brand-800"
         >
           {t("continueBtn")}
         </button>
@@ -144,7 +144,7 @@ export default function ProjectDangerZone() {
             type="button"
             onClick={remove}
             disabled={busy}
-            className="rounded-pill bg-negative px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="rounded-pill bg-negative px-4 py-2 text-sm font-semibold text-on-action transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {busy ? t("deleting") : t("confirmDelete", { name: project.name })}
           </button>

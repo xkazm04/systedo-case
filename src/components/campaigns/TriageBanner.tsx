@@ -137,7 +137,7 @@ export default function TriageBanner({
               type="button"
               onClick={onEvaluateFlagged}
               title={t("evaluateFlaggedTitle")}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-coral-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-coral-500"
+              className="inline-flex items-center gap-1.5 rounded-pill bg-coral-600 px-3 py-1.5 text-xs font-semibold text-on-action transition-colors hover:bg-coral-500"
             >
               <Bolt width={14} height={14} aria-hidden />
               {t("evaluateFlagged", { n: batchPending })}

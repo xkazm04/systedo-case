@@ -51,7 +51,7 @@ export default function SourceSwitch({
           aria-pressed={s === active}
           onClick={() => onSelect(s)}
           className={`pill cursor-pointer transition-colors disabled:opacity-60 ${
-            s === active ? "bg-brand-700 text-white" : "bg-navy-50 text-muted hover:text-brand-accent"
+            s === active ? "bg-brand-700 text-on-action" : "bg-navy-50 text-muted hover:text-brand-accent"
           }`}
         >
           {t(s)}

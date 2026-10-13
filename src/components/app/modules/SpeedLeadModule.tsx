@@ -536,7 +536,7 @@ export default function SpeedLeadModule({
                   type="button"
                   onClick={generateReply}
                   disabled={status === "loading" || !draftGate.allowed || !aiAllowed}
-                  className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+                  className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3 py-1.5 text-xs font-semibold text-on-action transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
                 >
                   {status === "loading" && aiLeadId === selectedId ? (
                     <>
@@ -642,7 +642,7 @@ export default function SpeedLeadModule({
                         <button
                           type="button"
                           onClick={confirmReject}
-                          className="rounded-pill bg-negative px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                          className="rounded-pill bg-negative px-4 py-2 text-xs font-semibold text-on-action transition-opacity hover:opacity-90"
                         >
                           {t("confirmReject")}
                         </button>
@@ -747,7 +747,7 @@ export default function SpeedLeadModule({
               type="button"
               onClick={() => void recordReply()}
               disabled={respondedAt.has(selected.id) || writeBack.pendingId === selected.id}
-              className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-on-action transition-colors hover:bg-brand-800 disabled:opacity-50"
             >
               <Bolt width={15} height={15} />
               {selected.contactId

@@ -38,7 +38,7 @@ const TILE_CAP = 10;
  *  with a text token that flips WITH it, so the tile stays legible in dark mode
  *  (brand-700 is a deliberately stable dark teal, hence white on it). */
 function ramp(share: number): string {
-  if (share >= 0.6) return "bg-brand-700 text-white";
+  if (share >= 0.6) return "bg-brand-700 text-on-action";
   if (share >= 0.45) return "bg-brand-200 text-brand-900";
   if (share >= 0.3) return "bg-brand-100 text-brand-900";
   if (share > 0) return "bg-brand-50 text-brand-900";

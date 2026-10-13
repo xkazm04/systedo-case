@@ -192,7 +192,7 @@ export default function AlertsInbox({
         <Bell width={16} height={16} />
         {t("buttonLabel")}
         {unread > 0 && (
-          <span className="tnum grid h-5 min-w-5 place-items-center rounded-full bg-coral-500 px-1 text-[13px] font-bold text-white">
+          <span className="tnum grid h-5 min-w-5 place-items-center rounded-full bg-coral-500 px-1 text-[13px] font-bold text-on-action">
             {unread}
           </span>
         )}

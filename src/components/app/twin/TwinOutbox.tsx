@@ -531,7 +531,7 @@ export default function TwinOutbox({
             type="button"
             onClick={runDraft}
             disabled={!inbound.trim() || ai.status === "loading" || cfg.autonomy === "review"}
-            className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-on-action transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Sparkles width={16} height={16} className={ai.status === "loading" ? "animate-pulse" : ""} />
             {ai.status === "loading" ? t("drafting") : result ? t("regenerate") : t("draft")}
@@ -629,7 +629,7 @@ export default function TwinOutbox({
                       type="button"
                       onClick={runDraft}
                       disabled={!inbound.trim() || ai.status === "loading"}
-                      className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-xs font-semibold text-on-action transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Sparkles width={13} height={13} />
                       {t("regenerate")}
@@ -675,7 +675,7 @@ export default function TwinOutbox({
                     <button
                       type="button"
                       onClick={confirmReject}
-                      className="rounded-pill bg-negative px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                      className="rounded-pill bg-negative px-4 py-2 text-xs font-semibold text-on-action transition-opacity hover:opacity-90"
                     >
                       {t("confirmReject")}
                     </button>
@@ -711,7 +711,7 @@ export default function TwinOutbox({
                     <button
                       type="button"
                       onClick={approve}
-                      className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-800"
+                      className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-xs font-semibold text-on-action transition-colors hover:bg-brand-800"
                     >
                       <Check width={13} height={13} />
                       {t("approve")}
@@ -749,7 +749,7 @@ export default function TwinOutbox({
                 type="button"
                 onClick={() => send(justApproved.id)}
                 disabled={sendingId === justApproved.id}
-                className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-xs font-semibold text-on-action transition-colors hover:bg-brand-800 disabled:opacity-50"
               >
                 <Send width={13} height={13} />
                 {sendingId === justApproved.id ? t("sending") : t("send")}

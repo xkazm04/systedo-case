@@ -137,7 +137,7 @@ export default function ResponseBand({
           <button
             type="button"
             onClick={onEscalate}
-            className="ml-auto inline-flex items-center gap-2 rounded-pill bg-negative px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:opacity-90"
+            className="ml-auto inline-flex items-center gap-2 rounded-pill bg-negative px-4 py-1.5 text-sm font-semibold text-on-action transition-colors hover:opacity-90"
           >
             <Bolt width={14} height={14} />
             {t("escalate")}

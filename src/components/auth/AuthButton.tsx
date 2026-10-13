@@ -60,7 +60,7 @@ export default function AuthButton() {
     <button
       type="button"
       onClick={() => signIn("google")}
-      className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-700 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+      className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-700 px-3.5 py-1.5 text-sm font-semibold text-on-action transition-colors hover:bg-brand-800"
     >
       <GoogleGlyph />
       {/* The full label is ~180px and pushed the header's theme and menu buttons

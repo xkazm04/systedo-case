@@ -102,7 +102,7 @@ export default function ProfitReallocationPanel({
               type="button"
               onClick={() => setStrategy(value)}
               className={`rounded-pill px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                strategy === value ? "bg-brand-700 text-white" : "text-muted hover:text-navy-700"
+                strategy === value ? "bg-brand-700 text-on-action" : "text-muted hover:text-navy-700"
               }`}
             >
               {label}

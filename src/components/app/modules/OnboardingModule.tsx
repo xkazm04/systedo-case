@@ -233,7 +233,7 @@ export default function OnboardingModule({
     <div className="stagger space-y-6">
       {/* Welcome */}
       <div className="flex items-start gap-3 rounded-card border border-brand-200 bg-brand-50 px-5 py-4">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-700 text-white">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-700 text-on-action">
           <Sparkles width={20} height={20} />
         </span>
         <div>
@@ -261,7 +261,7 @@ export default function OnboardingModule({
               type="button"
               onClick={runScan}
               disabled={ai.status === "loading" || url.trim().length < 3}
-              className="inline-flex items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-on-action transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Sparkles width={16} height={16} className={ai.status === "loading" ? "animate-pulse" : ""} />
               {ai.status === "loading" ? t("scanning") : t("scanCta")}
@@ -346,7 +346,7 @@ export default function OnboardingModule({
               type="button"
               onClick={apply}
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-on-action transition-colors hover:bg-brand-800 disabled:opacity-50"
             >
               <Check width={16} height={16} />
               {saving ? t("applying") : t("apply")}
@@ -497,7 +497,7 @@ function SuggestedType({
               type="button"
               onClick={changeType}
               disabled={changing}
-              className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-on-action transition-colors hover:bg-brand-800 disabled:opacity-50"
             >
               <Check width={15} height={15} />
               {changing ? t("typeChanging") : t("typeConfirmCta")}

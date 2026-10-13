@@ -233,7 +233,7 @@ export default function SyncProvenance({
                     type="button"
                     onClick={confirmHalere}
                     disabled={halereConfirming}
-                    className="mt-2 inline-flex items-center gap-1.5 rounded-pill bg-coral-500 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-coral-600 disabled:opacity-60"
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-pill bg-coral-500 px-3 py-1 text-xs font-semibold text-on-action transition-colors hover:bg-coral-600 disabled:opacity-60"
                   >
                     {halereConfirming ? t("halereConfirming") : t("halereConfirm")}
                   </button>

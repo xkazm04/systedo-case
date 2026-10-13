@@ -136,7 +136,7 @@ export default function PendingProposal({
         type="button"
         onClick={() => (confirming ? onApprove(breached) : onArm())}
         disabled={busy}
-        className={`mt-3 inline-flex items-center gap-2 rounded-pill px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-60 ${
+        className={`mt-3 inline-flex items-center gap-2 rounded-pill px-5 py-2.5 text-sm font-semibold text-on-action transition-colors disabled:opacity-60 ${
           confirming || breached ? "bg-negative hover:bg-negative/90" : "bg-brand-700 hover:bg-brand-800"
         }`}
       >

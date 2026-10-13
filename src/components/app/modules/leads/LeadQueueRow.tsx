@@ -82,7 +82,7 @@ export default function LeadQueueRow({
         <span
           className={`tnum inline-flex shrink-0 items-center gap-1.5 rounded-pill px-3 py-1 text-xs font-semibold ${
             phase === "breached"
-              ? "bg-coral-500 text-white"
+              ? "bg-coral-500 text-on-action"
               : phase === "warning"
                 ? "bg-coral-soft text-coral-600"
                 : "bg-navy-50 text-muted"

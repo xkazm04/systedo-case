@@ -216,7 +216,7 @@ export default function PatternsLibrary({ projectId }: { projectId?: string } = 
             type="submit"
             disabled={searching || query.trim().length < 2}
             aria-label={t("searchAriaLabel")}
-            className="inline-flex shrink-0 items-center justify-center rounded-lg bg-brand-700 px-3 py-2 text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
+            className="inline-flex shrink-0 items-center justify-center rounded-lg bg-brand-700 px-3 py-2 text-on-action transition-colors hover:bg-brand-800 disabled:opacity-50"
           >
             <Search width={16} height={16} />
           </button>
@@ -458,7 +458,7 @@ function ManualAdd({ pid, onAdded, t, locale }: { pid?: string; onAdded: (p: Pat
           <button
             type="submit"
             disabled={busy}
-            className="rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
+            className="rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-on-action transition-colors hover:bg-brand-800 disabled:opacity-50"
           >
             {busy ? t("saveBusy") : t("saveBtn")}
           </button>

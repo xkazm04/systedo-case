@@ -180,7 +180,7 @@ export default function Inbox() {
                   <button
                     type="button"
                     onClick={() => replyInTwin(m)}
-                    className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-800"
+                    className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3.5 py-1.5 text-xs font-semibold text-on-action transition-colors hover:bg-brand-800"
                   >
                     <Sparkles width={13} height={13} />
                     {t("replyInTwin")}
@@ -200,7 +200,7 @@ export default function Inbox() {
                       type="button"
                       onClick={() => send(m)}
                       disabled={busy === m.id}
-                      className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3.5 py-1.5 text-xs font-semibold text-on-action transition-colors hover:bg-brand-800 disabled:opacity-50"
                     >
                       <Share width={13} height={13} />
                       {busy === m.id ? t("sending") : t("approveAndSend")}
