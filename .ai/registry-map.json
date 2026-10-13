@@ -4769,10 +4769,10 @@
           "changedAt": "2026-09-29",
           "confidence": "probable",
           "state": "conformant",
-          "evidence": "src/components/campaigns/SyncProvenance.tsx:184-303 discloses source, sync staleness, per-period coverage (with stale flagged) and live-to-sample degradation with a stored diagnostic reason, each next to the number it qualifies — a strong provenance-caveats realization; SharedReportsList.tsx:112-139 correctly surfaces expiry and revoke (the capability's reaper gap belongs to campaigns-reporting/shared-report.ts, judged separately).",
-          "evaluatedAt": "2026-08-31",
-          "evaluatedAgainst": "sha256:96a71f4f3d97eb17",
-          "stale": true
+          "evidence": "src/components/campaigns/SyncProvenance.tsx:249 The component discloses data source provenance, sync staleness, and degraded diagnostic status directly alongside performance metrics.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:a43eabdaa650ed07",
+          "evaluatedRevision": 4
         },
         {
           "subject": "agent-memory",
@@ -5891,13 +5891,12 @@
           "changedAt": "2026-09-29",
           "confidence": "probable",
           "state": "deviation",
-          "evidence": "src/lib/campaigns/shared-report.ts:187 mints a random bearer token as the Firestore doc id with a frozen absolute expiresAt (line 175) and a working revoke (line 231-237) — but nothing ever deletes an expired-and-never-revoked grant row (this is the only file in the repo touching the `sharedReports` collection); the share table grows monotonically, exactly the technique's named smell of a missing reaper. [re-judged 2026-09-22: triage re-stamp, not a fresh read: every file this context owns is unchanged since the verdict, the standard only GAINED techniques since (none it names was edited, the golden path body was not edited), and an added requirement cannot clear a deviation; each cited line was then checked by hand and still shows the cited construct]",
-          "evaluatedAt": "2026-09-22",
-          "evaluatedAgainst": "sha256:6315c7abe4f145f2",
-          "evaluatedRevision": 2,
+          "evidence": "src/lib/campaigns/shared-report.ts:187 Shared reports are created with an expiry timestamp and revocability, but no reaper or retention policy ever deletes expired grants from the database.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:a43eabdaa650ed07",
+          "evaluatedRevision": 4,
           "source": "conform",
-          "revisionsBehind": 2,
-          "stale": true
+          "revisionsBehind": 2
         },
         {
           "subject": "agent-memory",
@@ -15239,17 +15238,13 @@
             "section"
           ],
           "confidence": "strong",
-          "state": "deviation",
-          "evidence": "UI copy promises the model 'must not invent' numbers (MonthlyReport.tsx:34,67) but validateRecap checks field presence only; no numeric-membership gate exists. Caveats drop at the share seam. [re-judged 2026-09-22: still holds, although 9 files in this context changed since. validateRecap (src/lib/ai/tools/monthly-recap.ts:91-98) still checks only that headline, highlights, watchouts and priorities are PRESENT; no numeric-membership check exists anywhere under src/. The share-seam half of the finding was not re-read, and the verdict does not depend on it.]",
-          "evaluatedAt": "2026-09-22",
-          "evaluatedAgainst": "sha256:6315c7abe4f145f2",
           "source": "conform",
           "digest": "sha256-b2:a43eabdaa650ed07",
           "revision": 4,
           "changedAt": "2026-09-29",
-          "evaluatedRevision": 2,
-          "revisionsBehind": 2,
-          "stale": true
+          "state": "deviation",
+          "evidence": "UI copy promises the model 'must not invent' numbers (MonthlyReport.tsx:34,67) but validateRecap checks field presence only; no numeric-membership gate exists. Caveats drop at the share seam. [re-judged 2026-09-22: still holds, although 9 files in this context changed since. validateRecap (src/lib/ai/tools/monthly-recap.ts:91-98) still checks only that headline, highlights, watchouts and priorities are PRESENT; no numeric-membership check exists anywhere under src/. The share-seam half of the finding was not re-read, and the verdict does not depend on it.]",
+          "evaluatedAt": "2026-09-22"
         }
       ],
       "governance": "governed"
@@ -16770,13 +16765,12 @@
           "changedAt": "2026-09-29",
           "confidence": "probable",
           "state": "deviation",
-          "evidence": "src/components/app/modules/MonthlyReport.tsx is directly in this context's own path list, at the exact lines (34, 67) report-engine's recorded deviation cites for grounded-narrative-generation — this context owns the deviating file at first hand, not merely by inheriting a shared component from elsewhere. [re-judged 2026-09-22: still holds - an ownership claim on MonthlyReport.tsx, whose upstream finding (report-engine) was re-read in the same run and holds.]",
-          "evaluatedAt": "2026-09-22",
-          "evaluatedAgainst": "sha256:6315c7abe4f145f2",
-          "evaluatedRevision": 2,
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:34 The report component promises in UI copy that the AI never invents numbers, yet renders the AI narrative without any numeric-membership gate.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:a43eabdaa650ed07",
+          "evaluatedRevision": 4,
           "source": "conform",
-          "revisionsBehind": 2,
-          "stale": true
+          "revisionsBehind": 2
         },
         {
           "subject": "quality-gates",

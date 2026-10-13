@@ -21,13 +21,33 @@
       "subject": "executive-reporting",
       "bundle": "software-engineering",
       "state": "conformant",
-      "evaluatedAt": "2026-08-31",
-      "worker": "w6-systedo-reporting",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T11:14:45.338Z",
+      "worker": "1620e401-17ec-4e2e-9431-9d77fa1bc8a8",
       "techniques": [
         {
           "technique": "provenance-caveats",
           "verdict": "conformant",
-          "evidence": "src/components/campaigns/SyncProvenance.tsx:184-303"
+          "evidence": "src/components/campaigns/SyncProvenance.tsx:249 Discloses live-to-sample degradation and diagnostic reasons next to the qualified metrics."
+        },
+        {
+          "technique": "bad-news-labelling",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/ReportView.tsx:186 Weaknesses and risks are displayed in their own section under a dedicated negative-valence heading."
+        },
+        {
+          "technique": "expiring-share-links",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/SharedReportsList.tsx:114 Surfaces link expiry status, validity date, and revocation controls to the managing user."
+        }
+      ],
+      "superseded": [
+        {
+          "state": "conformant",
+          "evidence": "src/components/campaigns/SyncProvenance.tsx:184-303 discloses source, sync staleness, per-period coverage (with stale flagged) and live-to-sample degradation with a stored diagnostic reason, each next to the number it qualifies — a strong provenance-caveats realization; SharedReportsList.tsx:112-139 correctly surfaces expiry and revoke (the capability's reaper gap belongs to campaigns-reporting/shared-report.ts, judged separately).",
+          "evaluatedAt": "2026-08-31",
+          "worker": null,
+          "reason": "replaced by 1620e401-17ec-4e2e-9431-9d77fa1bc8a8"
         }
       ]
     },
@@ -36,13 +56,33 @@
       "subject": "executive-reporting",
       "bundle": "software-engineering",
       "state": "deviation",
-      "evaluatedAt": "2026-08-31",
-      "worker": "w6-systedo-reporting",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T11:14:45.338Z",
+      "worker": "1620e401-17ec-4e2e-9431-9d77fa1bc8a8",
       "techniques": [
         {
           "technique": "grounded-narrative-generation",
           "verdict": "deviation",
-          "evidence": "src/components/app/modules/MonthlyReport.tsx:34,67 — UI promises no invented numbers; validateRecap (src/lib/ai/tools/monthly-recap.ts) checks field presence only"
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:34 Promises that AI never invents numbers, but renders narrative with no numeric-membership verification."
+        },
+        {
+          "technique": "provenance-caveats",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/ProvenanceChip.tsx:15 Explicitly discloses live versus sample provenance in panel headers."
+        },
+        {
+          "technique": "bad-news-labelling",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:354 Applies directional delta tone derived from the metric polarity."
+        }
+      ],
+      "superseded": [
+        {
+          "state": "deviation",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx is directly in this context's own path list, at the exact lines (34, 67) report-engine's recorded deviation cites for grounded-narrative-generation — this context owns the deviating file at first hand, not merely by inheriting a shared component from elsewhere. [re-judged 2026-09-22: still holds - an ownership claim on MonthlyReport.tsx, whose upstream finding (report-engine) was re-read in the same run and holds.]",
+          "evaluatedAt": "2026-09-22",
+          "worker": null,
+          "reason": "replaced by 1620e401-17ec-4e2e-9431-9d77fa1bc8a8"
         }
       ]
     },
@@ -51,13 +91,33 @@
       "subject": "executive-reporting",
       "bundle": "software-engineering",
       "state": "deviation",
-      "evaluatedAt": "2026-08-31",
-      "worker": "w6-systedo-reporting",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T11:14:45.338Z",
+      "worker": "1620e401-17ec-4e2e-9431-9d77fa1bc8a8",
       "techniques": [
         {
           "technique": "expiring-share-links",
           "verdict": "deviation",
-          "evidence": "src/lib/campaigns/shared-report.ts:187-237 — expiry + revocation exist, no named reaper for expired-but-unrevoked rows"
+          "evidence": "src/lib/campaigns/shared-report.ts:187 Tokens expire and can be revoked, but no reaper mechanism ever purges expired rows from the sharedReports collection."
+        },
+        {
+          "technique": "bad-news-labelling",
+          "verdict": "conformant",
+          "evidence": "src/lib/campaigns/report-input.ts:99 Zero-return spending campaigns are explicitly labelled rather than masked by a neutral dash."
+        },
+        {
+          "technique": "grounded-narrative-generation",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/report-input.ts:269 Restricts the model to provided numbers in prompt instructions only, lacking code-level membership verification."
+        }
+      ],
+      "superseded": [
+        {
+          "state": "deviation",
+          "evidence": "src/lib/campaigns/shared-report.ts:187 mints a random bearer token as the Firestore doc id with a frozen absolute expiresAt (line 175) and a working revoke (line 231-237) — but nothing ever deletes an expired-and-never-revoked grant row (this is the only file in the repo touching the `sharedReports` collection); the share table grows monotonically, exactly the technique's named smell of a missing reaper. [re-judged 2026-09-22: triage re-stamp, not a fresh read: every file this context owns is unchanged since the verdict, the standard only GAINED techniques since (none it names was edited, the golden path body was not edited), and an added requirement cannot clear a deviation; each cited line was then checked by hand and still shows the cited construct]",
+          "evaluatedAt": "2026-09-22",
+          "worker": null,
+          "reason": "replaced by 1620e401-17ec-4e2e-9431-9d77fa1bc8a8"
         }
       ]
     },
@@ -2291,6 +2351,46 @@
           "evidence": "src/components/app/modules/RankLadder.tsx:123 The badge uses the three-run, three-position detector and stays off when that returns null. The call runs for every row, including one marked absent from the latest import."
         }
       ]
+    },
+    "8b63aca5-0881-499d-9426-2dada7a4a985/executive-reporting": {
+      "context": "report-engine",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T11:14:45.338Z",
+      "techniques": [
+        {
+          "technique": "grounded-narrative-generation",
+          "verdict": "deviation",
+          "evidence": "src/lib/report/recap-context.ts:150 Instructs the model not to invent numbers in prompt text, but lacks a numeric-membership validation gate."
+        },
+        {
+          "technique": "bad-news-labelling",
+          "verdict": "conformant",
+          "evidence": "src/lib/report/compute.ts:146 Computes delta valence deterministically from declared polarity prior to rendering."
+        },
+        {
+          "technique": "provenance-caveats",
+          "verdict": "conformant",
+          "evidence": "src/lib/report/assemble.ts:96 Suppresses full-year break-even reference calculations when snapshot coverage is truncated."
+        }
+      ],
+      "superseded": [
+        {
+          "state": "deviation",
+          "evidence": "UI copy promises the model 'must not invent' numbers (MonthlyReport.tsx:34,67) but validateRecap checks field presence only; no numeric-membership gate exists. Caveats drop at the share seam. [re-judged 2026-09-22: still holds, although 9 files in this context changed since. validateRecap (src/lib/ai/tools/monthly-recap.ts:91-98) still checks only that headline, highlights, watchouts and priorities are PRESENT; no numeric-membership check exists anywhere under src/. The share-seam half of the finding was not re-read, and the verdict does not depend on it.]",
+          "evaluatedAt": "2026-09-22",
+          "worker": null,
+          "reason": "replaced by 1620e401-17ec-4e2e-9431-9d77fa1bc8a8"
+        }
+      ],
+      "withdrawn": {
+        "worker": "1620e401-17ec-4e2e-9431-9d77fa1bc8a8",
+        "state": "deviation",
+        "at": "2026-10-13T11:15:44.229570+00:00",
+        "reason": "reviewer (sonnet): recap-context.ts:150 is a prompt sentence about outcomes of earlier advice (\"never claim a result that is not in this list\"). It does not forbid inventing numbers, and I found no \"invent\" instruction in recap-context.ts, so the anchor is incidental to the claimed prompt-only grounding and the no-gat"
+      }
     }
   }
 }

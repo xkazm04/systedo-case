@@ -1,0 +1,189 @@
+{
+  "schema": "conform-run/1",
+  "worker": "1620e401-17ec-4e2e-9431-9d77fa1bc8a8",
+  "subject": "executive-reporting",
+  "evaluatedAt": "2026-10-13T11:14:45.338610+00:00",
+  "provider": "agy",
+  "model": "gemini-3.8-flash-high",
+  "pairs": [
+    {
+      "context": "reporting-modules",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/app/app/[projectId]/mesicni-report/page.tsx:124 The monthly report page renders stored recap narratives directly without numeric-membership gating against the underlying dataset.",
+      "techniques": [
+        {
+          "technique": "grounded-narrative-generation",
+          "verdict": "deviation",
+          "evidence": "src/app/app/[projectId]/mesicni-report/page.tsx:124 Stored recap narratives are rendered directly in MonthlyReport without numeric-membership gating."
+        },
+        {
+          "technique": "provenance-caveats",
+          "verdict": "conformant",
+          "evidence": "src/app/app/[projectId]/mesicni-report/page.tsx:117 Flags persisted recaps as stale when current dataset hashes differ from stored input hashes."
+        }
+      ]
+    },
+    {
+      "context": "campaign-reporting",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evidence": "src/components/campaigns/SyncProvenance.tsx:249 The component discloses data source provenance, sync staleness, and degraded diagnostic status directly alongside performance metrics.",
+      "techniques": [
+        {
+          "technique": "provenance-caveats",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/SyncProvenance.tsx:249 Discloses live-to-sample degradation and diagnostic reasons next to the qualified metrics."
+        },
+        {
+          "technique": "bad-news-labelling",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/ReportView.tsx:186 Weaknesses and risks are displayed in their own section under a dedicated negative-valence heading."
+        },
+        {
+          "technique": "expiring-share-links",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/SharedReportsList.tsx:114 Surfaces link expiry status, validity date, and revocation controls to the managing user."
+        }
+      ]
+    },
+    {
+      "context": "spend-reporting",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/components/app/modules/MonthlyReport.tsx:34 The report component promises in UI copy that the AI never invents numbers, yet renders the AI narrative without any numeric-membership gate.",
+      "techniques": [
+        {
+          "technique": "grounded-narrative-generation",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:34 Promises that AI never invents numbers, but renders narrative with no numeric-membership verification."
+        },
+        {
+          "technique": "provenance-caveats",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/ProvenanceChip.tsx:15 Explicitly discloses live versus sample provenance in panel headers."
+        },
+        {
+          "technique": "bad-news-labelling",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:354 Applies directional delta tone derived from the metric polarity."
+        }
+      ]
+    },
+    {
+      "context": "campaigns-reporting",
+      "subject": "executive-reporting",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/lib/campaigns/shared-report.ts:187 Shared reports are created with an expiry timestamp and revocability, but no reaper or retention policy ever deletes expired grants from the database.",
+      "techniques": [
+        {
+          "technique": "expiring-share-links",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/shared-report.ts:187 Tokens expire and can be revoked, but no reaper mechanism ever purges expired rows from the sharedReports collection."
+        },
+        {
+          "technique": "bad-news-labelling",
+          "verdict": "conformant",
+          "evidence": "src/lib/campaigns/report-input.ts:99 Zero-return spending campaigns are explicitly labelled rather than masked by a neutral dash."
+        },
+        {
+          "technique": "grounded-narrative-generation",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/report-input.ts:269 Restricts the model to provided numbers in prompt instructions only, lacking code-level membership verification."
+        }
+      ]
+    }
+  ],
+  "declined": [
+    {
+      "subject": "executive-reporting",
+      "context": "report-engine",
+      "reason": "withdrawn after review: reviewer (sonnet): recap-context.ts:150 is a prompt sentence about outcomes of earlier advice (\"never claim a result that is not in this list\"). It does not forbid inventing numbers, and I found no \"invent\" instruction in recap-context.ts, so the anchor is incidental to the claimed prompt-only grounding and the no-gat"
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-13T11:14:45.338610+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "executive-reporting"
+      ],
+      "techniques": [
+        "grounded-narrative-generation",
+        "provenance-caveats"
+      ],
+      "deviations": 1,
+      "context": "reporting-modules",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-13T11:14:45.338610+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "executive-reporting"
+      ],
+      "techniques": [
+        "bad-news-labelling",
+        "expiring-share-links",
+        "provenance-caveats"
+      ],
+      "deviations": 0,
+      "context": "campaign-reporting",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-13T11:14:45.338610+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "executive-reporting"
+      ],
+      "techniques": [
+        "bad-news-labelling",
+        "grounded-narrative-generation",
+        "provenance-caveats"
+      ],
+      "deviations": 1,
+      "context": "spend-reporting",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-13T11:14:45.338610+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "executive-reporting"
+      ],
+      "techniques": [
+        "bad-news-labelling",
+        "grounded-narrative-generation",
+        "provenance-caveats"
+      ],
+      "deviations": 1,
+      "context": "report-engine",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-13T11:14:45.338610+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "executive-reporting"
+      ],
+      "techniques": [
+        "bad-news-labelling",
+        "expiring-share-links",
+        "grounded-narrative-generation"
+      ],
+      "deviations": 1,
+      "context": "campaigns-reporting",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    }
+  ]
+}
