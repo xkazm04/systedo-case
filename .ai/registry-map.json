@@ -16948,7 +16948,11 @@
           "revision": 19,
           "changedAt": "2026-09-30",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/twin/readiness.ts:5 Readiness treats a voice as written directives and says there is no TTS voice gate, and a search of this context's files found no audio capture, playback, or synthesis pipeline.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:fa1c8ca716f872dc",
+          "evaluatedRevision": 20
         },
         {
           "subject": "brand-voice-capture",
@@ -17118,7 +17122,11 @@
           "revision": 19,
           "changedAt": "2026-09-30",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/app/modules/TwinModule.tsx:46 The studio distils a writing voice from pasted messages, and a search of src/components/app/twin and the Twin modules for audio, microphone, speech, and playback returned no matches.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:fa1c8ca716f872dc",
+          "evaluatedRevision": 20
         },
         {
           "subject": "agent-memory",
@@ -17284,7 +17292,11 @@
           "revision": 19,
           "changedAt": "2026-09-30",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/twin/types.ts:7 This store's voice is a written style prompt, and a search of src/lib/twin for audio, microphone, speech, transcription, synthesis, utterance, and playback returned no matches, so neither speech pipeline exists here.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:fa1c8ca716f872dc",
+          "evaluatedRevision": 20
         },
         {
           "subject": "mcp-tools",

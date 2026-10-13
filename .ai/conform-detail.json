@@ -1111,6 +1111,37 @@
           "evidence": "test-unit/projects-guard-adoption.test.mjs:31 The subsequent guard-presence assertion searches raw source without removing comments or checking executable use; an in-memory comment-only probe satisfied it with zero guard calls."
         }
       ]
+    },
+    "4f7ca4aa-30a6-4793-919b-f665ad4211a3/voice-io": {
+      "context": "twin-store-voice",
+      "subject": "voice-io",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T01:38:31.872Z",
+      "worker": "ccdd06c6-f7ba-48a4-8638-fbefee45f904",
+      "techniques": [],
+      "registryProposal": "The golden path already limits this subject to plumbing sound, but the technique use_when lines never say to stop when voice means a written style prompt. A one-line applicability guard would stop brand-voice stores from being scored as missing speech pipelines."
+    },
+    "77e2e6b3-b8ed-4acd-afd7-4d04c925665c/voice-io": {
+      "context": "twin-assistant-core",
+      "subject": "voice-io",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T01:38:31.872Z",
+      "worker": "ccdd06c6-f7ba-48a4-8638-fbefee45f904",
+      "techniques": []
+    },
+    "ab4113ad-92ca-4326-8c81-681e47c3d603/voice-io": {
+      "context": "twin-digital-assistant",
+      "subject": "voice-io",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T01:38:31.872Z",
+      "worker": "ccdd06c6-f7ba-48a4-8638-fbefee45f904",
+      "techniques": []
     }
   }
 }

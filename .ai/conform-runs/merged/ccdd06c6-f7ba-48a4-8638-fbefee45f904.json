@@ -1,0 +1,114 @@
+{
+ "schema": "conform-run/1",
+ "worker": "ccdd06c6-f7ba-48a4-8638-fbefee45f904",
+ "subject": "voice-io",
+ "evaluatedAt": "2026-10-13T01:38:31.872362+00:00",
+ "provider": "grok",
+ "model": "grok-4.7",
+ "pairs": [
+  {
+   "context": "twin-store-voice",
+   "subject": "voice-io",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/lib/twin/types.ts:7 This store's voice is a written style prompt, and a search of src/lib/twin for audio, microphone, speech, transcription, synthesis, utterance, and playback returned no matches, so neither speech pipeline exists here.",
+   "techniques": [],
+   "registryProposal": "The golden path already limits this subject to plumbing sound, but the technique use_when lines never say to stop when voice means a written style prompt. A one-line applicability guard would stop brand-voice stores from being scored as missing speech pipelines."
+  },
+  {
+   "context": "twin-module",
+   "subject": "voice-io",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/app/app/[projectId]/schranka/page.tsx:1 These pages and routes review and send written drafts, and a search of the six context files for audio, microphone, speech, tts, transcription, playback, utterance, and synthesis returned no matches.",
+   "techniques": []
+  },
+  {
+   "context": "twin-assistant-core",
+   "subject": "voice-io",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/lib/twin/readiness.ts:5 Readiness treats a voice as written directives and says there is no TTS voice gate, and a search of this context's files found no audio capture, playback, or synthesis pipeline.",
+   "techniques": []
+  },
+  {
+   "context": "twin-digital-assistant",
+   "subject": "voice-io",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/components/app/modules/TwinModule.tsx:46 The studio distils a writing voice from pasted messages, and a search of src/components/app/twin and the Twin modules for audio, microphone, speech, and playback returned no matches.",
+   "techniques": []
+  },
+  {
+   "context": "content-engine-module",
+   "subject": "voice-io",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/app/app/[projectId]/obsahovy-engine/page.tsx:2 These routes are article, calendar, pattern-library, and distribution pages, and a search of the five page files for voice, audio, speech, microphone, tts, and transcription returned no matches.",
+   "techniques": []
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-13T01:38:31.872362+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "voice-io"
+   ],
+   "techniques": [],
+   "deviations": 0,
+   "context": "twin-store-voice",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T01:38:31.872362+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "voice-io"
+   ],
+   "techniques": [],
+   "deviations": 0,
+   "context": "twin-module",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T01:38:31.872362+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "voice-io"
+   ],
+   "techniques": [],
+   "deviations": 0,
+   "context": "twin-assistant-core",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T01:38:31.872362+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "voice-io"
+   ],
+   "techniques": [],
+   "deviations": 0,
+   "context": "twin-digital-assistant",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T01:38:31.872362+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "voice-io"
+   ],
+   "techniques": [],
+   "deviations": 0,
+   "context": "content-engine-module",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  }
+ ]
+}
