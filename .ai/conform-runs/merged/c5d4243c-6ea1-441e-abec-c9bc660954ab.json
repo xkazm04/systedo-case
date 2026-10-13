@@ -1,0 +1,251 @@
+{
+ "schema": "conform-run/1",
+ "worker": "c5d4243c-6ea1-441e-abec-c9bc660954ab",
+ "subject": "local-visibility-and-reputation",
+ "evaluatedAt": "2026-10-13T10:44:46.612534+00:00",
+ "provider": "grok",
+ "model": "grok-4.7",
+ "pairs": [
+  {
+   "context": "mappack-reviews-competitors",
+   "subject": "local-visibility-and-reputation",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/lib/reviews/health.ts:55 Review health splits the whole inbox by age for a sentiment trend and a reply-rate proxy, and it never counts a trailing ninety-day window or raises a staleness alarm when new reviews stop.",
+   "techniques": [
+    {
+     "technique": "attention-score-for-many-locations",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/competitors/types.ts:1 These files store named rivals and pack or review rollups. They do not order a multi-location roster or parse listing status."
+    },
+    {
+     "technique": "pack-visibility-per-engine-never-averaged",
+     "verdict": "conformant",
+     "evidence": "src/lib/mappack/compute.ts:23 Engines are filtered before any pack or ladder use, an empty import yields no phantom engine, absent engine reads as Google, and an explicit you-flag wins over a name match."
+    },
+    {
+     "technique": "review-recency-beats-count",
+     "verdict": "deviation",
+     "evidence": "src/lib/reviews/health.ts:58 The half-split, the under-two flat rule, and the answered-age proxy match the trend and reply-age rules. There is no ninety-day count, no velocity against the previous window, and no staleness alarm."
+    },
+    {
+     "technique": "review-reply-by-rating-band",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/reviews/compute.ts:27 This labels a sentiment band, where a three is neutral on purpose. These files do not draft a public reply or choose a reply tone."
+    },
+    {
+     "technique": "service-area-coverage-gaps-by-volume",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/mappack/sample.ts:65 Searched these files for hasPage, gapVolume, monthlyVolume, and coverage. The ladder stores a dated rank, not a service-by-area page matrix."
+    },
+    {
+     "technique": "sustained-decline-three-runs-three-positions",
+     "verdict": "conformant",
+     "evidence": "src/lib/mappack/compute.ts:132 RANK_DECLINE_MIN_RUN and RANK_DECLINE_MIN_DROP are both 3. A short, flat, recovering, or below-magnitude series returns null."
+    }
+   ]
+  },
+  {
+   "context": "local-seo-core-ui",
+   "subject": "local-visibility-and-reputation",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/LocalModule.tsx:327 Each area's reputation card shows a review count and a star rating and nothing about how recent those reviews are.",
+   "techniques": [
+    {
+     "technique": "attention-score-for-many-locations",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/LocationsModule.tsx:110 The roster is sorted by urgency and shows profile status, unanswered reviews, flags, and rank. It does not render the weighted number."
+    },
+    {
+     "technique": "pack-visibility-per-engine-never-averaged",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/LocalLadderSource.tsx:23 The ladder importer keeps Google and Mapy.cz apart and treats a missing engine cell as Google. This panel does not average the two."
+    },
+    {
+     "technique": "review-recency-beats-count",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/LocalModule.tsx:327 The reputation strip leads with the total and the average. There is no trailing-window count, velocity, or staleness line."
+    },
+    {
+     "technique": "review-reply-by-rating-band",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/LocalReviews.tsx:101 Every review is sent for a draft, then shown in an editable box the operator can copy. Nothing here withholds a draft for staff, safety, legal, money, or fraud."
+    },
+    {
+     "technique": "service-area-coverage-gaps-by-volume",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/LocalModule.tsx:25 Coverage, the weak count, and gap volume are separate tiles. A null rank renders as has-page, not as a rank and not as weak. The gap table is the volume-ordered queue."
+    },
+    {
+     "technique": "sustained-decline-three-runs-three-positions",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/LocalModule.tsx:1 Searched these UI files for rankDecline, declining, kles\u00e1, and untracked. No rank-series walk."
+    }
+   ]
+  },
+  {
+   "context": "local-seo-core-lib",
+   "subject": "local-visibility-and-reputation",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/lib/local/catalog.ts:17 Every catalog pair is given a hashed monthly volume, and the gap sort uses that number, so an unmeasured query is never left as not measured.",
+   "techniques": [
+    {
+     "technique": "attention-score-for-many-locations",
+     "verdict": "conformant",
+     "evidence": "src/lib/locations/compute.ts:92 Disconnected 100, attention 50, flags times 20, unanswered times 6, rank worse than 10 adds 15, tasks times 4. Ties keep roster order. needsAttention is a separate count, and the fleet rating is weighted by review count."
+    },
+    {
+     "technique": "pack-visibility-per-engine-never-averaged",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/seo-compare/compute.ts:1 This layer rolls coverage, locations, and comparison-query scores. It does not compute map-pack visibility per engine."
+    },
+    {
+     "technique": "review-recency-beats-count",
+     "verdict": "deviation",
+     "evidence": "src/lib/local/compute.ts:20 Per-area reputation is a count plus a review-weighted average, highest count first. ReviewItem.daysAgo is ignored, so there is no window, velocity, or staleness alarm."
+    },
+    {
+     "technique": "review-reply-by-rating-band",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/local/business-type.ts:1 This file only derives the business-type string. The banded reply prompt is not in these files."
+    },
+    {
+     "technique": "service-area-coverage-gaps-by-volume",
+     "verdict": "deviation",
+     "evidence": "src/lib/local/catalog.ts:17 The matrix is built from the project's own services and areas, and a null rank is excluded from coveredButWeak. Volume, page presence, and rank are still seeded, and gaps() sorts by that seeded volume. The no-catalog fallback is a fixed klimatizace matrix."
+    },
+    {
+     "technique": "sustained-decline-three-runs-three-positions",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/local/compute.ts:54 Searched local, locations, seo-compare, microsite local-page, and local-page.ts for decline and rank history. No series walk."
+    }
+   ]
+  },
+  {
+   "context": "map-pack-seo-comparison",
+   "subject": "local-visibility-and-reputation",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/MapPackClient.tsx:240 The figure labelled as the map pack is the count of every listing in the area, including positions worse than three.",
+   "techniques": [
+    {
+     "technique": "attention-score-for-many-locations",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/MapPackModule.tsx:2 Searched these files for attentionScore, needsAttention, and a location roster. They render a pack and a ladder, not a multi-location urgency order."
+    },
+    {
+     "technique": "pack-visibility-per-engine-never-averaged",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/MapPackClient.tsx:240 The engine switch does keep Google and Mapy.cz on separate packs. The in-pack caption still counts every listing, and Pod\u00edl na proklic\u00edch prints the assumed click-weight split as a percentage."
+    },
+    {
+     "technique": "review-recency-beats-count",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/RankLadder.tsx:22 The ladder is a rank history. This context does not roll a review profile into a health figure."
+    },
+    {
+     "technique": "review-reply-by-rating-band",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/overview/compare.ts:27 Portfolio compare is revenue, cost, and ROAS. These files do not draft a public review reply."
+    },
+    {
+     "technique": "service-area-coverage-gaps-by-volume",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/CompareSeoModule.tsx:1 Searched these files for hasPage and gapVolume. Compare SEO scores alternative and pricing queries, not a service-by-area page matrix."
+    },
+    {
+     "technique": "sustained-decline-three-runs-three-positions",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/RankLadder.tsx:123 The badge uses the three-run, three-position detector and stays off when that returns null. The call runs for every row, including one marked absent from the latest import."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "local-visibility-and-reputation",
+   "context": "local-seo-modules",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-13T10:44:46.612534+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "local-visibility-and-reputation"
+   ],
+   "techniques": [
+    "attention-score-for-many-locations",
+    "pack-visibility-per-engine-never-averaged",
+    "review-recency-beats-count",
+    "review-reply-by-rating-band",
+    "service-area-coverage-gaps-by-volume",
+    "sustained-decline-three-runs-three-positions"
+   ],
+   "deviations": 1,
+   "context": "mappack-reviews-competitors",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T10:44:46.612534+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "local-visibility-and-reputation"
+   ],
+   "techniques": [
+    "attention-score-for-many-locations",
+    "pack-visibility-per-engine-never-averaged",
+    "review-recency-beats-count",
+    "review-reply-by-rating-band",
+    "service-area-coverage-gaps-by-volume",
+    "sustained-decline-three-runs-three-positions"
+   ],
+   "deviations": 1,
+   "context": "local-seo-core-ui",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T10:44:46.612534+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "local-visibility-and-reputation"
+   ],
+   "techniques": [
+    "attention-score-for-many-locations",
+    "pack-visibility-per-engine-never-averaged",
+    "review-recency-beats-count",
+    "review-reply-by-rating-band",
+    "service-area-coverage-gaps-by-volume",
+    "sustained-decline-three-runs-three-positions"
+   ],
+   "deviations": 1,
+   "context": "local-seo-core-lib",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T10:44:46.612534+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "local-visibility-and-reputation"
+   ],
+   "techniques": [
+    "attention-score-for-many-locations",
+    "pack-visibility-per-engine-never-averaged",
+    "review-recency-beats-count",
+    "review-reply-by-rating-band",
+    "service-area-coverage-gaps-by-volume",
+    "sustained-decline-three-runs-three-positions"
+   ],
+   "deviations": 1,
+   "context": "map-pack-seo-comparison",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  }
+ ]
+}

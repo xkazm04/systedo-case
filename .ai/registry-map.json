@@ -10376,7 +10376,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/LocalModule.tsx:327 Each area's reputation card shows a review count and a star rating and nothing about how recent those reviews are.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:c9c743abc7139222",
+          "evaluatedRevision": 1
         },
         {
           "subject": "performance-root-cause-diagnosis",
@@ -10494,7 +10498,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/local/catalog.ts:17 Every catalog pair is given a hashed monthly volume, and the gap sort uses that number, so an unmeasured query is never left as not measured.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:c9c743abc7139222",
+          "evaluatedRevision": 1
         },
         {
           "subject": "local-page-doorway-prevention",
@@ -11261,7 +11269,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/MapPackClient.tsx:240 The figure labelled as the map pack is the count of every listing in the area, including positions worse than three.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:c9c743abc7139222",
+          "evaluatedRevision": 1
         },
         {
           "subject": "keyword-metric-reliability",
@@ -11357,7 +11369,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/reviews/health.ts:55 Review health splits the whole inbox by age for a sentiment trend and a reply-rate proxy, and it never counts a trailing ninety-day window or raises a staleness alarm when new reviews stop.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:c9c743abc7139222",
+          "evaluatedRevision": 1
         },
         {
           "subject": "answer-engine-visibility",
