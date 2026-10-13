@@ -9,7 +9,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { External, Logo, Menu } from "@/components/icons";
-import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import JourneyBeacon from "@/components/site/JourneyBeacon";
 import FeedbackButton from "@/components/app/FeedbackButton";
@@ -201,7 +200,6 @@ export default function DemoShell({
                 {t("startFree")}
               </Link>
               <LocaleSwitcher />
-              <ThemeToggle />
             </div>
           </header>
 

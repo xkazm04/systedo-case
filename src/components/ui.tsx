@@ -73,9 +73,10 @@ export function Pill({
    <button>/<a> across the app, which repeated four visual patterns by hand. The
    variant/size classes below reproduce those patterns EXACTLY, so adopting
    <Button> is a zero-visual-change centralisation:
-     • primary   → the teal CTA (bg-brand-700, white — 4.77:1; brand-600 was 3.38:1)
-     • secondary → the outline button (border-line, navy text)
-     • onyx      → the dark CTA (bg-onyx, white — footer/hero/panel headers)
+     • primary   → the ONE amber action per screen (bg-brand-700 = amber, dark
+                   on-action ink; white on amber would be ~1.9:1, ADR-0014)
+     • secondary → the hairline outline button (border-line, light text)
+     • onyx      → the deep-panel button (bg-onyx, onyx-ink, hairline edge)
      • ghost     → text-only affordance
    Pass `href` to render an <a> (with the identical styling) instead of a <button>.
 --------------------------------------------------------------------------- */
@@ -83,15 +84,14 @@ export type ButtonVariant = "primary" | "secondary" | "onyx" | "ghost";
 export type ButtonSize = "sm" | "md" | "lg";
 
 const BUTTON_BASE =
-  "inline-flex items-center justify-center gap-2 rounded-pill transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-[2px] transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-brand-700 font-semibold text-white hover:bg-brand-800",
+  primary: "bg-brand-700 font-semibold text-on-action hover:bg-brand-800",
   secondary: "border border-line font-medium text-navy-700 hover:border-brand-300 hover:text-brand-accent",
-  // hover is onyx-soft, NOT navy-800: navy-800 flips to #e7eef5 in dark mode,
-  // so the old hover turned this CTA near-white under text-white. onyx-soft is
-  // stable across themes, which is the whole point of the onyx-* tokens.
-  onyx: "bg-onyx font-semibold text-white hover:bg-onyx-soft",
+  // hover is onyx-soft, NOT navy-800: navy-800 is light TEXT in this ramp, so a
+  // navy-800 hover would turn the button near-white under its light label.
+  onyx: "border border-onyx-line bg-onyx font-semibold text-onyx-ink hover:bg-onyx-soft",
   ghost: "font-medium text-navy-700 hover:text-brand-accent",
 };
 

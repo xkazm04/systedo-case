@@ -196,7 +196,7 @@ export default function AccountSecurity({
             )}
             <div className="flex flex-wrap items-center gap-3">
               <form action={signOutAction}>
-                <button type="submit" disabled={demo} title={demo ? t("demoNote") : undefined} className="rounded-pill bg-navy-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-navy-800">
+                <button type="submit" disabled={demo} title={demo ? t("demoNote") : undefined} className="rounded-pill bg-onyx border border-onyx-line px-4 py-2 text-sm font-semibold text-onyx-ink transition-colors hover:bg-onyx-soft disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-onyx">
                   {t("signOut")}
                 </button>
               </form>

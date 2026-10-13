@@ -76,12 +76,12 @@ test("the trailer is parsed the way git writes it — repeated, or comma-separat
 
 test("a citation that does not resolve is a finding — this is the half that blocks", () => {
   assert.deepEqual(decisionProblems(["ADR-0001", "rubric-A6"], known), []);
-  assert.equal(decisionProblems(["ADR-0013"], known).length, 1, "a record this repository does not have resolved.");
+  assert.equal(decisionProblems(["ADR-9999"], known).length, 1, "a record this repository does not have resolved.");
   assert.equal(decisionProblems(["rubric-A9"], known).length, 1, "a rubric rule that does not exist resolved.");
   assert.equal(decisionProblems(["because the tests were slow"], known).length, 1, "free prose passed as a citation.");
   assert.deepEqual(decisionProblems([], known), [], "a commit citing nothing is the common and correct case.");
   assert.match(
-    decisionProblems(["ADR-0013"], known)[0],
+    decisionProblems(["ADR-9999"], known)[0],
     /ADR-0001/,
     "the failure does not say what may be cited instead, which is the only thing the author needs."
   );

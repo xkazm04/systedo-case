@@ -34,7 +34,7 @@ export default async function AuthorBio({ name, role, credential, bio, url }: Au
   return (
     <div className="mt-6 border-t border-line pt-6">
       <div className="flex items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-navy-800 text-brand-400">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-onyx-soft text-brand-400">
           <Document width={18} height={18} />
         </span>
         <div className="min-w-0 flex-1">

@@ -6,7 +6,6 @@ import { useShell } from "@/components/app/shell-context";
 import { useProject } from "@/lib/projects/context";
 import { modulesFor, moduleLabel } from "@/lib/projects/modules";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
-import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import AuthButton from "@/components/auth/AuthButton";
 import UsageMeter from "@/components/usage/UsageMeter";
@@ -57,7 +56,6 @@ export default function AppTopbar() {
         <UsageMeter />
         <AuthButton />
         <LocaleSwitcher />
-        <ThemeToggle />
       </div>
     </header>
   );

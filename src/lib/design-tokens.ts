@@ -37,8 +37,9 @@ export interface NamedToken {
 
 function readTheme(): string {
   const css = readFileSync(join(process.cwd(), "src", "app", "globals.css"), "utf8");
-  // The @theme block has no nested braces, so match up to the first close brace.
-  const block = css.match(/@theme\s*\{([^}]*)\}/);
+  // The @theme block (`@theme static` since ADR-0014) has no nested braces, so
+  // match up to the first close brace.
+  const block = css.match(/@theme(?:\s+static)?\s*\{([^}]*)\}/);
   return block ? block[1] : "";
 }
 

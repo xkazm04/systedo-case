@@ -8,7 +8,6 @@ import { localizedNavItems } from "@/lib/nav";
 import { firstUnvisited, readVisited } from "@/lib/journey";
 import { buttonClass } from "@/components/ui";
 import { ArrowRight, Check, Close, Logo, Menu } from "@/components/icons";
-import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import AuthButton from "@/components/auth/AuthButton";
@@ -96,7 +95,6 @@ export default function Nav() {
               squeezed these very controls to a 25px unreachable sliver. */}
           <span className="flex items-center gap-2 max-md:hidden">
             <LocaleSwitcher />
-            <ThemeToggle />
           </span>
           <button
             type="button"
@@ -117,7 +115,7 @@ export default function Nav() {
               <Link
                 href="/app"
                 onClick={() => setOpen(false)}
-                className="mb-1 flex items-center justify-between rounded-lg bg-brand-700 px-3 py-3 text-[17px] font-semibold text-white"
+                className="mb-1 flex items-center justify-between rounded-lg bg-brand-700 px-3 py-3 text-[17px] font-semibold text-on-action"
               >
                 {messages.nav.openApp}
                 <ArrowRight width={17} height={17} />
@@ -173,7 +171,6 @@ export default function Nav() {
                 room for them. Without this row they would be unreachable. */}
             <div className="mt-2 flex items-center gap-2 border-t border-line pt-3">
               <LocaleSwitcher />
-              <ThemeToggle />
             </div>
           </div>
         </div>

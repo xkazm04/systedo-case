@@ -1,63 +1,74 @@
 # Design-system conventions
 
-Living style guide: **`/design-system`** (renders every token + primitive from source, so it never drifts).
-Source of truth: tokens in `src/app/globals.css` (`@theme`), primitives in `src/components/ui.tsx`.
+Living style guide: **`/design-system`** (renders every token, primitive and kit
+component from source, so it never drifts; its **Kit** section is the kit's spec).
+Source of truth: tokens in `src/app/globals.css` (`@theme static`), primitives in
+`src/components/ui.tsx`, the Optic Bench kit in `src/components/kit/`.
+Decision: [ADR-0014](adr/0014-dark-only-optic-bench-design-kit.md).
+
+## The brand in one paragraph
+
+Optic Bench: one beam, three moves. A warm-black room, a white-hot hairline, eight
+spectral lines where **colour carries meaning** (one per area, `area-*`; one per data
+series, `chan-*`), engraved instrument line-art, and **one amber action per screen**.
+Dark only — there is no light theme and no theme toggle.
+
+## Type has three jobs
+
+- **Cormorant** (`font-display`) — display headlines only. Never a number, a label or a table.
+- **Hanken Grotesk** (`font-sans`, the default) — body and UI.
+- **IBM Plex Mono** (`font-mono`) — figures, tables, eyebrows.
+
+Floors: 14px for any label, 16px for body copy, at every width.
+
+## The kit — build roofs and rooms from these
+
+| Component | Use it for |
+|---|---|
+| `kit/Station` | One band of an area roof: Measure · Triage · Act, with the area's hue on its tick |
+| `kit/Panel` | The one container: wash, hairline, engraved corner ticks. Panels never nest |
+| `kit/Kpi`, `KpiStrip` | A number with its change: glyph = direction, colour = good/bad, never colour alone |
+| `kit/Spectrum` | Shares of one whole (channel split); the legend always states the number |
+| `kit/Dial` | A ratio against a goal (PNO); the reading is printed under the arc |
+| `kit/Provenance` | Where a figure came from: live · api · import · manual · sample · stylised |
+| `kit/Lamp` | The entry to an area, with its engraved motif |
+| `kit/Room` | A module opened from its roof: breadcrumb back, Esc back, its own URL |
+| `kit/art/AreaArt` | The engraved motif per area (`src/lib/projects/areas.ts` names them) |
 
 ## Buttons — use the `Button` primitive
-
-There were ~185 hand-rolled `<button>`/`<a>` across the app repeating four visual
-patterns by hand. Use `Button` from `@/components/ui` instead. The variant/size
-classes reproduce those patterns exactly, so it's a drop-in with no visual change.
 
 ```tsx
 import { Button, buttonClass } from "@/components/ui";
 
-<Button variant="primary" size="md" onClick={…}>Save</Button>   // teal CTA
-<Button variant="secondary" size="sm">Cancel</Button>           // outline
-<Button variant="onyx">Get started</Button>                     // dark CTA
-<Button variant="ghost">Skip</Button>                           // text-only
-<Button href="/cena" variant="primary">Upgrade</Button>         // renders <a>, same style
-<Button variant="primary" fullWidth disabled>…</Button>
+<Button variant="primary">Apply</Button>        // THE amber action — one per screen
+<Button variant="secondary" size="sm">Why</Button> // hairline outline
+<Button variant="onyx">Open</Button>             // deep-panel button
+<Button variant="ghost">Skip</Button>            // text-only
+<Button href="/cena" variant="primary">Upgrade</Button> // renders <a>, same style
 ```
 
-- **Variants:** `primary` (brand-600) · `secondary` (outline) · `onyx` (dark) · `ghost` (text).
-- **Sizes:** `sm` · `md` (default) · `lg`. **`fullWidth`** for block buttons.
-- **`href` → `<a>`** with identical styling; otherwise a `<button>` that defaults to
-  `type="button"` (never submits a form by accident).
-- Need a **Next `<Link>`** styled as a button? Use `buttonClass(variant, size)` on it —
-  `Button` deliberately doesn't import `next/link` into this shared, server-safe module.
-- Icons: pass them as children; the base class already sets `inline-flex … gap-2`.
+- An amber fill always carries **`text-on-action`** (dark ink). White on amber is ~1.9:1;
+  `test-unit/design-tokens-contrast.test.mjs` checks every variant's fill/label pair.
+- Need a **Next `<Link>`** styled as a button? Use `buttonClass(variant, size)`.
+- `href` → `<a>`; otherwise a `<button>` defaulting to `type="button"`.
 
-**Migration status (item 15):** the primitive + showcase + this convention are in place,
-and the AI `ToolError` actions use it. The remaining hand-rolled buttons (~50 files) are a
-mechanical, no-rush migration — convert opportunistically when you touch a file. A big-bang
-sweep was deliberately avoided (regression-prone, no functional gain).
+## Colour tokens — roles first, and the old names were rebound
 
-## Colour tokens — prefer semantic, and know the ramp adapts
+The Monolith role names were **rebound** onto Optic Bench values in one diff, so old code
+renders on-brand without edits:
 
-The dark theme is **token-driven**: `globals.css` re-declares the token *values* under
-`html[data-theme="dark"]` and `@media (prefers-color-scheme: dark)`, so every `bg-*`/`text-*`
-utility adapts for free. Key facts:
-
-- **The navy ramp flips.** `text-navy-800` is dark in light mode and *light* in dark mode
-  (the token is overridden). So `text-navy-800` is **not a dark-mode bug** — it reads
-  correctly in both themes. That's why item 16 is a *convention* cleanup, not a defect.
-- **Prefer the semantic tokens** for intent: `text-ink` / `text-muted` (body/secondary text),
-  `bg-surface` / `bg-canvas` (cards / page), `border-line`, `text-brand-accent` (accent text
-  + inline links), and the `*-soft` tints (`positive-soft`, `negative-soft`, `coral-soft`) for
-  chip/badge backgrounds. These express *what the colour means*, so they're self-documenting
-  and safe under theming.
-- **Stable-by-design (do not "fix"):** `onyx-*` (deliberately dark surfaces — footer, CTA
-  blocks, code panels — identical in both themes) and `navy-900` (CTA-on-teal text) are
-  intentionally NOT overridden in dark mode. Leave them.
-- **Never hardcode hex** in components — add a token to `@theme` (and its dark override) so it
-  themes correctly, then use the generated utility.
-
-**Why no mass find-and-replace (item 16):** ~357 `navy-800/900` + ~61 `brand-700` uses across
-~85 files already render correctly in both themes (see above). A blind swap to semantic tokens
-would shift some colours sub-perceptibly in light mode (e.g. `navy-800 #0b1b2b` vs `ink #0d1a24`)
-for zero functional gain — a regression risk with no upside. Apply the convention going forward
-and when touching a file; don't sweep.
+- `canvas` / `surface` / `ink` / `muted` / `line` — the room and its text.
+- `brand-500…700` are the **amber action** fill; `brand-800` is hover fill and light accent
+  text; `brand-50…300` are dark amber tints for chips and rings; `brand-accent` is accent text.
+- `navy-*` is the structure ramp: high steps are **light text**, low steps dark chips and
+  borders, and `navy-900` stays dark (ink on a bright fill). A `bg-navy-600…800` fill is
+  therefore a light patch — use `bg-onyx` / `bg-onyx-soft` for a dark fill.
+- New code prefers the kit's raw names where it means them: `room-0…3`, `hair` /
+  `hair-mid` / `hair-hi`, `amber`, `s-*`, `area-*`, `chan-*`.
+- **Never hardcode hex** in a component; add a token. Tenant data (a project's accent) is
+  the exception.
+- The theme block is `@theme static`: Tailwind v4 drops a variable no utility references,
+  and the kit reads `area-*`/`chan-*` through `var()`.
 
 ## Scroll-driven motion — the one rule that is not optional
 

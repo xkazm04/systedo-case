@@ -23,6 +23,7 @@ import {
   shadowTokens,
 } from "@/lib/design-tokens";
 import Swatch from "./Swatch";
+import KitShowcase from "./KitShowcase";
 import { getT } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
@@ -48,10 +49,11 @@ const T = {
     navDeltaBadge: "DeltaBadge",
     navLocalization: "Lokalizace",
     navSurfaces: "Plochy",
+    navKit: "Kit Optic Bench",
     tokensEyebrow: "Tokeny",
     colorsTitle: "Barevné rampy",
     colorsIntro:
-      "Navy drží strukturu, teal je značka a akce, korál je pozornost. Každý swatch má živé pozadí přes var(--color-…); hex pod ním je jen popisek načtený z @theme.",
+      "Teplá čerň je prostor, jantar je jediná akce na obrazovce, spektrální linie nesou význam (oblasti a datové řady). Každý swatch má živé pozadí přes var(--color-…); hex pod ním je jen popisek načtený z @theme.",
     shadesCount: "{n} odstínů",
     surfacesSemantic: "Plochy & sémantické",
     tokensCount: "{n} tokenů",
@@ -150,10 +152,11 @@ const T = {
     navDeltaBadge: "DeltaBadge",
     navLocalization: "Localization",
     navSurfaces: "Surfaces",
+    navKit: "Optic Bench kit",
     tokensEyebrow: "Tokens",
     colorsTitle: "Color ramps",
     colorsIntro:
-      "Navy holds the structure, teal is the brand and actions, coral is attention. Every swatch renders its live background via var(--color-…); the hex underneath is just a label read from @theme.",
+      "The warm black is the room, amber is the one action per screen, and the spectral lines carry meaning (areas and data series). Every swatch renders its live background via var(--color-…); the hex underneath is just a label read from @theme.",
     shadesCount: "{n} shades",
     surfacesSemantic: "Surfaces & semantic",
     tokensCount: "{n} tokens",
@@ -420,6 +423,7 @@ export default async function DesignSystemPage() {
   const DELTA_STATES = deltaStates(t);
   const TYPE_SCALE = typeScale(t);
   const navLinks = [
+    [t("navKit"), "#kit"],
     [t("navColors"), "#barvy"],
     [t("navTypography"), "#typografie"],
     [t("navButtons"), "#tlacitka"],
@@ -436,10 +440,6 @@ export default async function DesignSystemPage() {
       {/* ---------------------------------------------------------------- Hero */}
       <section className="relative overflow-hidden border-b border-line bg-surface">
         <div className="absolute inset-0 bg-dotgrid opacity-70" aria-hidden />
-        <div
-          className="absolute -right-40 -top-40 h-96 w-96 rounded-full bg-brand-200/40 blur-3xl"
-          aria-hidden
-        />
         <Container className="relative py-14 sm:py-20">
           <Eyebrow>{t("livingStyleGuide")}</Eyebrow>
           <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-[1.08] tracking-tight text-navy-800 sm:text-5xl">
@@ -469,6 +469,7 @@ export default async function DesignSystemPage() {
       </section>
 
       <Container className="pb-8">
+        <KitShowcase />
         {/* ----------------------------------------------------------- Colours */}
         <Section
           id="barvy"

@@ -11,7 +11,7 @@ also decided the product is dark-only. Plan: `docs/roadmap/app-redesign-plan.md`
 
 The current visual system is the Monolith direction: navy structure, a teal brand
 colour and coral highlights, on a light canvas with dark-mode overrides
-(`src/app/globals.css`, toggled by `src/components/site/ThemeToggle.tsx` and an
+(`src/app/globals.css`, toggled by a ThemeToggle component in the site chrome and an
 inline theme script in `src/app/layout.tsx`). Its contest brief named the fault
 plainly: it "reads as a dark SaaS template with cards on it". Two rounds of
 landing rework before the contest were rejected and deleted.

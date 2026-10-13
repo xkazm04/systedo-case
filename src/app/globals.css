@@ -1,91 +1,141 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   Design tokens — a Systedo-inspired system.
-   Navy (structure) + teal (brand/accent) + coral (highlight) on a cool canvas.
-   Exposed to Tailwind v4 via @theme, so utilities like `bg-brand-500`,
-   `text-navy-900`, `rounded-card` and `shadow-card` are generated for free.
+   Design tokens — Optic Bench (ADR-0014). Dark only: one binding, no theme
+   switch. A warm-black room, a white-hot hairline, eight spectral lines and ONE
+   amber action per screen.
+
+   Two layers. The RAW scales (room-*, hair-*, amber-*, s-*) come straight from
+   the winning contest variant's :root. The ROLE names the app already used
+   (canvas / surface / ink / muted / line, brand-*, navy-*, coral-*, onyx-*) are
+   rebound onto them, so every existing page moved in one diff. New code reaches
+   for the roles; `area-*` and `chan-*` carry meaning by colour (one spectral line
+   per area, one per data series) and are never used for decoration.
+   Exposed to Tailwind v4 via @theme, so `bg-room-1`, `text-ink`, `border-hair`
+   and friends are generated for free.
 --------------------------------------------------------------------------- */
-@theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+@theme static {
+  --font-sans: var(--font-hanken), "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  /* Display face: headlines ONLY — never a number, a label or a table. */
+  --font-display: var(--font-cormorant), "Cormorant Garamond", "Bodoni Moda", Didot, "Times New Roman", serif;
 
-  /* canvas + surfaces */
-  --color-canvas: #f4f7f9;
-  --color-surface: #ffffff;
-  --color-ink: #0d1a24;
-  --color-muted: #56697a;
-  --color-line: #e4eaef;
+  /* ---- raw scales (from the variant) ---- */
+  --color-room-0: #07070a;
+  --color-room-1: #0d0c10;
+  --color-room-2: #15131a;
+  --color-room-3: #1c1a23;
+  --color-hair: rgba(237, 234, 227, 0.18);
+  --color-hair-mid: rgba(237, 234, 227, 0.34);
+  --color-hair-hi: rgba(237, 234, 227, 0.62);
+  --color-amber: #ffb000;
+  --color-amber-hi: #ffc53d;
+  --color-amber-ink: #140e00;
+  --color-focus: #ffd66b;
+  --color-s-red: #ff4a4a;
+  --color-s-orange: #ff7a33;
+  --color-s-amber: #ffb000;
+  --color-s-yellow: #e8e16a;
+  --color-s-green: #7be08a;
+  --color-s-cyan: #52e0d4;
+  --color-s-blue: #4ea3ff;
+  --color-s-violet: #8d7bff;
 
-  /* brand — teal / turquoise */
-  --color-brand-50: #ecfdfb;
-  --color-brand-100: #d2faf5;
-  --color-brand-200: #a6f1ea;
-  --color-brand-300: #6ee3da;
-  --color-brand-400: #2dd4ce;
-  --color-brand-500: #14b8b1;
-  --color-brand-600: #0e9c97;
-  --color-brand-700: #11807c;
-  --color-brand-800: #136663;
-  --color-brand-900: #134f4d;
+  /* ---- meaning by colour: one spectral line per area (ADR-0013) ---- */
+  --color-area-home: #fff6e6;
+  --color-area-performance: #52e0d4;
+  --color-area-reach: #4ea3ff;
+  --color-area-local: #ff7a33;
+  --color-area-studio: #8d7bff;
+  --color-area-channels: #7be08a;
+  /* data series, in the order that keeps neighbours distinct (validated in the
+     contest round 2: adjacent delta-E 19 colour-blind, 32 normal vision) */
+  --color-chan-0: #52e0d4;
+  --color-chan-1: #ff4a4a;
+  --color-chan-2: #e8e16a;
+  --color-chan-3: #4ea3ff;
+  --color-chan-4: #ff7a33;
+  --color-chan-5: #8d7bff;
+  --color-chan-6: #7be08a;
 
-  /* navy — structure / headers */
-  --color-navy-50: #eef3f8;
-  --color-navy-100: #d6e1ec;
-  --color-navy-200: #adc2d6;
-  --color-navy-300: #7693ad;
-  --color-navy-400: #3f5a74;
-  --color-navy-500: #1f3a54;
-  --color-navy-600: #15324b;
-  --color-navy-700: #0f2438;
-  --color-navy-800: #0b1b2b;
-  --color-navy-900: #081521;
+  /* ---- roles: canvas + surfaces ---- */
+  --color-canvas: #07070a;
+  --color-surface: #15131a;
+  --color-ink: #edeae3;
+  --color-muted: #a8a399;
+  --color-line: #2a2722;
+  /* the colour ON the amber action — dark ink, never white */
+  --color-on-action: #140e00;
 
-  /* brand accent — the teal used for accent TEXT (eyebrows, inline links,
-     icon glyphs on tinted chips). Split out from the ramp so dark mode can make
-     accent text light without disturbing the saturated brand-700 button hover.
-     Two steps darker than brand-700: #11807c sat at 4.43:1 on the canvas —
-     just under WCAG AA 4.5:1 (the contrast guard test enforces the pair). */
-  --color-brand-accent: #117d79;
+  /* brand — the amber action. Solid steps (500–700) are fills that carry
+     `text-on-action`; 800 doubles as hover fill and as light accent text; the
+     low steps are dark amber tints for chips and rings. */
+  --color-brand-50: #1e1706;
+  --color-brand-100: #2a1f07;
+  --color-brand-200: #4a3609;
+  --color-brand-300: #8a6410;
+  --color-brand-400: #cc8c00;
+  --color-brand-500: #ffb000;
+  --color-brand-600: #ffb000;
+  --color-brand-700: #ffb000;
+  --color-brand-800: #ffc53d;
+  --color-brand-900: #ffe3a3;
 
-  /* coral — accent / attention */
+  /* navy — the structure ramp, warmed. High steps are TEXT (light), low steps
+     are chips and borders (dark). navy-900 stays dark: it is the ink used on a
+     bright fill. */
+  --color-navy-50: #17151b;
+  --color-navy-100: #1c1a21;
+  --color-navy-200: #2a2730;
+  --color-navy-300: #46423d;
+  --color-navy-400: #6e6960;
+  --color-navy-500: #8a857b;
+  --color-navy-600: #a8a399;
+  --color-navy-700: #c9c4ba;
+  --color-navy-800: #edeae3;
+  --color-navy-900: #140e00;
+
+  /* accent TEXT (eyebrows, inline links, icon glyphs on tinted chips) */
+  --color-brand-accent: #ffc53d;
+
+  /* coral — attention, from the spectral orange */
   --color-coral-400: #ff8a5c;
-  --color-coral-500: #fb7141;
-  --color-coral-600: #ea5a2a;
+  --color-coral-500: #ff7a33;
+  --color-coral-600: #ff8f57;
+  --color-coral-700: #ffa27a;
 
-  /* semantic */
-  --color-positive: #128f6f;
-  --color-negative: #d4503e;
+  /* semantic — always paired with a glyph and a sign, never colour alone */
+  --color-positive: #7be08a;
+  --color-negative: #ff6b5b;
+  --color-positive-soft: #102016;
+  --color-negative-soft: #2a1210;
+  --color-coral-soft: #2a1408;
 
-  /* soft semantic tints — the pill / badge / callout backgrounds. Tokenised
-     (were hard-coded hex) so they flip to dark tints in dark mode. */
-  --color-positive-soft: #e7f4ef;
-  --color-negative-soft: #fbeae7;
-  --color-coral-soft: #fff0e9;
+  /* SERP preview — Google's own dark-mode link colours */
+  --color-serp-link: #8ab4f8;
+  --color-serp-url: #81c995;
 
-  /* SERP preview — mimics Google's own link colours; Google themes these too,
-     so they adapt to the dark variant in dark mode. */
-  --color-serp-link: #1a4ba0;
-  --color-serp-url: #3a7d3a;
+  /* onyx — the deepest panels (footer, code, CTA blocks): one step below canvas */
+  --color-onyx: #0d0c10;
+  --color-onyx-soft: #1c1a23;
+  --color-onyx-line: #34303a;
+  --color-onyx-ink: #edeae3;
+  --color-onyx-muted: #a8a399;
 
-  /* onyx — deliberately dark navy surfaces (footer, CTA blocks, code panels,
-     numbered avatars, logo tiles). STABLE: identical in light and dark, so a
-     dark brand surface stays a dark brand surface instead of inverting. */
-  --color-onyx: #0d1f31;
-  --color-onyx-soft: #13293f;
-  --color-onyx-line: #28415a;
-  --color-onyx-ink: #eaf1f8;
-  --color-onyx-muted: #b3c3d3;
-
-  --radius-card: 1rem;
+  /* radii: the instrument is precise — small corners, never pillowy cards */
+  --radius-card: 6px;
   --radius-pill: 999px;
 
-  --shadow-card: 0 1px 2px rgba(13, 26, 36, 0.04), 0 8px 24px -12px rgba(13, 26, 36, 0.12);
-  --shadow-pop: 0 12px 40px -12px rgba(13, 26, 36, 0.25);
+  /* elevation reads as light, not shadow, on a black room */
+  --shadow-card: 0 0 0 1px rgba(237, 234, 227, 0.06), 0 12px 32px -16px rgba(0, 0, 0, 0.8);
+  --shadow-pop: 0 0 0 1px rgba(237, 234, 227, 0.1), 0 18px 48px -16px rgba(0, 0, 0, 0.9);
+
+  --ease-optic: cubic-bezier(0.22, 0.7, 0.1, 1);
+  --ease-optic-io: cubic-bezier(0.65, 0, 0.35, 1);
 
   /* Typography scale — sub-base sizes bumped +2px for legibility across the app:
-     text-xs 12→14, text-sm 14→16. text-base and up are unchanged. Arbitrary
-     text-[Npx] values below 16px are bumped at their call sites to match. */
+     text-xs 12→14, text-sm 14→16. text-base and up are unchanged. 14px is the
+     floor for any label (ADR-0014). */
   --text-xs: 0.875rem;
   --text-xs--line-height: 1.25rem;
   --text-sm: 1rem;
@@ -113,9 +163,9 @@ html {
   scroll-padding-top: 6rem;
   -webkit-text-size-adjust: 100%;
 
-  /* Ambient "adamant facet" pattern colour — faint dark lines on the light
-     canvas; the dark-theme blocks below flip it to faint light lines. */
-  --pattern-line: rgba(11, 27, 43, 0.03);
+  /* Ambient facet pattern colour — faint warm hairlines on the black room. */
+  --pattern-line: rgba(237, 234, 227, 0.03);
+  color-scheme: dark;
 }
 
 body {
@@ -127,12 +177,12 @@ body {
 }
 
 ::selection {
-  background: var(--color-brand-200);
-  color: var(--color-navy-800);
+  background: var(--color-amber);
+  color: var(--color-amber-ink);
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-brand-500);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -144,7 +194,7 @@ body {
 
 /* Subtle dotted grid used behind hero / section backdrops. */
 .bg-dotgrid {
-  background-image: radial-gradient(rgba(13, 26, 36, 0.06) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(237, 234, 227, 0.05) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
@@ -167,139 +217,6 @@ body {
       transparent 1px,
       transparent 30px
     );
-}
-
-/* ---------------------------------------------------------------------------
-   Dark theme — a parallel token set layered over the same @theme variables, so
-   every `bg-*` / `text-*` utility adapts for free. Two triggers:
-     • html[data-theme="dark"]            → explicit user choice (localStorage)
-     • prefers-color-scheme: dark         → system preference, unless the user
-                                            has explicitly forced light
-   The onyx-*, navy-900 (CTA-on-teal text) and coral tokens are intentionally
-   NOT overridden — they read correctly on dark as-is.
---------------------------------------------------------------------------- */
-html[data-theme="dark"] {
-  /* canvas + surfaces */
-  --color-canvas: #0a0f16;
-  --color-surface: #121a24;
-  --color-ink: #e7eef5;
-  --color-muted: #92a3b3;
-  --color-line: #232f3c;
-  --pattern-line: rgba(168, 220, 255, 0.045);
-
-  /* brand — tints darken, accents/text lighten, buttons stay saturated */
-  --color-brand-50: #0c2b29;
-  --color-brand-100: #0f3a36;
-  --color-brand-200: #155049;
-  --color-brand-500: #1ec8c0;
-  --color-brand-700: #11807c;
-  --color-brand-800: #a9f0e8;
-  --color-brand-900: #d2faf5;
-  --color-brand-accent: #5fe3da;
-
-  /* navy — high steps become light (text), low steps stay dark (chips/borders) */
-  --color-navy-50: #18222e;
-  --color-navy-100: #1d2835;
-  --color-navy-200: #2b3a49;
-  --color-navy-300: #455a6e;
-  --color-navy-400: #647889;
-  --color-navy-500: #8597a9;
-  --color-navy-600: #a6b6c6;
-  --color-navy-700: #c2cfdb;
-  --color-navy-800: #e7eef5;
-
-  /* semantic — lift greens/reds for contrast, darken the soft tints */
-  --color-positive: #34d39e;
-  --color-negative: #f1745f;
-  --color-positive-soft: #11271f;
-  --color-negative-soft: #2e1714;
-  --color-coral-soft: #321a10;
-
-  /* SERP — Google's own dark-mode link colours */
-  --color-serp-link: #8ab4f8;
-  --color-serp-url: #81c995;
-
-  /* deepen elevation so cards read against the dark canvas */
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
-  --shadow-pop: 0 12px 40px -12px rgba(0, 0, 0, 0.7);
-}
-
-/* NOTE: the values below MUST mirror html[data-theme="dark"] above. Vanilla CSS
-   can't share one declaration block between an attribute selector and a media
-   query, so the two triggers are kept in sync by hand (a build-time token gen
-   would remove the duplication). --pattern-line was previously omitted here, so
-   system-dark users saw the light dot-grid tint — fixed below. */
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme="light"]) {
-    --color-canvas: #0a0f16;
-    --color-surface: #121a24;
-    --color-ink: #e7eef5;
-    --color-muted: #92a3b3;
-    --color-line: #232f3c;
-    --pattern-line: rgba(168, 220, 255, 0.045);
-
-    --color-brand-50: #0c2b29;
-    --color-brand-100: #0f3a36;
-    --color-brand-200: #155049;
-    --color-brand-500: #1ec8c0;
-    --color-brand-700: #11807c;
-    --color-brand-800: #a9f0e8;
-    --color-brand-900: #d2faf5;
-    --color-brand-accent: #5fe3da;
-
-    --color-navy-50: #18222e;
-    --color-navy-100: #1d2835;
-    --color-navy-200: #2b3a49;
-    --color-navy-300: #455a6e;
-    --color-navy-400: #647889;
-    --color-navy-500: #8597a9;
-    --color-navy-600: #a6b6c6;
-    --color-navy-700: #c2cfdb;
-    --color-navy-800: #e7eef5;
-
-    --color-positive: #34d39e;
-    --color-negative: #f1745f;
-    --color-positive-soft: #11271f;
-    --color-negative-soft: #2e1714;
-    --color-coral-soft: #321a10;
-
-    --color-serp-link: #8ab4f8;
-    --color-serp-url: #81c995;
-
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
-    --shadow-pop: 0 12px 40px -12px rgba(0, 0, 0, 0.7);
-  }
-
-  html:not([data-theme="light"]) .bg-dotgrid {
-    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  }
-
-  html:not([data-theme="light"]) .theme-toggle-sun {
-    display: none;
-  }
-  html:not([data-theme="light"]) .theme-toggle-moon {
-    display: block;
-  }
-}
-
-/* lighten the dot grid so it reads on the dark canvas */
-html[data-theme="dark"] .bg-dotgrid {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-}
-
-/* Theme-toggle icon: show the glyph for the *current* theme, driven purely by
-   CSS so the correct icon paints before hydration (no flash, no mismatch). */
-.theme-toggle-sun {
-  display: block;
-}
-.theme-toggle-moon {
-  display: none;
-}
-html[data-theme="dark"] .theme-toggle-sun {
-  display: none;
-}
-html[data-theme="dark"] .theme-toggle-moon {
-  display: block;
 }
 
 /* ---------------------------------------------------------------------------
@@ -337,6 +254,107 @@ html[data-theme="dark"] .theme-toggle-moon {
   .link-inline:hover {
     color: var(--color-brand-800);
     text-decoration-color: var(--color-brand-500);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Optic Bench kit (ADR-0014) — the few rules a utility class cannot say well:
+   engraved corner ticks, the station rule with its amber tick, the instrument
+   panel wash. Components in components/kit/ compose these with utilities.
+--------------------------------------------------------------------------- */
+@layer components {
+  /* Instrument panel: a faint vertical wash, a hairline edge, and four engraved
+     corner ticks drawn 5px outside the box. */
+  .optic-panel {
+    position: relative;
+    min-width: 0;
+    background: linear-gradient(180deg, rgba(237, 234, 227, 0.05), rgba(237, 234, 227, 0.022));
+    border: 1px solid var(--color-hair);
+  }
+  .optic-panel::before {
+    content: "";
+    position: absolute;
+    inset: -5px;
+    pointer-events: none;
+    background:
+      linear-gradient(var(--color-hair-hi), var(--color-hair-hi)) 0 0 / 9px 1px no-repeat,
+      linear-gradient(var(--color-hair-hi), var(--color-hair-hi)) 0 0 / 1px 9px no-repeat,
+      linear-gradient(var(--color-hair-hi), var(--color-hair-hi)) 100% 0 / 9px 1px no-repeat,
+      linear-gradient(var(--color-hair-hi), var(--color-hair-hi)) 100% 0 / 1px 9px no-repeat,
+      linear-gradient(var(--color-hair-hi), var(--color-hair-hi)) 0 100% / 9px 1px no-repeat,
+      linear-gradient(var(--color-hair-hi), var(--color-hair-hi)) 0 100% / 1px 9px no-repeat,
+      linear-gradient(var(--color-hair-hi), var(--color-hair-hi)) 100% 100% / 9px 1px no-repeat,
+      linear-gradient(var(--color-hair-hi), var(--color-hair-hi)) 100% 100% / 1px 9px no-repeat;
+  }
+
+  /* Station head: a hairline that fades to the right, with a short amber tick
+     at its start — the one place amber is decoration, because it marks "you
+     are here" in the measure → triage → act sequence. */
+  .optic-station-rule {
+    position: relative;
+    padding-top: 1.5rem;
+  }
+  .optic-station-rule::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, var(--color-hair-hi), var(--color-hair) 55%, transparent);
+  }
+  .optic-station-rule::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: -1px;
+    width: 3.2rem;
+    height: 3px;
+    background: var(--station-hue, var(--color-amber));
+    box-shadow: 0 0 14px color-mix(in srgb, var(--station-hue, var(--color-amber)) 60%, transparent);
+  }
+
+  /* Engraved line-art vocabulary, shared by every AreaArt motif. */
+  .optic-art {
+    overflow: visible;
+  }
+  .optic-art .ln {
+    fill: none;
+    stroke: var(--color-hair-hi);
+    stroke-width: 1.1;
+    vector-effect: non-scaling-stroke;
+  }
+  .optic-art .lo {
+    fill: none;
+    stroke: var(--color-hair);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  .optic-art .dash {
+    fill: none;
+    stroke: var(--color-hair);
+    stroke-width: 1;
+    stroke-dasharray: 3 5;
+    vector-effect: non-scaling-stroke;
+  }
+  .optic-art .hue {
+    fill: none;
+    stroke: var(--art-hue, var(--color-amber));
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+  }
+  .optic-art .glow {
+    fill: none;
+    stroke: var(--art-hue, var(--color-amber));
+    stroke-width: 8;
+    stroke-linecap: round;
+    opacity: 0.13;
+    vector-effect: non-scaling-stroke;
+  }
+  .optic-art .beam {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
   }
 }
 

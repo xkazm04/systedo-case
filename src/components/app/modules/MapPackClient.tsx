@@ -114,10 +114,10 @@ function LeafletMap({ points, live }: { points: GeoListing[]; live: boolean }) {
         const you = points.find((p) => p.you) ?? points[0];
         L.circle([you.lat, you.lng], {
           radius: 900,
-          color: "#14b8b1",
+          color: "#ffb000",
           weight: 1.5,
           opacity: 0.6,
-          fillColor: "#14b8b1",
+          fillColor: "#ffb000",
           fillOpacity: 0.06,
           dashArray: "4 4",
         }).addTo(map);

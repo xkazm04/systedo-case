@@ -2559,7 +2559,8 @@
         "src/app/design-system/Swatch.tsx",
         "src/app/_dev-inspector/DevInspector.tsx",
         "src/app/_dev-inspector/devInspectorUi.tsx",
-        "src/app/_dev-inspector/devLocate.ts"
+        "src/app/_dev-inspector/devLocate.ts",
+        "src/app/design-system/KitShowcase.tsx"
       ],
       "group": "Site & Marketing",
       "group_id": "0ca5ac6b-c9d8-4a90-94fb-6088a88a66b4",
@@ -4582,7 +4583,8 @@
         "src/lib/projects/modules.ts",
         "src/lib/projects/icon-keys.ts",
         "src/lib/projects/name.ts",
-        "src/lib/projects/provision.ts"
+        "src/lib/projects/provision.ts",
+        "src/lib/projects/areas.ts"
       ],
       "group": "Authenticated Product Shell",
       "group_id": "e8028227-6d96-42a5-8d3a-fc7741b799a4",
@@ -5100,7 +5102,17 @@
         "src/components/hooks/useAsyncAction.ts",
         "src/components/hooks/useFocusTrap.ts",
         "src/components/patterns/PatternsLibrary.tsx",
-        "src/components/patterns/copy.ts"
+        "src/components/patterns/copy.ts",
+        "src/components/kit/Station.tsx",
+        "src/components/kit/Panel.tsx",
+        "src/components/kit/Kpi.tsx",
+        "src/components/kit/Provenance.tsx",
+        "src/components/kit/Lamp.tsx",
+        "src/components/kit/Dial.tsx",
+        "src/components/kit/Spectrum.tsx",
+        "src/components/kit/Room.tsx",
+        "src/components/kit/EscBack.tsx",
+        "src/components/kit/art/AreaArt.tsx"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",
@@ -5135,7 +5147,7 @@
         "article-layout"
       ],
       "db_tables": [],
-      "description": "Public site chrome — top navigation, footer, command palette, locale switcher, theme toggle, and scroll-based journey beaconing. Nav is the top bar with mobile hamburger; Footer renders links and legal copy; CommandPalette is the Cmd-K search overlay; LocaleSwitcher switches active locale; ThemeToggle toggles dark/light mode; ChromeGate detects unsupported browsers; PagerHotkeys and TaskPager enable keyboard-driven page navigation.",
+      "description": "Public site chrome — top navigation, footer, command palette, locale switcher, and scroll-based journey beaconing. Nav is the top bar with mobile hamburger; Footer renders links and legal copy; CommandPalette is the Cmd-K search overlay; LocaleSwitcher switches active locale; ThemeToggle toggles dark/light mode; ChromeGate detects unsupported browsers; PagerHotkeys and TaskPager enable keyboard-driven page navigation.",
       "entry_points": [
         "src/components/site/Nav.tsx",
         "src/components/site/CommandPalette.tsx"
@@ -5148,8 +5160,7 @@
         "src/components/site/LocaleSwitcher.tsx",
         "src/components/site/Nav.tsx",
         "src/components/site/PagerHotkeys.tsx",
-        "src/components/site/TaskPager.tsx",
-        "src/components/site/ThemeToggle.tsx"
+        "src/components/site/TaskPager.tsx"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",

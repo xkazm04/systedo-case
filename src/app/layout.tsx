@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Cormorant, Hanken_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 import Nav from "@/components/site/Nav";
@@ -14,8 +14,21 @@ import { currentSession } from "@/lib/session";
 import { DevInspector } from "./_dev-inspector/DevInspector";
 import { getT } from "@/lib/i18n/server";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// Optic Bench type (ADR-0014): Hanken Grotesk for body and UI, IBM Plex Mono for
+// figures and tables, Cormorant for display headlines only. Self-hosted by
+// next/font at build time; latin-ext carries the Czech diacritics.
+const hanken = Hanken_Grotesk({ variable: "--font-hanken", subsets: ["latin", "latin-ext"] });
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500"],
+});
+const cormorant = Cormorant({
+  variable: "--font-cormorant",
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -49,16 +62,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f7f9" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0f16" },
-  ],
+  // Dark only (ADR-0014): one browser-chrome colour, the room itself.
+  themeColor: "#07070a",
+  colorScheme: "dark",
 };
-
-/** Runs before paint: applies an explicitly-chosen theme from localStorage so
- *  there is no flash of the wrong palette. Absence of a stored choice means
- *  "follow the system", which the prefers-color-scheme CSS handles on its own. */
-const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t;}}catch(e){}})();`;
 
 /** Runs before paint: upgrades <html lang> from the locale cookie. The <html>
  *  shell is prerendered static (Cache Components) with an `en` default (the
@@ -76,11 +83,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full`}
+      className={`${hanken.variable} ${plexMono.variable} ${cormorant.variable} h-full`}
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: langScript }} />
       </head>
       <body className="flex min-h-full flex-col">
