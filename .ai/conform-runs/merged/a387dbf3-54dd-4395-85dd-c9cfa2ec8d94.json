@@ -1,0 +1,210 @@
+{
+ "schema": "conform-run/1",
+ "worker": "a387dbf3-54dd-4395-85dd-c9cfa2ec8d94",
+ "subject": "client-reporting-and-data-provenance",
+ "evaluatedAt": "2026-10-13T22:43:07.021391+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [
+  {
+   "context": "report-engine",
+   "subject": "client-reporting-and-data-provenance",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/lib/report/compute.ts:101 When an undeclared or unknown business type is provided, the report tile resolver defaults to the e-commerce preset rather than refusing to render the top row as required by the standard.",
+   "techniques": [
+    {
+     "technique": "tile-presets-by-business-type",
+     "verdict": "deviation",
+     "evidence": "src/lib/report/compute.ts:101 Defaults unknown or missing project type to the e-shop preset instead of refusing to render."
+    },
+    {
+     "technique": "lower-is-better-inverts-verdict-not-number",
+     "verdict": "conformant",
+     "evidence": "src/lib/report/compute.ts:148 Computes delta tone by evaluating goodWhenDown against delta sign without inverting the delta value itself."
+    },
+    {
+     "technique": "never-sum-across-currencies",
+     "verdict": "conformant",
+     "evidence": "src/lib/report-metrics/blend.ts:198 Refuses to blend cross-currency platform sections into a single total, serving the primary section alone with a mixedCurrency flag."
+    },
+    {
+     "technique": "live-means-synced-rows",
+     "verdict": "deviation",
+     "evidence": "src/lib/report-metrics/types.ts:119 Defines liveness purely by the presence of stored rows without verifying coverage of the requested report period."
+    },
+    {
+     "technique": "stale-caveat-travels-into-the-narrative",
+     "verdict": "deviation",
+     "evidence": "src/lib/report-metrics/freshness.ts:76 Formats stale caveats using relative days ago rather than explicit sync dates and lacks validation on the narrative text."
+    }
+   ],
+   "registryProposal": "The standard could clarify whether snapshot truncation indicators can serve as acceptable degradation signals when a sync period partially covers the reporting window."
+  },
+  {
+   "context": "client-facing-pages",
+   "subject": "client-reporting-and-data-provenance",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/app/report/[token]/page.tsx:137 The shared client report renders static terminology labels rather than dynamically generated plain-language sentences explaining ratio metrics in the client's currency.",
+   "techniques": [
+    {
+     "technique": "plain-language-gloss-and-white-label",
+     "verdict": "deviation",
+     "evidence": "src/app/report/[token]/page.tsx:137 Displays static glossary hints rather than generated plain-language gloss sentences tailored to metric values."
+    },
+    {
+     "technique": "lower-is-better-inverts-verdict-not-number",
+     "verdict": "conformant",
+     "evidence": "src/app/report/[token]/page.tsx:287 Renders the arithmetic delta directly with its true sign while adjusting color styling via deltaTone."
+    },
+    {
+     "technique": "live-means-synced-rows",
+     "verdict": "conformant",
+     "evidence": "src/app/report/[token]/page.tsx:267 Prominently displays the live versus illustrative data pill at the top of the shared report based on data liveness."
+    },
+    {
+     "technique": "tile-presets-by-business-type",
+     "verdict": "conformant",
+     "evidence": "src/app/report/[token]/page.tsx:277 Skips rendering tiles whose metric key is absent from the snapshot rather than fabricating a zero value."
+    }
+   ]
+  },
+  {
+   "context": "reporting-modules",
+   "subject": "client-reporting-and-data-provenance",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/app/app/[projectId]/performance/mesicni-report/page.tsx:84 The in-app monthly report passes the project type directly to assembly without validating that a business type has been declared, allowing unconfigured projects to fall back to the default e-commerce preset.",
+   "techniques": [
+    {
+     "technique": "tile-presets-by-business-type",
+     "verdict": "deviation",
+     "evidence": "src/app/app/[projectId]/performance/mesicni-report/page.tsx:84 Passes project type into report assembly without checking if the type was explicitly set on the workspace."
+    },
+    {
+     "technique": "live-means-synced-rows",
+     "verdict": "conformant",
+     "evidence": "src/app/app/[projectId]/performance/report/page.tsx:41 Gates the live analysis note on the resolved dataset's synced status so sample data cannot claim live status."
+    },
+    {
+     "technique": "stale-caveat-travels-into-the-narrative",
+     "verdict": "conformant",
+     "evidence": "src/app/app/[projectId]/performance/mesicni-report/page.tsx:117 Flags persisted monthly recaps as stale when the underlying data hashes diverge from generation time."
+    }
+   ]
+  },
+  {
+   "context": "spend-reporting",
+   "subject": "client-reporting-and-data-provenance",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/MonthlyReport.tsx:351 The monthly report tile display renders raw acronyms without generating plain-language explanatory gloss sentences in the client's currency as required for non-marketer readers.",
+   "techniques": [
+    {
+     "technique": "plain-language-gloss-and-white-label",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/MonthlyReport.tsx:351 Renders metric acronyms with no accompanying generated plain-language sentences explaining the ratios."
+    },
+    {
+     "technique": "lower-is-better-inverts-verdict-not-number",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/MonthlyReport.tsx:355 Renders signed delta values without arithmetic inversion and applies goodWhenDown only to the tone styling class."
+    },
+    {
+     "technique": "never-sum-across-currencies",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/MonthlyReport.tsx:268 Resolves native currency formatting for monetary tiles without performing silent currency conversions."
+    },
+    {
+     "technique": "live-means-synced-rows",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/MonthlyReport.tsx:35 Hardcodes Google Ads in the live banner regardless of whether the synced rows originate from other or multiple sources."
+    },
+    {
+     "technique": "stale-caveat-travels-into-the-narrative",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/MonthlyReport.tsx:447 Displays a generic stale warning banner without citing the exact date through which data was synced."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "client-reporting-and-data-provenance",
+   "context": "campaign-reporting",
+   "reason": "pair anchor refused: placeholder evidence at src/components/campaigns/ReportSettings.tsx:239"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-13T22:43:07.021391+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "client-reporting-and-data-provenance"
+   ],
+   "techniques": [
+    "live-means-synced-rows",
+    "lower-is-better-inverts-verdict-not-number",
+    "never-sum-across-currencies",
+    "stale-caveat-travels-into-the-narrative",
+    "tile-presets-by-business-type"
+   ],
+   "deviations": 1,
+   "context": "report-engine",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-13T22:43:07.021391+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "client-reporting-and-data-provenance"
+   ],
+   "techniques": [
+    "live-means-synced-rows",
+    "lower-is-better-inverts-verdict-not-number",
+    "plain-language-gloss-and-white-label",
+    "tile-presets-by-business-type"
+   ],
+   "deviations": 1,
+   "context": "client-facing-pages",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-13T22:43:07.021391+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "client-reporting-and-data-provenance"
+   ],
+   "techniques": [
+    "live-means-synced-rows",
+    "stale-caveat-travels-into-the-narrative",
+    "tile-presets-by-business-type"
+   ],
+   "deviations": 1,
+   "context": "reporting-modules",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-13T22:43:07.021391+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "client-reporting-and-data-provenance"
+   ],
+   "techniques": [
+    "live-means-synced-rows",
+    "lower-is-better-inverts-verdict-not-number",
+    "never-sum-across-currencies",
+    "plain-language-gloss-and-white-label",
+    "stale-caveat-travels-into-the-narrative"
+   ],
+   "deviations": 1,
+   "context": "spend-reporting",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  }
+ ]
+}

@@ -15133,7 +15133,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/report/compute.ts:101 When an undeclared or unknown business type is provided, the report tile resolver defaults to the e-commerce preset rather than refusing to render the top row as required by the standard.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:8ab0a5e98ab28224",
+          "evaluatedRevision": 1
         },
         {
           "subject": "prompt-assembly",
@@ -16759,7 +16763,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:351 The monthly report tile display renders raw acronyms without generating plain-language explanatory gloss sentences in the client's currency as required for non-marketer readers.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:8ab0a5e98ab28224",
+          "evaluatedRevision": 1
         },
         {
           "subject": "eval-harness",

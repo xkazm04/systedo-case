@@ -3418,6 +3418,79 @@
           "evidence": "src/components/site/LocaleSwitcher.tsx:6 Switcher labels are maintained outside the shared registry; type checking detects missing entries but does not satisfy the standard's single-entry onboarding rule."
         }
       ]
+    },
+    "8b63aca5-0881-499d-9426-2dada7a4a985/client-reporting-and-data-provenance": {
+      "context": "report-engine",
+      "subject": "client-reporting-and-data-provenance",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T22:43:07.021Z",
+      "worker": "a387dbf3-54dd-4395-85dd-c9cfa2ec8d94",
+      "techniques": [
+        {
+          "technique": "tile-presets-by-business-type",
+          "verdict": "deviation",
+          "evidence": "src/lib/report/compute.ts:101 Defaults unknown or missing project type to the e-shop preset instead of refusing to render."
+        },
+        {
+          "technique": "lower-is-better-inverts-verdict-not-number",
+          "verdict": "conformant",
+          "evidence": "src/lib/report/compute.ts:148 Computes delta tone by evaluating goodWhenDown against delta sign without inverting the delta value itself."
+        },
+        {
+          "technique": "never-sum-across-currencies",
+          "verdict": "conformant",
+          "evidence": "src/lib/report-metrics/blend.ts:198 Refuses to blend cross-currency platform sections into a single total, serving the primary section alone with a mixedCurrency flag."
+        },
+        {
+          "technique": "live-means-synced-rows",
+          "verdict": "deviation",
+          "evidence": "src/lib/report-metrics/types.ts:119 Defines liveness purely by the presence of stored rows without verifying coverage of the requested report period."
+        },
+        {
+          "technique": "stale-caveat-travels-into-the-narrative",
+          "verdict": "deviation",
+          "evidence": "src/lib/report-metrics/freshness.ts:76 Formats stale caveats using relative days ago rather than explicit sync dates and lacks validation on the narrative text."
+        }
+      ],
+      "registryProposal": "The standard could clarify whether snapshot truncation indicators can serve as acceptable degradation signals when a sync period partially covers the reporting window."
+    },
+    "4669bc3a-19ce-46c3-ab23-79f5dcf6a2dd/client-reporting-and-data-provenance": {
+      "context": "spend-reporting",
+      "subject": "client-reporting-and-data-provenance",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T22:43:07.021Z",
+      "worker": "a387dbf3-54dd-4395-85dd-c9cfa2ec8d94",
+      "techniques": [
+        {
+          "technique": "plain-language-gloss-and-white-label",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:351 Renders metric acronyms with no accompanying generated plain-language sentences explaining the ratios."
+        },
+        {
+          "technique": "lower-is-better-inverts-verdict-not-number",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:355 Renders signed delta values without arithmetic inversion and applies goodWhenDown only to the tone styling class."
+        },
+        {
+          "technique": "never-sum-across-currencies",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:268 Resolves native currency formatting for monetary tiles without performing silent currency conversions."
+        },
+        {
+          "technique": "live-means-synced-rows",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:35 Hardcodes Google Ads in the live banner regardless of whether the synced rows originate from other or multiple sources."
+        },
+        {
+          "technique": "stale-caveat-travels-into-the-narrative",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:447 Displays a generic stale warning banner without citing the exact date through which data was synced."
+        }
+      ]
     }
   }
 }
