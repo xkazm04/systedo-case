@@ -638,7 +638,7 @@ export function TimeoutState({ onRetry }: { onRetry: () => void }) {
         <span className="grid h-16 w-16 place-items-center rounded-2xl bg-coral-soft text-coral-600">
           <Clock width={30} height={30} />
         </span>
-        <span className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-coral-500 text-xs font-bold text-white">
+        <span className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-coral-500 text-xs font-bold text-on-action">
           !
         </span>
       </div>
@@ -649,7 +649,7 @@ export function TimeoutState({ onRetry }: { onRetry: () => void }) {
       <button
         type="button"
         onClick={onRetry}
-        className="mt-5 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 active:scale-[0.99]"
+        className="mt-5 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-on-action transition-colors hover:bg-brand-800 active:scale-[0.99]"
       >
         {t("retry")}
       </button>

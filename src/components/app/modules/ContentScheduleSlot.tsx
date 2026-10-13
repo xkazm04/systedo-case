@@ -225,7 +225,7 @@ export default function ContentScheduleSlot({
               onClick={() => h.onSend(p)}
               disabled={!hasBody || sendBusy}
               title={hasBody ? t("sendTitle") : t("sendNeedsBody")}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3 py-1.5 text-xs font-semibold text-on-action transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Send width={13} height={13} />
               {sending ? t("sending") : t("send")}

@@ -94,7 +94,7 @@ export default function AppSignInGate({ selfHosted = false }: { selfHosted?: boo
               ? signIn(undefined, { callbackUrl: pathname || "/app" })
               : signIn("google", { callbackUrl: pathname || "/app" })
           }
-          className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+          className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-on-action transition-colors hover:bg-brand-800"
         >
           {!selfHosted && <GoogleGlyph />}
           {selfHosted ? t("signInSelfHost") : t("signIn")}

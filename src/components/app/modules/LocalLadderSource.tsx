@@ -196,7 +196,7 @@ export default function LocalLadderSource({
             type="button"
             onClick={() => submit("text")}
             disabled={busy || !text.trim()}
-            className="rounded-pill bg-brand-700 px-4 py-2 font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
+            className="rounded-pill bg-brand-700 px-4 py-2 font-semibold text-on-action transition-colors hover:bg-brand-800 disabled:opacity-50"
           >
             {busy ? t("importing") : t("importBtn")}
           </button>

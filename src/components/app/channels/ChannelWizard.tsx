@@ -353,7 +353,7 @@ export default function ChannelWizard({
           <button
             type="button"
             onClick={() => (last ? finish() : setStep(step + 1))}
-            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-800"
+            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-xs font-semibold text-on-action transition-colors hover:bg-brand-800"
           >
             {/* "and train" is only promised where finish() actually routes there
                 (the last queue entry) — mid-queue the next channel comes first. */}

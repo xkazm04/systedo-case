@@ -321,7 +321,7 @@ export default function ContentEngine({
           <button
             type="button"
             onClick={() => openWorkspace(null, t("wsNew"))}
-            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-on-action transition-colors hover:bg-brand-800"
           >
             <Plus width={15} height={15} />
             {t("newContent")}
@@ -542,7 +542,7 @@ function ClusterDetail({
           <span
             className={`rounded-pill px-3 py-1 text-xs font-semibold ${
               graph.pillar
-                ? "bg-brand-700 text-white"
+                ? "bg-brand-700 text-on-action"
                 : "border border-dashed border-coral-400/50 text-coral-600"
             }`}
           >
@@ -582,7 +582,7 @@ function ClusterDetail({
               <span className="flex min-w-0 items-center gap-2">
                 <span
                   className={`shrink-0 rounded-pill px-2 py-0.5 text-[11px] font-medium ${
-                    a.type === "pillar" ? "bg-brand-700 text-white" : "bg-brand-50 text-brand-800"
+                    a.type === "pillar" ? "bg-brand-700 text-on-action" : "bg-brand-50 text-brand-800"
                   }`}
                 >
                   {a.type === "pillar" ? t("pillarArticle") : t("supportingArticle")}
@@ -611,7 +611,7 @@ function ClusterDetail({
         <button
           type="button"
           onClick={() => onCreateBrief(cluster.nextGap ?? undefined)}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-on-action transition-colors hover:bg-brand-800"
         >
           <ArrowRight width={16} height={16} />
           {t("createBriefGap")}

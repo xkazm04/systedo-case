@@ -112,7 +112,7 @@ export default function FeedbackButton({ source }: { source: "app" | "demo" }) {
             <button
               type="button"
               onClick={close}
-              className="mt-2 inline-flex items-center rounded-pill bg-brand-700 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+              className="mt-2 inline-flex items-center rounded-pill bg-brand-700 px-5 py-2 text-sm font-semibold text-on-action transition-colors hover:bg-brand-800"
             >
               {t("close")}
             </button>
@@ -148,7 +148,7 @@ export default function FeedbackButton({ source }: { source: "app" | "demo" }) {
               type="button"
               onClick={submit}
               disabled={message.trim().length < 3 || phase === "sending"}
-              className="inline-flex items-center rounded-pill bg-brand-700 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center rounded-pill bg-brand-700 px-5 py-2 text-sm font-semibold text-on-action transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {phase === "sending" ? t("sending") : t("send")}
             </button>

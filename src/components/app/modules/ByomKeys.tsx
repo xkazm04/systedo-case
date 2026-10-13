@@ -143,7 +143,7 @@ const inputClass =
 const selectClass =
   "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-navy-800 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200";
 const btnPrimary =
-  "rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50";
+  "rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-on-action transition-colors hover:bg-brand-800 disabled:opacity-50";
 const btnGhost =
   "rounded-pill border border-line px-4 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 disabled:opacity-50";
 

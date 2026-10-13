@@ -87,7 +87,7 @@ export default function ChannelPlaybook({
       return (
         <Link
           href={`/app/${projectId}/${next.to}?from=kanaly${next.scope ? `&channel=${next.scope}` : ""}`}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99]"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-on-action transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99]"
         >
           {NEXT_LABELS[next.key][L]}
           {next.count ? <span className="pill bg-white/20 text-white">{t("pending", { n: next.count })}</span> : null}
@@ -111,7 +111,7 @@ export default function ChannelPlaybook({
         type="button"
         onClick={handler}
         disabled={degraded}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-on-action transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {NEXT_LABELS[next.key][L]}
         <ArrowRight width={16} height={16} />
