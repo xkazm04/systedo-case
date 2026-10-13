@@ -219,24 +219,30 @@ if (CHECK) {
     finish(0);
   }
 
-  const nameStatus = (git(["diff", "--name-status", `${base}...HEAD`]) ?? "").trim();
+  const nameStatus = (git(["diff", "--name-status", "--find-renames", `${base}...HEAD`]) ?? "").trim();
   if (!nameStatus) {
     say(`context decay: no changes against ${base} — nothing to check.`);
     finish(0);
   }
 
+  // A rename (`R<score>\told\tnew`) is compared with the file AT ITS OLD PATH: the
+  // imports it carried across the move are inherited, not introduced by the move.
   const changed = nameStatus
     .split(/\r?\n/)
     .map((line) => line.split("\t"))
     .filter((parts) => parts[0] && parts[0][0] !== "D")
-    .map((parts) => parts[parts.length - 1].replace(/\\/g, "/"))
-    .filter((p) => isSource(p) && owner.has(p));
+    .map((parts) => {
+      const file = parts[parts.length - 1].replace(/\\/g, "/");
+      const prev = parts[0][0] === "R" && parts.length === 3 ? parts[1].replace(/\\/g, "/") : file;
+      return { file, prev };
+    })
+    .filter(({ file }) => isSource(file) && owner.has(file));
 
   const violations = [];
-  for (const file of changed) {
+  for (const { file, prev } of changed) {
     const now = read(file);
     if (now === null) continue;
-    const before = git(["show", `${base}:${file}`]);
+    const before = git(["show", `${base}:${prev}`]);
     const had = new Set(before === null ? [] : crossings(file, before).map((c) => c.context));
     for (const c of crossings(file, now)) {
       if (had.has(c.context)) continue; // inherited, not introduced here
