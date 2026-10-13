@@ -41,7 +41,7 @@
       "from": ".github/workflows/*.yml → every `node-version:`",
       "why": "the format goldens pin byte-identical Intl output, and ICU moves across Node minors — docs/deploy.md § Node version authority"
     },
-    "framework": { "value": "next", "version": "16.3.3", "from": "package.json → dependencies.next" },
+    "framework": { "value": "next", "version": "16.4.0", "from": "package.json → dependencies.next" },
     "nextConfig": {
       "cacheComponents": true,
       "partialPrefetching": true,
