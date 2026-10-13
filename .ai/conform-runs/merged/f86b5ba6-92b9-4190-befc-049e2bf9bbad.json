@@ -1,0 +1,362 @@
+{
+  "schema": "conform-run/1",
+  "worker": "f86b5ba6-92b9-4190-befc-049e2bf9bbad",
+  "subject": "multi-provider-gateway-plane",
+  "evaluatedAt": "2026-10-13T09:27:46.589129+00:00",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "pairs": [
+    {
+      "context": "llm-core-providers",
+      "subject": "multi-provider-gateway-plane",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/lib/llm/index.ts:484 The provider-loop catch attributes local validation exceptions to the current provider and advances to another candidate, allowing a gateway defect to consume the fallback list.",
+      "techniques": [
+        {
+          "technique": "caller-scoped-normalization-strictness",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/index.ts:76 Callers provide an application-owned result mapper and schema; the technique explicitly exempts owned contracts."
+        },
+        {
+          "technique": "join-breadth-follows-the-wrong-match-cost",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/gateway.ts:79 Gateway route discovery uses exact tool identifiers rather than fuzzy catalog-to-upstream name matching."
+        },
+        {
+          "technique": "named-members-over-a-uniform-collection",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/index.ts:126 This uniform interface serves request dispatch, which the technique explicitly distinguishes from inventory aggregation."
+        },
+        {
+          "technique": "one-typed-carrier-for-echoed-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/gateway.ts:99 The transport constructs a fresh system/user request rather than round-tripping upstream continuation blocks through a client."
+        },
+        {
+          "technique": "per-provider-stream-framing",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/gemini.ts:135 The production adapter requests a settled SDK response rather than translating an upstream event stream."
+        },
+        {
+          "technique": "policy-verdict-in-the-status-space",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/errors.ts:98 The internal retry consumer examines typed errors rather than an operator-configured list of status integers."
+        },
+        {
+          "technique": "router-versus-candidate-failure",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/index.ts:360 This application callback runs inside the provider-loop try; an exception reaches the provider-error catch and advances candidates without router attribution."
+        },
+        {
+          "technique": "strategy-tree-with-inherited-policy",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/provider-order.ts:25 The exposed arrangement is one ordered candidate set, without nested balancing or subtree policy configuration."
+        },
+        {
+          "technique": "upstream-identity-before-inventory",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/gemini.ts:18 The adapter's vendor is configured explicitly; this checks availability rather than inferring an implementation behind a discovered shared-protocol endpoint."
+        }
+      ]
+    },
+    {
+      "context": "inventory-connection",
+      "subject": "multi-provider-gateway-plane",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evidence": "src/lib/inventory/connection-store.firestore.ts:8 Searches for failover, retryable and servedBy found no matches in src/lib/inventory, whose connection store maintains one selected source per project rather than an interchangeable-upstream candidate plane.",
+      "techniques": [
+        {
+          "technique": "adapter-direction-asymmetry",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/providers.ts:62 The implemented live adapters are Baselinker and generic ERP; the technique explicitly exempts two or three upstreams."
+        },
+        {
+          "technique": "caller-scoped-normalization-strictness",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/providers.ts:172 Normalization constructs the application's own product-offering contract rather than publishing a stock client's upstream-compatible envelope."
+        },
+        {
+          "technique": "join-breadth-follows-the-wrong-match-cost",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/baselinker.ts:73 This adapter retains explicit source identifiers; it does not derive fuzzy family-name keys for upstream presence claims."
+        },
+        {
+          "technique": "named-members-over-a-uniform-collection",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/connection-store.firestore.ts:8 The project owns one connection record, rather than an aggregate probing several contributing upstreams."
+        },
+        {
+          "technique": "one-typed-carrier-for-echoed-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/connection-store.ts:51 Credentials remain in the server store and the client receives a presence flag, not upstream continuation state it must echo."
+        },
+        {
+          "technique": "per-provider-stream-framing",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/baselinker.ts:135 The adapter consumes a complete JSON response, without an event-stream framing layer."
+        },
+        {
+          "technique": "policy-verdict-in-the-status-space",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/erp.ts:63 Configuration rejection crosses an internal typed exception boundary, not an integer-only failover rule."
+        },
+        {
+          "technique": "router-versus-candidate-failure",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/baselinker.ts:131 This client calls its selected Baselinker endpoint and has no alternate-candidate sweep."
+        },
+        {
+          "technique": "strategy-tree-with-inherited-policy",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/connection-store.local.ts:72 Updating a connection replaces its single provider selection; no nested routing arrangement is represented."
+        },
+        {
+          "technique": "upstream-identity-before-inventory",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/providers.ts:87 Provider identity is a configured registry identifier rather than an inference from discovered endpoints or inventory contents."
+        }
+      ],
+      "absenceTerms": [
+        "failover",
+        "retryable",
+        "servedBy"
+      ]
+    },
+    {
+      "context": "inventory-sync-ops",
+      "subject": "multi-provider-gateway-plane",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evidence": "src/lib/inventory/sync.ts:45 Searches for failover, retryable and servedBy found no matches in src/lib/inventory, and sync dispatches to the selected source without trying interchangeable candidates.",
+      "techniques": [
+        {
+          "technique": "caller-scoped-normalization-strictness",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/sync.ts:152 Sync creates application-owned catalog offerings rather than proxying native capabilities to differing client populations."
+        },
+        {
+          "technique": "join-breadth-follows-the-wrong-match-cost",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/action-plan.ts:70 The plan joins exact SKU identities from its own stock snapshot, rather than reconciling an upstream's fuzzy naming scheme."
+        },
+        {
+          "technique": "named-members-over-a-uniform-collection",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/sync.ts:45 Each sync fetches one selected source; there is no multi-member inventory fan-out."
+        },
+        {
+          "technique": "one-typed-carrier-for-echoed-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/plan-store.ts:53 The context persists its application state itself and does not depend on clients echoing opaque upstream continuation tokens."
+        },
+        {
+          "technique": "per-provider-stream-framing",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/sync.ts:132 Sync consumes resolved product arrays rather than translating upstream stream frames."
+        },
+        {
+          "technique": "policy-verdict-in-the-status-space",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/sync.ts:117 Internal consumers receive a typed SyncResult code, without an integer-only candidate rule requiring a private status vocabulary."
+        },
+        {
+          "technique": "router-versus-candidate-failure",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/sync.ts:47 Dispatch rejects an unsupported selection rather than sweeping alternate candidates; the technique explicitly exempts a single candidate."
+        },
+        {
+          "technique": "strategy-tree-with-inherited-policy",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/sync.ts:163 This strategy controls catalog merge semantics, not a recursive upstream-selection arrangement."
+        },
+        {
+          "technique": "upstream-identity-before-inventory",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/sync.ts:116 Sync starts from an explicitly selected registered provider rather than identifying a discovered shared-protocol implementation."
+        }
+      ],
+      "absenceTerms": [
+        "failover",
+        "retryable",
+        "servedBy"
+      ]
+    },
+    {
+      "context": "llm-byom-keys",
+      "subject": "multi-provider-gateway-plane",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/lib/llm/byom/adapters.ts:104 After native and prompt-embedded requests both receive a bare 400, the adapter labels the request/schema rejection as a retryable provider server failure without preserving router attribution.",
+      "techniques": [
+        {
+          "technique": "caller-scoped-normalization-strictness",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/byom/adapters.ts:186 Strictness here enforces an application-supplied output schema, rather than selecting between native and normalized proxy responses."
+        },
+        {
+          "technique": "join-breadth-follows-the-wrong-match-cost",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/keys/types.ts:161 Model validation uses exact identifiers in a curated catalog rather than fuzzy matching against discovered upstream inventory."
+        },
+        {
+          "technique": "named-members-over-a-uniform-collection",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/byom/adapters.ts:579 The dispatcher selects one vendor for a request and does not aggregate differing inventory contributors."
+        },
+        {
+          "technique": "one-typed-carrier-for-echoed-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/byom/adapters.ts:182 The adapter constructs a fresh structured-generation request rather than replaying native blocks carrying opaque upstream state."
+        },
+        {
+          "technique": "per-provider-stream-framing",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/byom/adapters.ts:199 The REST adapters consume complete JSON responses rather than implementing stream readers."
+        },
+        {
+          "technique": "policy-verdict-in-the-status-space",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/byom/adapters.ts:81 Failure classification returns typed internal errors; it does not publish policy verdicts to integer-only routing consumers."
+        },
+        {
+          "technique": "router-versus-candidate-failure",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/byom/adapters.ts:104 The classifier explicitly treats bare 400 as our request/schema, but after the embed fallback it manufactures a retryable provider server error."
+        },
+        {
+          "technique": "strategy-tree-with-inherited-policy",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/keys/store.ts:278 Configuration resolves a per-operation vendor/model assignment rather than composing nested candidate groups."
+        },
+        {
+          "technique": "upstream-identity-before-inventory",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/byom/adapters.ts:517 The implementation is selected explicitly by vendor configuration; these adapters do not discover and identify arbitrary compatible endpoints."
+        }
+      ]
+    }
+  ],
+  "declined": [
+    {
+      "subject": "multi-provider-gateway-plane",
+      "context": "ai-pipeline-limits",
+      "reason": "withdrawn after review: reviewer (sonnet): The not-applicable anchor src/lib/ai/paid-guard.ts:115 is a `releaseSlot()` line inside a rate-limit branch; it does not show that a multi-upstream plane is absent from the context, so the anchor is incidental."
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-13T09:27:46.589129+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "multi-provider-gateway-plane"
+      ],
+      "techniques": [
+        "caller-scoped-normalization-strictness",
+        "join-breadth-follows-the-wrong-match-cost",
+        "named-members-over-a-uniform-collection",
+        "one-typed-carrier-for-echoed-state",
+        "per-provider-stream-framing",
+        "policy-verdict-in-the-status-space",
+        "router-versus-candidate-failure",
+        "strategy-tree-with-inherited-policy",
+        "upstream-identity-before-inventory"
+      ],
+      "deviations": 1,
+      "context": "llm-core-providers",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "ts": "2026-10-13T09:27:46.589129+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "multi-provider-gateway-plane"
+      ],
+      "techniques": [
+        "adapter-direction-asymmetry",
+        "caller-scoped-normalization-strictness",
+        "join-breadth-follows-the-wrong-match-cost",
+        "named-members-over-a-uniform-collection",
+        "one-typed-carrier-for-echoed-state",
+        "per-provider-stream-framing",
+        "policy-verdict-in-the-status-space",
+        "router-versus-candidate-failure",
+        "strategy-tree-with-inherited-policy",
+        "upstream-identity-before-inventory"
+      ],
+      "deviations": 0,
+      "context": "inventory-connection",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "ts": "2026-10-13T09:27:46.589129+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "multi-provider-gateway-plane"
+      ],
+      "techniques": [
+        "caller-scoped-normalization-strictness",
+        "join-breadth-follows-the-wrong-match-cost",
+        "named-members-over-a-uniform-collection",
+        "one-typed-carrier-for-echoed-state",
+        "per-provider-stream-framing",
+        "policy-verdict-in-the-status-space",
+        "router-versus-candidate-failure",
+        "strategy-tree-with-inherited-policy",
+        "upstream-identity-before-inventory"
+      ],
+      "deviations": 0,
+      "context": "inventory-sync-ops",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "ts": "2026-10-13T09:27:46.589129+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "multi-provider-gateway-plane"
+      ],
+      "techniques": [
+        "caller-scoped-normalization-strictness",
+        "join-breadth-follows-the-wrong-match-cost",
+        "named-members-over-a-uniform-collection",
+        "one-typed-carrier-for-echoed-state",
+        "per-provider-stream-framing",
+        "policy-verdict-in-the-status-space",
+        "router-versus-candidate-failure",
+        "strategy-tree-with-inherited-policy",
+        "upstream-identity-before-inventory"
+      ],
+      "deviations": 1,
+      "context": "llm-byom-keys",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "ts": "2026-10-13T09:27:46.589129+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "multi-provider-gateway-plane"
+      ],
+      "techniques": [
+        "caller-scoped-normalization-strictness",
+        "exclusive-authorship-of-a-measured-decision",
+        "join-breadth-follows-the-wrong-match-cost",
+        "named-members-over-a-uniform-collection",
+        "one-typed-carrier-for-echoed-state",
+        "per-provider-stream-framing",
+        "policy-verdict-in-the-status-space",
+        "router-versus-candidate-failure",
+        "strategy-tree-with-inherited-policy",
+        "upstream-identity-before-inventory"
+      ],
+      "deviations": 0,
+      "context": "ai-pipeline-limits",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    }
+  ]
+}

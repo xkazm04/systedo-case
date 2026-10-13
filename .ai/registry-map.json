@@ -9299,7 +9299,11 @@
           "revision": 9,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/inventory/connection-store.firestore.ts:8 Searches for failover, retryable and servedBy found no matches in src/lib/inventory, whose connection store maintains one selected source per project rather than an interchangeable-upstream candidate plane.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:f268193750c0a517",
+          "evaluatedRevision": 9
         },
         {
           "subject": "mcp-tools",
@@ -9398,7 +9402,11 @@
           "revision": 9,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/inventory/sync.ts:45 Searches for failover, retryable and servedBy found no matches in src/lib/inventory, and sync dispatches to the selected source without trying interchangeable candidates.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:f268193750c0a517",
+          "evaluatedRevision": 9
         },
         {
           "subject": "sync-replication",
@@ -10069,7 +10077,11 @@
           "revision": 9,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/llm/byom/adapters.ts:104 After native and prompt-embedded requests both receive a bare 400, the adapter labels the request/schema rejection as a retryable provider server failure without preserving router attribution.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:f268193750c0a517",
+          "evaluatedRevision": 9
         },
         {
           "subject": "seal-and-key-hierarchy",
@@ -10162,7 +10174,11 @@
           "revision": 9,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/llm/index.ts:484 The provider-loop catch attributes local validation exceptions to the current provider and advances to another candidate, allowing a gateway defect to consume the fallback list.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:f268193750c0a517",
+          "evaluatedRevision": 9
         },
         {
           "subject": "mcp-tools",
