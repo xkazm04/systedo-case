@@ -1,0 +1,143 @@
+{
+ "schema": "conform-run/1",
+ "worker": "9e735692-b40e-4c9c-aff6-db335340aaf2",
+ "subject": "translation-pipeline-topology",
+ "evaluatedAt": "2026-10-13T22:20:38.233882+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "i18n-localization",
+   "subject": "translation-pipeline-topology",
+   "bundle": "localization",
+   "state": "deviation",
+   "evidence": "src/lib/i18n/messages.ts:163 The catalog contains repeated nested label/blurb keys, but its audit overwrites them by bare key, preventing comparison of every source and target leaf.",
+   "techniques": [
+    {
+     "technique": "language-registry-single-source",
+     "verdict": "conformant",
+     "evidence": "src/lib/i18n/locale.ts:9 Locale acceptance derives from the shared registry; this context does not maintain a separate accepted-language list."
+    },
+    {
+     "technique": "source-identical-value-audit",
+     "verdict": "deviation",
+     "evidence": "scripts/i18n-audit.mjs:148 parseKeys discards full paths and overwrites repeated leaf names; executing the extracted parser against messages.ts retained one label from seven occurrences."
+    }
+   ]
+  },
+  {
+   "context": "catalog-import-export",
+   "subject": "translation-pipeline-topology",
+   "bundle": "localization",
+   "state": "deviation",
+   "evidence": "src/lib/catalog/export.ts:64 The CSV exporter independently declares its supported language set, so adding a registry language requires another edit in this export surface.",
+   "techniques": [
+    {
+     "technique": "language-registry-single-source",
+     "verdict": "deviation",
+     "evidence": "src/lib/catalog/export.ts:52 The localized export label hardcodes the locale union instead of deriving it from SupportedLocale."
+    }
+   ]
+  },
+  {
+   "context": "lead-management",
+   "subject": "translation-pipeline-topology",
+   "bundle": "localization",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/ReviewInbox.tsx:129 Review macros independently assume two languages and route every non-English locale to Czech, allowing this surface to diverge from the language registry.",
+   "techniques": [
+    {
+     "technique": "language-registry-single-source",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/ReviewInbox.tsx:80 The macro catalog declares its own locale universe rather than deriving its shape from SupportedLocale."
+    },
+    {
+     "technique": "source-identical-value-audit",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/ReviewInbox.tsx:87 These translated leaves live in array columns; executing the audit's extracted localeColumn parser against MACROS returned null for both locales, leaving the macro values unaudited."
+    }
+   ]
+  },
+  {
+   "context": "site-chrome",
+   "subject": "translation-pipeline-topology",
+   "bundle": "localization",
+   "state": "deviation",
+   "evidence": "src/components/site/LocaleSwitcher.tsx:7 The switcher maintains a separate language-cycle table, so adding a registry language requires editing the switcher instead of deriving its options.",
+   "techniques": [
+    {
+     "technique": "language-registry-single-source",
+     "verdict": "deviation",
+     "evidence": "src/components/site/LocaleSwitcher.tsx:6 Switcher labels are maintained outside the shared registry; type checking detects missing entries but does not satisfy the standard's single-entry onboarding rule."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "translation-pipeline-topology",
+   "context": "ai-cache-history",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-13T22:20:38.233882+00:00",
+   "bundle": "localization",
+   "subjects": [
+    "translation-pipeline-topology"
+   ],
+   "techniques": [
+    "language-registry-single-source",
+    "source-identical-value-audit"
+   ],
+   "deviations": 1,
+   "context": "i18n-localization",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-13T22:20:38.233882+00:00",
+   "bundle": "localization",
+   "subjects": [
+    "translation-pipeline-topology"
+   ],
+   "techniques": [
+    "language-registry-single-source"
+   ],
+   "deviations": 1,
+   "context": "catalog-import-export",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-13T22:20:38.233882+00:00",
+   "bundle": "localization",
+   "subjects": [
+    "translation-pipeline-topology"
+   ],
+   "techniques": [
+    "language-registry-single-source",
+    "source-identical-value-audit"
+   ],
+   "deviations": 1,
+   "context": "lead-management",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-13T22:20:38.233882+00:00",
+   "bundle": "localization",
+   "subjects": [
+    "translation-pipeline-topology"
+   ],
+   "techniques": [
+    "language-registry-single-source"
+   ],
+   "deviations": 1,
+   "context": "site-chrome",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}

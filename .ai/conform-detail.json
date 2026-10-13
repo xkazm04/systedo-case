@@ -3344,6 +3344,80 @@
           "evidence": "src/app/api/ai/dispatch.ts:132 A mode runs its registered generator once; nothing records trajectory steps or a recovery-budget kill."
         }
       ]
+    },
+    "27a7f158-c8bc-4554-859d-b54fddb66b03/translation-pipeline-topology": {
+      "context": "i18n-localization",
+      "subject": "translation-pipeline-topology",
+      "bundle": "localization",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T22:20:38.233Z",
+      "worker": "9e735692-b40e-4c9c-aff6-db335340aaf2",
+      "techniques": [
+        {
+          "technique": "language-registry-single-source",
+          "verdict": "conformant",
+          "evidence": "src/lib/i18n/locale.ts:9 Locale acceptance derives from the shared registry; this context does not maintain a separate accepted-language list."
+        },
+        {
+          "technique": "source-identical-value-audit",
+          "verdict": "deviation",
+          "evidence": "scripts/i18n-audit.mjs:148 parseKeys discards full paths and overwrites repeated leaf names; executing the extracted parser against messages.ts retained one label from seven occurrences."
+        }
+      ]
+    },
+    "aba71587-2adf-495e-877e-c041cbb1b3c1/translation-pipeline-topology": {
+      "context": "catalog-import-export",
+      "subject": "translation-pipeline-topology",
+      "bundle": "localization",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T22:20:38.233Z",
+      "worker": "9e735692-b40e-4c9c-aff6-db335340aaf2",
+      "techniques": [
+        {
+          "technique": "language-registry-single-source",
+          "verdict": "deviation",
+          "evidence": "src/lib/catalog/export.ts:52 The localized export label hardcodes the locale union instead of deriving it from SupportedLocale."
+        }
+      ]
+    },
+    "9c32aaab-b57d-4912-aa00-1e00b877253e/translation-pipeline-topology": {
+      "context": "lead-management",
+      "subject": "translation-pipeline-topology",
+      "bundle": "localization",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T22:20:38.233Z",
+      "worker": "9e735692-b40e-4c9c-aff6-db335340aaf2",
+      "techniques": [
+        {
+          "technique": "language-registry-single-source",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/ReviewInbox.tsx:80 The macro catalog declares its own locale universe rather than deriving its shape from SupportedLocale."
+        },
+        {
+          "technique": "source-identical-value-audit",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/ReviewInbox.tsx:87 These translated leaves live in array columns; executing the audit's extracted localeColumn parser against MACROS returned null for both locales, leaving the macro values unaudited."
+        }
+      ]
+    },
+    "4ac86013-65c8-4997-ab29-761c278d5bb9/translation-pipeline-topology": {
+      "context": "site-chrome",
+      "subject": "translation-pipeline-topology",
+      "bundle": "localization",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T22:20:38.233Z",
+      "worker": "9e735692-b40e-4c9c-aff6-db335340aaf2",
+      "techniques": [
+        {
+          "technique": "language-registry-single-source",
+          "verdict": "deviation",
+          "evidence": "src/components/site/LocaleSwitcher.tsx:6 Switcher labels are maintained outside the shared registry; type checking detects missing entries but does not satisfy the standard's single-entry onboarding rule."
+        }
+      ]
     }
   }
 }

@@ -6556,7 +6556,11 @@
           "revision": 12,
           "changedAt": "2026-10-06",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/catalog/export.ts:64 The CSV exporter independently declares its supported language set, so adding a registry language requires another edit in this export surface.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:678c2208c5b0dfc0",
+          "evaluatedRevision": 12
         },
         {
           "subject": "concurrency-guards",
@@ -9125,7 +9129,11 @@
           "revision": 12,
           "changedAt": "2026-10-06",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/i18n/messages.ts:163 The catalog contains repeated nested label/blurb keys, but its audit overwrites them by bare key, preventing comparison of every source and target leaf.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:678c2208c5b0dfc0",
+          "evaluatedRevision": 12
         },
         {
           "subject": "prompt-assembly",
@@ -9822,7 +9830,11 @@
           "revision": 12,
           "changedAt": "2026-10-06",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/ReviewInbox.tsx:129 Review macros independently assume two languages and route every non-English locale to Czech, allowing this surface to diverge from the language registry.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:678c2208c5b0dfc0",
+          "evaluatedRevision": 12
         },
         {
           "subject": "table",
@@ -16176,7 +16188,11 @@
           "revision": 12,
           "changedAt": "2026-10-06",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/site/LocaleSwitcher.tsx:7 The switcher maintains a separate language-cycle table, so adding a registry language requires editing the switcher instead of deriving its options.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:678c2208c5b0dfc0",
+          "evaluatedRevision": 12
         },
         {
           "subject": "i18n",
