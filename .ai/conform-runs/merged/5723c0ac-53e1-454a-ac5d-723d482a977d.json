@@ -1,0 +1,280 @@
+{
+ "schema": "conform-run/1",
+ "worker": "5723c0ac-53e1-454a-ac5d-723d482a977d",
+ "subject": "docs-sync",
+ "evaluatedAt": "2026-10-13T04:39:09.638991+00:00",
+ "provider": "grok",
+ "model": "grok-4.7",
+ "pairs": [
+  {
+   "context": "tenant-docs-annotations",
+   "subject": "docs-sync",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/lib/tenant-docs/local.ts:8 In these nine files \"document\" is a stored JSON blob for keyword, pattern, and social rows; a search found no coupling map, review date, catch-up ledger, rot verdict, or pasteable command, and the only bilingual prose is a recap prompt about the user's own notes.",
+   "techniques": [
+    {
+     "technique": "cross-repo-drift-detection",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/tenant-docs/backend.ts:97 The other backend is a sibling module chosen in-process, not another repository."
+    },
+    {
+     "technique": "prose-as-an-execution-surface",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/annotations/types.ts:136 That string tells a model to mention the user's notes; a search of these files found no shell or install command."
+    },
+    {
+     "technique": "negative-claims-are-pinned",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/integrations/compute.ts:8 The \"never connected from env alone\" rule is implemented in this file and has a source; it is not an absence claim."
+    },
+    {
+     "technique": "named-duplication-points",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/integrations/compute.ts:361 The two screens share byomKeyHealth, so the fact is a function rather than hand-copied prose."
+    },
+    {
+     "technique": "translations-drift-against-the-product",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/annotations/types.ts:137 Czech and English are the two branches of one return, not locales pinned to a source hash."
+    },
+    {
+     "technique": "doc-rot-detection",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/integrations/compute.ts:117 \"stale\" here is BYOM validation age, not a document-rot verdict."
+    },
+    {
+     "technique": "earned-verification-state",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/integrations/compute.ts:363 The caller passes a boolean; nothing in these files writes a document review date."
+    }
+   ]
+  },
+  {
+   "context": "onboarding-flow",
+   "subject": "docs-sync",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/marketing/sken/SkenHero.tsx:19 The public scan page promises the product does not see campaigns, margins, or rankings, and a search of the repo finds that sentence only in this file, with no test pinning the wording.",
+   "techniques": [
+    {
+     "technique": "negative-claims-are-pinned",
+     "verdict": "deviation",
+     "evidence": "src/components/marketing/sken/SkenHero.tsx:19 Absence promise on the page a visitor acts on; no substring pin in test-unit. fetchSiteText still loads one page, so the sentence looks true and unguarded."
+    },
+    {
+     "technique": "named-duplication-points",
+     "verdict": "deviation",
+     "evidence": "src/components/marketing/sken/SkenPlanTable.tsx:30 The curated-not-researched fact is rewritten by hand in the hero lead, the result comment, and the page meta; test-unit matches none of those strings."
+    },
+    {
+     "technique": "translations-drift-against-the-product",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/sken/SkenHero.tsx:24 English sits in the same const as Czech. docs/parity.json has no sken entry, so there is no source-hash pin reporting a locale current."
+    },
+    {
+     "technique": "prose-as-an-execution-surface",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/sken/SkenHero.tsx:14 The visitor pastes a URL into a form. A search of onboarding and sken files found no npm, curl, or install line."
+    },
+    {
+     "technique": "cross-repo-drift-detection",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/sken/SkenResult.tsx:6 The plan the page describes is an in-repo function, so a cross-repo history query is the case the technique says not to build."
+    },
+    {
+     "technique": "rendered-surface-coupling",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/sken/SkenPlanTable.tsx:58 The plan is a live HTML table. A search of the sken components found no raster or diagram."
+    },
+    {
+     "technique": "catch-up-markers",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/onboarding/types.ts:27 The only marker in this context stamps an analytics event, not a documentation catch-up range."
+    },
+    {
+     "technique": "source-doc-mapping",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/onboarding/steps.ts:134 The checklist points at a decision record in a comment. This module does not host a coupling map."
+    },
+    {
+     "technique": "dated-corrections",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/onboarding/site-fetch.ts:91 The hero's one-page limit still matches this fetch. I did not find a false claim left standing as a correction."
+    }
+   ]
+  },
+  {
+   "context": "project-data-api",
+   "subject": "docs-sync",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/app/api/projects/[id]/cost-model/route.ts:1 These eight routes read and write project inputs, imports, and syncs. A search of them for a coupling map, review date, catch-up marker, dated correction, or pasteable command found none; the Czech strings are validation and throttle errors.",
+   "techniques": [
+    {
+     "technique": "prose-as-an-execution-surface",
+     "verdict": "not-applicable",
+     "evidence": "src/app/api/projects/[id]/cost-model/route.ts:19 The sentence is an HTTP error, not a command a reader pastes."
+    },
+    {
+     "technique": "cross-repo-drift-detection",
+     "verdict": "not-applicable",
+     "evidence": "src/app/api/projects/[id]/metrics/sync/route.ts:7 The sync the route calls lives in this repository."
+    }
+   ]
+  },
+  {
+   "context": "reporting-modules",
+   "subject": "docs-sync",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/app/app/[projectId]/reporty/page.tsx:10 That instruction is a second hand-written copy of the same sentence in the demo module, and it embeds the Campaigns share-button label, with no test asserting the copies stay equal.",
+   "techniques": [
+    {
+     "technique": "named-duplication-points",
+     "verdict": "deviation",
+     "evidence": "src/app/app/[projectId]/reporty/page.tsx:10 Byte-identical cs/en pair also lives in DemoModule REPORTY_T, and CampaignsClient shareButton is the separate literal \u201eSd\u00edlet report\u201c. test-unit has no match."
+    },
+    {
+     "technique": "translations-drift-against-the-product",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/reporty/page.tsx:13 The English sentence is the other branch of the same const, not a locale hashed against a primary source."
+    },
+    {
+     "technique": "doc-rot-detection",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/mesicni-report/page.tsx:102 isRecapStale compares a stored input hash to the current dataset hash. That is generated-narrative freshness, not a document-rot scan."
+    },
+    {
+     "technique": "earned-verification-state",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/mesicni-report/page.tsx:117 The page reads a hash mismatch. It does not advance a review date."
+    },
+    {
+     "technique": "negative-claims-are-pinned",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/report/page.tsx:28 The promise has a source: the page passes the same resolved dataset's live flag into the chat."
+    },
+    {
+     "technique": "cross-repo-drift-detection",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/report/page.tsx:8 The report's data resolver is in this repository."
+    }
+   ]
+  },
+  {
+   "context": "catalog-inventory-api",
+   "subject": "docs-sync",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/app/api/projects/[id]/catalog/import/route.ts:3 The header still says URL fetch is future work, while the same handler fetches body.url with fetchFeed, and the header was neither dated nor retracted.",
+   "techniques": [
+    {
+     "technique": "dated-corrections",
+     "verdict": "deviation",
+     "evidence": "src/app/api/projects/[id]/catalog/import/route.ts:3 Line 46 assigns content from fetchFeed(url). The false \"follow-up\" claim still reads as the contract."
+    },
+    {
+     "technique": "cross-repo-drift-detection",
+     "verdict": "not-applicable",
+     "evidence": "src/app/api/projects/[id]/catalog/import/route.ts:13 The fetcher the header is wrong about is in this repository."
+    }
+   ],
+   "registryProposal": "Dated corrections are specified for a separate prose page. Here the false claim is the route header in the same file as the fetch that falsifies it, so a commit-date scan of that file stays green. The standard should say a colocated header still owes an in-place dated correction when the claim stops being true."
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-13T04:39:09.638991+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "docs-sync"
+   ],
+   "techniques": [
+    "cross-repo-drift-detection",
+    "doc-rot-detection",
+    "earned-verification-state",
+    "named-duplication-points",
+    "negative-claims-are-pinned",
+    "prose-as-an-execution-surface",
+    "translations-drift-against-the-product"
+   ],
+   "deviations": 0,
+   "context": "tenant-docs-annotations",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T04:39:09.638991+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "docs-sync"
+   ],
+   "techniques": [
+    "catch-up-markers",
+    "cross-repo-drift-detection",
+    "dated-corrections",
+    "named-duplication-points",
+    "negative-claims-are-pinned",
+    "prose-as-an-execution-surface",
+    "rendered-surface-coupling",
+    "source-doc-mapping",
+    "translations-drift-against-the-product"
+   ],
+   "deviations": 1,
+   "context": "onboarding-flow",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T04:39:09.638991+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "docs-sync"
+   ],
+   "techniques": [
+    "cross-repo-drift-detection",
+    "prose-as-an-execution-surface"
+   ],
+   "deviations": 0,
+   "context": "project-data-api",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T04:39:09.638991+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "docs-sync"
+   ],
+   "techniques": [
+    "cross-repo-drift-detection",
+    "doc-rot-detection",
+    "earned-verification-state",
+    "named-duplication-points",
+    "negative-claims-are-pinned",
+    "translations-drift-against-the-product"
+   ],
+   "deviations": 1,
+   "context": "reporting-modules",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-13T04:39:09.638991+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "docs-sync"
+   ],
+   "techniques": [
+    "cross-repo-drift-detection",
+    "dated-corrections"
+   ],
+   "deviations": 1,
+   "context": "catalog-inventory-api",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  }
+ ]
+}

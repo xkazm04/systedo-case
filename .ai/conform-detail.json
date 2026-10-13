@@ -1421,6 +1421,108 @@
           "evidence": "src/app/kvalita-modelu/page.tsx:50 This publishes the opened overview's strongest-first ranking unconditionally after the nonempty-data check; neither this page nor the delegated ranking path checks variance or emits a measured tie."
         }
       ]
+    },
+    "80685a98-031d-4480-85bb-a791dfbf43f2/docs-sync": {
+      "context": "tenant-docs-annotations",
+      "subject": "docs-sync",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T04:39:09.638Z",
+      "worker": "5723c0ac-53e1-454a-ac5d-723d482a977d",
+      "techniques": [
+        {
+          "technique": "cross-repo-drift-detection",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/tenant-docs/backend.ts:97 The other backend is a sibling module chosen in-process, not another repository."
+        },
+        {
+          "technique": "prose-as-an-execution-surface",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/annotations/types.ts:136 That string tells a model to mention the user's notes; a search of these files found no shell or install command."
+        },
+        {
+          "technique": "negative-claims-are-pinned",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/integrations/compute.ts:8 The \"never connected from env alone\" rule is implemented in this file and has a source; it is not an absence claim."
+        },
+        {
+          "technique": "named-duplication-points",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/integrations/compute.ts:361 The two screens share byomKeyHealth, so the fact is a function rather than hand-copied prose."
+        },
+        {
+          "technique": "translations-drift-against-the-product",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/annotations/types.ts:137 Czech and English are the two branches of one return, not locales pinned to a source hash."
+        },
+        {
+          "technique": "doc-rot-detection",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/integrations/compute.ts:117 \"stale\" here is BYOM validation age, not a document-rot verdict."
+        },
+        {
+          "technique": "earned-verification-state",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/integrations/compute.ts:363 The caller passes a boolean; nothing in these files writes a document review date."
+        }
+      ]
+    },
+    "de6396ef-7b54-4360-ad3b-6d9f3d4db536/docs-sync": {
+      "context": "onboarding-flow",
+      "subject": "docs-sync",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-13",
+      "evaluatedTs": "2026-10-13T04:39:09.638Z",
+      "worker": "5723c0ac-53e1-454a-ac5d-723d482a977d",
+      "techniques": [
+        {
+          "technique": "negative-claims-are-pinned",
+          "verdict": "deviation",
+          "evidence": "src/components/marketing/sken/SkenHero.tsx:19 Absence promise on the page a visitor acts on; no substring pin in test-unit. fetchSiteText still loads one page, so the sentence looks true and unguarded."
+        },
+        {
+          "technique": "named-duplication-points",
+          "verdict": "deviation",
+          "evidence": "src/components/marketing/sken/SkenPlanTable.tsx:30 The curated-not-researched fact is rewritten by hand in the hero lead, the result comment, and the page meta; test-unit matches none of those strings."
+        },
+        {
+          "technique": "translations-drift-against-the-product",
+          "verdict": "not-applicable",
+          "evidence": "src/components/marketing/sken/SkenHero.tsx:24 English sits in the same const as Czech. docs/parity.json has no sken entry, so there is no source-hash pin reporting a locale current."
+        },
+        {
+          "technique": "prose-as-an-execution-surface",
+          "verdict": "not-applicable",
+          "evidence": "src/components/marketing/sken/SkenHero.tsx:14 The visitor pastes a URL into a form. A search of onboarding and sken files found no npm, curl, or install line."
+        },
+        {
+          "technique": "cross-repo-drift-detection",
+          "verdict": "not-applicable",
+          "evidence": "src/components/marketing/sken/SkenResult.tsx:6 The plan the page describes is an in-repo function, so a cross-repo history query is the case the technique says not to build."
+        },
+        {
+          "technique": "rendered-surface-coupling",
+          "verdict": "not-applicable",
+          "evidence": "src/components/marketing/sken/SkenPlanTable.tsx:58 The plan is a live HTML table. A search of the sken components found no raster or diagram."
+        },
+        {
+          "technique": "catch-up-markers",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/types.ts:27 The only marker in this context stamps an analytics event, not a documentation catch-up range."
+        },
+        {
+          "technique": "source-doc-mapping",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/steps.ts:134 The checklist points at a decision record in a comment. This module does not host a coupling map."
+        },
+        {
+          "technique": "dated-corrections",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/onboarding/site-fetch.ts:91 The hero's one-page limit still matches this fetch. I did not find a false claim left standing as a correction."
+        }
+      ]
     }
   }
 }

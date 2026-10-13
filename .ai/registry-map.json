@@ -12098,7 +12098,11 @@
           "revision": 14,
           "changedAt": "2026-09-25",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/marketing/sken/SkenHero.tsx:19 The public scan page promises the product does not see campaigns, margins, or rankings, and a search of the repo finds that sentence only in this file, with no test pinning the wording.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:fd96220db75846a1",
+          "evaluatedRevision": 14
         }
       ],
       "governance": "governed"
@@ -16827,7 +16831,11 @@
           "revision": 14,
           "changedAt": "2026-09-25",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/tenant-docs/local.ts:8 In these nine files \"document\" is a stored JSON blob for keyword, pattern, and social rows; a search found no coupling map, review date, catch-up ledger, rot verdict, or pasteable command, and the only bilingual prose is a recap prompt about the user's own notes.",
+          "evaluatedAt": "2026-10-13",
+          "evaluatedAgainst": "sha256-b2:fd96220db75846a1",
+          "evaluatedRevision": 14
         },
         {
           "subject": "tenant-scoped-agent-runtime",
