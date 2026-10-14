@@ -82,8 +82,11 @@ export interface KanalyGroundingResult {
 /** What the SERVER pages actually hold after their reads: the catalog rows, the
  *  localities, the competitor read (which can FAIL), and the applied scan profile. */
 export interface KanalyPageReads {
-  /** persisted or seeded catalog offerings, in catalog order */
-  catalog: readonly { name: string; category: string }[];
+  /** persisted or seeded catalog offerings, in catalog order. `active` is the Katalog
+   *  pause flag: an offering the owner paused (`active: false`) never reaches the
+   *  grounding, so a withdrawn product or service cannot seed a channel plan or an AI
+   *  regeneration. Absent means live (a caller with no pause concept). */
+  catalog: readonly { name: string; category: string; active?: boolean }[];
   /** localities the project serves, in `localitiesFor` order */
   localities: readonly { name: string }[];
   /** The competitor leg. Omit it entirely for a caller that deliberately does not
@@ -118,9 +121,10 @@ export function kanalyGroundingInput(reads: KanalyPageReads): KanalyGroundingInp
   const competitors = reads.competitorRead
     ? curatedCompetitors([...(reads.competitorRead.competitors ?? [])]).map((c) => c.name)
     : [];
+  const live = reads.catalog.filter((o) => o.active !== false);
   return {
-    categories: [...new Set(reads.catalog.map((o) => o.category).filter(Boolean))],
-    offeringNames: reads.catalog.map((o) => o.name),
+    categories: [...new Set(live.map((o) => o.category).filter(Boolean))],
+    offeringNames: live.map((o) => o.name),
     localities: reads.localities.map((l) => l.name),
     competitors,
     competitorsUnavailable:
