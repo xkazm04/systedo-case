@@ -158,7 +158,10 @@ export function triageGoals(pnoGoal: number, breakEvenRoas?: number): TriageGoal
 
 // --- the rules ---------------------------------------------------------------
 // Ordered worst-first. ROAS bands are disjoint so a campaign never matches both
-// the critical and the warning ROAS rule. New rules (e.g. a drop vs the prior
+// the critical and the warning ROAS rule. The return rules also require
+// conversions > 0, so they are disjoint from no_conversions too: value reported
+// against zero conversions is a count problem first, and a "meets target" or
+// "below target" line beside "no conversions" would contradict it in the tooltip. New rules (e.g. a drop vs the prior
 // window, once that data is wired) slot in here without touching callers.
 
 interface Rule {
@@ -194,7 +197,8 @@ const RULES: Rule[] = [
     severity: "critical",
     label: "ROAS hluboko pod cílem",
     labelEn: "ROAS far below target",
-    test: (c, g) => c.cost > 0 && c.roas > 0 && c.roas < g.targetRoas * ROAS_CRITICAL_RATIO,
+    test: (c, g) =>
+      c.cost > 0 && c.conversions > 0 && c.roas > 0 && c.roas < g.targetRoas * ROAS_CRITICAL_RATIO,
     detail: (c, g) =>
       `ROAS ${fmtMultiple(c.roas)} je pod ${fmtPct(ROAS_CRITICAL_RATIO, 0)} cíle; ${targetLine(g)}. PNO ${fmtPct(c.pno)}.`,
   },
@@ -204,7 +208,10 @@ const RULES: Rule[] = [
     label: "Pod cílem",
     labelEn: "Below target",
     test: (c, g) =>
-      c.cost > 0 && c.roas >= g.targetRoas * ROAS_CRITICAL_RATIO && c.roas < g.targetRoas,
+      c.cost > 0 &&
+      c.conversions > 0 &&
+      c.roas >= g.targetRoas * ROAS_CRITICAL_RATIO &&
+      c.roas < g.targetRoas,
     detail: (c, g) => `ROAS ${fmtMultiple(c.roas)} nedosahuje cíle; ${targetLine(g)}. PNO ${fmtPct(c.pno)}.`,
   },
   {
@@ -222,6 +229,7 @@ const RULES: Rule[] = [
     test: (c, g) =>
       g.breakEvenRoas !== undefined &&
       c.cost > 0 &&
+      c.conversions > 0 &&
       c.roas >= g.targetRoas &&
       c.roas < g.breakEvenRoas,
     detail: (c, g) =>
