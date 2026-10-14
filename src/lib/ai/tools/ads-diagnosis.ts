@@ -260,13 +260,22 @@ export function normalizeAdsDiagnosis(parsed: unknown, req: AdsDiagnosisRequest)
   // dropped (never coerced to something plausible) and an empty list is allowed — the
   // diagnosis can legitimately be about the portfolio rather than named rows.
   const known = requestIds(req);
-  const ids = Array.isArray(o?.affectedCampaignIds)
+  const named = Array.isArray(o?.affectedCampaignIds)
     ? (o.affectedCampaignIds as unknown[])
         .filter((v): v is string => typeof v === "string")
         .map((v) => v.trim())
-        .filter((v) => known.has(v))
+        .filter((v) => v !== "")
     : [];
+  const ids = named.filter((v) => known.has(v));
   const affectedCampaignIds = Array.from(new Set(ids)).slice(0, 6);
+  // The deterministic subject set backfills ONLY a model that named nothing at all. A
+  // model that named campaigns and had every one dropped did not point at the
+  // worst-wasted rows; showing those under its diagnosis would attribute a pointing it
+  // never made. Its list stays empty (a portfolio-level reading) and the drop is
+  // logged, not corrected to the nearest plausible id.
+  if (named.length > ids.length) {
+    console.warn(`[ads-diagnosis] dropped ${named.length - ids.length} affected id(s) not in the request`);
+  }
 
   return {
     summary: txt(o?.summary) || fallback.summary,
@@ -276,7 +285,7 @@ export function normalizeAdsDiagnosis(parsed: unknown, req: AdsDiagnosisRequest)
     // model "waste-zero-conv" can never render beside a green "low" pill.
     severity: coerceSeverity(o?.severity) ?? severityFor(likelyCause),
     affectedCampaignIds:
-      affectedCampaignIds.length > 0 ? affectedCampaignIds : fallback.affectedCampaignIds,
+      named.length > 0 ? affectedCampaignIds : fallback.affectedCampaignIds,
   };
 }
 
