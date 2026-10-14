@@ -13,7 +13,7 @@ import {
   campaignPeriodLabel,
   isCampaignPeriod,
 } from "@/lib/campaigns/types";
-import { deltaTone, tileSnapshotValue, type ReportTileSpec } from "@/lib/report/compute";
+import { deltaTone, spentNoReturn, tileSnapshotValue, type ReportTileSpec } from "@/lib/report/compute";
 import type { Formatters } from "@/lib/format";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 import { getServerLocale } from "@/lib/i18n/locale";
@@ -39,7 +39,7 @@ const T = {
     reportHeading: "Report výkonu",
     livePill: "Živá data",
     samplePill: "Ilustrativní data",
-    vsPrev: "vs. předchozí období",
+    vsPrev: "vs. předchozí období", spentNoReturn: "Utraceno, bez výsledku",
     attainmentHeading: "Plnění měsíčního cíle obratu",
     attainmentSub: "{hits} z {total} uzavřených měsíců",
     recapFrom: "AI souhrn · {date}",
@@ -68,7 +68,7 @@ const T = {
     reportHeading: "Performance report",
     livePill: "Live data",
     samplePill: "Illustrative data",
-    vsPrev: "vs. previous period",
+    vsPrev: "vs. previous period", spentNoReturn: "Spent, no return",
     attainmentHeading: "Monthly revenue goal attainment",
     attainmentSub: "{hits} of {total} closed months",
     recapFrom: "AI summary · {date}",
@@ -275,13 +275,13 @@ function MonthlyReportPrimary({
           // for. A real zero is a number and still renders; only a MISSING key is dropped.
           const value = tileSnapshotValue(snap, spec.metric);
           if (value === null) return null;
-          const d = spec.hasDelta ? snap.delta[spec.metric] : undefined;
+          const noReturn = spentNoReturn(spec, snap), d = spec.hasDelta && !noReturn ? snap.delta[spec.metric] : undefined;
           return (
             <div key={spec.metric} className="card p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted">
                 {en ? spec.labelEn : spec.label}
               </p>
-              <p className="tnum mt-1 text-2xl font-semibold text-navy-800">{fmtTile(fmt, spec, value)}</p>
+              <p className="tnum mt-1 text-2xl font-semibold text-navy-800">{noReturn ? t("spentNoReturn") : fmtTile(fmt, spec, value)}</p>
               {typeof d === "number" && (
                 <p className={"tnum mt-0.5 text-xs font-medium " + toneClass(deltaTone(d, spec.goodWhenDown))}>
                   {fmt.fmtSignedPct(d)} <span className="text-muted">{t("vsPrev")}</span>

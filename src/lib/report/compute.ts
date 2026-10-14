@@ -142,6 +142,19 @@ export function tileSnapshotValue(snap: ReportSnap, metric: ReportMetric): numbe
   return v === undefined ? null : v;
 }
 
+/** True when a cost-over-return tile (CPA / PNO) has SPEND but nothing behind it: the
+ *  guarded divide (`safe`) returns 0 for a zero denominator, so a month that spent
+ *  money and produced no conversions (or no revenue) would otherwise read "0 Kč" with
+ *  a -100 % delta in the GOOD colour — the worst state on the page painted as the best.
+ *  The tile renders the state ("spent, no return") instead of the number. Pure. */
+export function spentNoReturn(spec: ReportTileSpec, snap: ReportSnap): boolean {
+  const cost = snap.current.cost;
+  if (cost === undefined || !(cost > 0)) return false;
+  if (spec.metric === "cpa") return snap.current.conversions === 0;
+  if (spec.metric === "pno") return snap.current.revenue === 0;
+  return false;
+}
+
 /** Tone of a period-over-period delta given whether down is the good direction. */
 export function deltaTone(delta: number, goodWhenDown: boolean): DeltaTone {
   if (Math.abs(delta) < 0.0001) return "neutral";
