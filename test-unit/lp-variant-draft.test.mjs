@@ -178,3 +178,34 @@ test("the rebuilt request is bounded: unique ids, at least two arms, capped stri
   const idless = validateLpVariantDraftRequest({ cluster: "c", brand: "b", arms: [{ label: "A" }, { label: "B" }] });
   assert.equal(idless.valid, false, "an arm with no identity cannot be counted, so it is not drafted");
 });
+
+/* ── invented statistics (registry technique experiment-pages-print-no-numbers) ─ */
+
+test("a model-invented percentage never reaches the public arm; a supplied one may", () => {
+  const withFact = { ...req, brandContext: "Taskio — nástroj na řízení projektů. Sleva 20 % pro neziskovky." };
+  const parsed = {
+    arms: [
+      {
+        armId: "arm-0",
+        headline: "Zvýšili jsme konverze o 63 %",
+        intro: "Sleva 20 % pro neziskovky.",
+        bullets: ["98 % klientů se vrací", "Přehled na jednom místě", "Šablony"],
+        cta: "Mám zájem",
+      },
+      modelArm("arm-1", 2),
+    ],
+  };
+  const out = normalizeLpVariantDraft(parsed, withFact);
+  const arm0 = out.arms[0];
+  assert.doesNotMatch(arm0.headline, /63/, "invented headline figure falls to the floor");
+  assert.match(arm0.intro, /20 %/, "a figure the brand block carries is supplied, not invented");
+  assert.equal(arm0.bullets.some((b) => /98/.test(b)), false, "invented bullet is dropped");
+  assert.ok(arm0.bullets.length > 0);
+});
+
+test("the validator asks for a re-draft when an arm prints an unsupplied percentage", () => {
+  const bad = { arms: [{ ...modelArm("arm-0", 1), intro: "Ušetříte 40 % času." }, modelArm("arm-1", 2)] };
+  assert.ok(validateLpVariantDraft(bad, req).some((v) => /procentuální/.test(v)));
+  const ok = { arms: [modelArm("arm-0", 1), modelArm("arm-1", 2)] };
+  assert.deepEqual(validateLpVariantDraft(ok, req), []);
+});
