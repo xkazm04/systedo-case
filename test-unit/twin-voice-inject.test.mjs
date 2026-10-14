@@ -74,3 +74,13 @@ test("trained-then-emptied: a saved row with cleared directives injects nothing"
   };
   assert.equal(selectInjectableVoice(resolved, "tenant", "social"), undefined);
 });
+
+test("a tone-word-only directive is an untrained voice: it injects nothing (voice-profile-dimensions)", () => {
+  const seeded = sampleTwin("leadgen");
+  const resolve = (directives) => ({
+    state: { ...seeded, voices: [ownVoice("generic", { directives }), ...seeded.voices.filter((v) => v.scope !== "generic")] },
+    trainedScopes: ["generic"],
+  });
+  assert.equal(selectInjectableVoice(resolve("Vykej."), "tenant", "social"), undefined, "one word is a tone, not an instruction");
+  assert.equal(selectInjectableVoice(resolve("Vykej. Piš stručně a věcně."), "tenant", "social")?.scope, "generic");
+});

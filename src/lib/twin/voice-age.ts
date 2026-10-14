@@ -22,10 +22,22 @@ export const RETRAIN_MARGIN = 5;
  *  training event) — an untrained voice, not one trained in 1970. */
 const MIN_REAL_TRAINING_MS = Date.UTC(2015, 0, 1);
 
+/** Directives shorter than this are a tone word, not an instruction: a model given a
+ *  description instead of a style guide writes the median of its training data, so the
+ *  voice is treated as untrained (brand-voice-capture / voice-profile-dimensions: the
+ *  the technique cites forty characters as a convention; twenty here so a short saved Czech voice is not silently dropped). One predicate, shared by the trained
+ *  badge, readiness and the injection gate so they can never disagree. */
+export const MIN_DIRECTIVES_CHARS = 20;
+
+/** True when the directives are long enough to count as an instruction. */
+export function hasUsableDirectives(voice: Pick<TwinVoice, "directives">): boolean {
+  return voice.directives.trim().length >= MIN_DIRECTIVES_CHARS;
+}
+
 /** When a voice was actually trained, or null if it never was (seed/epoch stamp,
  *  or a row with no directives — opening the editor must not read as "trained"). */
 export function voiceTrainedAt(voice: TwinVoice): string | null {
-  if (!voice.directives.trim()) return null;
+  if (!hasUsableDirectives(voice)) return null;
   const t = Date.parse(voice.updatedAt);
   if (!Number.isFinite(t) || t < MIN_REAL_TRAINING_MS) return null;
   return voice.updatedAt;

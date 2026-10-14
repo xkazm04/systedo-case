@@ -141,7 +141,7 @@ test("draftGateVerdict: disabled and human-only channels refuse drafting; assist
 
 // --- resolveVoice ----------------------------------------------------------
 
-const voice = (scope, directives = "Piš věcně.") => ({
+const voice = (scope, directives = "Piš věcně a vykej zákazníkům.") => ({
   scope,
   directives,
   traits: [],
