@@ -308,10 +308,27 @@ test("deriveReadiness: the seeded sample twin is honestly reported as untrained"
   const r = deriveReadiness(sampleTwin("leadgen"), { offerings: 0 });
   const by = Object.fromEntries(r.milestones.map((m) => [m.milestone, m.level]));
   assert.equal(by.grounding, "empty", "no catalog");
-  assert.equal(by.voice, "partial", "generic register only");
+  assert.equal(by.voice, "empty", "the seeded register is the product's, not the tenant's — it earns no voice credit");
+  assert.equal(by.guardrails, "empty", "the two seeded red lines must not tick the guardrails gate");
   assert.equal(by.training, "empty", "no seeded style facts — a fake tick would be a lie");
   assert.equal(by.activity, "empty");
   assert.ok(r.score > 0 && r.score < 100, `score should be partial, got ${r.score}`);
+});
+
+test("deriveReadiness: the merged sample voice earns an untrained tenant no voice or guardrails credit", () => {
+  // resolveTwin merges the seeded generic voice (EPOCH stamp, directives, 2 red lines)
+  // under whatever a tenant saved. A tenant who trained nothing but toggled a channel
+  // must read as untrained; one who saved a real voice must still earn it.
+  const untrained = deriveReadiness(sampleTwin("eshop"), { offerings: 0 });
+  const trained = deriveReadiness(
+    { ...sampleTwin("eshop"), voices: [{ ...voice("email"), updatedAt: "2026-04-15T00:00:00.000Z" }, ...sampleTwin("eshop").voices] },
+    { offerings: 0 }
+  );
+  const lv = (r, m) => r.milestones.find((x) => x.milestone === m).level;
+  assert.equal(lv(untrained, "voice"), "empty");
+  assert.equal(lv(untrained, "guardrails"), "empty");
+  assert.equal(lv(trained, "voice"), "complete");
+  assert.ok(trained.score > untrained.score, "training a voice still raises the score");
 });
 
 test("deriveReadiness: a failed catalog read (null offerings) grounds to partial, not empty", () => {
@@ -327,7 +344,7 @@ test("deriveReadiness: a failed catalog read (null offerings) grounds to partial
 
 test("deriveReadiness: a fully trained twin scores 100", () => {
   const state = {
-    voices: [voice("generic"), { ...voice("email"), constraints: [
+    voices: [{ ...voice("generic"), updatedAt: "2026-04-15T00:00:00.000Z" }, { ...voice("email"), updatedAt: "2026-04-15T00:00:00.000Z", constraints: [
       { kind: "do", rule: "a" }, { kind: "dont", rule: "b" }, { kind: "do", rule: "c" },
     ] }],
     channels: [cfg()],

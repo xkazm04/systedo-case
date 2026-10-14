@@ -9,7 +9,8 @@
  *  Pure: no clock, no storage, no React. The module renders the ribbon from this;
  *  the gaps drive "what to do next". */
 import type { SupportedLocale } from "@/lib/format";
-import type { TwinState, ToneScope } from "./types";
+import type { TwinState, ToneScope, TwinVoice } from "./types";
+import { voiceTrainedAt } from "./voice-age";
 
 export const MILESTONES = ["grounding", "voice", "training", "guardrails", "channels", "activity"] as const;
 export type Milestone = (typeof MILESTONES)[number];
@@ -46,14 +47,21 @@ function level(complete: boolean, partial: boolean): MilestoneLevel {
   return complete ? "complete" : partial ? "partial" : "empty";
 }
 
-/** A voice counts as real only if someone wrote directives into it — an empty row
- *  created by opening the editor must not tick the gate. */
+/** A voice counts as real only if someone TRAINED it: directives written AND a real
+ *  training stamp. The seeded per-type sample carries directives and two red lines
+ *  under an EPOCH stamp (`sample.ts`), and `resolveTwin` merges it under every
+ *  tenant's saved voices, so counting `state.voices` raw handed an untrained
+ *  business free voice and guardrails credit for a persona it never wrote. An
+ *  empty row created by opening the editor must not tick the gate either
+ *  (`voiceTrainedAt` refuses both). */
+const trainedVoices = (state: TwinState): TwinVoice[] => state.voices.filter((v) => voiceTrainedAt(v) !== null);
+
 const hasVoice = (state: TwinState, scope: ToneScope): boolean =>
-  state.voices.some((v) => v.scope === scope && v.directives.trim().length > 0);
+  trainedVoices(state).some((v) => v.scope === scope);
 
 export function deriveReadiness(state: TwinState, input: ReadinessInput): Readiness {
-  const channelVoices = state.voices.filter((v) => v.scope !== "generic" && v.directives.trim().length > 0);
-  const constraints = state.voices.reduce((n, v) => n + v.constraints.length, 0);
+  const channelVoices = trainedVoices(state).filter((v) => v.scope !== "generic");
+  const constraints = trainedVoices(state).reduce((n, v) => n + v.constraints.length, 0);
   const enabled = state.channels.filter((c) => c.enabled);
   // `activity` counts APPROVED alongside SENT deliberately: an approval is a real
   // decision event (human-asserted, with the machine bit re-derived server-side on
