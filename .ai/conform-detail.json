@@ -3491,6 +3491,208 @@
           "evidence": "src/components/app/modules/MonthlyReport.tsx:447 Displays a generic stale warning banner without citing the exact date through which data was synced."
         }
       ]
+    },
+    "6d067356-15d1-4b3d-bcee-6a1dc2122e05/performance-root-cause-diagnosis": {
+      "context": "ai-tools-diagnostics",
+      "subject": "performance-root-cause-diagnosis",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-14",
+      "evaluatedTs": "2026-10-14T23:08:24.036Z",
+      "worker": "c6c1dfe9-130e-43b7-838c-8d0628bc76a1",
+      "techniques": [
+        {
+          "technique": "cause-ladder-tracking-gap-first",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/ads-diagnosis.ts:257 An empty cause uses pickAdsCause, whose order is gap, 25% zero-conversion waste, 15%/50% drift, 60%/25% imbalance, healthy, then misallocation. A non-empty unknown cause is coerced to the fixed catch-all budget-misallocation; lead-source-diagnosis.ts does the same with mis-targeting. The waste share is also summed only over req.worst, and a healthy result clears affectedCampaignIds."
+        },
+        {
+          "technique": "wasted-spend-ranking",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/cohort-diagnosis.ts:157 The cohort floor picks the lowest LTV:CAC and ignores signups. ads-request.ts does rank portfolios by wastedSpend, ties by cost, caps at 6, and falls back to the highest PNO spender, scoped to the primary currency."
+        },
+        {
+          "technique": "thresholds-mirror-the-prompt",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/cohort-diagnosis.ts:38 The cohort prompt states an LTV:CAC goal of 3 that the request does not carry, and baseCohortDiagnosis repeats worst.ltvCac < 3 as an unnamed literal. The ads constants 0.25, 0.15, 0.5, 0.6 and 0.25 are named beside the prompt sentences."
+        },
+        {
+          "technique": "one-lever-from-supplied-entities",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/ads-diagnosis.ts:279 Unknown ids are dropped and duplicates capped at 6, then any empty list is backfilled from req.worst. A total drop therefore shows rows the model never named. The tracking-gap template does tell the operator to fix measurement before pausing spend."
+        },
+        {
+          "technique": "outcome-closed-by-own-metric-with-dead-band",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/ads-diagnosis.ts:172 These tools return a cause and a recommendation. Grep of the six context files found no compareOutcome, OUTCOME_THRESHOLD, or diagnosis snapshot."
+        },
+        {
+          "technique": "advice-ledger-scores-past-advice",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/lead-source-diagnosis.ts:144 Grep of the six files found no adviceLedger, subjectKey, or updateAdviceLedger. The only ledger line is the CRM conversion-count prompt in lead-source-diagnosis.ts."
+        }
+      ],
+      "registryProposal": "cohort-diagnosis.ts still states an unsourced LTV:CAC goal of 3 in the prompt and as worst.ltvCac < 3 in the floor. The standard already refuses that benchmark; it should stay refused."
+    },
+    "8220b398-b6a0-4703-a105-93047378ed8b/performance-root-cause-diagnosis": {
+      "context": "diagnoses-engine",
+      "subject": "performance-root-cause-diagnosis",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-14",
+      "evaluatedTs": "2026-10-14T23:08:24.036Z",
+      "worker": "c6c1dfe9-130e-43b7-838c-8d0628bc76a1",
+      "techniques": [
+        {
+          "technique": "cause-ladder-tracking-gap-first",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/diagnoses/digest-run.ts:154 Searched src/lib/diagnoses for tracking-gap, WASTE_SHARE, and pickAdsCause and found no rung walker. This runner delegates the cause to the ads tool."
+        },
+        {
+          "technique": "wasted-spend-ranking",
+          "verdict": "deviation",
+          "evidence": "src/lib/diagnoses/lead-source-request.ts:105 Sources offered for diagnosis are junk rows or rows under a 0.15 win rate, kept in the caller's best-first quality order. Peers are sorted by qualityScore. There is no rank by cost per qualified lead or by spend."
+        },
+        {
+          "technique": "one-lever-from-supplied-entities",
+          "verdict": "deviation",
+          "evidence": "src/lib/diagnoses/types.ts:230 sanitizeAdsResult stores affectedCampaignIds from the wire after a length trim. It does not drop ids that were absent from the request."
+        },
+        {
+          "technique": "outcome-closed-by-own-metric-with-dead-band",
+          "verdict": "deviation",
+          "evidence": "src/lib/diagnoses/types.ts:277 compareOutcome uses a 0.05 band, inverts only the pno verdict, leaves deltaPct unsigned-flipped, and returns null for a missing or non-finite value. alreadyResolvedUnchanged is display-only. The manual persist path still accepts the posted metric; digest-run.ts is the path that calls extractAdsSnapshot on the server request."
+        },
+        {
+          "technique": "advice-ledger-scores-past-advice",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/diagnoses/types.ts:30 Searched src/lib/diagnoses for adviceLedger, subjectKey, and updateAdviceLedger and found no hits. Closure here is a diagnosis status plus a key-metric snapshot."
+        }
+      ]
+    },
+    "682ee603-c9cf-4a2e-b0c5-07c5047a018a/performance-root-cause-diagnosis": {
+      "context": "recaps-activity",
+      "subject": "performance-root-cause-diagnosis",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-14",
+      "evaluatedTs": "2026-10-14T23:08:24.036Z",
+      "worker": "c6c1dfe9-130e-43b7-838c-8d0628bc76a1",
+      "techniques": [
+        {
+          "technique": "cause-ladder-tracking-gap-first",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/activity/emit.ts:2 Grep of src/lib/recaps, src/lib/activity, src/lib/insights, and src/lib/advice found no tracking-gap, likelyCause, or pickAdsCause. Activity emit appends an audit entry."
+        },
+        {
+          "technique": "wasted-spend-ranking",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/insights/types.ts:88 byImpact orders overview recommendations by severity, then impactCzk. These files do not choose diagnosis campaigns or compute wastedSpend."
+        },
+        {
+          "technique": "thresholds-mirror-the-prompt",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/recaps/types.ts:27 Grep of the context directories found no cause prompt and no WASTE_SHARE-style predicate. Recaps store a monthly narrative payload."
+        },
+        {
+          "technique": "one-lever-from-supplied-entities",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/recaps/types.ts:21 A stored recap is a monthly generation result. These files do not normalize a model entity list or require a single diagnosis action."
+        },
+        {
+          "technique": "outcome-closed-by-own-metric-with-dead-band",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/insights/types.ts:29 Grep of these directories found no compareOutcome. The snapshot here is the advice sighting's own number, scored by the advice ledger."
+        },
+        {
+          "technique": "advice-ledger-scores-past-advice",
+          "verdict": "deviation",
+          "evidence": "test-unit/advice-ledger.test.mjs:56 updateAdviceLedger resolves an open subject after 3 absent days, scores firstValue against lastValue, inverts only the verdict, keeps sample sticky and unscored, drops a late baseline's free improvement, reopens onto the original baseline, leaves dismissed to the operator, and evicts settled records first. changesets.ts admits only realized status measured. ADVICE_INVERSE_KEYS is pno plus daysToStockout, while the diagnosis set is pno alone, and no test imports both constants."
+        }
+      ],
+      "registryProposal": "ADVICE_INVERSE_KEYS adds daysToStockout, which the diagnosis INVERSE_METRIC_KEYS set does not contain and which the ledger comment says no producer emits. The standard's single inverse list does not say whether a reserved unused key is a second list."
+    },
+    "812c7ba1-75df-4c2f-a845-1831ab8ec4cc/performance-root-cause-diagnosis": {
+      "context": "local-seo-core-ui",
+      "subject": "performance-root-cause-diagnosis",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-14",
+      "evaluatedTs": "2026-10-14T23:08:24.036Z",
+      "worker": "c6c1dfe9-130e-43b7-838c-8d0628bc76a1",
+      "techniques": [
+        {
+          "technique": "cause-ladder-tracking-gap-first",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/LocalLadderSource.tsx:15 The local ladder in these files is imported map-pack positions. Grep of the listed module files found no likelyCause, tracking-gap, or WASTE_SHARE."
+        },
+        {
+          "technique": "wasted-spend-ranking",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/LocalModule.tsx:288 The gaps table prints monthly volume in gaps() order. LocalModule.tsx contains no sort, and the listed files contain no wastedSpend."
+        },
+        {
+          "technique": "thresholds-mirror-the-prompt",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/LocalDiagnosisPanel.tsx:23 The panel describes a single gap and one action. These UI files define no numeric cause predicate beside a prompt."
+        },
+        {
+          "technique": "one-lever-from-supplied-entities",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/LocalDiagnosisPanel.tsx:70 The panel shows one worstGap and one recommendation block labeled as the first thing to close and the first thing to fix. It does not re-check worstGap against request.gaps."
+        },
+        {
+          "technique": "outcome-closed-by-own-metric-with-dead-band",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/LocalDiagnosisPanel.tsx:144 currentMetric is request.coveragePct, and alreadyResolvedUnchanged is display-only. The chip itself is withheld unless status is resolved, so a metric move on a new or acknowledged diagnosis renders no outcome."
+        },
+        {
+          "technique": "advice-ledger-scores-past-advice",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/LocalDiagnosisPanel.tsx:131 The panel persists a local diagnosis result. Grep of the listed local UI files found no subjectKey, adviceLedger, or advice sighting."
+        }
+      ]
+    },
+    "847dc85e-4c6c-4eea-a9cd-c45c298cac63/performance-root-cause-diagnosis": {
+      "context": "performance-analyst-ai",
+      "subject": "performance-root-cause-diagnosis",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-14",
+      "evaluatedTs": "2026-10-14T23:08:24.036Z",
+      "worker": "c6c1dfe9-130e-43b7-838c-8d0628bc76a1",
+      "techniques": [
+        {
+          "technique": "cause-ladder-tracking-gap-first",
+          "verdict": "deviation",
+          "evidence": "src/components/ai/PerformanceAnalyst.tsx:39 The panel renders a headline, a summary, a wins list, a risks list, and numbered actions. These four files contain no closed cause set and no tracking-gap rung."
+        },
+        {
+          "technique": "wasted-spend-ranking",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/DiagnosisTracking.tsx:319 History rows print the stored subject. Grep of the four context files found no wastedSpend and no campaign sort."
+        },
+        {
+          "technique": "thresholds-mirror-the-prompt",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/PerformanceAnalyst.tsx:301 The analysis prompt is disclosed for reading. These files declare no named threshold beside a cause sentence."
+        },
+        {
+          "technique": "one-lever-from-supplied-entities",
+          "verdict": "deviation",
+          "evidence": "src/components/ai/PerformanceAnalyst.tsx:280 Done results map r.actions into an ordered list of title plus detail. There is no single action and no filter of named entities back to a request set."
+        },
+        {
+          "technique": "outcome-closed-by-own-metric-with-dead-band",
+          "verdict": "deviation",
+          "evidence": "src/components/ai/DiagnosisTracking.tsx:22 The acknowledged state offers a control that sets status to resolved. The outcome chip copy is Improved/Zlepšeno with the signed delta, and the prop comment says a null verdict means no chip. The green resolved pill follows the status."
+        },
+        {
+          "technique": "advice-ledger-scores-past-advice",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/useDiagnosisPersistence.ts:78 The hook posts a diagnosis result to the diagnoses route. Grep of the four files found no subjectKey and no advice ledger."
+        }
+      ]
     }
   }
 }

@@ -2957,7 +2957,11 @@
           "revision": 2,
           "changedAt": "2026-10-14",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/ai/tools/ads-diagnosis.ts:279 After filtering, an empty affected-campaign list is replaced with the deterministic worst ids, including when every id the model named was unknown.",
+          "evaluatedAt": "2026-10-14",
+          "evaluatedAgainst": "sha256-b2:afbd4fa8af69140b",
+          "evaluatedRevision": 2
         },
         {
           "subject": "mcp-tools",
@@ -9104,7 +9108,11 @@
           "revision": 2,
           "changedAt": "2026-10-14",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/diagnoses/types.ts:277 A manual save stores the posted key-metric number once the key matches the kind and the value is finite, so the baseline can be a client-supplied figure.",
+          "evaluatedAt": "2026-10-14",
+          "evaluatedAgainst": "sha256-b2:afbd4fa8af69140b",
+          "evaluatedRevision": 2
         },
         {
           "subject": "lead-quality-and-source-diagnosis",
@@ -10776,7 +10784,11 @@
           "revision": 2,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/LocalDiagnosisPanel.tsx:144 The coverage outcome chip is computed only after the operator has set the diagnosis status to resolved.",
+          "evaluatedAt": "2026-10-14",
+          "evaluatedAgainst": "sha256-b2:afbd4fa8af69140b",
+          "evaluatedRevision": 2
         },
         {
           "subject": "agent-memory",
@@ -13048,7 +13060,11 @@
           "revision": 2,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/ai/PerformanceAnalyst.tsx:280 The performance analysis renders every returned action as a numbered list under a count, so the surface does not end in one lever from a closed cause.",
+          "evaluatedAt": "2026-10-14",
+          "evaluatedAgainst": "sha256-b2:afbd4fa8af69140b",
+          "evaluatedRevision": 2
         },
         {
           "subject": "quality-gates",
@@ -15477,7 +15493,11 @@
           "revision": 2,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "test-unit/advice-ledger.test.mjs:56 The advice dead-band is pinned as the literal 0.05, and no test asserts it equals the diagnosis chip's OUTCOME_THRESHOLD or that the inverse keys are one list.",
+          "evaluatedAt": "2026-10-14",
+          "evaluatedAgainst": "sha256-b2:afbd4fa8af69140b",
+          "evaluatedRevision": 2
         },
         {
           "subject": "prompt-assembly",
