@@ -77,6 +77,19 @@ const REPURPOSE_SCHEMA = {
   propertyOrdering: ["variants"],
 };
 
+/** The tracking link is the system's, not the writer's: a model-written address is
+ *  recalled from memory and carries no (or another channel's) campaign parameters, and
+ *  the module shows the stamped link in its own row. The prompt already forbids it; this
+ *  removes the one that slips through, so a variant never ships an unattributed URL. A
+ *  variant that was only a URL becomes empty and falls back to the template. */
+export const stripWrittenUrls = (s: string): string =>
+  s
+    .replace(/\(?\b(?:https?:\/\/|www\.)[^\s)]+\)?/gi, "")
+    .replace(/[ \t]+([,.;:!?])/g, "$1")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+$/gm, "")
+    .trim();
+
 const channelLimit = (channel: string): number =>
   CHANNEL_LIMITS[channel as keyof typeof CHANNEL_LIMITS] ?? 1000;
 
@@ -130,7 +143,7 @@ export function normalizeRepurposeTracked(
     const x = item as Record<string, unknown>;
     const channel = txt(x.channel);
     if (!channels.includes(channel)) continue;
-    const text = txt(x.text);
+    const text = stripWrittenUrls(txt(x.text));
     if (text && !byChannel.has(channel)) {
       byChannel.set(channel, clamp(text, channelLimit(channel)));
     }

@@ -70,3 +70,25 @@ test("normalizeRepurposeTracked: modelCount counts channels the MODEL filled", (
   assert.equal(none.result.variants.length, 2, "backfilled from templates");
   assert.ok(none.result.variants.every((x) => x.text.length > 0), "templates are non-empty");
 });
+
+// ── a model-written URL is stripped; the system owns the link ───────────────────
+
+test("normalizeRepurposeTracked: strips a model-written URL, keeps the sentence", () => {
+  const { result } = normalizeRepurposeTracked(
+    { variants: [{ channel: "LinkedIn", text: "Ořechy v lednici vydrží déle. Přečtěte si víc: https://orecharna.cz/clanek/orechy." }] },
+    ["LinkedIn"],
+    req
+  );
+  assert.doesNotMatch(result.variants[0].text, /https?:|orecharna/);
+  assert.match(result.variants[0].text, /^Ořechy v lednici vydrží déle./);
+});
+
+test("normalizeRepurposeTracked: a URL-only variant counts as not filled (template backfill)", () => {
+  const { result, modelCount } = normalizeRepurposeTracked(
+    { variants: [{ channel: "LinkedIn", text: "https://orecharna.cz/x" }] },
+    ["LinkedIn"],
+    req
+  );
+  assert.equal(modelCount, 0);
+  assert.ok(result.variants[0].text.length > 0);
+});
