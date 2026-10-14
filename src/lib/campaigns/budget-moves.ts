@@ -124,11 +124,25 @@ export function recommendBudgetMoves(
         c.cost >= minSpend &&
         c.roas < TARGET_ROAS &&
         (includePauses ? true : c.roas > 0) &&
+        // Zero RETURN is only a burner when the conversion COUNT is zero too. A row
+        // with conversions but no reported value (value tracking off, a late value
+        // column) is "not measured", not "no return": neither paused nor treated as
+        // a zero-ratio donor (its shift would project a gain off an unmeasured side).
+        !(c.roas <= 0 && c.conversions > 0) &&
         (donorScope ? donorScope.has(c.id) : true)
     )
     .map((c) => ({ c, waste: waste(c) }))
     .sort((a, b) => b.waste - a.waste)
     .map((x) => x.c);
+  // Every admitted pause is CONSIDERED before every shift (pause-zero-return-before-
+  // shifting): a small burner must not lose its maxMoves slot to a larger partial
+  // donor whose waste exceeds the burner's whole cost. Only the selection order
+  // changes; the emitted list keeps the waste order above (the live apply and its
+  // identity pins read it in that order).
+  const wasteRank = new Map(donors.map((c, i) => [c.id, i]));
+  const considered = [...donors].sort(
+    (a, b) => Number(b.roas <= 0) - Number(a.roas <= 0) || wasteRank.get(a.id)! - wasteRank.get(b.id)!
+  );
 
   // Recipients: at/above target, best ROAS first (most worth scaling).
   const recipients = enabled
@@ -137,7 +151,7 @@ export function recommendBudgetMoves(
 
   const moves: BudgetMove[] = [];
   const usedRecipient = new Set<string>();
-  for (const donor of donors) {
+  for (const donor of considered) {
     if (moves.length >= maxMoves) break;
 
     // Zero return → there is nothing to re-point; the right action is to stop
@@ -206,6 +220,8 @@ export function recommendBudgetMoves(
       ...(recipient.source !== undefined ? { toSource: recipient.source } : {}),
     });
   }
+
+  moves.sort((a, b) => wasteRank.get(a.fromId)! - wasteRank.get(b.fromId)!);
 
   return {
     moves,

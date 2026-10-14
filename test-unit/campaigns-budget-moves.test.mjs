@@ -170,3 +170,25 @@ test("a donor at its floor emits no move and does not consume the best recipient
   assert.ok(m, "the donor with headroom still moves");
   assert.equal(m.toId, "best");
 });
+
+// pause-zero-return-before-shifting: a small burner (cost 2 000, waste 2 000) is out-wasted
+// by a large partial donor (10 000 at half target = 5 000 waste). The pause still ranks
+// first, so a one-move cap spends its slot on stopping the burner.
+test("a small burner is not displaced by a larger partial donor under a move cap", () => {
+  const small = row("z2", { cost: 2_000, roasFactor: 0 });
+  const { moves } = recommendBudgetMoves([weakDonor, small, winner], { includePauses: true, maxMoves: 1 });
+  assert.equal(moves.length, 1);
+  assert.equal(moves[0].kind, "pause");
+  assert.equal(moves[0].fromId, "z2");
+});
+
+// Conversions reported with no conversion value is "not measured", not "no return": it is
+// neither paused nor shifted from.
+test("a row with conversions but no reported value is not paused", () => {
+  const valueless = withMetrics({
+    id: "v1", name: "Kampaň v1", type: "search", status: "enabled",
+    impressions: 50_000, clicks: 1_000, cost: 8_000, conversions: 12, conversionValue: 0,
+  });
+  const { moves } = recommendBudgetMoves([valueless, winner], { includePauses: true });
+  assert.equal(moves.length, 0);
+});
