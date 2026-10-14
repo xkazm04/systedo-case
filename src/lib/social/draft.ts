@@ -77,19 +77,24 @@ export function draftPosts(
 /** A deterministic suggested reply for an inbound comment/DM. `domain` is the
  *  project's own site (absent → a neutral "our site") — never a hardcoded one. */
 export function draftReply(message: SocialMessage, domain?: string): string {
-  const name = message.author.split(" ")[0] || "díky";
+  // No first token (empty author) -> a neutral greeting, never a stray word the
+  // sentence then reads as a name.
+  const name = message.author.trim().split(/s+/)[0] ?? "";
+  const hello = name ? `Dobrý den ${name}` : "Dobrý den";
   const lower = message.text.toLowerCase();
   const platform = SOCIAL_PLATFORM_LABELS[message.platform];
   const site = domain?.trim() || "našem webu";
 
+  // Answer in the FIRST sentence; thanks may share it but must not push the answer
+  // into the next (registry: answer-in-first-sentence-never-promise).
   if (/cena|kolik|stojí|sleva/.test(lower)) {
-    return `Dobrý den ${name}, díky za zájem! Aktuální ceny i probíhající akce najdete na ${site}. Rádi poradíme s výběrem. 🙂`;
+    return `${hello}, aktuální ceny i probíhající akce najdete na ${site} — díky za zájem! Rádi poradíme s výběrem. 🙂`;
   }
   if (/dostupn|skladem|máte|kdy/.test(lower)) {
-    return `Ahoj ${name}, díky za dotaz! Dostupnost vidíte vždy u produktu na ${site}; pokud něco chybí, napište nám do DM a vyřešíme to.`;
+    return `${hello}, dostupnost vidíte vždy u produktu na ${site} — díky za dotaz! Pokud něco chybí, napište nám do DM a vyřešíme to.`;
   }
   if (/díky|super|skvěl|paráda|doporuč/.test(lower)) {
-    return `Moc děkujeme, ${name}! 🙌 Vážíme si toho — a budeme se snažit držet laťku i dál.`;
+    return `Moc děkujeme${name ? `, ${name}` : ""}! 🙌 Vážíme si toho — a budeme se snažit držet laťku i dál.`;
   }
-  return `Dobrý den ${name}, děkujeme za zprávu na ${platform}! Ozveme se co nejdříve s konkrétní odpovědí. 🙂`;
+  return `${hello}, děkujeme za zprávu na ${platform}! Ozveme se co nejdříve s konkrétní odpovědí. 🙂`;
 }
