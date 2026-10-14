@@ -91,3 +91,22 @@ test("a multiplier above 1 raises the projection, monotonically", () => {
   assert.deepEqual(gains, [...gains].sort((a, b) => a - b), "monotonic in the multiplier");
   assert.ok(gains[3] > gains[2], "×1.5 projects more than uncalibrated");
 });
+
+// --- projected lift fraction (technique: linear-projection-with-confidence-cap) ---
+// "When the projected gain is zero or negative, do not compute a lift percentage."
+
+test("projectedLiftFraction: a shift to a stronger recipient yields the value lift", async () => {
+  const { projectedLiftFraction } = await import("@/lib/campaigns/simulate");
+  const f = projectedLiftFraction(simulateBudgetShift(ROWS, MOVES));
+  assert.ok(f !== null && f > 0);
+  assert.equal(f, (simulateBudgetShift(ROWS, MOVES).after.conversionValue - 5_000) / 5_000);
+});
+
+test("projectedLiftFraction: a pause-only set has no lift to report", async () => {
+  const { projectedLiftFraction } = await import("@/lib/campaigns/simulate");
+  // d1 has value, so pausing it removes value: negative gain, still no percentage.
+  assert.equal(projectedLiftFraction(simulateBudgetShift(ROWS, PAUSE)), null);
+  const zeroReturn = [row("z", { cost: 500, conversions: 0, conversionValue: 0 }), ROWS[1]];
+  const pz = [{ ...PAUSE[0], fromId: "z", amount: 500 }];
+  assert.equal(projectedLiftFraction(simulateBudgetShift(zeroReturn, pz)), null);
+});
