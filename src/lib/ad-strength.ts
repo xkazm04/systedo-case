@@ -79,6 +79,11 @@ const normalize = (s: string): string =>
 /** Significant tokens (≥4 chars drops Czech stopwords and stray units like "g"). */
 const tokenize = (s: string): string[] => normalize(s).split(" ").filter((w) => w.length >= 4);
 
+/** Stem key for inflected matching: a keyword and its form in a headline differ by
+ *  an ending ("ořechy" / "ořechů"), so tokens of 6+ chars compare on a 5-char prefix;
+ *  4-5 char tokens stay exact (a shorter prefix would match unrelated words). */
+const stemKey = (w: string): string => (w.length >= 6 ? w.slice(0, 5) : w);
+
 const distinctCount = (list: string[]): number =>
   new Set(list.map(normalize).filter(Boolean)).size;
 
@@ -111,7 +116,7 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
   // even when they all do. Fall back to whole-normalized-keyword substring
   // matching in that case, and if there is genuinely nothing to measure (no
   // keywords at all) exclude the factor from the score instead of failing it.
-  const keywordTokens = Array.from(new Set(result.keywords.flatMap(tokenize)));
+  const keywordTokens = Array.from(new Set(result.keywords.flatMap(tokenize).map(stemKey)));
   const shortKeywordNeedles =
     keywordTokens.length === 0
       ? Array.from(new Set(result.keywords.map(normalize).filter(Boolean)))
@@ -119,7 +124,7 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
   const keywordsMeasurable = keywordTokens.length > 0 || shortKeywordNeedles.length > 0;
   const headlinesWithKeyword = headlines.filter((h) => {
     if (keywordTokens.length > 0) {
-      const ht = new Set(tokenize(h));
+      const ht = new Set(tokenize(h).map(stemKey));
       return keywordTokens.some((k) => ht.has(k));
     }
     const norm = normalize(h);

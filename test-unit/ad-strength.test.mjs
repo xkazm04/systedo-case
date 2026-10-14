@@ -102,3 +102,36 @@ test("count agreement holds at every Czech/English boundary", () => {
   assert.match(detail(computeAdStrength(ad(n(1), [], n(4)), "cs"), "Rozmanité odznaky"), /^4 odlišné odznaky rozšiřují/);
   assert.match(detail(computeAdStrength(ad(n(1), [], n(5)), "cs"), "Rozmanité odznaky"), /^5 odlišných odznaků rozšiřuje/);
 });
+
+// keyword-coverage-half-not-all: an inflected headline form carries the keyword.
+// Exact token membership under-counts ("ořechy" never equals "ořechů"); a
+// normalised stem-length prefix counts it without matching unrelated words.
+test("inflected keyword forms count toward coverage (stem prefix, not exact token)", () => {
+  const s = computeAdStrength(
+    mk({
+      headlines: ["Chutné ořechů v dárkovém balení", "Čerstvé ořechy z farmy", "Doprava zdarma", "Objednejte dnes"],
+      keywords: ["ořechy"],
+    }),
+  );
+  assert.equal(keywordFactor(s).status, "pass", "2 of 4 headlines carry the stem = half");
+});
+
+test("inflected form: Czech case endings on a multi-word keyword", () => {
+  const s = computeAdStrength(
+    mk({
+      headlines: ["Pražené zrnko každý týden", "Pražené v malých várkách", "Doprava zdarma", "Objednejte dnes"],
+      keywords: ["pražená káva"],
+    }),
+  );
+  assert.equal(keywordFactor(s).status, "pass", "shared stem prefix of the inflected forms; half covered");
+});
+
+test("stem prefix does not match unrelated words", () => {
+  const s = computeAdStrength(
+    mk({
+      headlines: ["Zahradní nábytek", "Zahrada plná květů", "Doprava zdarma", "Objednejte dnes"],
+      keywords: ["záhon"],
+    }),
+  );
+  assert.equal(keywordFactor(s).status, "fail", "'zahon' must not match 'zahrada'/'zahradni'");
+});
