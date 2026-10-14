@@ -168,20 +168,30 @@ export function generateTwinStyle(
   // legitimately have NO remaining gaps — forcing a question every round means the
   // training UI can never reach "voice fully trained".
   const matureVoice = cleanList(req.samples, 10).length >= 5 || answeredQuestions.size >= 3;
+  // What the model was actually shown: pasted samples and non-blank answers (the same
+  // filter the prompt applies). With neither, the profile is a starting point from the
+  // business type, and anything claiming to be derived from the material is invented.
+  const hasEvidence =
+    cleanList(req.samples, 10).length > 0 ||
+    (req.answers ?? []).some((a) => txt(a.question) && txt(a.answer));
 
   const normalize = (parsed: unknown): TwinStyleResult => {
     const o = parsed as Record<string, unknown> | null;
     const demo = fallback();
     const directives = txt(o?.directives);
-    const modelGaps = cleanList(o?.gapQuestions, 4);
+    // Never re-ask an answered question, whoever proposed it (not only the canned starters).
+    const modelGaps = cleanList(o?.gapQuestions, 4).filter((q) => !answeredQuestions.has(q.trim().toLowerCase()));
     const freshFallback = demo.gapQuestions.filter((q) => !answeredQuestions.has(q.trim().toLowerCase()));
     return {
       summary: txt(o?.summary) || demo.summary,
       directives: directives || demo.directives,
       traits: cleanList(o?.traits, 8),
       lengthHint: txt(o?.lengthHint) || demo.lengthHint,
-      constraints: normalizeConstraints(o?.constraints),
-      examples: cleanList(o?.examples, 6),
+      // Hard rules and exemplar sentences need material behind them: with none shown they
+      // are dropped rather than saved as guardrails the twin will obey (distil only what
+      // the samples show, else ask).
+      constraints: hasEvidence ? normalizeConstraints(o?.constraints) : [],
+      examples: hasEvidence ? cleanList(o?.examples, 6) : [],
       // A mature voice may end with no open questions; otherwise fall back to the
       // starters the owner hasn't already answered.
       gapQuestions: modelGaps.length > 0 ? modelGaps : matureVoice ? [] : freshFallback,
