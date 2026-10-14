@@ -277,8 +277,12 @@ const CHANGE_RULES: ChangeRule[] = [
     labelEn: "Spend spike without return",
     // Cost jumped ≥50% while conversion value lagged well behind — efficiency is
     // being diluted even if the absolute ROAS still looks acceptable.
+    // A rise needs a base: a campaign with no prior spend (paused, newly
+    // enabled) carries the diff's +100% placeholder, which is not a measured
+    // rise, so the launch is left to the snapshot rules.
     test: (_c, ch) =>
       ch.kind === "changed" &&
+      ch.costBefore > 0 &&
       ch.costDelta >= SPEND_SPIKE_COST_JUMP &&
       ch.valueDelta < ch.costDelta * SPEND_SPIKE_VALUE_LAG,
     detail: (_c, ch) =>
