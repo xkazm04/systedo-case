@@ -160,6 +160,33 @@ test("a week with no spend is ambiguous → silent, never a divide-by-zero", () 
   assert.equal(detectSlowBleed(pts), null);
 });
 
+/** A campaign paused on weekends: a day with no spend has no ROAS (not measured is
+ *  not zero), so it must not enter the noise floor. Deterministic pseudo-jitter
+ *  (seed 1) is a clean 45% slide that the zero-filled variance used to silence. */
+test("weekend-paused campaign: zero-spend days do not inflate the noise floor", () => {
+  const weekly = [4.0, 3.4, 2.8, 2.2];
+  const pts = [];
+  let day = 0;
+  for (const roas of weekly) {
+    for (let i = 0; i < SLOW_BLEED_WEEK_DAYS; i++) {
+      const d = new Date(Date.UTC(2026, 0, 5 + day));
+      const dow = d.getUTCDay();
+      const r = Math.sin((day + 1) * 12.9898 + 1 * 78.233) * 43758.5453;
+      const u = (r - Math.floor(r)) * 2 - 1;
+      const cost = dow === 0 || dow === 6 ? 0 : 1000;
+      pts.push({
+        date: d.toISOString().slice(0, 10),
+        cost,
+        conversionValue: Math.round(cost * roas * (1 + 0.15 * u)),
+      });
+      day++;
+    }
+  }
+  const bleed = detectSlowBleed(pts);
+  assert.ok(bleed, "a clean multi-week slide on a weekend-paused campaign is a bleed");
+  assert.equal(bleed.weeks, 4);
+});
+
 // --- triage integration + byte-identity -------------------------------------
 
 function healthyRow() {

@@ -377,12 +377,18 @@ export function detectSlowBleed(points: readonly SlowBleedPoint[] | undefined): 
     revenue: Number(p.conversionValue) || 0,
   }));
   const dayRoas = (p: MetricsDailyPoint) => roasOf(p.revenue, p.cost);
-  const weights = weekdayWeightsOf(bridged, dayRoas);
-  const adj = bridged.map((p) => {
+  // A day with no spend has no ROAS (not measured is not zero): a campaign paused
+  // on weekends would otherwise feed a 0 into the variance, inflate the noise floor
+  // and silence a clean slide. Estimate weights and noise from measured days only,
+  // and size the weekly-mean standard error by the measured days a week really holds.
+  const measured = bridged.filter((p) => p.cost > 0);
+  const weights = weekdayWeightsOf(measured, dayRoas);
+  const adj = measured.map((p) => {
     const w = weights[dayOfWeek(p.date)] || 1;
     return dayRoas(p) / (w > 0 ? w : 1);
   });
-  const seMove = Math.sqrt((2 * sampleVariance(adj)) / SLOW_BLEED_WEEK_DAYS);
+  const daysPerWeek = Math.max(1, measured.length / weeks);
+  const seMove = Math.sqrt((2 * sampleVariance(adj)) / daysPerWeek);
 
   // A run of (MIN_WEEKS − 1) same-direction weekly moves spans MIN_WEEKS buckets.
   const found = detectWeeklyRun(roasByWeek, seMove, SLOW_BLEED_MIN_WEEKS - 1, SLOW_BLEED_Z);
