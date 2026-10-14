@@ -1,0 +1,182 @@
+{
+ "schema": "conform-run/1",
+ "worker": "13331a52-bdb4-4e94-aeab-1d11bfad7356",
+ "subject": "speed-to-lead-and-assisted-reply",
+ "evaluatedAt": "2026-10-14T23:48:21.820840+00:00",
+ "provider": "grok",
+ "model": "grok-4.7",
+ "pairs": [
+  {
+   "context": "speed-lead-ui",
+   "subject": "speed-to-lead-and-assisted-reply",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/speed-lead/useLeadSla.ts:9 The pre-breach warning is a fixed 60 seconds on every lead, not a share of that lead's own target, so the 5-minute drill and a 15-minute queue do not share one derived threshold.",
+   "techniques": [
+    {
+     "technique": "five-minute-sla-settled-outcomes-only",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/speed-lead/useLeadSla.ts:9 The settled rate itself is honest in ResponseBand (null renders as an em dash, at-risk is a separate count). The warning is a second constant, not about a third of leadSlaTargetSec, and the queue sorts breached first then by original order, not by time left. The band's stated goal is leads[0]'s target only."
+    },
+    {
+     "technique": "bant-lite-scoring",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/speed-lead/LeadQualificationPanel.tsx:124 Score and band label come from the shared score functions, the answered-count sits on the next line, and disposition has its own unknown option so an untouched lead is not pre-set to warm."
+    },
+    {
+     "technique": "risks-gate-not-confidence",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/SpeedLeadModule.tsx:587 decideDraft is called with confidence, risks, and the inbound text, so the gate itself is the conjunction. The meter still turns green at 80 and coral at 50 instead of the channel's autoThreshold."
+    },
+    {
+     "technique": "delivery-fails-closed-cap-consent",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/SpeedLeadModule.tsx:371 The inbox posts the draft id to the server claim and mirrors sent only when that response is ok; a refused or unreachable claim leaves the record approved."
+    }
+   ]
+  },
+  {
+   "context": "speed-lead-lib",
+   "subject": "speed-to-lead-and-assisted-reply",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/lib/speed-lead/room-summary.ts:7 A row with no slaTargetMin is late on this roof only after 60 minutes, while the inbox clock for that same row is the 5-minute drill target, and the two numbers are not labelled as different queues.",
+   "techniques": [
+    {
+     "technique": "five-minute-sla-settled-outcomes-only",
+     "verdict": "deviation",
+     "evidence": "src/lib/speed-lead/room-summary.ts:12 computeResponseAnalytics does keep hit, open-breach miss, and at-risk apart, and a null rate when nothing has settled. This roof fallback is 60, not SLA_TARGET_MIN, for every row that has no own target."
+    },
+    {
+     "technique": "bant-lite-scoring",
+     "verdict": "conformant",
+     "evidence": "src/lib/speed-lead/qualification.ts:93 Hot at 60 and warm at 40 live in this one function; unknown adds 0; a single field caps near 30 so it cannot reach hot alone; ScoreBand is a different type from Disposition."
+    },
+    {
+     "technique": "first-reply-promises-channel-not-minutes",
+     "verdict": "conformant",
+     "evidence": "src/lib/speed-lead/draft.ts:23 The contact-back table follows the arrival channel and says co nejd\u0159\u00edve, with no minute count; questions are a separate array; the sign-off is the brand name or n\u00e1\u0161 t\u00fdm."
+    },
+    {
+     "technique": "answer-in-first-sentence-never-promise",
+     "verdict": "deviation",
+     "evidence": "src/lib/speed-lead/snippets.ts:44 This suggested inbox text opens with a greeting, then promises a tailored quote within 24 hours. draftReply's first sentence is also only the greeting, with the channel promise in the next sentence."
+    }
+   ],
+   "registryProposal": "first-reply's stated shape is a greeting, a thank-you, then the channel sentence, while answer-in-first-sentence says a canned reply beside the model path must put the answer in the first sentence and must not open with thanks. The deterministic draft follows the first shape and therefore fails the second."
+  },
+  {
+   "context": "lead-quality-signals",
+   "subject": "speed-to-lead-and-assisted-reply",
+   "bundle": "marketing",
+   "state": "not-applicable",
+   "evidence": "src/lib/lead-quality/compute.ts:49 This score blends a source's qualification rate and win rate, and a search of src/lib/lead-quality and src/lib/lead-signals found none of the reply, first-response, or send-gate identifiers.",
+   "techniques": [
+    {
+     "technique": "five-minute-sla-settled-outcomes-only",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/lead-signals/summary.ts:17 The ratios named here are source cost and funnel velocity. No first-response target or settled hit rate appears in these directories."
+    },
+    {
+     "technique": "bant-lite-scoring",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/lead-quality/compute.ts:49 The composite is source qualRate and winRate, not timeline, budget, scope, and disposition."
+    },
+    {
+     "technique": "first-reply-promises-channel-not-minutes",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/lead-quality/types.ts:4 Imported rows are funnel stages and source labels, not an enquiry to acknowledge."
+    },
+    {
+     "technique": "answer-in-first-sentence-never-promise",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/lead-signals/summary.ts:3 The recap text is source economics. There is no customer-reply doctrine in these files."
+    },
+    {
+     "technique": "risks-gate-not-confidence",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/lead-quality/compute.ts:34 The only threshold here flags a cheap, poorly qualifying source. There is no autonomy level or risks list."
+    },
+    {
+     "technique": "delivery-fails-closed-cap-consent",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/lead-quality/funnel-tier.ts:16 The join is source attribution. These directories do not decide whether a message may be sent."
+    }
+   ],
+   "absenceTerms": [
+    "withinSla",
+    "decideDraft",
+    "draftReply",
+    "bant",
+    "firstResponded"
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "speed-to-lead-and-assisted-reply",
+   "context": "twin-module",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "speed-to-lead-and-assisted-reply",
+   "context": "twin-store-voice",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-14T23:48:21.820840+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "speed-to-lead-and-assisted-reply"
+   ],
+   "techniques": [
+    "bant-lite-scoring",
+    "delivery-fails-closed-cap-consent",
+    "five-minute-sla-settled-outcomes-only",
+    "risks-gate-not-confidence"
+   ],
+   "deviations": 1,
+   "context": "speed-lead-ui",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-14T23:48:21.820840+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "speed-to-lead-and-assisted-reply"
+   ],
+   "techniques": [
+    "answer-in-first-sentence-never-promise",
+    "bant-lite-scoring",
+    "first-reply-promises-channel-not-minutes",
+    "five-minute-sla-settled-outcomes-only"
+   ],
+   "deviations": 1,
+   "context": "speed-lead-lib",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-14T23:48:21.820840+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "speed-to-lead-and-assisted-reply"
+   ],
+   "techniques": [
+    "answer-in-first-sentence-never-promise",
+    "bant-lite-scoring",
+    "delivery-fails-closed-cap-consent",
+    "first-reply-promises-channel-not-minutes",
+    "five-minute-sla-settled-outcomes-only",
+    "risks-gate-not-confidence"
+   ],
+   "deviations": 0,
+   "context": "lead-quality-signals",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  }
+ ]
+}

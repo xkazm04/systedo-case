@@ -10275,7 +10275,11 @@
           "revision": 3,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/lead-quality/compute.ts:49 This score blends a source's qualification rate and win rate, and a search of src/lib/lead-quality and src/lib/lead-signals found none of the reply, first-response, or send-gate identifiers.",
+          "evaluatedAt": "2026-10-14",
+          "evaluatedAgainst": "sha256-b2:5e8bf55d63a99e73",
+          "evaluatedRevision": 3
         },
         {
           "subject": "quality-gates",
@@ -17116,7 +17120,11 @@
           "revision": 3,
           "changedAt": "2026-10-14",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/speed-lead/useLeadSla.ts:9 The pre-breach warning is a fixed 60 seconds on every lead, not a share of that lead's own target, so the 5-minute drill and a 15-minute queue do not share one derived threshold.",
+          "evaluatedAt": "2026-10-14",
+          "evaluatedAgainst": "sha256-b2:5e8bf55d63a99e73",
+          "evaluatedRevision": 3
         },
         {
           "subject": "lead-quality-and-source-diagnosis",
@@ -17215,7 +17223,11 @@
           "revision": 3,
           "changedAt": "2026-10-14",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/speed-lead/room-summary.ts:7 A row with no slaTargetMin is late on this roof only after 60 minutes, while the inbox clock for that same row is the 5-minute drill target, and the two numbers are not labelled as different queues.",
+          "evaluatedAt": "2026-10-14",
+          "evaluatedAgainst": "sha256-b2:5e8bf55d63a99e73",
+          "evaluatedRevision": 3
         },
         {
           "subject": "lead-quality-and-source-diagnosis",
