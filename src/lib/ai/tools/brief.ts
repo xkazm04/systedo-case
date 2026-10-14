@@ -27,6 +27,9 @@ Pravidla:
 - Osnova (outline) ať má logickou strukturu H2 sekcí s konkrétními odrážkami, co v sekci zaznít.
 - FAQ ať jsou reálné dotazy, které uživatelé hledají.
 - Žádné keyword stuffing, žádné prázdné fráze. Obsah musí být užitečný a věcný.
+- Do pole „rationale" napiš na začátek jednou větou úlohu stránky ve tvaru „Úloha: …" – jedna z možností: pokrývá podotázku (jakou) pro nákupní sekci (kterou); nese vlastní data, která má jen firma; nebo je to už pořadí držící stránka, kterou je třeba udržet citovatelnou. Žádná jiná úloha než tyto tři neexistuje; pokud ani jedna neplatí, napiš „Úloha: žádná – nezadávat".
+- V rationale ani jinde nesliboj ani neodhaduj návštěvnost, počet kliků ani „přivede provoz": u dotazu, na který vyhledávač zobrazuje AI odpověď, není návštěvnost cílem stránky.
+- Návrhy kotevního textu pro interní odkazy (internalLinks) mají vést z textu článku DOLŮ na nákupní stránky (kategorie, produkty, služby z kontextu značky), každý jiným a přirozeným zněním, ne opakováním hlavního klíčového slova. Na informační článek se z nákupních stránek nelinkuje.
 - Drž se zadaného JSON schématu.`;
 
 function buildBriefPrompt(req: BriefRequest): string {
