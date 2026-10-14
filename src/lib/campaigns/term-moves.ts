@@ -77,6 +77,22 @@ export function isProvenTerm(t: SearchTermRow, minConversions: number): boolean 
   return t.conversions >= minConversions && t.matchType !== "EXACT";
 }
 
+/** The words of a query, as a phrase-match negative sees them: lowercased, split on
+ *  whitespace. Phrase match compares word sequences, so this is the unit of "contains". */
+function words(term: string): string[] {
+  return term.toLowerCase().split(/\s+/).filter(Boolean);
+}
+
+/** Does `hay` contain `needle` as a contiguous run of whole words? This is exactly
+ *  what a PHRASE negative on `needle` would block (extra words before or after). */
+function containsPhrase(hay: string[], needle: string[]): boolean {
+  if (needle.length === 0 || needle.length > hay.length) return false;
+  for (let i = 0; i + needle.length <= hay.length; i++) {
+    if (needle.every((w, j) => hay[i + j] === w)) return true;
+  }
+  return false;
+}
+
 /** The move a wasted query becomes. `toId`/`toName` stay empty — there is no
  *  recipient, exactly as for a pause. */
 function negativeMove(t: SearchTermRow): BudgetMove {
@@ -144,6 +160,35 @@ export function recommendTermMoves(terms: SearchTermRow[], opts: TermMoveOptions
   const negatives: BudgetMove[] = [];
   const promotes: BudgetMove[] = [];
 
+  // A negative is CAMPAIGN scope and PHRASE match, so its blast radius is wider than
+  // the row that justified it. Two facts the per-row gate cannot see, both measured
+  // before this was added (a wasted row met first emitted a negative for a query that
+  // converted in a sibling ad group; a wasted "boty" blocked a converting "boty na
+  // beh" in the same campaign):
+  //  1. the evidence is the term's TOTAL across the campaign's ad groups;
+  //  2. any converting query in the campaign that CONTAINS the term as a phrase would
+  //     be blocked too, so it vetoes the negative.
+  const totals = new Map<string, { cost: number; clicks: number; conversions: number }>();
+  const converting = new Map<string, string[][]>();
+  for (const t of terms) {
+    if (!t.term || !t.campaignId) continue;
+    const k = `${t.campaignId} ${t.term}`;
+    const agg = totals.get(k) ?? { cost: 0, clicks: 0, conversions: 0 };
+    agg.cost += t.cost;
+    agg.clicks += t.clicks;
+    agg.conversions += t.conversions;
+    totals.set(k, agg);
+    if (t.conversions > 0) {
+      const list = converting.get(t.campaignId) ?? [];
+      list.push(words(t.term));
+      converting.set(t.campaignId, list);
+    }
+  }
+  const blocksConverting = (t: SearchTermRow): boolean => {
+    const needle = words(t.term);
+    return (converting.get(t.campaignId) ?? []).some((hay) => containsPhrase(hay, needle));
+  };
+
   for (const t of terms) {
     if (!t.term || !t.campaignId || !t.adGroupId) continue;
     // A campaign id is digits, so a space cannot occur in the left half and the two
@@ -157,9 +202,10 @@ export function recommendTermMoves(terms: SearchTermRow[], opts: TermMoveOptions
       promotes.push(promoteMove(t));
       continue;
     }
-    if (isWastedTerm(t, minSpend, minClicks)) {
+    const total = totals.get(key)!;
+    if (isWastedTerm({ ...t, ...total }, minSpend, minClicks) && !blocksConverting(t)) {
       spokenFor.add(key);
-      negatives.push(negativeMove(t));
+      negatives.push(negativeMove({ ...t, cost: total.cost }));
     }
   }
 
