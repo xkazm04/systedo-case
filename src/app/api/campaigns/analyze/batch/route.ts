@@ -23,6 +23,7 @@ import { getClientProfile } from "@/lib/campaigns/report-config";
 import { getServerLocale } from "@/lib/i18n/locale";
 import {
   findCachedReport,
+  getCampaignSeries,
   getLatestChanges,
   getSyncMeta,
   hashEvalInputs,
@@ -30,7 +31,7 @@ import {
   saveReport,
 } from "@/lib/campaigns/store";
 import { indexChanges, withMetrics, type Campaign } from "@/lib/campaigns/types";
-import { triageWeight } from "@/lib/campaigns/triage";
+import { attentionOrder, triageGoals } from "@/lib/campaigns/triage";
 import type { EvalScope } from "@/lib/ai-types";
 import {
   RATE_RULES,
@@ -95,9 +96,16 @@ export async function POST(request: Request) {
   // Overall first, then campaigns in triage order — the documented order a PPC
   // manager should spend evaluation credits, so quota exhaustion cuts off the
   // least urgent tail, never the portfolio verdict.
-  const ordered = campaigns
-    .map(withMetrics)
-    .sort((a, b) => triageWeight(b, changesById[b.id]) - triageWeight(a, changesById[a.id]));
+  // Same inputs the table's queue uses (agreed PNO goal + stored daily series), so
+  // the two queues spend credits in the same order; ties fall back to id.
+  const client = await getClientProfile(tenant);
+  const campaignSeries = await getCampaignSeries(tenant);
+  const ordered = attentionOrder(
+    campaigns.map(withMetrics),
+    changesById,
+    triageGoals(client.pnoGoal),
+    campaignSeries
+  );
   const targets: BatchTarget[] = [
     {
       key: "overall",
@@ -167,8 +175,7 @@ export async function POST(request: Request) {
 
   try {
     const locale = await getServerLocale();
-    // Resolve the tenant's client profile once for the whole batch.
-    const client = await getClientProfile(tenant);
+    // The client profile was resolved once above, for the ordering and the batch.
     // Sample-lessons policy is constant for the batch (same tenant + project): only the
     // demo/anon surface keeps the demo-derived lessons; a real account excludes them.
     const sampleAllowed = sampleLessonsAllowed(tenant, projectId);

@@ -493,6 +493,23 @@ export function triageWeight(
   return SEVERITY_RANK[triage(c, change, goals, history).severity] * 1e12 + c.cost;
 }
 
+/** The attention order every queue shares: severity first, spend within
+ *  severity (triageWeight), and a tie on both broken by campaign id ascending, so
+ *  a rename or an input reshuffle never reorders the queue. Returns a NEW array.
+ *  The table's evaluation queue and the batch route both call this with the same
+ *  goals and history, so the two spend credits in the same order. */
+export function attentionOrder<T extends CampaignRow>(
+  rows: readonly T[],
+  changesById?: Record<string, CampaignChange>,
+  goals?: TriageGoals,
+  historyById?: Record<string, readonly SlowBleedPoint[]>
+): T[] {
+  return rows
+    .map((r) => ({ r, w: triageWeight(r, changesById?.[r.id], goals, historyById?.[r.id]) }))
+    .sort((a, b) => b.w - a.w || (a.r.id < b.r.id ? -1 : a.r.id > b.r.id ? 1 : 0))
+    .map((x) => x.r);
+}
+
 // --- portfolio summary (the banner headline) ---------------------------------
 
 export interface TriageSummary {
