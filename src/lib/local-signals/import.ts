@@ -516,6 +516,11 @@ function parseGbpStatus(raw: string): ImportedGbpRow["status"] {
   if (!s) return "connected";
   if (/(disconnect|odpoj|off|inactive|neaktiv)/.test(s)) return "disconnected";
   if (/(attention|akce|pozor|warn|issue|vyzaduje|problem|chyb)/.test(s)) return "attention";
+  // A NEGATED or PENDING affirmative ("not connected", "unverified", "pending verification",
+  // "nepripojeno", "neovereno") contains the very stem the next test reads as healthy, so it
+  // must be caught first and fail toward attention, not parse as a clean bill.
+  if (/\b(not|un(?=verif|connect|activ|health)|ne(?=pripoj|overen|zdrav|funguj|aktiv|verif)|pending|requir|ceka)/.test(s))
+    return "attention";
   if (/(connect|pripoj|aktiv|verif|overen|live|active|zdrav|healthy|funguj)/.test(s) || s === "ok")
     return "connected";
   return "attention"; // present but unrecognised → surface it, don't bury it
