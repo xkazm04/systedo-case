@@ -440,6 +440,9 @@ Pravidla:
   - „callout": pole „variant" („tip" | „info" | „warn"), volitelně „title", a pole „text".
   - „cta": pole „text" (pobídka), „cta" (text tlačítka); odkaz doplní aplikace.
   - „figure": pole „alt" (popis navrhovaného obrázku), volitelně „caption" (popisek pod obrázkem); „src" nevyplňuj.
+- U každé sekce, jejíž nadpis je formulován jako otázka nebo dotaz (začíná „Jak", „Proč", „Co", „Kolik", „Kdy", „Jaký" apod.), začni první odstavec samostatnou odpovědí o 40–60 slovech, kterou lze vytáhnout bez okolního textu: hned v první větě pojmenuj předmět jeho jménem (žádné zájmeno ani „to", „tento", „proto" odkazující mimo odstavec) a až potom vysvětluj, rozváděj a přidávej výhrady.
+- Konkrétní číslo, cenu nebo lhůtu do odpovědi uveď jen tehdy, pokud je v briefu. Nikdy nevymýšlej údaj; když chybí, odpověz tím, co brief dokládá.
+- Odpovědi v poli „faq" piš jako úplné věty o 40–60 slovech: první věta odpovídá přímo a jmenuje předmět, bez odrážek a bez zájmen odkazujících mimo odpověď.
 - Odstavce drž krátké (2–4 věty). Celkem vrať nejvýše ~16 bloků — buď stručný a věcný, ne mnohomluvný.
 - Vrať POUZE jeden validní JSON objekt dle schématu (pole „blocks" a „faq") — žádný text okolo, žádné markdown bloky, žádné komentáře.`,
     prompt: `Rozepiš tento hotový brief do plnohodnotného konceptu článku.

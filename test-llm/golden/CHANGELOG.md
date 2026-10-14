@@ -91,3 +91,11 @@ lp-variant-draft: new hosted-LP-experiment arm-copy tool (WP W3-B) — first gol
 | tool | from | to |
 |---|---|---|
 | lp-variant-draft | — | 810b3dbbd4147162 |
+
+## 2026-10-14 — article-draft
+
+article-draft: answer-first opener under question-phrased sections, complete-sentence FAQ answers, no invented figures (answer-block-under-question-heading)
+
+| tool | from | to |
+|---|---|---|
+| article-draft | b9a285bdfb1bedc0 | d0a4c09a076da10c |
