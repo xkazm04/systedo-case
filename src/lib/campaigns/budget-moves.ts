@@ -169,7 +169,6 @@ export function recommendBudgetMoves(
 
     const recipient = recipients.find((r) => r.id !== donor.id && !usedRecipient.has(r.id));
     if (!recipient) break;
-    usedRecipient.add(recipient.id);
 
     // Round the shift to a tidy 100 CZK so the recommendation reads cleanly, then
     // floor it to what the live mutation can actually move off the donor (the
@@ -179,6 +178,9 @@ export function recommendBudgetMoves(
     const rounded = Math.round((donor.cost * shiftFraction) / 100) * 100;
     const amount = Math.min(donor.cost, movableAmount(rounded, donor.budgetPerDay, periodDays));
     if (amount <= 0) continue;
+    // Claimed only once the move exists: a donor already at its floor emits nothing,
+    // and must not burn the best recipient for the donor behind it.
+    usedRecipient.add(recipient.id);
 
     // estValueGain is derived from the SAME (floored) amount the move carries and
     // the simulation moves, so the stated gain reconciles with the applied move.

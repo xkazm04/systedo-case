@@ -153,3 +153,20 @@ test("a degenerate margin (≤0 or >1) falls back to margin-blind scoring", () =
     blind.moves.map((m) => m.fromId)
   );
 });
+
+// --- Donor floor: a donor already at its floor must not burn a recipient --------------
+
+// Two under-target donors and two recipients. The worst donor sits at the 10 CZK/day
+// floor (nothing giveable), the second has headroom. The floored-out donor yields no
+// move, so the best recipient must still be free for the donor that can give.
+test("a donor at its floor emits no move and does not consume the best recipient", () => {
+  const atFloor = { ...roasRow("f", 10_000, 0.5), budgetPerDay: 10 };
+  const roomy = { ...roasRow("r", 8_000, 1.0), budgetPerDay: 1_000 };
+  const best = roasRow("best", 20_000, 8.0);
+  const second = roasRow("second", 20_000, 6.0);
+  const { moves } = recommendBudgetMoves([atFloor, roomy, best, second], { periodDays: 30 });
+  assert.equal(moves.filter((m) => m.fromId === "f").length, 0);
+  const m = moves.find((x) => x.fromId === "r");
+  assert.ok(m, "the donor with headroom still moves");
+  assert.equal(m.toId, "best");
+});
