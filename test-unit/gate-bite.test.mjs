@@ -61,6 +61,14 @@ import { CHAIN } from "../scripts/gate-remedy.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
 
+/** The environment every child of this suite runs in. Git exports GIT_DIR (and, in a
+ *  worktree, its neighbours) to hooks, and neither a cwd nor `-C` overrides it: run from
+ *  the pre-push gate, the fixture's `git init` re-initialised the REAL repository
+ *  (core.bare = true) and its `git config` wrote the fixture identity into .git/config,
+ *  so genuine commits went out authored "Gate bite fixture" (2026-10-14). */
+const GIT_LOCATORS = ["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX"];
+const CHILD_ENV = Object.fromEntries(Object.entries(process.env).filter(([k]) => !GIT_LOCATORS.includes(k.toUpperCase())));
+
 /** What the sandboxed gates read. Deliberately explicit: a gate that starts
  *  needing something else fails its own control run here, loudly, rather than
  *  going quiet. */
@@ -131,6 +139,7 @@ function sandbox() {
 function runGate(dir, script, args = []) {
   return spawnSync(process.execPath, [join(dir, "scripts", script), ...args], {
     cwd: dir,
+    env: CHILD_ENV,
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
   });
@@ -166,7 +175,7 @@ function withEdits(dir, edits, fn) {
 // --- git fixtures ------------------------------------------------------------
 
 function git(dir, args) {
-  return spawnSync("git", args, { cwd: dir, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+  return spawnSync("git", args, { cwd: dir, env: CHILD_ENV, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
 }
 
 /** A throwaway repository with this repo's scripts/ in it, so the real gate runs
