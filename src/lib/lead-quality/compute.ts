@@ -203,6 +203,7 @@ function relDelta(curr: number, prev: number): number | null {
   return prev > 0 ? (curr - prev) / prev : null;
 }
 
+const cplOf = (c: PeriodCounts): number => (c.leads > 0 ? c.spend / c.leads : 0);
 const cpqlOf = (c: PeriodCounts): number => (c.qualified > 0 ? c.spend / c.qualified : 0);
 const qualRateOf = (c: PeriodCounts): number => (c.leads > 0 ? c.qualified / c.leads : 0);
 const winRateOf = (c: PeriodCounts): number => (c.won > 0 && c.qualified > 0 ? c.won / c.qualified : 0);
@@ -219,6 +220,9 @@ export interface SourceTrend {
   qualRateDelta: number | null;
   /** relative change in win rate; null when no baseline (rise = better) */
   winRateDelta: number | null;
+  /** relative change in cost per lead; null when no baseline or unpaid (a fall =
+   *  the source got cheaper — the "cheap" test of the spam/mis-targeting split) */
+  cplDelta: number | null;
 }
 
 /** Build the period-over-period trend for one source. Returns null when the
@@ -239,6 +243,7 @@ export function sourceTrend(s: LeadSource): SourceTrend | null {
     cpqlDelta: paid ? relDelta(cpqlNow, cpqlPrev) : null,
     qualRateDelta: relDelta(qualRateOf(curr), qualRateOf(prev)),
     winRateDelta: relDelta(winRateOf(curr), winRateOf(prev)),
+    cplDelta: paid ? relDelta(cplOf(curr), cplOf(prev)) : null,
   };
 }
 

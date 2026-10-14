@@ -26,7 +26,12 @@ export interface LeadSourceSeed {
   /** other sources' compact metrics (best-first) for budget-shift comparison */
   peers?: LeadSourcePeer[];
   /** period-over-period drift for this source (relative deltas), when it has prior data */
-  trend?: { cpqlDelta: number | null; qualRateDelta: number | null; winRateDelta: number | null };
+  trend?: {
+    cpqlDelta: number | null;
+    qualRateDelta: number | null;
+    winRateDelta: number | null;
+    cplDelta?: number;
+  };
   /** average lead → close velocity in days, when known */
   velocityDays?: number;
   /** period alert sentences already raised for this source (CPQL rise / over target) */
@@ -71,7 +76,12 @@ export function toLeadSourceSeed(
   }
   const tr = sourceTrend(r);
   if (tr && (tr.cpqlDelta !== null || tr.qualRateDelta !== null || tr.winRateDelta !== null)) {
-    seed.trend = { cpqlDelta: tr.cpqlDelta, qualRateDelta: tr.qualRateDelta, winRateDelta: tr.winRateDelta };
+    seed.trend = {
+      cpqlDelta: tr.cpqlDelta,
+      qualRateDelta: tr.qualRateDelta,
+      winRateDelta: tr.winRateDelta,
+      ...(tr.cplDelta !== null ? { cplDelta: tr.cplDelta } : {}),
+    };
   }
   if (r.daysToQualify != null || r.daysToClose != null) {
     seed.velocityDays = (r.daysToQualify ?? 0) + (r.daysToClose ?? 0);
@@ -86,7 +96,7 @@ export function toLeadSourceSeed(
       source: p.source,
       qualRate: p.qualRate,
       winRate: p.winRate,
-      ...(p.spend > 0 ? { costPerQualified: p.cpql } : {}),
+      ...(p.spend > 0 ? { costPerQualified: p.cpql, cpl: p.cpl } : {}),
     }));
   if (peers.length > 0) seed.peers = peers;
   // WP W3-C — join the conversion ledger's 30-day counts for THIS source. Absent
