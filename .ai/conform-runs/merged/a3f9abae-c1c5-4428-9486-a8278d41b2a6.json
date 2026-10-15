@@ -1,0 +1,203 @@
+{
+ "schema": "conform-run/1",
+ "worker": "a3f9abae-c1c5-4428-9486-a8278d41b2a6",
+ "subject": "cost-metering",
+ "evaluatedAt": "2026-10-15T02:41:53.371366+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [
+  {
+   "context": "llm-core-providers",
+   "subject": "cost-metering",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/llm/cost.ts:123 Unknown models return null cost rather than pricing at a documented conservative default with staleness tracking, allowing unpriced models to bypass cost accounting.",
+   "techniques": [
+    {
+     "technique": "price-tables",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/cost.ts:123 estimateCostUsd returns null on lookup misses instead of applying a loud conservative high default and incrementing a staleness counter."
+    },
+    {
+     "technique": "usage-ledgers",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/index.ts:520 Failed provider calls record estCostUsd: 0 and zero tokens instead of preserving failure spend with null or estimated units."
+    },
+    {
+     "technique": "whole-prompt-denominator",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/gemini.ts:202 Token usage extraction ignores provider-reported cached tokens rather than normalizing whole prompt counts with cached subsets."
+    },
+    {
+     "technique": "unit-classes-are-open",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/cost.ts:24 TokenUsage interface only models input and output tokens with no residual bucket or floor propagation for unmodeled unit classes."
+    },
+    {
+     "technique": "spend-attribution",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/index.ts:304 Attribution fields omit run ID and actor identity, and calls lacking attribution context are omitted rather than counted in an unattributed bucket."
+    },
+    {
+     "technique": "budget-enforcement",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/index.ts:294 The LLM chokepoint does not enforce per-run, per-actor, or per-period budget ceilings before invoking providers."
+    },
+    {
+     "technique": "preflight-estimation",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/index.ts:354 Provider invocations proceed directly without preflight estimation of input prompt tokens or gating against remaining balances."
+    }
+   ]
+  },
+  {
+   "context": "session-firebase-core",
+   "subject": "cost-metering",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/usage.ts:147 Quota refunds accept bare userId and amount parameters without binding to unique charge handles or tracking attempt identities across retries.",
+   "techniques": [
+    {
+     "technique": "reversible-debit-and-settle",
+     "verdict": "deviation",
+     "evidence": "src/lib/usage.ts:147 Compensating refunds operate without debit handles, idempotency references, or closed-attempt deduplication walks."
+    },
+    {
+     "technique": "budget-enforcement",
+     "verdict": "deviation",
+     "evidence": "src/lib/usage.ts:111 Unmetered environments completely bypass quota gating without recording unmetered spend windows."
+    },
+    {
+     "technique": "usage-ledgers",
+     "verdict": "deviation",
+     "evidence": "src/lib/usage.ts:126 The usage store aggregates counts into daily integer maps instead of persisting immutable per-call ledger rows."
+    }
+   ]
+  },
+  {
+   "context": "image-generation-studio",
+   "subject": "cost-metering",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/images/studio.ts:15 Creative studio declares image generation rates as scattered local constants and only logs usage on successful generations, bypassing unified price tables and complete ledgering.",
+   "techniques": [
+    {
+     "technique": "price-tables",
+     "verdict": "deviation",
+     "evidence": "src/lib/images/studio.ts:15 Prices are hardcoded as local constants in the studio module instead of consulting an authoritative versioned price table."
+    },
+    {
+     "technique": "usage-ledgers",
+     "verdict": "deviation",
+     "evidence": "src/lib/images/studio.ts:124 Telemetry records usage only after candidate generation completes, dropping failed provider attempts entirely."
+    },
+    {
+     "technique": "budget-enforcement",
+     "verdict": "deviation",
+     "evidence": "src/lib/images/spend.ts:18 Upfront guard reservations debit a flat 1 unit before candidate count is known, undercounting multi-candidate generations during initial gating."
+    }
+   ]
+  },
+  {
+   "context": "ads-creative-spend",
+   "subject": "cost-metering",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/spend/sample.ts:25 Spend analysis maintains a secondary price table with blended per-call rates and collapses token metrics into flat sums without failure or outlier breakdowns.",
+   "techniques": [
+    {
+     "technique": "price-tables",
+     "verdict": "deviation",
+     "evidence": "src/lib/spend/sample.ts:25 Maintains an independent array of models with blended rates instead of referencing the primary direction-split price table in cost.ts."
+    },
+    {
+     "technique": "spend-observability",
+     "verdict": "deviation",
+     "evidence": "src/lib/spend/compute.ts:27 Rollups sum flat totals by operation or model without surfacing top outlier calls or isolating failed-call spend series."
+    },
+    {
+     "technique": "usage-ledgers",
+     "verdict": "deviation",
+     "evidence": "src/lib/spend/aggregate.ts:31 Aggregating telemetry into spend entries sums input and output tokens together, erasing direction-split fidelity."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "cost-metering",
+   "context": "cron-scheduler",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-15T02:41:53.371366+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "cost-metering"
+   ],
+   "techniques": [
+    "budget-enforcement",
+    "preflight-estimation",
+    "price-tables",
+    "spend-attribution",
+    "unit-classes-are-open",
+    "usage-ledgers",
+    "whole-prompt-denominator"
+   ],
+   "deviations": 1,
+   "context": "llm-core-providers",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-15T02:41:53.371366+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "cost-metering"
+   ],
+   "techniques": [
+    "budget-enforcement",
+    "reversible-debit-and-settle",
+    "usage-ledgers"
+   ],
+   "deviations": 1,
+   "context": "session-firebase-core",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-15T02:41:53.371366+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "cost-metering"
+   ],
+   "techniques": [
+    "budget-enforcement",
+    "price-tables",
+    "usage-ledgers"
+   ],
+   "deviations": 1,
+   "context": "image-generation-studio",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-15T02:41:53.371366+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "cost-metering"
+   ],
+   "techniques": [
+    "price-tables",
+    "spend-observability",
+    "usage-ledgers"
+   ],
+   "deviations": 1,
+   "context": "ads-creative-spend",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  }
+ ]
+}

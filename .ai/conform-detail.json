@@ -4246,6 +4246,130 @@
           "evidence": "src/lib/ai/tools/voice.ts:24 The shared renderer injects any nonempty directives and can render traits or rules even with no directives, rather than refusing an untrained profile."
         }
       ]
+    },
+    "11708691-80f8-458d-a1fe-be426e381024/cost-metering": {
+      "context": "llm-core-providers",
+      "subject": "cost-metering",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T02:41:53.371Z",
+      "worker": "a3f9abae-c1c5-4428-9486-a8278d41b2a6",
+      "techniques": [
+        {
+          "technique": "price-tables",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/cost.ts:123 estimateCostUsd returns null on lookup misses instead of applying a loud conservative high default and incrementing a staleness counter."
+        },
+        {
+          "technique": "usage-ledgers",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/index.ts:520 Failed provider calls record estCostUsd: 0 and zero tokens instead of preserving failure spend with null or estimated units."
+        },
+        {
+          "technique": "whole-prompt-denominator",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/gemini.ts:202 Token usage extraction ignores provider-reported cached tokens rather than normalizing whole prompt counts with cached subsets."
+        },
+        {
+          "technique": "unit-classes-are-open",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/cost.ts:24 TokenUsage interface only models input and output tokens with no residual bucket or floor propagation for unmodeled unit classes."
+        },
+        {
+          "technique": "spend-attribution",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/index.ts:304 Attribution fields omit run ID and actor identity, and calls lacking attribution context are omitted rather than counted in an unattributed bucket."
+        },
+        {
+          "technique": "budget-enforcement",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/index.ts:294 The LLM chokepoint does not enforce per-run, per-actor, or per-period budget ceilings before invoking providers."
+        },
+        {
+          "technique": "preflight-estimation",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/index.ts:354 Provider invocations proceed directly without preflight estimation of input prompt tokens or gating against remaining balances."
+        }
+      ]
+    },
+    "d933c7ad-af48-44fb-9b86-126b70d1574a/cost-metering": {
+      "context": "session-firebase-core",
+      "subject": "cost-metering",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T02:41:53.371Z",
+      "worker": "a3f9abae-c1c5-4428-9486-a8278d41b2a6",
+      "techniques": [
+        {
+          "technique": "reversible-debit-and-settle",
+          "verdict": "deviation",
+          "evidence": "src/lib/usage.ts:147 Compensating refunds operate without debit handles, idempotency references, or closed-attempt deduplication walks."
+        },
+        {
+          "technique": "budget-enforcement",
+          "verdict": "deviation",
+          "evidence": "src/lib/usage.ts:111 Unmetered environments completely bypass quota gating without recording unmetered spend windows."
+        },
+        {
+          "technique": "usage-ledgers",
+          "verdict": "deviation",
+          "evidence": "src/lib/usage.ts:126 The usage store aggregates counts into daily integer maps instead of persisting immutable per-call ledger rows."
+        }
+      ]
+    },
+    "774bd300-8694-43db-9a93-2c44c27a843d/cost-metering": {
+      "context": "image-generation-studio",
+      "subject": "cost-metering",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T02:41:53.371Z",
+      "worker": "a3f9abae-c1c5-4428-9486-a8278d41b2a6",
+      "techniques": [
+        {
+          "technique": "price-tables",
+          "verdict": "deviation",
+          "evidence": "src/lib/images/studio.ts:15 Prices are hardcoded as local constants in the studio module instead of consulting an authoritative versioned price table."
+        },
+        {
+          "technique": "usage-ledgers",
+          "verdict": "deviation",
+          "evidence": "src/lib/images/studio.ts:124 Telemetry records usage only after candidate generation completes, dropping failed provider attempts entirely."
+        },
+        {
+          "technique": "budget-enforcement",
+          "verdict": "deviation",
+          "evidence": "src/lib/images/spend.ts:18 Upfront guard reservations debit a flat 1 unit before candidate count is known, undercounting multi-candidate generations during initial gating."
+        }
+      ]
+    },
+    "b7693f1e-0b83-4756-99f2-46a645bc2b01/cost-metering": {
+      "context": "ads-creative-spend",
+      "subject": "cost-metering",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T02:41:53.371Z",
+      "worker": "a3f9abae-c1c5-4428-9486-a8278d41b2a6",
+      "techniques": [
+        {
+          "technique": "price-tables",
+          "verdict": "deviation",
+          "evidence": "src/lib/spend/sample.ts:25 Maintains an independent array of models with blended rates instead of referencing the primary direction-split price table in cost.ts."
+        },
+        {
+          "technique": "spend-observability",
+          "verdict": "deviation",
+          "evidence": "src/lib/spend/compute.ts:27 Rollups sum flat totals by operation or model without surfacing top outlier calls or isolating failed-call spend series."
+        },
+        {
+          "technique": "usage-ledgers",
+          "verdict": "deviation",
+          "evidence": "src/lib/spend/aggregate.ts:31 Aggregating telemetry into spend entries sums input and output tokens together, erasing direction-split fidelity."
+        }
+      ]
     }
   }
 }

@@ -1999,7 +1999,11 @@
           "revision": 15,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/spend/sample.ts:25 Spend analysis maintains a secondary price table with blended per-call rates and collapses token metrics into flat sums without failure or outlier breakdowns.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:7247db31eb8f3dce",
+          "evaluatedRevision": 15
         },
         {
           "subject": "on-page-and-metadata-craft",
@@ -9617,7 +9621,11 @@
           "revision": 15,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/images/studio.ts:15 Creative studio declares image generation rates as scattered local constants and only logs usage on successful generations, bypassing unified price tables and complete ledgering.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:7247db31eb8f3dce",
+          "evaluatedRevision": 15
         },
         {
           "subject": "generative-provider-routing",
@@ -10652,7 +10660,11 @@
           "revision": 15,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/llm/cost.ts:123 Unknown models return null cost rather than pricing at a documented conservative default with staleness tracking, allowing unpriced models to bypass cost accounting.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:7247db31eb8f3dce",
+          "evaluatedRevision": 15
         },
         {
           "subject": "model-call-outcome-integrity",
@@ -16203,7 +16215,11 @@
           "revision": 15,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/usage.ts:147 Quota refunds accept bare userId and amount parameters without binding to unique charge handles or tracking attempt identities across retries.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:7247db31eb8f3dce",
+          "evaluatedRevision": 15
         },
         {
           "subject": "agent-runtime-assembly",
