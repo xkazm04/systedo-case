@@ -1,0 +1,243 @@
+{
+ "schema": "conform-run/1",
+ "worker": "7d0fad5a-051e-4e7c-b5b9-418d226567d3",
+ "subject": "honest-proof-and-illustrative-data",
+ "evaluatedAt": "2026-10-15T03:07:31.755293+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "product-demo-pages",
+   "subject": "honest-proof-and-illustrative-data",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/components/marketing/kanaly/FreeChannelsPath.tsx:53 The channel and action bounds are written into marketing copy instead of derived from the generator, allowing the promise to drift independently.",
+   "techniques": [
+    {
+     "technique": "claims-derived-from-product-code",
+     "verdict": "deviation",
+     "evidence": "src/components/marketing/kanaly/FreeChannelsPath.tsx:53 These bounds duplicate the production prompt's rules as prose rather than interpolating shared constants."
+    },
+    {
+     "technique": "indexability-follows-provenance",
+     "verdict": "deviation",
+     "evidence": "src/app/kanaly-zdarma/page.tsx:36 The complete metadata return has no robots override although the page renders seeded scores, leaving it subject to the production indexing default."
+    },
+    {
+     "technique": "proof-from-live-computation",
+     "verdict": "deviation",
+     "evidence": "src/app/lokalni-seo/page.tsx:12 The advertised rank improvement comes from the embedded showcase's preset animation and authored series rather than product metrics computation."
+    }
+   ]
+  },
+  {
+   "context": "local-seo-marketing",
+   "subject": "honest-proof-and-illustrative-data",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/components/marketing/charts/RankClimbChart.tsx:16 The showcase presents an authored rank-improvement series instead of output from the product's computation.",
+   "techniques": [
+    {
+     "technique": "binary-provenance-no-blending",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/LocalSeoShowcase.tsx:202 This showcase uses the chart's fixed illustrative series and supplies no synced-series branch."
+    },
+    {
+     "technique": "claims-derived-from-product-code",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/LocalSeoShowcase.tsx:208 The displayed ranks and percentages describe illustrative outcomes, not product prices, quotas or feature counts."
+    },
+    {
+     "technique": "demo-badge-beside-the-number",
+     "verdict": "deviation",
+     "evidence": "src/components/marketing/RankClimbDemo.tsx:263 The hero's before-and-after figures have no illustrative-data badge; the disclosure appears later in the separate charts section."
+    },
+    {
+     "technique": "proof-from-live-computation",
+     "verdict": "deviation",
+     "evidence": "src/components/marketing/charts/RankClimbChart.tsx:16 The outcome series is typed directly into the marketing chart rather than obtained from a product snapshot builder."
+    }
+   ]
+  },
+  {
+   "context": "public-demo-dashboard",
+   "subject": "honest-proof-and-illustrative-data",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/app/dashboard/page.tsx:17 The sample-data dashboard supplies no robots override and therefore remains indexable under the production default.",
+   "techniques": [
+    {
+     "technique": "binary-provenance-no-blending",
+     "verdict": "not-applicable",
+     "evidence": "src/app/dashboard/report/page.tsx:42 The report mount explicitly uses sample-only provenance rather than substituting a synced series."
+    },
+    {
+     "technique": "demo-badge-beside-the-number",
+     "verdict": "deviation",
+     "evidence": "src/components/dashboard/ReportChat.tsx:250 The report's illustrative disclosure uses medium-weight muted text below a semibold brand-colored eyebrow, falling below the required disclosure weight."
+    },
+    {
+     "technique": "indexability-follows-provenance",
+     "verdict": "deviation",
+     "evidence": "src/app/dashboard/page.tsx:17 The dashboard metadata describes sample data but contains no noindex directive; the report sub-route separately sets index:false."
+    },
+    {
+     "technique": "proof-from-live-computation",
+     "verdict": "conformant",
+     "evidence": "src/app/dashboard/report/page.tsx:35 The report receives its sample dataset and requested period through reportFor, which calls the shared buildSnapshot computation."
+    }
+   ]
+  },
+  {
+   "context": "demo-mode",
+   "subject": "honest-proof-and-illustrative-data",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/components/demo/DemoShell.tsx:149 The shell hides its demo disclosure on mobile while the default portfolio view presents aggregate sample figures without an adjacent demo badge.",
+   "techniques": [
+    {
+     "technique": "claims-derived-from-product-code",
+     "verdict": "conformant",
+     "evidence": "src/components/demo/DemoShell.tsx:65 The demonstrated feature navigation is derived from the shipping module registry rather than maintained as a separate feature list."
+    },
+    {
+     "technique": "demo-badge-beside-the-number",
+     "verdict": "deviation",
+     "evidence": "src/components/demo/DemoShell.tsx:149 The demo label lives in SidebarBody, hidden behind the mobile drawer; the default ProjectOverview aggregate revenue and ROAS have no corresponding badge."
+    },
+    {
+     "technique": "proof-from-live-computation",
+     "verdict": "conformant",
+     "evidence": "src/components/demo/DemoModule.tsx:594 The monthly-report demo computes its period snapshots with the product's shared builder over the selected project's sample dataset."
+    }
+   ]
+  },
+  {
+   "context": "marketing-content",
+   "subject": "honest-proof-and-illustrative-data",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/components/marketing/pricing/planRows.ts:117 The pricing page hardcodes its supported-provider claim instead of deriving it from the product's vendor registry.",
+   "techniques": [
+    {
+     "technique": "absent-evidence-inventory",
+     "verdict": "deviation",
+     "evidence": "src/app/cena/page.tsx:46 The page renders a general unwired-gateway disclaimer in addition to tier status chips, matching the technique's named product-status disclosure failure."
+    },
+    {
+     "technique": "binary-provenance-no-blending",
+     "verdict": "not-applicable",
+     "evidence": "src/app/clanek/vykon/report-article.ts:15 This report is built exclusively from the sample dataset with explicit illustrative provenance and has no synced branch."
+    },
+    {
+     "technique": "claims-derived-from-product-code",
+     "verdict": "deviation",
+     "evidence": "src/components/marketing/pricing/planRows.ts:117 Prices and daily limits are derived, but this provider list remains literal while BYOM_VENDORS also includes OpenRouter, Qwen and Ollama."
+    },
+    {
+     "technique": "demo-badge-beside-the-number",
+     "verdict": "deviation",
+     "evidence": "src/app/clanek/vykon/page.tsx:119 The generated perex carries the illustrative disclosure as introductory prose; the report provides no dedicated fictional-client badge beside its figures."
+    },
+    {
+     "technique": "indexability-follows-provenance",
+     "verdict": "deviation",
+     "evidence": "src/app/clanek/vykon/page.tsx:49 The sample performance article publishes metadata without a robots override, inheriting production indexing despite its illustrative provenance."
+    },
+    {
+     "technique": "proof-from-live-computation",
+     "verdict": "conformant",
+     "evidence": "src/app/clanek/vykon/report-article.ts:10 The report computes its figures using the shared metrics builder on the fixed performance dataset, and the page and share card consume the same article."
+    }
+   ]
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-15T03:07:31.755293+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "honest-proof-and-illustrative-data"
+   ],
+   "techniques": [
+    "claims-derived-from-product-code",
+    "indexability-follows-provenance",
+    "proof-from-live-computation"
+   ],
+   "deviations": 1,
+   "context": "product-demo-pages",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-15T03:07:31.755293+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "honest-proof-and-illustrative-data"
+   ],
+   "techniques": [
+    "binary-provenance-no-blending",
+    "claims-derived-from-product-code",
+    "demo-badge-beside-the-number",
+    "proof-from-live-computation"
+   ],
+   "deviations": 1,
+   "context": "local-seo-marketing",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-15T03:07:31.755293+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "honest-proof-and-illustrative-data"
+   ],
+   "techniques": [
+    "binary-provenance-no-blending",
+    "demo-badge-beside-the-number",
+    "indexability-follows-provenance",
+    "proof-from-live-computation"
+   ],
+   "deviations": 1,
+   "context": "public-demo-dashboard",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-15T03:07:31.755293+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "honest-proof-and-illustrative-data"
+   ],
+   "techniques": [
+    "claims-derived-from-product-code",
+    "demo-badge-beside-the-number",
+    "proof-from-live-computation"
+   ],
+   "deviations": 1,
+   "context": "demo-mode",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-15T03:07:31.755293+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "honest-proof-and-illustrative-data"
+   ],
+   "techniques": [
+    "absent-evidence-inventory",
+    "binary-provenance-no-blending",
+    "claims-derived-from-product-code",
+    "demo-badge-beside-the-number",
+    "indexability-follows-provenance",
+    "proof-from-live-computation"
+   ],
+   "deviations": 1,
+   "context": "marketing-content",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}
