@@ -5004,6 +5004,181 @@
         }
       ],
       "registryProposal": "answer-coverage-gating forbids a partial backfill delivered with a caveat. These tools set partialDemo and still return the blend. If a per-unit model-vs-template label is an allowed alternative to failing the whole response, the technique should say so."
+    },
+    "7401830b-40e4-4950-be27-a91bba99198c/content-brief-and-article-composition": {
+      "context": "content-brief-pipeline",
+      "subject": "content-brief-and-article-composition",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T21:17:20.235Z",
+      "worker": "4747d71f-b0d4-4ebd-9751-413997a1aeb6",
+      "techniques": [
+        {
+          "technique": "brief-carries-keyword-outline-faq-and-links",
+          "verdict": "deviation",
+          "evidence": "src/components/ai/ContentBriefGenerator.tsx:497 The complete Markdown export carries link suggestions as strings, without explicit hub/money-page destinations or a labelled proof inventory."
+        },
+        {
+          "technique": "mid-body-anchor-cta",
+          "verdict": "deviation",
+          "evidence": "src/components/ai/ArticleDraftPanel.tsx:394 The complete drafting payload forwards keywords, outline and FAQ but omits the brief's internalLinks, losing the link-placement instructions at handoff."
+        },
+        {
+          "technique": "quick-answer-in-first-fifty-words",
+          "verdict": "deviation",
+          "evidence": "src/components/ai/ArticleDraftPanel.tsx:567 The opening slot explicitly repeats SEO metadata; the standard requires a separate answer rather than the meta description repeated."
+        }
+      ]
+    },
+    "8ecba2b3-a0af-455f-b207-3e737e7ea484/content-brief-and-article-composition": {
+      "context": "ai-tools-content",
+      "subject": "content-brief-and-article-composition",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T21:17:20.235Z",
+      "worker": "4747d71f-b0d4-4ebd-9751-413997a1aeb6",
+      "techniques": [
+        {
+          "technique": "article-block-budget-one-callout-one-cta",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/article-draft.ts:276 The complete validator checks body presence, figure descriptions and optional FAQ presence, but never counts callouts, CTAs, figures or total blocks."
+        },
+        {
+          "technique": "brief-carries-keyword-outline-faq-and-links",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/brief.ts:119 Outline normalization imposes a ceiling without the requested five-section floor; validateBrief checks only title/meta lengths."
+        },
+        {
+          "technique": "mid-body-anchor-cta",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/article-draft.ts:166 Generated paragraphs normalize to plain strings, so the tool cannot emit the typed in-paragraph link nodes needed for descriptive money-page anchors."
+        },
+        {
+          "technique": "quick-answer-in-first-fifty-words",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/article-draft.ts:39 The opening instruction requests a perex continuing the meta description, without requiring a standalone forty-to-sixty-word answer or its key supported figure."
+        },
+        {
+          "technique": "retention-structure-subheads-and-sentences",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/article-draft.ts:51 Paragraph length is requested in the prompt but the complete validator measures neither sentences nor text-only runs, contrary to the technique's executable-check requirement."
+        }
+      ]
+    },
+    "82474b60-7228-4fdf-aab2-b79cd6d100e5/content-brief-and-article-composition": {
+      "context": "article-engagement",
+      "subject": "content-brief-and-article-composition",
+      "bundle": "marketing",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T21:17:20.235Z",
+      "worker": "4747d71f-b0d4-4ebd-9751-413997a1aeb6",
+      "techniques": [
+        {
+          "technique": "article-block-budget-one-callout-one-cta",
+          "verdict": "not-applicable",
+          "evidence": "src/components/article/PrintExpand.tsx:15 Print behavior opens existing disclosures; it does not author typed article blocks or define their budget."
+        },
+        {
+          "technique": "brief-carries-keyword-outline-faq-and-links",
+          "verdict": "not-applicable",
+          "evidence": "src/components/article/CopyMarkdownButton.tsx:26 The component receives a completed document rather than writing or specifying a brief."
+        },
+        {
+          "technique": "humour-costs-credibility-proof-zones-stay-straight",
+          "verdict": "not-applicable",
+          "evidence": "src/components/article/FaqSection.tsx:47 FAQ answers are supplied content rendered as inline nodes; this layer performs no register or humour rewrite."
+        },
+        {
+          "technique": "mid-body-anchor-cta",
+          "verdict": "not-applicable",
+          "evidence": "src/components/article/ShareBar.tsx:163 These links share the article through social networks rather than place its in-body conversion path."
+        },
+        {
+          "technique": "quick-answer-in-first-fifty-words",
+          "verdict": "not-applicable",
+          "evidence": "src/components/article/CopyMarkdownButton.tsx:32 The supplied document is copied unchanged; the component does not compose its opening."
+        },
+        {
+          "technique": "retention-structure-subheads-and-sentences",
+          "verdict": "not-applicable",
+          "evidence": "src/components/article/ReadingProgress.tsx:71 Reading progress measures scroll position, not the prose pacing governed by this technique."
+        }
+      ]
+    },
+    "f76dcea0-2f27-4089-912e-aaa9a97e5dea/content-brief-and-article-composition": {
+      "context": "article-snapshot",
+      "subject": "content-brief-and-article-composition",
+      "bundle": "marketing",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T21:17:20.235Z",
+      "techniques": [
+        {
+          "technique": "article-block-budget-one-callout-one-cta",
+          "verdict": "deviation",
+          "evidence": "src/lib/article-validate.ts:62 The complete validator checks structural integrity without callout/CTA counts or a block ceiling; this finding concerns its standard-article use, not the data-study exception."
+        },
+        {
+          "technique": "brief-carries-keyword-outline-faq-and-links",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/snapshot-to-article.ts:43 This authoring bridge consumes computed metrics directly rather than creating a writer's brief."
+        },
+        {
+          "technique": "humour-costs-credibility-proof-zones-stay-straight",
+          "verdict": "conformant",
+          "evidence": "src/lib/snapshot-to-article.ts:235 The deterministic report's FAQ, numerical summary, table and closing action use straight factual wording."
+        }
+      ],
+      "withdrawn": {
+        "worker": "4747d71f-b0d4-4ebd-9751-413997a1aeb6",
+        "state": "deviation",
+        "at": "2026-10-15T21:17:54.159717+00:00",
+        "reason": "reviewer (sonnet): The deviation is about validateArticle's use for standard articles, but this context's snapshot-to-article output is the deterministic data report, which the seat itself exempts; the finding belongs to the hand-authored article.json context and I could not confirm any budget standard applies to this"
+      }
+    },
+    "9f2d6aca-4aec-4964-b288-5592ef05add6/content-brief-and-article-composition": {
+      "context": "marketing-content",
+      "subject": "content-brief-and-article-composition",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T21:17:20.235Z",
+      "worker": "4747d71f-b0d4-4ebd-9751-413997a1aeb6",
+      "techniques": [
+        {
+          "technique": "article-block-budget-one-callout-one-cta",
+          "verdict": "deviation",
+          "evidence": "src/data/article.json:129 This is the second of four callouts in the published guide; its body contains 33 blocks and one CTA."
+        },
+        {
+          "technique": "brief-carries-keyword-outline-faq-and-links",
+          "verdict": "not-applicable",
+          "evidence": "src/app/clanek/page.tsx:45 The page consumes a finished article rather than authoring a brief."
+        },
+        {
+          "technique": "humour-costs-credibility-proof-zones-stay-straight",
+          "verdict": "conformant",
+          "evidence": "src/data/article.json:236 The inspected FAQ answers, numerical guidance, author credential and CTA remain straightforward rather than using jokes."
+        },
+        {
+          "technique": "mid-body-anchor-cta",
+          "verdict": "conformant",
+          "evidence": "src/data/article.json:87 A descriptive category link appears naturally inside the buying-guide paragraph, and the closing shopping CTA points to the same category."
+        },
+        {
+          "technique": "quick-answer-in-first-fifty-words",
+          "verdict": "deviation",
+          "evidence": "src/app/clanek/page.tsx:204 The displayed perex opens with the shopping situation and promises a practical guide; it does not supply the article's standalone answer before framing."
+        },
+        {
+          "technique": "retention-structure-subheads-and-sentences",
+          "verdict": "deviation",
+          "evidence": "src/data/article.json:86 The first sentence exceeds the technique's 25-word rewrite threshold by combining several nutritional comparisons."
+        }
+      ]
     }
   }
 }

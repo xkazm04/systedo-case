@@ -2806,7 +2806,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/ai/tools/article-draft.ts:276 The draft validator rejects an empty body but accepts violations of the callout, CTA and total-block budgets requested by the prompt.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:1b69d25df297813a",
+          "evaluatedRevision": 1
         },
         {
           "subject": "mcp-tools",
@@ -3671,7 +3675,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/article/CopyMarkdownButton.tsx:27 Searching primaryKeyword, BriefRequest and generateStructured found no matches in this context's directory and found composition implementations elsewhere, consistent with these files wrapping already-authored articles.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:1b69d25df297813a",
+          "evaluatedRevision": 1
         },
         {
           "subject": "channel-native-social-and-repurposing",
@@ -7437,7 +7445,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/ai/ArticleDraftPanel.tsx:567 The preview repeats the meta description directly beneath the headline instead of placing a distinct, self-contained answer there.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:1b69d25df297813a",
+          "evaluatedRevision": 1
         },
         {
           "subject": "quality-gates",
@@ -11941,7 +11953,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/data/article.json:129 The guide rendered by /clanek contains four callouts and 33 body blocks, exceeding the standard-post composition budget.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:1b69d25df297813a",
+          "evaluatedRevision": 1
         },
         {
           "subject": "positioning-and-pricing-transparency",
