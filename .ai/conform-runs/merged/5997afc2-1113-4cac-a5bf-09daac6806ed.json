@@ -1,0 +1,163 @@
+{
+  "schema": "conform-run/1",
+  "worker": "5997afc2-1113-4cac-a5bf-09daac6806ed",
+  "subject": "long-form-reading-surface",
+  "evaluatedAt": "2026-10-15T23:08:24.763714+00:00",
+  "provider": "grok",
+  "model": "grok-4.7",
+  "pairs": [
+    {
+      "context": "marketing-content",
+      "subject": "long-form-reading-surface",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/app/clanek/page.tsx:224 The sticky contents rail hardcodes top-24, and the report page repeats that same literal, so the pinned panel's clearance is not taken from one chrome-offset budget.",
+      "techniques": [
+        {
+          "technique": "fixed-chrome-offset-budget",
+          "verdict": "deviation",
+          "evidence": "src/app/clanek/page.tsx:224 Same literal again at src/app/clanek/vykon/page.tsx:135; neither page imports a shared offset."
+        },
+        {
+          "technique": "focus-transfer-on-in-place-navigation",
+          "verdict": "not-applicable",
+          "evidence": "src/app/clanek/page.tsx:45 One server route renders one imported article; the report is a different route module, and these files have no in-place article swap."
+        },
+        {
+          "technique": "server-parsed-once-reused",
+          "verdict": "conformant",
+          "evidence": "src/app/clanek/page.tsx:89 The server page builds the contents list once per response and passes it to ArticleToc and MobileToc; it does not slugify headings again."
+        }
+      ]
+    },
+    {
+      "context": "article-engagement",
+      "subject": "long-form-reading-surface",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/components/article/ReadingProgress.tsx:70 Reading progress divides scroll offset by the full document height, so the bar includes the footer and the pager instead of stopping at the article body.",
+      "techniques": [
+        {
+          "technique": "anchor-id-single-assigner",
+          "verdict": "conformant",
+          "evidence": "src/components/article/FaqSection.tsx:32 The hash list, the details id, and the permalink all use faqItemId; this file does not slugify the question a second way."
+        },
+        {
+          "technique": "fixed-chrome-offset-budget",
+          "verdict": "deviation",
+          "evidence": "src/components/article/FaqSection.tsx:37 FAQ anchor clearance is a local scroll-mt-24 class, while ReadingProgress.tsx:130 positions the bar with STICKY_NAV_H."
+        },
+        {
+          "technique": "focus-transfer-on-in-place-navigation",
+          "verdict": "not-applicable",
+          "evidence": "src/components/article/FaqHashOpen.tsx:5 Hash handling opens one accordion item; these files do not swap article content. A search for focus( in this path list found no call."
+        },
+        {
+          "technique": "scroll-spy-reading-band",
+          "verdict": "deviation",
+          "evidence": "src/components/article/ReadingProgress.tsx:70 The bar is aria-hidden, so it is not a live region; the measured range is still the document, not the article body. No section band lives in these files."
+        },
+        {
+          "technique": "server-parsed-once-reused",
+          "verdict": "not-applicable",
+          "evidence": "src/components/article/reading-resume.ts:75 Remaining time is a fraction of a passed estimate. None of these files extract a contents list or walk article blocks."
+        }
+      ]
+    },
+    {
+      "context": "article-snapshot",
+      "subject": "long-form-reading-surface",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/lib/snapshot-to-article.ts:262 The generated report stores reading time as the constant 2, so the figure is not a count of the body that same function just assembled.",
+      "techniques": [
+        {
+          "technique": "anchor-id-single-assigner",
+          "verdict": "conformant",
+          "evidence": "src/lib/article-validate.ts:81 Headings must carry an authored id, duplicates fail the build, and tableOfContents copies b.id. faqItemId is one pure fallback and empty or colliding FAQ ids also fail."
+        },
+        {
+          "technique": "server-parsed-once-reused",
+          "verdict": "deviation",
+          "evidence": "src/lib/snapshot-to-article.ts:262 validateArticle only checks that readingMinutes is a number. tableOfContents also keeps h2 blocks only and drops level (src/lib/article.ts:143), so the shared extractor filters the outline instead of emitting every heading with its depth."
+        }
+      ]
+    }
+  ],
+  "declined": [
+    {
+      "subject": "long-form-reading-surface",
+      "context": "site-chrome",
+      "reason": "withdrawn after review: reviewer (sonnet): The not-applicable anchor, ChromeGate.tsx:5, is a doc comment and doesn't show that the precondition is absent. Nav.tsx:61-62 is a sticky header with a fixed h-16, and that height is the chrome offset the reading surface relies on (STICKY_NAV_H=64 in src/components/article/sticky-nav.ts). The contex"
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-15T23:08:24.763714+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "long-form-reading-surface"
+      ],
+      "techniques": [
+        "fixed-chrome-offset-budget",
+        "focus-transfer-on-in-place-navigation",
+        "server-parsed-once-reused"
+      ],
+      "deviations": 1,
+      "context": "marketing-content",
+      "via": "curator-multi:grok",
+      "model": "grok-4.7"
+    },
+    {
+      "ts": "2026-10-15T23:08:24.763714+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "long-form-reading-surface"
+      ],
+      "techniques": [
+        "anchor-id-single-assigner",
+        "fixed-chrome-offset-budget",
+        "focus-transfer-on-in-place-navigation",
+        "scroll-spy-reading-band",
+        "server-parsed-once-reused"
+      ],
+      "deviations": 1,
+      "context": "article-engagement",
+      "via": "curator-multi:grok",
+      "model": "grok-4.7"
+    },
+    {
+      "ts": "2026-10-15T23:08:24.763714+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "long-form-reading-surface"
+      ],
+      "techniques": [
+        "anchor-id-single-assigner",
+        "server-parsed-once-reused"
+      ],
+      "deviations": 1,
+      "context": "article-snapshot",
+      "via": "curator-multi:grok",
+      "model": "grok-4.7"
+    },
+    {
+      "ts": "2026-10-15T23:08:24.763714+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "long-form-reading-surface"
+      ],
+      "techniques": [
+        "anchor-id-single-assigner",
+        "fixed-chrome-offset-budget",
+        "focus-transfer-on-in-place-navigation",
+        "scroll-spy-reading-band",
+        "server-parsed-once-reused"
+      ],
+      "deviations": 0,
+      "context": "site-chrome",
+      "via": "curator-multi:grok",
+      "model": "grok-4.7"
+    }
+  ]
+}

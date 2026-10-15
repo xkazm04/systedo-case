@@ -248,19 +248,40 @@
       "context": "marketing-content",
       "subject": "long-form-reading-surface",
       "bundle": "software-engineering",
-      "state": "conformant",
-      "evaluatedAt": "2026-08-31",
-      "worker": "w6-systedo-reporting",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T23:08:24.763Z",
+      "worker": "5997afc2-1113-4cac-a5bf-09daac6806ed",
       "techniques": [
+        {
+          "technique": "fixed-chrome-offset-budget",
+          "verdict": "deviation",
+          "evidence": "src/app/clanek/page.tsx:224 Same literal again at src/app/clanek/vykon/page.tsx:135; neither page imports a shared offset."
+        },
+        {
+          "technique": "focus-transfer-on-in-place-navigation",
+          "verdict": "not-applicable",
+          "evidence": "src/app/clanek/page.tsx:45 One server route renders one imported article; the report is a different route module, and these files have no in-place article swap."
+        },
         {
           "technique": "server-parsed-once-reused",
           "verdict": "conformant",
-          "evidence": "src/lib/article.ts:141-144; src/app/clanek/page.tsx:44-46"
+          "evidence": "src/app/clanek/page.tsx:89 The server page builds the contents list once per response and passes it to ArticleToc and MobileToc; it does not slugify headings again."
         },
         {
           "technique": "anchor-id-single-assigner",
           "verdict": "conformant",
-          "evidence": "src/lib/article.ts:16 heading id authored once on the block, read (not recomputed) by tableOfContents"
+          "evidence": "src/lib/article.ts:16 heading id authored once on the block, read (not recomputed) by tableOfContents",
+          "carriedFrom": "2026-08-31"
+        }
+      ],
+      "superseded": [
+        {
+          "state": "conformant",
+          "evidence": "src/lib/article.ts:141-144 computes tableOfContents once from each block's own authored id (a single id source, no per-consumer re-derivation), and src/app/clanek/page.tsx:44-46 reads article/tableOfContents at module scope rather than recomputing per render — server-parsed-once-reused and anchor-id-single-assigner both hold at the layer this context's own paths cover; the interactive scroll-spy/focus-transfer behavior lives in src/components/article/*, outside this context's path list, so those techniques are unverified here rather than judged.",
+          "evaluatedAt": "2026-08-31",
+          "worker": null,
+          "reason": "replaced by 5997afc2-1113-4cac-a5bf-09daac6806ed"
         }
       ]
     },
@@ -5384,6 +5405,105 @@
           "evidence": "src/app/api/images/route.ts:35 Route timeout and polling limits are hardcoded without reference to a centralized vendor fact ledger."
         }
       ]
+    },
+    "82474b60-7228-4fdf-aab2-b79cd6d100e5/long-form-reading-surface": {
+      "context": "article-engagement",
+      "subject": "long-form-reading-surface",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T23:08:24.763Z",
+      "worker": "5997afc2-1113-4cac-a5bf-09daac6806ed",
+      "techniques": [
+        {
+          "technique": "anchor-id-single-assigner",
+          "verdict": "conformant",
+          "evidence": "src/components/article/FaqSection.tsx:32 The hash list, the details id, and the permalink all use faqItemId; this file does not slugify the question a second way."
+        },
+        {
+          "technique": "fixed-chrome-offset-budget",
+          "verdict": "deviation",
+          "evidence": "src/components/article/FaqSection.tsx:37 FAQ anchor clearance is a local scroll-mt-24 class, while ReadingProgress.tsx:130 positions the bar with STICKY_NAV_H."
+        },
+        {
+          "technique": "focus-transfer-on-in-place-navigation",
+          "verdict": "not-applicable",
+          "evidence": "src/components/article/FaqHashOpen.tsx:5 Hash handling opens one accordion item; these files do not swap article content. A search for focus( in this path list found no call."
+        },
+        {
+          "technique": "scroll-spy-reading-band",
+          "verdict": "deviation",
+          "evidence": "src/components/article/ReadingProgress.tsx:70 The bar is aria-hidden, so it is not a live region; the measured range is still the document, not the article body. No section band lives in these files."
+        },
+        {
+          "technique": "server-parsed-once-reused",
+          "verdict": "not-applicable",
+          "evidence": "src/components/article/reading-resume.ts:75 Remaining time is a fraction of a passed estimate. None of these files extract a contents list or walk article blocks."
+        }
+      ]
+    },
+    "f76dcea0-2f27-4089-912e-aaa9a97e5dea/long-form-reading-surface": {
+      "context": "article-snapshot",
+      "subject": "long-form-reading-surface",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T23:08:24.763Z",
+      "worker": "5997afc2-1113-4cac-a5bf-09daac6806ed",
+      "techniques": [
+        {
+          "technique": "anchor-id-single-assigner",
+          "verdict": "conformant",
+          "evidence": "src/lib/article-validate.ts:81 Headings must carry an authored id, duplicates fail the build, and tableOfContents copies b.id. faqItemId is one pure fallback and empty or colliding FAQ ids also fail."
+        },
+        {
+          "technique": "server-parsed-once-reused",
+          "verdict": "deviation",
+          "evidence": "src/lib/snapshot-to-article.ts:262 validateArticle only checks that readingMinutes is a number. tableOfContents also keeps h2 blocks only and drops level (src/lib/article.ts:143), so the shared extractor filters the outline instead of emitting every heading with its depth."
+        }
+      ]
+    },
+    "4ac86013-65c8-4997-ab29-761c278d5bb9/long-form-reading-surface": {
+      "context": "site-chrome",
+      "subject": "long-form-reading-surface",
+      "bundle": "software-engineering",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T23:08:24.763Z",
+      "techniques": [
+        {
+          "technique": "anchor-id-single-assigner",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/TaskPager.tsx:151 Pager targets are route hrefs from the nav model, not heading anchors."
+        },
+        {
+          "technique": "fixed-chrome-offset-budget",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/Nav.tsx:62 The header states its own height. These files do not derive a second reading-surface offset from it."
+        },
+        {
+          "technique": "focus-transfer-on-in-place-navigation",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/PagerHotkeys.tsx:36 Arrow keys change route. No article heading focus handoff is in these files."
+        },
+        {
+          "technique": "scroll-spy-reading-band",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/JourneyBeacon.tsx:13 The scroll-adjacent client island records a visited route, not the section in a reading band."
+        },
+        {
+          "technique": "server-parsed-once-reused",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/Footer.tsx:11 Footer links come from the nav dictionary. These files do not parse an article body."
+        }
+      ],
+      "registryProposal": "The focus-transfer application treats a Next.js segment remount as in-place navigation, while the golden path gives route changes to app-shell. A route pager that calls router.push sits on that seam, and the technique does not say which subject owns the heading focus handoff.",
+      "withdrawn": {
+        "worker": "5997afc2-1113-4cac-a5bf-09daac6806ed",
+        "state": "not-applicable",
+        "at": "2026-10-15T23:09:02.192099+00:00",
+        "reason": "reviewer (sonnet): The not-applicable anchor, ChromeGate.tsx:5, is a doc comment and doesn't show that the precondition is absent. Nav.tsx:61-62 is a sticky header with a fixed h-16, and that height is the chrome offset the reading surface relies on (STICKY_NAV_H=64 in src/components/article/sticky-nav.ts). The contex"
+      }
     }
   }
 }

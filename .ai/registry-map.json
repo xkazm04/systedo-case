@@ -3659,7 +3659,11 @@
           "revision": 3,
           "changedAt": "2026-10-14",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/article/ReadingProgress.tsx:70 Reading progress divides scroll offset by the full document height, so the bar includes the footer and the pager instead of stopping at the article body.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:ee082e781491937e",
+          "evaluatedRevision": 3
         },
         {
           "subject": "content-brief-and-article-composition",
@@ -3791,7 +3795,11 @@
           "revision": 3,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/snapshot-to-article.ts:262 The generated report stores reading time as the constant 2, so the figure is not a count of the body that same function just assembled.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:ee082e781491937e",
+          "evaluatedRevision": 3
         },
         {
           "subject": "test-harness",
@@ -11933,11 +11941,11 @@
           "revision": 3,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "conformant",
-          "evidence": "src/lib/article.ts:141-144 computes tableOfContents once from each block's own authored id (a single id source, no per-consumer re-derivation), and src/app/clanek/page.tsx:44-46 reads article/tableOfContents at module scope rather than recomputing per render — server-parsed-once-reused and anchor-id-single-assigner both hold at the layer this context's own paths cover; the interactive scroll-spy/focus-transfer behavior lives in src/components/article/*, outside this context's path list, so those techniques are unverified here rather than judged.",
-          "evaluatedAt": "2026-08-31",
-          "evaluatedAgainst": "sha256-b2:0073dc38cb06cee0",
-          "stale": true
+          "state": "deviation",
+          "evidence": "src/app/clanek/page.tsx:224 The sticky contents rail hardcodes top-24, and the report page repeats that same literal, so the pinned panel's clearance is not taken from one chrome-offset budget.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:ee082e781491937e",
+          "evaluatedRevision": 3
         },
         {
           "subject": "answer-engine-visibility",
