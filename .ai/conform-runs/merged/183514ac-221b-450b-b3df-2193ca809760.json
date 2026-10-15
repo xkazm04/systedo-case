@@ -1,0 +1,37 @@
+{
+ "schema": "conform-run/1",
+ "worker": "183514ac-221b-450b-b3df-2193ca809760",
+ "subject": "supply-chain",
+ "evaluatedAt": "2026-10-15T04:34:40.646641+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [],
+ "declined": [
+  {
+   "subject": "supply-chain",
+   "context": "onboarding-settings",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "supply-chain",
+   "context": "twin-assistant-core",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "supply-chain",
+   "context": "brand-landing",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "supply-chain",
+   "context": "local-seo-core-ui",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "supply-chain",
+   "context": "catalog-offerings",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": []
+}
