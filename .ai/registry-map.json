@@ -1359,7 +1359,11 @@
           "revision": 4,
           "changedAt": "2026-09-05",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/lib/project-data/seed.ts:11 The project data layer derives all volume, efficiency, and shape variations deterministically from project identifiers while anchoring module spreads to the headline project scale and explicitly mapping data source labels.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:952fe6652c22027d",
+          "evaluatedRevision": 4
         },
         {
           "subject": "voice-io",
@@ -8729,7 +8733,11 @@
           "revision": 4,
           "changedAt": "2026-09-05",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/demo/DemoModule.tsx:129 Instead of removing lying controls that are inapplicable in an unauthenticated demo, the demo module leaves sign-out and session revocation controls rendered as disabled with no-op actions.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:952fe6652c22027d",
+          "evaluatedRevision": 4
         },
         {
           "subject": "honest-proof-and-illustrative-data",
@@ -8781,7 +8789,11 @@
           "revision": 4,
           "changedAt": "2026-09-05",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/lib/demo/projects.ts:31 Demo workspace fixtures are declared once in a type-keyed roster using self-labelling identifiers and fixed timestamps, while illustrative microsites explicitly disclose sample status when not backed by synced data.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:952fe6652c22027d",
+          "evaluatedRevision": 4
         },
         {
           "subject": "live-system-demo-film",
@@ -13699,10 +13711,10 @@
           "changedAt": "2026-09-05",
           "confidence": "strong",
           "state": "conformant",
-          "evidence": "Every demo surface checked discloses its sample-vs-live status inline rather than passing fabricated data off as real: src/app/kampane/page.tsx:14 ('...jinak běží přehled na ukázkových datech'), src/app/ai-asistent/page.tsx approach4Body ('Bez API klíče se vrátí deterministická ukázka v limitech, jasně označená') — a consistent fake-surface-honesty-contract label across the module rather than a one-off.",
-          "evaluatedAt": "2026-08-31",
-          "evaluatedAgainst": "sha256:eb33674aa7099bab",
-          "stale": true
+          "evidence": "src/components/marketing/kanaly/SeededPlanTable.tsx:74 Public marketing showcase pages prominently disclose sample status with visible badges and derive both headline numbers and table rows from a pinned reference instant and catalog projection.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:952fe6652c22027d",
+          "evaluatedRevision": 4
         },
         {
           "subject": "voice-io",

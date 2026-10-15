@@ -185,13 +185,33 @@
       "subject": "demo-data-plane",
       "bundle": "software-engineering",
       "state": "conformant",
-      "evaluatedAt": "2026-08-31",
-      "worker": "w6-systedo-reporting",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T00:38:04.307Z",
+      "worker": "0c16842a-a262-4186-bf54-9ed561e3856a",
       "techniques": [
         {
           "technique": "fake-surface-honesty-contract",
           "verdict": "conformant",
-          "evidence": "src/app/kampane/page.tsx:14; src/app/ai-asistent/page.tsx (approach4Title/approach4Body)"
+          "evidence": "src/components/marketing/kanaly/SeededPlanTable.tsx:74 Sample status is explicitly disclosed via a visible pill badge and provenance description on the surface."
+        },
+        {
+          "technique": "fixture-self-consistency",
+          "verdict": "conformant",
+          "evidence": "src/app/kanaly-zdarma/page.tsx:43 Facts are computed once and threaded down to hero counts and table rows to prevent aggregate disagreement."
+        },
+        {
+          "technique": "seeded-determinism",
+          "verdict": "conformant",
+          "evidence": "src/components/marketing/kanaly/facts.ts:35 Catalog read is pinned to DEMO_NOW to ensure identical renders across requests and prevent clock drift."
+        }
+      ],
+      "superseded": [
+        {
+          "state": "conformant",
+          "evidence": "Every demo surface checked discloses its sample-vs-live status inline rather than passing fabricated data off as real: src/app/kampane/page.tsx:14 ('...jinak běží přehled na ukázkových datech'), src/app/ai-asistent/page.tsx approach4Body ('Bez API klíče se vrátí deterministická ukázka v limitech, jasně označená') — a consistent fake-surface-honesty-contract label across the module rather than a one-off.",
+          "evaluatedAt": "2026-08-31",
+          "worker": null,
+          "reason": "replaced by 0c16842a-a262-4186-bf54-9ed561e3856a"
         }
       ]
     },
@@ -3797,6 +3817,115 @@
           "evidence": "src/lib/lead-quality/funnel-tier.ts:16 The join is source attribution. These directories do not decide whether a message may be sent."
         }
       ]
+    },
+    "a1d2a18d-186d-4b6c-9f43-b8dbd608811d/demo-data-plane": {
+      "context": "demo-mode",
+      "subject": "demo-data-plane",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T00:38:04.307Z",
+      "worker": "0c16842a-a262-4186-bf54-9ed561e3856a",
+      "techniques": [
+        {
+          "technique": "fake-surface-honesty-contract",
+          "verdict": "deviation",
+          "evidence": "src/components/demo/DemoModule.tsx:129 Lying controls (sign-out and session revocation) are rendered disabled rather than removed."
+        },
+        {
+          "technique": "runtime-dispatch-not-build-flag",
+          "verdict": "conformant",
+          "evidence": "src/components/demo/DemoShell.tsx:142 Wraps module content dynamically with ProjectProvider in runtime session context."
+        },
+        {
+          "technique": "one-interface-many-planes",
+          "verdict": "deviation",
+          "evidence": "src/components/demo/DemoModule.tsx:6 DemoModule implements a separate 600-line data preparation switch rather than implementing the authed module interface."
+        }
+      ]
+    },
+    "a2b02605-6422-4f32-a4cf-fc2f805a093c/demo-data-plane": {
+      "context": "account-project-data",
+      "subject": "demo-data-plane",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T00:38:04.307Z",
+      "worker": "0c16842a-a262-4186-bf54-9ed561e3856a",
+      "techniques": [
+        {
+          "technique": "seeded-determinism",
+          "verdict": "conformant",
+          "evidence": "src/lib/project-data/seed.ts:11 Deterministic FNV-1a hash function computes repeatable factors from entity IDs."
+        },
+        {
+          "technique": "fixture-self-consistency",
+          "verdict": "conformant",
+          "evidence": "src/lib/project-data/vary.ts:15 Module variation is anchored to projectScale so two modules of the same project cannot contradict each other's headline size."
+        },
+        {
+          "technique": "fake-surface-honesty-contract",
+          "verdict": "conformant",
+          "evidence": "src/lib/project-data/source.ts:44 Maps synced metrics state to an honest data source descriptor and label (\"Ukázková data\" vs \"Živá data\")."
+        }
+      ]
+    },
+    "13df4f04-ee34-48ad-a5b9-d17dc62cee80/demo-data-plane": {
+      "context": "demo-site-nav",
+      "subject": "demo-data-plane",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T00:38:04.307Z",
+      "worker": "0c16842a-a262-4186-bf54-9ed561e3856a",
+      "techniques": [
+        {
+          "technique": "fixture-self-consistency",
+          "verdict": "conformant",
+          "evidence": "src/lib/demo/projects.ts:31 Identifiers are minted with a fixed demo prefix via demoProjectId to identify fabricated entities."
+        },
+        {
+          "technique": "seeded-determinism",
+          "verdict": "conformant",
+          "evidence": "src/lib/demo/projects.ts:17 Fixed instant string avoids live Date.now() drift across renders and builds."
+        },
+        {
+          "technique": "fake-surface-honesty-contract",
+          "verdict": "conformant",
+          "evidence": "src/components/microsite/PerformanceMicrosite.tsx:101 Explicitly displays illustrative sample data banner on microsites unless backed by live synced metrics."
+        }
+      ]
+    },
+    "de3aacbd-0b24-4258-9865-e400559d4a65/demo-data-plane": {
+      "context": "public-demo-dashboard",
+      "subject": "demo-data-plane",
+      "bundle": "software-engineering",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T00:38:04.307Z",
+      "techniques": [
+        {
+          "technique": "fake-surface-honesty-contract",
+          "verdict": "deviation",
+          "evidence": "src/app/dashboard/page.tsx:14 The /dashboard route renders fabricated data for all modules but omits robots noindex metadata, allowing search indexing."
+        },
+        {
+          "technique": "runtime-dispatch-not-build-flag",
+          "verdict": "conformant",
+          "evidence": "src/app/dashboard/page.tsx:47 Dynamically mounts the DemoShell and DemoModule based on the query parameter m at runtime."
+        },
+        {
+          "technique": "fixture-self-consistency",
+          "verdict": "conformant",
+          "evidence": "src/app/dashboard/report/page.tsx:31 The demo report chat sub-route derives its data from the same getProjectDataset as the main demo dashboard."
+        }
+      ],
+      "withdrawn": {
+        "worker": "0c16842a-a262-4186-bf54-9ed561e3856a",
+        "state": "deviation",
+        "at": "2026-10-15T00:39:01.759598+00:00",
+        "reason": "reviewer (sonnet): The cited 'honesty contract indexing exclusion clause' could not be found in the code or docs I opened; src/app/layout.tsx deliberately makes the production deploy indexable (robots.txt only blocks /app and /api); the sibling /dashboard/report route does set noindex, but nothing shows that /dashboar"
+      }
     }
   }
 }

@@ -1,0 +1,195 @@
+{
+  "schema": "conform-run/1",
+  "worker": "0c16842a-a262-4186-bf54-9ed561e3856a",
+  "subject": "demo-data-plane",
+  "evaluatedAt": "2026-10-15T00:38:04.307648+00:00",
+  "provider": "agy",
+  "model": "gemini-3.8-flash-high",
+  "pairs": [
+    {
+      "context": "product-demo-pages",
+      "subject": "demo-data-plane",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evidence": "src/components/marketing/kanaly/SeededPlanTable.tsx:74 Public marketing showcase pages prominently disclose sample status with visible badges and derive both headline numbers and table rows from a pinned reference instant and catalog projection.",
+      "techniques": [
+        {
+          "technique": "fake-surface-honesty-contract",
+          "verdict": "conformant",
+          "evidence": "src/components/marketing/kanaly/SeededPlanTable.tsx:74 Sample status is explicitly disclosed via a visible pill badge and provenance description on the surface."
+        },
+        {
+          "technique": "fixture-self-consistency",
+          "verdict": "conformant",
+          "evidence": "src/app/kanaly-zdarma/page.tsx:43 Facts are computed once and threaded down to hero counts and table rows to prevent aggregate disagreement."
+        },
+        {
+          "technique": "seeded-determinism",
+          "verdict": "conformant",
+          "evidence": "src/components/marketing/kanaly/facts.ts:35 Catalog read is pinned to DEMO_NOW to ensure identical renders across requests and prevent clock drift."
+        }
+      ]
+    },
+    {
+      "context": "demo-mode",
+      "subject": "demo-data-plane",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/components/demo/DemoModule.tsx:129 Instead of removing lying controls that are inapplicable in an unauthenticated demo, the demo module leaves sign-out and session revocation controls rendered as disabled with no-op actions.",
+      "techniques": [
+        {
+          "technique": "fake-surface-honesty-contract",
+          "verdict": "deviation",
+          "evidence": "src/components/demo/DemoModule.tsx:129 Lying controls (sign-out and session revocation) are rendered disabled rather than removed."
+        },
+        {
+          "technique": "runtime-dispatch-not-build-flag",
+          "verdict": "conformant",
+          "evidence": "src/components/demo/DemoShell.tsx:142 Wraps module content dynamically with ProjectProvider in runtime session context."
+        },
+        {
+          "technique": "one-interface-many-planes",
+          "verdict": "deviation",
+          "evidence": "src/components/demo/DemoModule.tsx:6 DemoModule implements a separate 600-line data preparation switch rather than implementing the authed module interface."
+        }
+      ]
+    },
+    {
+      "context": "account-project-data",
+      "subject": "demo-data-plane",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evidence": "src/lib/project-data/seed.ts:11 The project data layer derives all volume, efficiency, and shape variations deterministically from project identifiers while anchoring module spreads to the headline project scale and explicitly mapping data source labels.",
+      "techniques": [
+        {
+          "technique": "seeded-determinism",
+          "verdict": "conformant",
+          "evidence": "src/lib/project-data/seed.ts:11 Deterministic FNV-1a hash function computes repeatable factors from entity IDs."
+        },
+        {
+          "technique": "fixture-self-consistency",
+          "verdict": "conformant",
+          "evidence": "src/lib/project-data/vary.ts:15 Module variation is anchored to projectScale so two modules of the same project cannot contradict each other's headline size."
+        },
+        {
+          "technique": "fake-surface-honesty-contract",
+          "verdict": "conformant",
+          "evidence": "src/lib/project-data/source.ts:44 Maps synced metrics state to an honest data source descriptor and label (\"Ukázková data\" vs \"Živá data\")."
+        }
+      ]
+    },
+    {
+      "context": "demo-site-nav",
+      "subject": "demo-data-plane",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evidence": "src/lib/demo/projects.ts:31 Demo workspace fixtures are declared once in a type-keyed roster using self-labelling identifiers and fixed timestamps, while illustrative microsites explicitly disclose sample status when not backed by synced data.",
+      "techniques": [
+        {
+          "technique": "fixture-self-consistency",
+          "verdict": "conformant",
+          "evidence": "src/lib/demo/projects.ts:31 Identifiers are minted with a fixed demo prefix via demoProjectId to identify fabricated entities."
+        },
+        {
+          "technique": "seeded-determinism",
+          "verdict": "conformant",
+          "evidence": "src/lib/demo/projects.ts:17 Fixed instant string avoids live Date.now() drift across renders and builds."
+        },
+        {
+          "technique": "fake-surface-honesty-contract",
+          "verdict": "conformant",
+          "evidence": "src/components/microsite/PerformanceMicrosite.tsx:101 Explicitly displays illustrative sample data banner on microsites unless backed by live synced metrics."
+        }
+      ]
+    }
+  ],
+  "declined": [
+    {
+      "subject": "demo-data-plane",
+      "context": "public-demo-dashboard",
+      "reason": "withdrawn after review: reviewer (sonnet): The cited 'honesty contract indexing exclusion clause' could not be found in the code or docs I opened; src/app/layout.tsx deliberately makes the production deploy indexable (robots.txt only blocks /app and /api); the sibling /dashboard/report route does set noindex, but nothing shows that /dashboar"
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-15T00:38:04.307648+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "demo-data-plane"
+      ],
+      "techniques": [
+        "fake-surface-honesty-contract",
+        "fixture-self-consistency",
+        "seeded-determinism"
+      ],
+      "deviations": 0,
+      "context": "product-demo-pages",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-15T00:38:04.307648+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "demo-data-plane"
+      ],
+      "techniques": [
+        "fake-surface-honesty-contract",
+        "one-interface-many-planes",
+        "runtime-dispatch-not-build-flag"
+      ],
+      "deviations": 1,
+      "context": "demo-mode",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-15T00:38:04.307648+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "demo-data-plane"
+      ],
+      "techniques": [
+        "fake-surface-honesty-contract",
+        "fixture-self-consistency",
+        "seeded-determinism"
+      ],
+      "deviations": 0,
+      "context": "account-project-data",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-15T00:38:04.307648+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "demo-data-plane"
+      ],
+      "techniques": [
+        "fake-surface-honesty-contract",
+        "fixture-self-consistency",
+        "seeded-determinism"
+      ],
+      "deviations": 0,
+      "context": "demo-site-nav",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-15T00:38:04.307648+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "demo-data-plane"
+      ],
+      "techniques": [
+        "fake-surface-honesty-contract",
+        "fixture-self-consistency",
+        "runtime-dispatch-not-build-flag"
+      ],
+      "deviations": 1,
+      "context": "public-demo-dashboard",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    }
+  ]
+}
