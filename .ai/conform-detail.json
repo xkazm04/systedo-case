@@ -4577,6 +4577,230 @@
           "evidence": "src/lib/projects/context.tsx:17 Project context maintains only a single active project rather than a persisted working set of open project tabs with peripheral live status."
         }
       ]
+    },
+    "1c991169-7d14-40c0-8313-21163fcee359/native-shell-integration": {
+      "context": "app-shell-chrome",
+      "subject": "native-shell-integration",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T03:49:25.405Z",
+      "worker": "19dcb87f-b893-4a8f-bf4a-e53503336662",
+      "techniques": [
+        {
+          "technique": "capability-presence-contract",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/AppSignInGate.tsx:100 The available sign-in presentation depends on deployment mode; no per-OS native capability is exposed."
+        },
+        {
+          "technique": "layout-resolved-input-synthesis",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/Modal.tsx:68 Keyboard handling receives browser events; it does not synthesize chords into another application."
+        },
+        {
+          "technique": "native-owned-stream",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/shell-context.tsx:16 Shell state controls a React drawer; the inspected files contain no persistent stream requiring native ownership."
+        },
+        {
+          "technique": "native-side-owns-the-target-set",
+          "verdict": "not-applicable",
+          "evidence": "src/components/auth/AuthButton.tsx:49 This action changes the web session; no filesystem target list or native executing command crosses from this UI."
+        },
+        {
+          "technique": "non-stealing-overlay",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/Modal.tsx:80 The interactive product dialog intentionally manages document focus; it is not an inert surface over another application."
+        },
+        {
+          "technique": "observer-perturbation",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/Modal.tsx:88 The backdrop covers the product document; no foreign application's structure is inspected."
+        },
+        {
+          "technique": "permission-gate-vector",
+          "verdict": "not-applicable",
+          "evidence": "src/components/auth/Providers.tsx:24 Focus revalidation concerns the authentication session, not independently granted OS capabilities."
+        },
+        {
+          "technique": "query-transparent-overlay",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/Modal.tsx:94 This is an accessible dialog within the product; it performs no host point-under-cursor query."
+        },
+        {
+          "technique": "unexported-capability-ladder",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/Modal.tsx:70 Overlay behavior uses a public DOM property; no private host entry point is resolved."
+        }
+      ]
+    },
+    "4ac86013-65c8-4997-ab29-761c278d5bb9/native-shell-integration": {
+      "context": "site-chrome",
+      "subject": "native-shell-integration",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T03:49:25.405Z",
+      "worker": "19dcb87f-b893-4a8f-bf4a-e53503336662",
+      "techniques": [
+        {
+          "technique": "capability-presence-contract",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/CommandPalette.tsx:39 Platform detection selects a shortcut hint; it does not expose a platform-specific native capability."
+        },
+        {
+          "technique": "layout-resolved-input-synthesis",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/CommandPalette.tsx:56 The palette interprets incoming document keyboard events rather than emitting input to a foreign application."
+        },
+        {
+          "technique": "native-owned-stream",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/JourneyBeacon.tsx:13 The beacon records a visit in browser storage; it does not maintain a background stream."
+        },
+        {
+          "technique": "native-side-owns-the-target-set",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/CommandPalette.tsx:90 Palette targets are web navigation destinations, not paths passed to a privileged native command."
+        },
+        {
+          "technique": "non-stealing-overlay",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/CommandPalette.tsx:82 The palette is an interactive document dialog that needs focus, not a non-activating foreign-application indicator."
+        },
+        {
+          "technique": "observer-perturbation",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/ChromeGate.tsx:12 Chrome visibility follows product routes; this context does not observe another application's accessibility structure."
+        },
+        {
+          "technique": "permission-gate-vector",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/Nav.tsx:42 The navigation gate represents web authentication, not multiple host permission grants."
+        },
+        {
+          "technique": "query-transparent-overlay",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/CommandPalette.tsx:125 This CSS backdrop belongs to the document and does not participate in native element picking."
+        },
+        {
+          "technique": "unexported-capability-ladder",
+          "verdict": "not-applicable",
+          "evidence": "src/components/site/CommandPalette.tsx:100 Element lookup and scrolling use public DOM APIs; no unexported host function is sought."
+        }
+      ]
+    },
+    "abcf5405-b5f4-4113-9550-028fac0edd87/native-shell-integration": {
+      "context": "public-home",
+      "subject": "native-shell-integration",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T03:49:25.405Z",
+      "worker": "19dcb87f-b893-4a8f-bf4a-e53503336662",
+      "techniques": [
+        {
+          "technique": "capability-presence-contract",
+          "verdict": "not-applicable",
+          "evidence": "src/app/manifest.ts:16 Standalone web presentation does not expose an OS-specific capability matrix."
+        },
+        {
+          "technique": "layout-resolved-input-synthesis",
+          "verdict": "not-applicable",
+          "evidence": "src/app/error.tsx:69 Interaction invokes the page's own retry handler; no chord is synthesized into another application."
+        },
+        {
+          "technique": "native-owned-stream",
+          "verdict": "not-applicable",
+          "evidence": "src/app/layout.tsx:98 This is a React rendering boundary, not a long-lived background event connection."
+        },
+        {
+          "technique": "native-side-owns-the-target-set",
+          "verdict": "not-applicable",
+          "evidence": "src/app/template.tsx:21 These paths select route animation behavior; they are not filesystem targets for a privileged command."
+        },
+        {
+          "technique": "non-stealing-overlay",
+          "verdict": "not-applicable",
+          "evidence": "src/app/layout.tsx:125 The surface is the product's document content, not a native overlay above another application."
+        },
+        {
+          "technique": "observer-perturbation",
+          "verdict": "not-applicable",
+          "evidence": "src/app/layout.tsx:123 The root composes its own navigation; it does not structurally inspect foreign applications."
+        },
+        {
+          "technique": "permission-gate-vector",
+          "verdict": "not-applicable",
+          "evidence": "src/app/layout.tsx:112 Session seeding concerns development authentication, not multiple out-of-band OS grants."
+        },
+        {
+          "technique": "query-transparent-overlay",
+          "verdict": "not-applicable",
+          "evidence": "src/app/template.tsx:24 The animated surface is a document div and has no native structural-query role."
+        },
+        {
+          "technique": "unexported-capability-ladder",
+          "verdict": "not-applicable",
+          "evidence": "src/app/layout.tsx:75 Initialization uses public document properties rather than resolving unexported host functions."
+        }
+      ]
+    },
+    "463ec209-219f-44e4-bc61-acfee823fd9c/native-shell-integration": {
+      "context": "design-system-a11y",
+      "subject": "native-shell-integration",
+      "bundle": "software-engineering",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T03:49:25.405Z",
+      "worker": "19dcb87f-b893-4a8f-bf4a-e53503336662",
+      "techniques": [
+        {
+          "technique": "capability-presence-contract",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/design-tokens-color.ts:7 The separation is between server token reading and browser color math, not host capability presence."
+        },
+        {
+          "technique": "layout-resolved-input-synthesis",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/a11y/rowActivation.ts:7 The helper recognizes incoming activation keys; it emits no native input."
+        },
+        {
+          "technique": "native-owned-stream",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/motion.ts:54 Repeated visual animation is not a persistent producer connection or native event stream."
+        },
+        {
+          "technique": "native-side-owns-the-target-set",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/design-tokens.ts:39 Filesystem access reads a fixed source stylesheet; it accepts no presentation-supplied destructive target set."
+        },
+        {
+          "technique": "non-stealing-overlay",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/a11y/focusTrap.ts:35 The helper computes document focus wrapping; it creates no native overlay window."
+        },
+        {
+          "technique": "observer-perturbation",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/design-tokens-color.ts:18 Color measurement is pure arithmetic, with no instrument covering or querying a foreign application."
+        },
+        {
+          "technique": "permission-gate-vector",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/a11y/focusTrap.ts:10 Focusable eligibility uses document control state, not independently granted host permissions."
+        },
+        {
+          "technique": "query-transparent-overlay",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/a11y/rowActivation.ts:22 The accessibility interaction handles the product's keyboard events, with no native point query or overlay exclusion."
+        },
+        {
+          "technique": "unexported-capability-ladder",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/design-tokens.ts:42 The parser extracts stylesheet text; it does not scan loaded native modules or compute private entry points."
+        }
+      ]
     }
   }
 }

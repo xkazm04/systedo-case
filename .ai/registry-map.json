@@ -3411,7 +3411,11 @@
           "revision": 4,
           "changedAt": "2026-10-14",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/app/Modal.tsx:117 Context searches found none of the listed native identifiers, and the overlay renders into the browser document, so native shell integration is outside this context.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:0ab230f2977430e7",
+          "evaluatedRevision": 4
         },
         {
           "subject": "app-shell",
@@ -8969,7 +8973,11 @@
           "revision": 4,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/a11y/focusTrap.ts:20 Context searches found none of the listed native identifiers, and the focus helper explicitly operates on browser Tab order, so native accessibility and window integration are outside its scope.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:0ab230f2977430e7",
+          "evaluatedRevision": 4
         },
         {
           "subject": "narrative-scroll-surface",
@@ -15343,7 +15351,11 @@
           "revision": 4,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/app/manifest.ts:4 Context searches found none of the listed native identifiers, and the install surface is explicitly a web app manifest, so installation does not establish the standard's privileged native wrapper.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:0ab230f2977430e7",
+          "evaluatedRevision": 4
         },
         {
           "subject": "translation-pipeline-topology",
@@ -16735,7 +16747,11 @@
           "revision": 4,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/site/CommandPalette.tsx:64 Context searches found none of the listed native identifiers, and the command shortcut is a browser-window listener, so this chrome does not establish a native shell boundary.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:0ab230f2977430e7",
+          "evaluatedRevision": 4
         },
         {
           "subject": "quality-gates",
