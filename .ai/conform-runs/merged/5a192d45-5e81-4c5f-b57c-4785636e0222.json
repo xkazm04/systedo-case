@@ -1,0 +1,37 @@
+{
+ "schema": "conform-run/1",
+ "worker": "5a192d45-5e81-4c5f-b57c-4785636e0222",
+ "subject": "video-assembly",
+ "evaluatedAt": "2026-10-15T00:09:06.218090+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [],
+ "declined": [
+  {
+   "subject": "video-assembly",
+   "context": "report-engine",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "video-assembly",
+   "context": "ai-assistant-core",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "video-assembly",
+   "context": "shared-ui-primitives",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "video-assembly",
+   "context": "social-media-management",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "video-assembly",
+   "context": "project-data-api",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": []
+}
