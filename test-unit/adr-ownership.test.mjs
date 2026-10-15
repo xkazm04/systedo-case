@@ -17,9 +17,19 @@
  *  Blocking, green on arrival (docs/adr/0007-gate-rung-discipline.md), pure: it reads
  *  files and runs nothing.
  */
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+
+// Every scratch directory this file makes is removed once its tests finish.
+const scratchDirs = [];
+const track = (dir) => {
+  scratchDirs.push(dir);
+  return dir;
+};
+after(() => {
+  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+});
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -72,7 +82,7 @@ test("prefix matching does not spill onto a neighbouring path", () => {
 
 test("the audit goes red on a row whose seam has moved", () => {
   // A check nobody has watched fail is a check nobody knows is wired.
-  const dir = mkdtempSync(join(tmpdir(), "adr-ownership-"));
+  const dir = track(mkdtempSync(join(tmpdir(), "adr-ownership-")));
   mkdirSync(join(dir, ".github"), { recursive: true });
   mkdirSync(join(dir, "docs", "adr"), { recursive: true });
   writeFileSync(join(dir, "docs", "adr", "0001-a-seam.md"), "# ADR-0001 — A seam\n");

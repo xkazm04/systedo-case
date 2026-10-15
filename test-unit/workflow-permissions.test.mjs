@@ -21,10 +21,20 @@
  *
  *  Runs inside `npm run test:unit` → `npm run check:ci` → `.husky/pre-push`.
  */
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+
+// Every scratch directory this file makes is removed once its tests finish.
+const scratchDirs = [];
+const track = (dir) => {
+  scratchDirs.push(dir);
+  return dir;
+};
+after(() => {
+  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+});
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -125,7 +135,7 @@ test("every workflow and every job is declared", () => {
 function fixture(mutate) {
   const copy = JSON.parse(JSON.stringify(declaration));
   mutate(copy);
-  const path = join(mkdtempSync(join(tmpdir(), "wf-perms-")), "workflow-permissions.json");
+  const path = join(track(mkdtempSync(join(tmpdir(), "wf-perms-"))), "workflow-permissions.json");
   writeFileSync(path, JSON.stringify(copy, null, 2));
   return path;
 }

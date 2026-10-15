@@ -21,10 +21,20 @@
  *  `npm run test:unit` → `npm run check:ci` → `.husky/pre-push`, the hook that
  *  proves a change before Vercel ships master.
  */
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+
+// Every scratch directory this file makes is removed once its tests finish.
+const scratchDirs = [];
+const track = (dir) => {
+  scratchDirs.push(dir);
+  return dir;
+};
+after(() => {
+  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+});
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -41,7 +51,7 @@ const run = (args, env) =>
     env: { ...process.env, ...(env ?? {}) },
   });
 
-const scratch = () => mkdtempSync(join(tmpdir(), "harness-degradation-"));
+const scratch = () => track(mkdtempSync(join(tmpdir(), "harness-degradation-")));
 
 // --- the drill: take the key away and listen ---------------------------------
 

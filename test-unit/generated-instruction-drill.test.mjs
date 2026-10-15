@@ -35,10 +35,20 @@
  *  `npm run check:ci` → `.husky/pre-push`. It spawns the real script over a
  *  temporary directory and never touches this repository's own files.
  */
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+
+// Every scratch directory this file makes is removed once its tests finish.
+const scratchDirs = [];
+const track = (dir) => {
+  scratchDirs.push(dir);
+  return dir;
+};
+after(() => {
+  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+});
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -71,7 +81,7 @@ const CLAUDE_BLOCK = ["## Project Context Map", "This project is organized into 
  * @returns {string} the fixture root
  */
 function fixture({ planted = false } = {}) {
-  const dir = mkdtempSync(join(tmpdir(), "agent-surface-drill-"));
+  const dir = track(mkdtempSync(join(tmpdir(), "agent-surface-drill-")));
   mkdirSync(join(dir, ".github"), { recursive: true });
   mkdirSync(join(dir, ".ai"), { recursive: true });
 

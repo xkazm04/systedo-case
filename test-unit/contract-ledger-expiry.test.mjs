@@ -26,10 +26,20 @@
  *  Two tests spawn the real script against a fixture, for the reason the ceiling
  *  suite gives: a gate nobody has watched fail is a gate nobody knows is wired.
  */
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+
+// Every scratch directory this file makes is removed once its tests finish.
+const scratchDirs = [];
+const track = (dir) => {
+  scratchDirs.push(dir);
+  return dir;
+};
+after(() => {
+  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+});
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -57,7 +67,7 @@ const run = (ledgerPath, today) =>
 function fixture(name, mutate) {
   const copy = JSON.parse(read(".github/contract-ledger.json"));
   mutate(copy);
-  const dir = mkdtempSync(join(tmpdir(), "ledger-expiry-"));
+  const dir = track(mkdtempSync(join(tmpdir(), "ledger-expiry-")));
   const path = join(dir, `${name}.json`);
   writeFileSync(path, JSON.stringify(copy, null, 2) + "\n");
   return path;

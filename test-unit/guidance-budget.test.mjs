@@ -17,10 +17,20 @@
  *  touched, so the set is asserted against the documents the guidance actually
  *  tells a reader to open first.
  */
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+
+// Every scratch directory this file makes is removed once its tests finish.
+const scratchDirs = [];
+const track = (dir) => {
+  scratchDirs.push(dir);
+  return dir;
+};
+after(() => {
+  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+});
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -78,7 +88,7 @@ test("the lookups are declared, and are not also read-first", () => {
 function fixture(mutate) {
   const copy = JSON.parse(JSON.stringify(budget));
   mutate(copy);
-  const path = join(mkdtempSync(join(tmpdir(), "guidance-budget-")), "guidance-budget.json");
+  const path = join(track(mkdtempSync(join(tmpdir(), "guidance-budget-"))), "guidance-budget.json");
   writeFileSync(path, JSON.stringify(copy, null, 2));
   return path;
 }

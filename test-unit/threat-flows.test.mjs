@@ -21,10 +21,20 @@
  *  (`CENSUS_REL` in scripts/threat-flows.mjs) — it names every flow id in its own
  *  assertions, so counting it would make every flow look asserted by construction.
  */
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+
+// Every scratch directory this file makes is removed once its tests finish.
+const scratchDirs = [];
+const track = (dir) => {
+  scratchDirs.push(dir);
+  return dir;
+};
+after(() => {
+  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+});
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -47,7 +57,7 @@ const run = (args) =>
   spawnSync(process.execPath, [GATE, ...args], { cwd: ROOT, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
 const output = (res) => `${res.stdout ?? ""}${res.stderr ?? ""}`;
 const tempFile = (name, text) => {
-  const path = join(mkdtempSync(join(tmpdir(), "threat-flows-")), name);
+  const path = join(track(mkdtempSync(join(tmpdir(), "threat-flows-"))), name);
   writeFileSync(path, text);
   return path;
 };
@@ -120,7 +130,7 @@ test("the gate goes red when nothing in the tree claims a flow", () => {
   // The control that proves the traceability half is measured rather than assumed:
   // point the gate at a suite directory with no suites in it, and every flow but the
   // reasoned exception must be reported as unasserted.
-  const emptySuite = mkdtempSync(join(tmpdir(), "threat-flows-empty-"));
+  const emptySuite = track(mkdtempSync(join(tmpdir(), "threat-flows-empty-")));
   const res = run(["--check", "--suite", emptySuite]);
   assert.equal(res.status, 1, "a tree where no test claims a flow must not pass a traceability check.");
   assert.match(output(res), /no suite asserts/);

@@ -60,7 +60,7 @@
  *    node scripts/harness-degradation.mjs --announce judgment-review --status auto \
  *      [--configured true|false] [--out harness-status.json] [--summary FILE]
  */
-import { appendFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -329,6 +329,8 @@ export function drillOne(cap) {
   if (!recorded || recorded.status !== "absent") {
     failures.push("no `absent` row was recorded in the status file, so nothing outlives the run.");
   }
+
+  rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 
   return { capability: cap.id, name: cap.name, needs: cap.needs, ok: failures.length === 0, failures };
 }

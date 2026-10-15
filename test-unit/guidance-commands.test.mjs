@@ -17,10 +17,20 @@
  *  RED, and at one that quotes a real command and must stay GREEN. A check that
  *  passes either way is decoration.
  */
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+
+// Every scratch directory this file makes is removed once its tests finish.
+const scratchDirs = [];
+const track = (dir) => {
+  scratchDirs.push(dir);
+  return dir;
+};
+after(() => {
+  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+});
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,7 +48,7 @@ const output = (res) => `${res.stdout ?? ""}${res.stderr ?? ""}`;
 /** A fixture document, written outside the repository so a crashed run cannot leave
  *  a stray file in a tree somebody is about to commit. */
 function fixture(text) {
-  const path = join(mkdtempSync(join(tmpdir(), "guidance-commands-")), "GUIDE.md");
+  const path = join(track(mkdtempSync(join(tmpdir(), "guidance-commands-"))), "GUIDE.md");
   writeFileSync(path, text);
   return path;
 }

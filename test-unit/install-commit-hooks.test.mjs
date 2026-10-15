@@ -24,9 +24,19 @@
  *  no hooks at all. That is the same hole rubric A5 has, and it is why
  *  `npm run commit:check -- --range` keeps a visible coverage count.
  */
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rmSync } from "node:fs";
+
+// Every scratch directory this file makes is removed once its tests finish.
+const scratchDirs = [];
+const track = (dir) => {
+  scratchDirs.push(dir);
+  return dir;
+};
+after(() => {
+  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+});
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,7 +44,7 @@ import { HOOKS, MANAGED_MARKER, installHooks } from "../scripts/install-commit-h
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
-const scratch = () => mkdtempSync(join(tmpdir(), "systedo-hooks-"));
+const scratch = () => track(mkdtempSync(join(tmpdir(), "systedo-hooks-")));
 
 // --- the wiring ---------------------------------------------------------------
 

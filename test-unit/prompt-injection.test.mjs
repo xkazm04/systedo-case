@@ -18,10 +18,20 @@
  *  be proven for free: `npm run injection:drill -- --live`, weekly in
  *  .github/workflows/llm-drift.yml, recorded into the drift trail issue.
  */
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+
+// Every scratch directory this file makes is removed once its tests finish.
+const scratchDirs = [];
+const track = (dir) => {
+  scratchDirs.push(dir);
+  return dir;
+};
+after(() => {
+  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+});
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -64,7 +74,7 @@ test("the containment drill passes over the committed injection corpus", () => {
 test("the drill goes red on a corpus case the fence does not contain", () => {
   // A case whose signature is not in its own text locates nothing, so containment
   // cannot be asserted about it — the drill has to say so rather than pass.
-  const dir = mkdtempSync(join(tmpdir(), "injection-corpus-"));
+  const dir = track(mkdtempSync(join(tmpdir(), "injection-corpus-")));
   const path = join(dir, "corpus.json");
   writeFileSync(
     path,
@@ -90,7 +100,7 @@ test("the drill goes red on a corpus case the fence does not contain", () => {
 });
 
 test("the drill refuses a surface the prompt builder does not fence", () => {
-  const dir = mkdtempSync(join(tmpdir(), "injection-corpus-"));
+  const dir = track(mkdtempSync(join(tmpdir(), "injection-corpus-")));
   const path = join(dir, "corpus.json");
   writeFileSync(
     path,
