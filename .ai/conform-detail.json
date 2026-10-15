@@ -4061,6 +4061,191 @@
         }
       ],
       "registryProposal": "cheap-cpl-splits-spam-from-mistargeting requires comparing CPL against peer median and prior period, but does not specify a fallback rule when a project has zero or one peer sources and no prior period; specifying the single-source cold-start behavior would prevent implementations from falling back to hardcoded currency constants."
+    },
+    "ab4113ad-92ca-4326-8c81-681e47c3d603/brand-voice-capture": {
+      "context": "twin-digital-assistant",
+      "subject": "brand-voice-capture",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T02:12:19.260Z",
+      "worker": "f5fe67f1-f397-46f9-8007-878c8c88c980",
+      "techniques": [
+        {
+          "technique": "distil-only-what-samples-show-else-ask",
+          "verdict": "deviation",
+          "evidence": "src/components/app/twin/TwinVoiceStudio.tsx:435 Returned questions are displayed without removing questions already answered in saved scope facts; the tool also leaves model-produced repeats unfiltered."
+        },
+        {
+          "technique": "rejections-and-edits-become-constraints",
+          "verdict": "deviation",
+          "evidence": "src/components/app/twin/TwinOutbox.tsx:361 Approval immediately banks the edit as training material, even if the separately initiated send never happens."
+        },
+        {
+          "technique": "tenant-never-speaks-the-sample-persona",
+          "verdict": "deviation",
+          "evidence": "src/components/app/twin/TwinOutbox.tsx:250 The client submits the merged state's resolved voice without checking project kind or saved scopes; the reply API preserves this submitted voice."
+        },
+        {
+          "technique": "voice-maturity-and-retrain-triggers",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/TwinModule.tsx:79 Readiness receives merged editor state without excluding untrained seed rows, which the scorer counts toward voice and guardrail milestones."
+        }
+      ]
+    },
+    "4f7ca4aa-30a6-4793-919b-f665ad4211a3/brand-voice-capture": {
+      "context": "twin-store-voice",
+      "subject": "brand-voice-capture",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T02:12:19.260Z",
+      "worker": "f5fe67f1-f397-46f9-8007-878c8c88c980",
+      "techniques": [
+        {
+          "technique": "distil-only-what-samples-show-else-ask",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/twin/inbound.ts:380 This context stores profiles, resolves scopes and appends inbound drafts; the distillation prompt and output normalization are implemented in twin-style."
+        },
+        {
+          "technique": "editorial-voice-vs-personal-voice-split",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/twin/types.ts:25 The store's closed vocabulary covers conversational surfaces; institutional generation-tool routing is outside this context."
+        },
+        {
+          "technique": "rejections-and-edits-become-constraints",
+          "verdict": "conformant",
+          "evidence": "src/lib/twin/types.ts:508 Channel-specific preset reasons become ranked, capped, localized directives, followed by bounded recent rejection notes."
+        },
+        {
+          "technique": "tenant-never-speaks-the-sample-persona",
+          "verdict": "conformant",
+          "evidence": "src/lib/twin/sample.ts:96 The seed supplies no facts, examples or drafts and starts channels in assist mode; resolution separately records saved scopes rather than treating seeded scopes as saved."
+        },
+        {
+          "technique": "voice-maturity-and-retrain-triggers",
+          "verdict": "deviation",
+          "evidence": "src/lib/twin/room-summary.ts:9 The summary counts every saved scope as trained, including an empty-directive row, instead of checking whether a usable trained voice exists."
+        },
+        {
+          "technique": "voice-profile-dimensions",
+          "verdict": "deviation",
+          "evidence": "src/lib/twin/wire.ts:15 Sanitization permits short directives and conversion forwards any nonempty string; there is no minimum usable-directives check on this path."
+        }
+      ]
+    },
+    "77e2e6b3-b8ed-4acd-afd7-4d04c925665c/brand-voice-capture": {
+      "context": "twin-assistant-core",
+      "subject": "brand-voice-capture",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T02:12:19.260Z",
+      "worker": "f5fe67f1-f397-46f9-8007-878c8c88c980",
+      "techniques": [
+        {
+          "technique": "distil-only-what-samples-show-else-ask",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/twin/load.ts:31 This context loads saved profiles and prepares training facts; it does not implement the voice-distillation operation."
+        },
+        {
+          "technique": "rejections-and-edits-become-constraints",
+          "verdict": "conformant",
+          "evidence": "src/lib/twin/edit-facts.ts:180 Small edits qualify by changed-word kind, while rewrites bank whole pairs; smaller voice corrections become bounded spans in interview-shaped training facts."
+        },
+        {
+          "technique": "tenant-never-speaks-the-sample-persona",
+          "verdict": "deviation",
+          "evidence": "src/lib/twin/readiness.ts:56 Generation loading uses the tenant-aware selector, but readiness includes seeded constraints without checking a real training stamp."
+        },
+        {
+          "technique": "voice-maturity-and-retrain-triggers",
+          "verdict": "deviation",
+          "evidence": "src/lib/twin/readiness.ts:55 A one-character channel directive qualifies for the complete voice milestone, although short directives must count as untrained."
+        }
+      ]
+    },
+    "90b16b0d-c2cb-496a-b7c0-26ab9456cb84/brand-voice-capture": {
+      "context": "brand-landing",
+      "subject": "brand-voice-capture",
+      "bundle": "marketing",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T02:12:19.260Z",
+      "techniques": [
+        {
+          "technique": "distil-only-what-samples-show-else-ask",
+          "verdict": "not-applicable",
+          "evidence": "src/components/brand/optic/bench/StationGenerate.tsx:22 The displayed headline comes from authored translation copy, not sample distillation."
+        },
+        {
+          "technique": "editorial-voice-vs-personal-voice-split",
+          "verdict": "not-applicable",
+          "evidence": "src/components/brand/BrandLanding.tsx:12 This is authored landing-page composition, not a generator choosing between stored voices."
+        },
+        {
+          "technique": "rejections-and-edits-become-constraints",
+          "verdict": "not-applicable",
+          "evidence": "src/components/brand/optic/bench/StationGenerate.tsx:58 The illustrative text is rendered for display; there is no draft rejection or pre-send editing loop."
+        },
+        {
+          "technique": "tenant-never-speaks-the-sample-persona",
+          "verdict": "not-applicable",
+          "evidence": "src/components/brand/optic/bench/StationGenerate.tsx:54 The sample is explicitly labelled landing-page illustration, not a default tenant voice."
+        },
+        {
+          "technique": "voice-maturity-and-retrain-triggers",
+          "verdict": "not-applicable",
+          "evidence": "src/components/brand/prototypes/Orbit.tsx:16 The prototype switches presentation areas; it does not maintain training maturity or retrain state."
+        },
+        {
+          "technique": "voice-profile-dimensions",
+          "verdict": "not-applicable",
+          "evidence": "src/components/brand/optic/bench/StationGenerate.tsx:23 The context consumes fixed authored copy rather than a trained voice profile."
+        }
+      ],
+      "withdrawn": {
+        "worker": "f5fe67f1-f397-46f9-8007-878c8c88c980",
+        "state": "not-applicable",
+        "at": "2026-10-15T02:14:22.158315+00:00",
+        "reason": "reviewer (sonnet): The not-applicable anchor StationGenerate.tsx:22 is only the component's function declaration and does not itself show that voice capture or injection is absent; the other cited lines show only display copy, and the claim rests on an absence search."
+      }
+    },
+    "8ecba2b3-a0af-455f-b207-3e737e7ea484/brand-voice-capture": {
+      "context": "ai-tools-content",
+      "subject": "brand-voice-capture",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T02:12:19.260Z",
+      "worker": "f5fe67f1-f397-46f9-8007-878c8c88c980",
+      "techniques": [
+        {
+          "technique": "distil-only-what-samples-show-else-ask",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/twin-style.ts:183 Constraints and examples survive normalization with no material; additionally, answered-question filtering covers fallback questions but not model-produced questions."
+        },
+        {
+          "technique": "editorial-voice-vs-personal-voice-split",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/repurpose.ts:50 One voice governs the entire multi-channel batch; the API selects email whenever Newsletter is included, applying that register to social variants in the same request."
+        },
+        {
+          "technique": "rejections-and-edits-become-constraints",
+          "verdict": "conformant",
+          "evidence": "src/lib/ai/tools/twin-reply.ts:105 The reply builder places bounded rejection-derived avoid instructions in the user prompt before drafting."
+        },
+        {
+          "technique": "voice-maturity-and-retrain-triggers",
+          "verdict": "conformant",
+          "evidence": "src/lib/ai/tools/twin-style.ts:170 The tool permits no remaining questions after five samples or three answered questions, requires a question below maturity, and retains its directives validation floor."
+        },
+        {
+          "technique": "voice-profile-dimensions",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/voice.ts:24 The shared renderer injects any nonempty directives and can render traits or rules even with no directives, rather than refusing an untrained profile."
+        }
+      ]
     }
   }
 }

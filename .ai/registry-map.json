@@ -2848,7 +2848,11 @@
           "revision": 5,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/ai/tools/twin-style.ts:183 Distillation normalization retains model-produced hard constraints without checking whether any sample or nonblank answer supports them.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:b342c84ba777f10a",
+          "evaluatedRevision": 5
         },
         {
           "subject": "prompt-assembly",
@@ -17675,7 +17679,11 @@
           "revision": 5,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/twin/readiness.ts:56 Readiness counts constraints from every merged voice, so seeded guardrails earn readiness credit without a real training event.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:b342c84ba777f10a",
+          "evaluatedRevision": 5
         },
         {
           "subject": "prompt-assembly",
@@ -17815,7 +17823,11 @@
           "revision": 5,
           "changedAt": "2026-10-14",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/twin/TwinOutbox.tsx:250 The outbox submits a voice selected from merged editor state without filtering seeded scopes, allowing an untrained tenant's sample persona into reply generation.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:b342c84ba777f10a",
+          "evaluatedRevision": 5
         },
         {
           "subject": "voice-io",
@@ -18060,7 +18072,11 @@
           "revision": 5,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/twin/wire.ts:15 Voice conversion accepts any nonempty directives, so a one-word profile remains injectable instead of being treated as untrained.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:b342c84ba777f10a",
+          "evaluatedRevision": 5
         },
         {
           "subject": "creator-voice-and-tone",
