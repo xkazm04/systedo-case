@@ -3926,6 +3926,62 @@
         "at": "2026-10-15T00:39:01.759598+00:00",
         "reason": "reviewer (sonnet): The cited 'honesty contract indexing exclusion clause' could not be found in the code or docs I opened; src/app/layout.tsx deliberately makes the production deploy indexable (robots.txt only blocks /app and /api); the sibling /dashboard/report route does set noindex, but nothing shows that /dashboar"
       }
+    },
+    "54d3c914-764c-48d6-ba4e-6294c04afd4e/entity-lifecycle": {
+      "context": "projects-lifecycle",
+      "subject": "entity-lifecycle",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T01:17:29.679Z",
+      "worker": "120978b9-1675-4534-a4ec-2e69a1583dc3",
+      "techniques": [
+        {
+          "technique": "blast-radius-computation",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/ProjectDangerZone.tsx:31 The confirm string is the project name; PROJECT_STORE_DELETERS is not counted or classified before DELETE."
+        },
+        {
+          "technique": "archive-restore-semantics",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/ProjectDangerZone.tsx:43 Removal is stated as irreversible. Under src/lib/projects the only archive hit is the twin-archive deleter, not a project archive flag or restore."
+        },
+        {
+          "technique": "cascade-design",
+          "verdict": "deviation",
+          "evidence": "src/lib/projects/delete-cascade.ts:91 The attribution ledger is registered as a casualty. db.ts declares no FOREIGN KEY or ON DELETE posture, and no per-table yield is measured."
+        },
+        {
+          "technique": "orphan-reconciliation",
+          "verdict": "deviation",
+          "evidence": "src/lib/projects/orphan-walk.firestore.ts:12 The production walk skips project-keyed root collections instead of an ownerless existence check, so those orphans are invisible in Firestore."
+        },
+        {
+          "technique": "provenance-denormalization",
+          "verdict": "deviation",
+          "evidence": "src/app/api/projects/[id]/route.ts:151 The surviving activity row omits the project id; the name is only concatenated into the prose detail."
+        },
+        {
+          "technique": "change-logging",
+          "verdict": "deviation",
+          "evidence": "src/app/api/projects/[id]/route.ts:154 The delete is stored as a generic update with title \"Projekt smazán\" and actor \"Vy\", with no from-state or to-state."
+        },
+        {
+          "technique": "bulk-deletion-rails",
+          "verdict": "deviation",
+          "evidence": "src/lib/projects/delete-cascade.ts:173 The tenant prefix purge returns only {name, ok:true} for the whole unit, with no dry-run count per table."
+        }
+      ],
+      "registryProposal": "cascade-design's schema-declaration rule has no form for a Firestore collection and a sqlite mirror that must share one delete door; an application registry is the only door both backends actually pass through.",
+      "superseded": [
+        {
+          "state": "conformant",
+          "evidence": "W3 item 6: dependent-side walk added (orphan-walk.ts, schema-derived enumeration, report-first, apply via the registry-derived sweep) closing the direction gap; registry+ledger+sweep already carried the technique (delete-cascade.ts, orphan-ledger.ts, orphan-sweep.ts).",
+          "evaluatedAt": "2026-08-30",
+          "worker": null,
+          "reason": "replaced by 120978b9-1675-4534-a4ec-2e69a1583dc3"
+        }
+      ]
     }
   }
 }

@@ -1,0 +1,148 @@
+{
+ "schema": "conform-run/1",
+ "worker": "120978b9-1675-4534-a4ec-2e69a1583dc3",
+ "subject": "entity-lifecycle",
+ "evaluatedAt": "2026-10-15T01:17:29.679965+00:00",
+ "provider": "grok",
+ "model": "grok-4.7",
+ "pairs": [
+  {
+   "context": "projects-lifecycle",
+   "subject": "entity-lifecycle",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/ProjectDangerZone.tsx:31 The delete confirmation names only the project, so the operator consents before any count of the satellite stores the cascade will remove.",
+   "techniques": [
+    {
+     "technique": "blast-radius-computation",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/ProjectDangerZone.tsx:31 The confirm string is the project name; PROJECT_STORE_DELETERS is not counted or classified before DELETE."
+    },
+    {
+     "technique": "archive-restore-semantics",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/ProjectDangerZone.tsx:43 Removal is stated as irreversible. Under src/lib/projects the only archive hit is the twin-archive deleter, not a project archive flag or restore."
+    },
+    {
+     "technique": "cascade-design",
+     "verdict": "deviation",
+     "evidence": "src/lib/projects/delete-cascade.ts:91 The attribution ledger is registered as a casualty. db.ts declares no FOREIGN KEY or ON DELETE posture, and no per-table yield is measured."
+    },
+    {
+     "technique": "orphan-reconciliation",
+     "verdict": "deviation",
+     "evidence": "src/lib/projects/orphan-walk.firestore.ts:12 The production walk skips project-keyed root collections instead of an ownerless existence check, so those orphans are invisible in Firestore."
+    },
+    {
+     "technique": "provenance-denormalization",
+     "verdict": "deviation",
+     "evidence": "src/app/api/projects/[id]/route.ts:151 The surviving activity row omits the project id; the name is only concatenated into the prose detail."
+    },
+    {
+     "technique": "change-logging",
+     "verdict": "deviation",
+     "evidence": "src/app/api/projects/[id]/route.ts:154 The delete is stored as a generic update with title \"Projekt smaz\u00e1n\" and actor \"Vy\", with no from-state or to-state."
+    },
+    {
+     "technique": "bulk-deletion-rails",
+     "verdict": "deviation",
+     "evidence": "src/lib/projects/delete-cascade.ts:173 The tenant prefix purge returns only {name, ok:true} for the whole unit, with no dry-run count per table."
+    }
+   ],
+   "registryProposal": "cascade-design's schema-declaration rule has no form for a Firestore collection and a sqlite mirror that must share one delete door; an application registry is the only door both backends actually pass through."
+  },
+  {
+   "context": "twin-assistant-core",
+   "subject": "entity-lifecycle",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/app/api/projects/[id]/twin/route.ts:159 Untrain warns when the archive clear fails and still returns success, so sent-message history can remain with no durable record that the reaper is still owed.",
+   "techniques": [
+    {
+     "technique": "blast-radius-computation",
+     "verdict": "deviation",
+     "evidence": "src/components/app/twin/useTwinState.ts:63 Untrain fires DELETE on one click and ignores the body; voices, facts, drafts and the archive are not enumerated first."
+    },
+    {
+     "technique": "archive-restore-semantics",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/twin/archive.ts:59 archivedAt orders history rows for eviction. There is no restore that returns a draft to a live existence state."
+    },
+    {
+     "technique": "cascade-design",
+     "verdict": "deviation",
+     "evidence": "src/lib/twin/archive-store.local.ts:113 clearArchive deletes the eviction tally with the archive, so the transition log is a casualty of untrain and project delete."
+    },
+    {
+     "technique": "orphan-reconciliation",
+     "verdict": "deviation",
+     "evidence": "src/app/api/projects/[id]/twin/route.ts:159 clearTwin and clearArchive are two stores; a failed archive clear is a warning and the handler still returns ok:true, with no ledger entry."
+    },
+    {
+     "technique": "provenance-denormalization",
+     "verdict": "deviation",
+     "evidence": "src/lib/twin/archive-store.firestore.ts:65 After the cap delete the surviving tally keeps id and archivedAt; the draft's contact and reply are not copied onto it."
+    },
+    {
+     "technique": "change-logging",
+     "verdict": "deviation",
+     "evidence": "src/lib/twin/deliver.ts:368 The sent transition is an activity row of kind update, written after the claim, with actor \"Twin\" or \"Vy\" and no from-state or to-state."
+    },
+    {
+     "technique": "bulk-deletion-rails",
+     "verdict": "deviation",
+     "evidence": "src/lib/twin/archive-store.local.ts:65 The cap purge runs inside archiveDrafts with no dry-run or confirmation; the same transaction does write the eviction tally."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "entity-lifecycle",
+   "context": "profit-finance",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-15T01:17:29.679965+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "entity-lifecycle"
+   ],
+   "techniques": [
+    "archive-restore-semantics",
+    "blast-radius-computation",
+    "bulk-deletion-rails",
+    "cascade-design",
+    "change-logging",
+    "orphan-reconciliation",
+    "provenance-denormalization"
+   ],
+   "deviations": 1,
+   "context": "projects-lifecycle",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  },
+  {
+   "ts": "2026-10-15T01:17:29.679965+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "entity-lifecycle"
+   ],
+   "techniques": [
+    "archive-restore-semantics",
+    "blast-radius-computation",
+    "bulk-deletion-rails",
+    "cascade-design",
+    "change-logging",
+    "orphan-reconciliation",
+    "provenance-denormalization"
+   ],
+   "deviations": 1,
+   "context": "twin-assistant-core",
+   "via": "curator-multi:grok",
+   "model": "grok-4.7"
+  }
+ ]
+}

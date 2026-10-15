@@ -14972,11 +14972,11 @@
           "revision": 6,
           "changedAt": "2026-08-31",
           "confidence": "strong",
-          "state": "conformant",
-          "evidence": "W3 item 6: dependent-side walk added (orphan-walk.ts, schema-derived enumeration, report-first, apply via the registry-derived sweep) closing the direction gap; registry+ledger+sweep already carried the technique (delete-cascade.ts, orphan-ledger.ts, orphan-sweep.ts).",
-          "evaluatedAt": "2026-08-30",
-          "evaluatedAgainst": "sha256:1117665ec59c1168",
-          "stale": true
+          "state": "deviation",
+          "evidence": "src/components/app/modules/ProjectDangerZone.tsx:31 The delete confirmation names only the project, so the operator consents before any count of the satellite stores the cascade will remove.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:cef5e3463825ff22",
+          "evaluatedRevision": 6
         },
         {
           "subject": "multi-project",
