@@ -8155,7 +8155,11 @@
           "revision": 11,
           "changedAt": "2026-09-17",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/app/api/images/route.ts:111 The image generation API delegates requests directly to a single provider pipeline without multi-vendor capability planning, refusal hops, or staged resolution management.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:5f893ef4493c954f",
+          "evaluatedRevision": 11
         },
         {
           "subject": "repository-landing-document",
@@ -9685,7 +9689,11 @@
           "revision": 11,
           "changedAt": "2026-09-17",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/images/studio.ts:107 The studio orchestrator couples generation directly to Leonardo without a capability-to-vendor plan, refusal re-route hops, or stage-based resolution ladder.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:5f893ef4493c954f",
+          "evaluatedRevision": 11
         },
         {
           "subject": "video-assembly",

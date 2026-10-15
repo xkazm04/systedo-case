@@ -5282,6 +5282,108 @@
           "evidence": "src/lib/recaps/store.ts:49 recordRecap separates the deciding read from the replacement write without a transaction or CAS, despite advice writes elsewhere in this context using CAS."
         }
       ]
+    },
+    "774bd300-8694-43db-9a93-2c44c27a843d/generative-provider-routing": {
+      "context": "image-generation-studio",
+      "subject": "generative-provider-routing",
+      "bundle": "media-generation",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T22:30:52.877Z",
+      "worker": "db46cc30-02fb-4dbe-9be3-dbd687779ee1",
+      "techniques": [
+        {
+          "technique": "capability-to-vendor-plan",
+          "verdict": "deviation",
+          "evidence": "src/lib/images/studio.ts:107 Leonardo is invoked directly without resolving capabilities against an environment vendor plan table."
+        },
+        {
+          "technique": "cost-per-usable-economics",
+          "verdict": "deviation",
+          "evidence": "src/lib/images/spend.ts:18 Cost accounting tracks provider op counts rather than evaluating acceptance rates and cost per usable plate."
+        },
+        {
+          "technique": "extraction-model-bake-off",
+          "verdict": "deviation",
+          "evidence": "src/lib/leonardo/rate.ts:11 Gemini vision is adopted as the sole scorer without an extraction bake-off against an owned truth set."
+        },
+        {
+          "technique": "non-silent-elimination",
+          "verdict": "deviation",
+          "evidence": "src/lib/images/studio.ts:97 Missing Leonardo credentials trigger a silent fallback to demo SVG generation with no elimination trail."
+        },
+        {
+          "technique": "refusal-reroute-hop",
+          "verdict": "deviation",
+          "evidence": "src/lib/leonardo/client.ts:73 Provider failure throws unconditionally rather than executing a cross-vendor re-route hop."
+        },
+        {
+          "technique": "resolution-as-stage-property",
+          "verdict": "deviation",
+          "evidence": "src/lib/images/types.ts:60 All candidates are generated directly at final delivery dimensions without a staged resolution ladder."
+        },
+        {
+          "technique": "unspent-budget-is-a-defect",
+          "verdict": "deviation",
+          "evidence": "src/lib/images/spend.ts:5 Generation budget enforces an upper ceiling only with no floor tracking or reachability auditing."
+        },
+        {
+          "technique": "vendor-fact-ledger",
+          "verdict": "deviation",
+          "evidence": "src/lib/images/studio.ts:15 Coarse cost figures are hardcoded constants without a dated vendor fact ledger or verification source."
+        }
+      ]
+    },
+    "a2c078d2-2ceb-4916-9245-b7610cf41e51/generative-provider-routing": {
+      "context": "creative-studio",
+      "subject": "generative-provider-routing",
+      "bundle": "media-generation",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T22:30:52.877Z",
+      "worker": "db46cc30-02fb-4dbe-9be3-dbd687779ee1",
+      "techniques": [
+        {
+          "technique": "capability-to-vendor-plan",
+          "verdict": "deviation",
+          "evidence": "src/app/api/images/route.ts:111 The API route calls generateImageSet directly without a capability-to-vendor routing plan or steering."
+        },
+        {
+          "technique": "cost-per-usable-economics",
+          "verdict": "deviation",
+          "evidence": "src/app/api/images/route.ts:51 The pre-call spend check debits only a flat 1 unit up front rather than gating the full candidate batch."
+        },
+        {
+          "technique": "extraction-model-bake-off",
+          "verdict": "deviation",
+          "evidence": "src/app/api/images/nobg/route.ts:11 Background removal is tied to a single vendor variation endpoint without an extraction bake-off."
+        },
+        {
+          "technique": "non-silent-elimination",
+          "verdict": "deviation",
+          "evidence": "src/app/api/images/route.ts:218 Errors collapse into an unactionable generic 502 catch-all that obscures the underlying elimination reason."
+        },
+        {
+          "technique": "refusal-reroute-hop",
+          "verdict": "deviation",
+          "evidence": "src/app/api/images/route.ts:211 Provider errors are logged and refunded without attempting an alternate vendor hop."
+        },
+        {
+          "technique": "resolution-as-stage-property",
+          "verdict": "deviation",
+          "evidence": "src/app/api/images/route.ts:70 Requests require full format presets up front and generate all candidates at delivery size."
+        },
+        {
+          "technique": "unspent-budget-is-a-defect",
+          "verdict": "deviation",
+          "evidence": "src/app/api/images/route.ts:96 Per-user image quota operates strictly as an upper ceiling without budget floors or reachability tracking."
+        },
+        {
+          "technique": "vendor-fact-ledger",
+          "verdict": "deviation",
+          "evidence": "src/app/api/images/route.ts:35 Route timeout and polling limits are hardcoded without reference to a centralized vendor fact ledger."
+        }
+      ]
     }
   }
 }
