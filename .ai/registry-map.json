@@ -6613,7 +6613,11 @@
           "revision": 2,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/catalog/generate.ts:122 The deterministic generator fills missing selling points with an unsupported verified-quality claim.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:87c95e6f88bf1dba",
+          "evaluatedRevision": 2
         },
         {
           "subject": "mcp-tools",
@@ -6748,7 +6752,11 @@
           "revision": 2,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/catalog/feed-out.ts:18 Outbound shopping feeds omit required product links and images, which the standard explicitly classifies as a partial-feed deviation.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:87c95e6f88bf1dba",
+          "evaluatedRevision": 2
         },
         {
           "subject": "mcp-tools",

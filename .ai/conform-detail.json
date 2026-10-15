@@ -5504,6 +5504,110 @@
         "at": "2026-10-15T23:09:02.192099+00:00",
         "reason": "reviewer (sonnet): The not-applicable anchor, ChromeGate.tsx:5, is a doc comment and doesn't show that the precondition is absent. Nav.tsx:61-62 is a sticky header with a fixed h-16, and that height is the chrome offset the reading surface relies on (STICKY_NAV_H=64 in src/components/article/sticky-nav.ts). The contex"
       }
+    },
+    "59fc6f93-b3f3-4a78-bdb1-21b47a14b872/product-feed-and-catalog-spine": {
+      "context": "catalog-offerings",
+      "subject": "product-feed-and-catalog-spine",
+      "bundle": "marketing",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T23:36:56.825Z",
+      "techniques": [
+        {
+          "technique": "custom-labels-as-bidding-buckets",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/catalog/offering-edit.ts:10 These controls organize catalog kinds; feed label allocation belongs to the separate import/export context."
+        },
+        {
+          "technique": "days-of-cover-pacing-rules",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/InventorySeasonModule.tsx:357 The module displays pacing verdicts without identifying their thresholds as practitioner conventions, as the technique requires."
+        },
+        {
+          "technique": "paused-sku-never-advertised",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/catalog/OfferingCard.tsx:125 The owner toggles the canonical active flag; the creative page supplies products through the inspected active-filtering catalog adapter."
+        },
+        {
+          "technique": "product-plan-service-routing",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/catalog/OfferingCard.tsx:146 Stock and velocity controls are restricted to products, with separate guarded sections for plans and services."
+        },
+        {
+          "technique": "usps-become-ad-benefits",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/CatalogModule.tsx:290 The invoked fallback inserts unsupported praise at generate.ts:122-123; using the shared grounded request builder for AI generation does not repair this fallback."
+        }
+      ],
+      "withdrawn": {
+        "worker": "a76c1d32-fb94-4c68-82af-129e9b061630",
+        "state": "deviation",
+        "at": "2026-10-15T23:37:58.084962+00:00",
+        "reason": "reviewer (sonnet): The deviation itself holds (CatalogModule.tsx:290 builds the deterministic group from generate.ts, which falls back to \"Ověřená kvalita\"). But the InventorySeasonModule.tsx:357 technique claim, that thresholds are not identified as practitioner conventions, rests on a line that only renders a status"
+      }
+    },
+    "aba71587-2adf-495e-877e-c041cbb1b3c1/product-feed-and-catalog-spine": {
+      "context": "catalog-import-export",
+      "subject": "product-feed-and-catalog-spine",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T23:36:56.825Z",
+      "worker": "a76c1d32-fb94-4c68-82af-129e9b061630",
+      "techniques": [
+        {
+          "technique": "custom-labels-as-bidding-buckets",
+          "verdict": "conformant",
+          "evidence": "src/lib/catalog/feed-labels.ts:65 Coarse margin bands and stock buckets derive from the shared stockRows result; both slots reach all three feed formats."
+        },
+        {
+          "technique": "days-of-cover-pacing-rules",
+          "verdict": "deviation",
+          "evidence": "src/lib/catalog/feed.ts:330 A newly imported feed item has unmeasured velocity but receives numeric zero; the inspected stockRows implementation converts that to infinite cover and an ok stock label instead of an unmeasured state."
+        },
+        {
+          "technique": "dispatch-delay-truth-per-feed",
+          "verdict": "deviation",
+          "evidence": "src/lib/catalog/feed-out.ts:18 The serializer documents missing required shopping fields; additionally, imported dispatch delays are reduced to availability and outbound DELIVERY_DATE is always zero for available rows."
+        },
+        {
+          "technique": "paused-sku-never-advertised",
+          "verdict": "deviation",
+          "evidence": "src/lib/seo-compare/catalog.ts:52 This marketing projection reads competitors from every supplied plan without checking active; the inspected loadPlansFor adapter also retains paused plans."
+        },
+        {
+          "technique": "product-plan-service-routing",
+          "verdict": "conformant",
+          "evidence": "src/lib/catalog/feed-out.ts:148 Feed construction filters to live products before serialization; the import merge also preserves non-product offerings."
+        }
+      ]
+    },
+    "7d8d3d2e-7404-488c-a98f-db54d8860db2/product-feed-and-catalog-spine": {
+      "context": "catalog-core",
+      "subject": "product-feed-and-catalog-spine",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T23:36:56.825Z",
+      "worker": "a76c1d32-fb94-4c68-82af-129e9b061630",
+      "techniques": [
+        {
+          "technique": "paused-sku-never-advertised",
+          "verdict": "deviation",
+          "evidence": "src/lib/catalog/load.ts:75 Unlike the product adapter, the service adapter retains paused offerings; inspected consumers use these services for content scheduling and reply hints."
+        },
+        {
+          "technique": "product-plan-service-routing",
+          "verdict": "conformant",
+          "evidence": "src/lib/catalog/offering.ts:91 The kind discriminator separates product stock fields, plan billing and competitors, and service price models and localities."
+        },
+        {
+          "technique": "usps-become-ad-benefits",
+          "verdict": "deviation",
+          "evidence": "src/lib/catalog/generate.ts:122 Missing USPs produce invented quality and popularity claims; unavailable products also receive preorder and imminent-restock promises without supporting dates."
+        }
+      ],
+      "registryProposal": "Clarify paused-sku-never-advertised: procedure steps 2-3 require filtering before a narrow consumer shape and excluding the pause flag, whereas its first decision rule requires that flag inside a narrow consumer input; distinguish trusted adapter outputs from unfiltered inputs."
     }
   }
 }

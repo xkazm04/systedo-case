@@ -1,0 +1,175 @@
+{
+  "schema": "conform-run/1",
+  "worker": "a76c1d32-fb94-4c68-82af-129e9b061630",
+  "subject": "product-feed-and-catalog-spine",
+  "evaluatedAt": "2026-10-15T23:36:56.825836+00:00",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "pairs": [
+    {
+      "context": "catalog-import-export",
+      "subject": "product-feed-and-catalog-spine",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/lib/catalog/feed-out.ts:18 Outbound shopping feeds omit required product links and images, which the standard explicitly classifies as a partial-feed deviation.",
+      "techniques": [
+        {
+          "technique": "custom-labels-as-bidding-buckets",
+          "verdict": "conformant",
+          "evidence": "src/lib/catalog/feed-labels.ts:65 Coarse margin bands and stock buckets derive from the shared stockRows result; both slots reach all three feed formats."
+        },
+        {
+          "technique": "days-of-cover-pacing-rules",
+          "verdict": "deviation",
+          "evidence": "src/lib/catalog/feed.ts:330 A newly imported feed item has unmeasured velocity but receives numeric zero; the inspected stockRows implementation converts that to infinite cover and an ok stock label instead of an unmeasured state."
+        },
+        {
+          "technique": "dispatch-delay-truth-per-feed",
+          "verdict": "deviation",
+          "evidence": "src/lib/catalog/feed-out.ts:18 The serializer documents missing required shopping fields; additionally, imported dispatch delays are reduced to availability and outbound DELIVERY_DATE is always zero for available rows."
+        },
+        {
+          "technique": "paused-sku-never-advertised",
+          "verdict": "deviation",
+          "evidence": "src/lib/seo-compare/catalog.ts:52 This marketing projection reads competitors from every supplied plan without checking active; the inspected loadPlansFor adapter also retains paused plans."
+        },
+        {
+          "technique": "product-plan-service-routing",
+          "verdict": "conformant",
+          "evidence": "src/lib/catalog/feed-out.ts:148 Feed construction filters to live products before serialization; the import merge also preserves non-product offerings."
+        }
+      ]
+    },
+    {
+      "context": "catalog-core",
+      "subject": "product-feed-and-catalog-spine",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/lib/catalog/generate.ts:122 The deterministic generator fills missing selling points with an unsupported verified-quality claim.",
+      "techniques": [
+        {
+          "technique": "paused-sku-never-advertised",
+          "verdict": "deviation",
+          "evidence": "src/lib/catalog/load.ts:75 Unlike the product adapter, the service adapter retains paused offerings; inspected consumers use these services for content scheduling and reply hints."
+        },
+        {
+          "technique": "product-plan-service-routing",
+          "verdict": "conformant",
+          "evidence": "src/lib/catalog/offering.ts:91 The kind discriminator separates product stock fields, plan billing and competitors, and service price models and localities."
+        },
+        {
+          "technique": "usps-become-ad-benefits",
+          "verdict": "deviation",
+          "evidence": "src/lib/catalog/generate.ts:122 Missing USPs produce invented quality and popularity claims; unavailable products also receive preorder and imminent-restock promises without supporting dates."
+        }
+      ],
+      "registryProposal": "Clarify paused-sku-never-advertised: procedure steps 2-3 require filtering before a narrow consumer shape and excluding the pause flag, whereas its first decision rule requires that flag inside a narrow consumer input; distinguish trusted adapter outputs from unfiltered inputs."
+    },
+    {
+      "context": "catalog-inventory-api",
+      "subject": "product-feed-and-catalog-spine",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/app/api/projects/[id]/catalog/route.ts:31 Catalog changes can succeed while their ledger append fails, leaving active-state changes without the history required by the standard.",
+      "techniques": [
+        {
+          "technique": "dispatch-delay-truth-per-feed",
+          "verdict": "conformant",
+          "evidence": "src/app/api/projects/[id]/catalog/import/route.ts:66 Inbound feeds use the inspected shared parser, which interprets numeric DELIVERY_DATE values as dispatch delays and preserves absent availability as undefined."
+        },
+        {
+          "technique": "paused-sku-never-advertised",
+          "verdict": "deviation",
+          "evidence": "src/app/api/projects/[id]/catalog/route.ts:31 Although imports preserve silent availability, manual saves commit before ledger appends and swallow append failures without a durable retry, so not every flag flip is recorded."
+        },
+        {
+          "technique": "product-plan-service-routing",
+          "verdict": "conformant",
+          "evidence": "src/app/api/projects/[id]/catalog/import/route.ts:83 Feed imports admit only products and use the inspected merge implementation that preserves existing plans and services."
+        }
+      ]
+    }
+  ],
+  "declined": [
+    {
+      "subject": "product-feed-and-catalog-spine",
+      "context": "catalog-module-pages",
+      "reason": "the seat returned unknown"
+    },
+    {
+      "subject": "product-feed-and-catalog-spine",
+      "context": "catalog-offerings",
+      "reason": "withdrawn after review: reviewer (sonnet): The deviation itself holds (CatalogModule.tsx:290 builds the deterministic group from generate.ts, which falls back to \"Ověřená kvalita\"). But the InventorySeasonModule.tsx:357 technique claim, that thresholds are not identified as practitioner conventions, rests on a line that only renders a status"
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-15T23:36:56.825836+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "product-feed-and-catalog-spine"
+      ],
+      "techniques": [
+        "custom-labels-as-bidding-buckets",
+        "days-of-cover-pacing-rules",
+        "paused-sku-never-advertised",
+        "product-plan-service-routing",
+        "usps-become-ad-benefits"
+      ],
+      "deviations": 1,
+      "context": "catalog-offerings",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "ts": "2026-10-15T23:36:56.825836+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "product-feed-and-catalog-spine"
+      ],
+      "techniques": [
+        "custom-labels-as-bidding-buckets",
+        "days-of-cover-pacing-rules",
+        "dispatch-delay-truth-per-feed",
+        "paused-sku-never-advertised",
+        "product-plan-service-routing"
+      ],
+      "deviations": 1,
+      "context": "catalog-import-export",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "ts": "2026-10-15T23:36:56.825836+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "product-feed-and-catalog-spine"
+      ],
+      "techniques": [
+        "paused-sku-never-advertised",
+        "product-plan-service-routing",
+        "usps-become-ad-benefits"
+      ],
+      "deviations": 1,
+      "context": "catalog-core",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "ts": "2026-10-15T23:36:56.825836+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "product-feed-and-catalog-spine"
+      ],
+      "techniques": [
+        "dispatch-delay-truth-per-feed",
+        "paused-sku-never-advertised",
+        "product-plan-service-routing"
+      ],
+      "deviations": 1,
+      "context": "catalog-inventory-api",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    }
+  ]
+}
