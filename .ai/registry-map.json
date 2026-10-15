@@ -5833,7 +5833,11 @@
           "revision": 18,
           "changedAt": "2026-10-06",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/campaigns/connection.ts:93 Account updates overwrite an array derived from an earlier unguarded read, so concurrent connection changes can lose one another.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:2dba94be6400dea1",
+          "evaluatedRevision": 19
         }
       ],
       "governance": "governed"
@@ -6445,7 +6449,11 @@
           "revision": 18,
           "changedAt": "2026-10-06",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/campaigns/store/campaigns.ts:178 The campaign mapper accepts unknown stored statuses through a type assertion, allowing corrupt vocabulary values to reach callers as valid domain records.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:2dba94be6400dea1",
+          "evaluatedRevision": 19
         },
         {
           "subject": "optional-dependency-degradation",
@@ -15646,7 +15654,11 @@
           "revision": 18,
           "changedAt": "2026-10-06",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/recaps/store.ts:49 Recap history is replaced from an unguarded prior read, allowing concurrent appends to lose history and a swallowed read failure to overwrite it.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:2dba94be6400dea1",
+          "evaluatedRevision": 19
         },
         {
           "subject": "audit-logging",
