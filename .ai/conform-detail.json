@@ -514,19 +514,46 @@
       "context": "llm-byom-keys",
       "subject": "structured-output",
       "bundle": "software-engineering",
-      "state": "conformant",
-      "evaluatedAt": "2026-08-31",
-      "worker": "w7-systedo-llm",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T04:20:26.589Z",
+      "worker": "3601ce6a-34b7-4dda-98f0-6bf127c2939a",
       "techniques": [
         {
           "technique": "extraction-strategies",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/byom/adapters.ts:205 The fired strategy does not travel with the candidate; extractJson is the untraced facade."
+        },
+        {
+          "technique": "answer-coverage-gating",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/llm/quality.ts:117 This coverage is measured matrix cells over operations, not answered units over units asked of a model."
+        },
+        {
+          "technique": "output-budget-signal",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/byom/adapters.ts:387 The written remedy for mid-object truncation is a flat max_tokens of 16000, and usage is not classified against that ceiling. throwOnStop does keep a length stop as truncated rather than empty."
+        },
+        {
+          "technique": "constrained-decoding-is-a-shared-budget",
           "verdict": "conformant",
-          "evidence": "src/lib/llm/claude.ts:323-368 extractJsonTraced — ordered, cheap-first ladder with the firing rung returned"
+          "evidence": "src/lib/llm/byom/adapters.ts:186 One tool schema; the adapter renders strict JSON Schema per OpenAI-compatible route and sends the Google schema unchanged to Gemini. A single claimant, so no priority shed. A bare 400 still falls through once to prompt-embed."
         },
         {
           "technique": "op-grammar-allowlisting",
           "verdict": "not-applicable",
-          "evidence": "no operation-list artifact is produced by BYOM adapters; output is a structured business/content object, not a dispatched action list"
+          "evidence": "no operation-list artifact is produced by BYOM adapters; output is a structured business/content object, not a dispatched action list",
+          "carriedFrom": "2026-08-31"
+        }
+      ],
+      "registryProposal": "enumerable-domain-decoding should say whether a provider strict JSON Schema enum counts as the closed-set token tree, or only a local tokenizer-keyed tree does.",
+      "superseded": [
+        {
+          "state": "conformant",
+          "evidence": "src/lib/llm/byom/schema.ts:73-75 toJsonSchema() derives the OpenAI/Anthropic strict JSON Schema from the SAME Google-Type schema used for native calls (one contract, two renderings, never hand-duplicated); byom/adapters.ts requests native schema-constrained decoding per vendor (json_schema/responseSchema/output_config) and falls back exactly once to a prompt-embedded schema, parsed through claude.ts's ordered extractJsonTraced ladder (direct parse -> fenced block -> stream-json envelope), each rung recorded.",
+          "evaluatedAt": "2026-08-31",
+          "worker": null,
+          "reason": "replaced by 3601ce6a-34b7-4dda-98f0-6bf127c2939a"
         }
       ]
     },
@@ -4801,6 +4828,182 @@
           "evidence": "src/lib/design-tokens.ts:42 The parser extracts stylesheet text; it does not scan loaded native modules or compute private entry points."
         }
       ]
+    },
+    "de2a3f9b-2ef7-45f5-9fe4-5ec210ed78c9/structured-output": {
+      "context": "ai-pipeline-limits",
+      "subject": "structured-output",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T04:20:26.589Z",
+      "worker": "3601ce6a-34b7-4dda-98f0-6bf127c2939a",
+      "techniques": [
+        {
+          "technique": "schema-validation-and-repair",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/validation.ts:578 fin() maps NaN, Infinity, and non-numbers to 0. The declaration exception does not fit: the author is not told, and 0 is a legal metric."
+        },
+        {
+          "technique": "answer-coverage-gating",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/field-limits.ts:18 Bounds are inbound request field lengths, not units a model was asked to answer."
+        },
+        {
+          "technique": "output-budget-signal",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/durable-limit-core.ts:32 This ceiling charges abuse/spend units and blocks; it is not an output-size share of a model ceiling."
+        },
+        {
+          "technique": "extraction-strategies",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/validation.ts:1 These files validate route inputs. Searched src/lib/ai for extractJson, responseSchema, json_schema, toJsonSchema: no hits."
+        },
+        {
+          "technique": "constraint-and-tool-channel-exclusion",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/pipeline.ts:4 Step mappers call existing modes; they do not assemble a schema plus tool list."
+        },
+        {
+          "technique": "artifact-lifecycle",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/status-core.ts:137 Preflight provider/budget kinds, not idle/running/extracting/completed/failed for an artifact run."
+        },
+        {
+          "technique": "enumerable-domain-decoding",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/validation.ts:776 Numeric ranges are clamped on the request parser. No constrained decoder in these files."
+        }
+      ]
+    },
+    "11708691-80f8-458d-a1fe-be426e381024/structured-output": {
+      "context": "llm-core-providers",
+      "subject": "structured-output",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T04:20:26.589Z",
+      "worker": "3601ce6a-34b7-4dda-98f0-6bf127c2939a",
+      "techniques": [
+        {
+          "technique": "extraction-strategies",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/claude.ts:398 No candidate is thrown as retryable malformed_json, not returned as its own outcome. extractBalanced also slices every later span from the first '{' (claude.ts:311) instead of the next opener. The rung is recorded when a parse succeeds."
+        },
+        {
+          "technique": "schema-validation-and-repair",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/index.ts:411 Repair is one shot, but the success path rechecks language only, not args.validate, and a corrupt parse is still normalize()'d (index.ts:535). The same catch comment is in gateway-generate.ts:87. Exhaustion also returns args.demo()."
+        },
+        {
+          "technique": "output-budget-signal",
+          "verdict": "deviation",
+          "evidence": "src/lib/llm/index.ts:480 Claude reports no usage, so output size is stored as 0. Cost correctly uses unpriced instead of 0 (index.ts:477). A MAX_TOKENS stop is a distinct truncated error in gemini.ts."
+        },
+        {
+          "technique": "constrained-decoding-is-a-shared-budget",
+          "verdict": "conformant",
+          "evidence": "src/lib/llm/gateway.ts:103 The gateway renders strict JSON Schema from the tool schema; Gemini sends that same object as responseSchema. One schema per call, route-owned dialect, no second claimant."
+        },
+        {
+          "technique": "constraint-and-tool-channel-exclusion",
+          "verdict": "conformant",
+          "evidence": "src/lib/llm/claude.ts:139 Generation argv is --tools \"\". Research is a separate seam with WebSearch/WebFetch and a prompt-embedded schema, not a grammar on that channel."
+        },
+        {
+          "technique": "extraction-observability",
+          "verdict": "conformant",
+          "evidence": "src/lib/llm/telemetry-stats.ts:106 Rung counts are split by promptHash; rows with no rung are skipped. Status buckets keep corrupt, error, and demo apart from success/repaired."
+        }
+      ],
+      "registryProposal": "Say whether sending an enum inside provider responseSchema/strict json_schema satisfies enumerable-domain-decoding, or whether only a tokenizer-keyed tree does."
+    },
+    "20b7abd6-9889-4c03-a59f-76c4d053ecb5/structured-output": {
+      "context": "ai-tools-shared",
+      "subject": "structured-output",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T04:20:26.589Z",
+      "worker": "3601ce6a-34b7-4dda-98f0-6bf127c2939a",
+      "techniques": [
+        {
+          "technique": "extraction-strategies",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/index.ts:12 These modules do not order extractor rungs; parsing stays in the wrapper."
+        },
+        {
+          "technique": "schema-validation-and-repair",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/_shared.ts:17 partitionViolations treats lenViolation as free to clamp, so the door's failure mode is a truncated legal string. withObjectGuard does reject a non-object."
+        },
+        {
+          "technique": "answer-coverage-gating",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_shared.ts:104 countTitled is a minimum-viability check and is not given the set of units the request asked for."
+        },
+        {
+          "technique": "output-budget-signal",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_shared.ts:23 digest caps source text before it enters a prompt, not model output against a producer ceiling."
+        },
+        {
+          "technique": "display-vs-machine-channels",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/index.ts:8 No user-facing render lives here; the modules return typed tool results to server callers."
+        },
+        {
+          "technique": "enumerable-domain-decoding",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/_coerce.ts:21 A closed set is not decoder-enforced. The module comment says a required field's fallback may itself be a member, so an unknown value becomes a legal one."
+        },
+        {
+          "technique": "graded-span-grounding",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/_fragments.ts:23 Grounding here is one prompt sentence. Nothing aligns a returned span against a rendered source."
+        }
+      ]
+    },
+    "8ecba2b3-a0af-455f-b207-3e737e7ea484/structured-output": {
+      "context": "ai-tools-content",
+      "subject": "structured-output",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T04:20:26.589Z",
+      "worker": "3601ce6a-34b7-4dda-98f0-6bf127c2939a",
+      "techniques": [
+        {
+          "technique": "extraction-strategies",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/brief.ts:210 Content tools hand a schema to the wrapper and do not implement the extractor ladder."
+        },
+        {
+          "technique": "schema-validation-and-repair",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/twin-reply.ts:155 Absence is not distinct from a real score. Article figures also emit width 0 and height 0 (article-draft.ts:203), and comparison-outline fills empty fields from the demo scaffold."
+        },
+        {
+          "technique": "answer-coverage-gating",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/social.ts:191 validateSocial flags each missing requested platform, but normalize still inserts a template and a short set is delivered with partialDemo rather than failed as a whole. Repurpose does the same per channel."
+        },
+        {
+          "technique": "constrained-decoding-is-a-shared-budget",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/brief.ts:197 Each tool contributes one schema and no priority; route rendering and shedding are outside these files."
+        },
+        {
+          "technique": "enumerable-domain-decoding",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/twin-reply.ts:156 The 0–100 domain is only prose on the NUMBER field plus this clamp. Callout variant is a closed set coerced to \"tip\" (article-draft.ts:183), not a decoder membership."
+        },
+        {
+          "technique": "graded-span-grounding",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/twin-reply.ts:129 The model returns a reply to send. quoteUntrusted fences inbound prompt text; it does not locate a model quote in a source."
+        }
+      ],
+      "registryProposal": "answer-coverage-gating forbids a partial backfill delivered with a caveat. These tools set partialDemo and still return the blend. If a per-unit model-vs-template label is an allowed alternative to failing the whole response, the technique should say so."
     }
   }
 }

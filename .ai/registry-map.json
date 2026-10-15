@@ -2528,7 +2528,11 @@
           "revision": 15,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/ai/validation.ts:578 Any non-numeric request metric becomes 0, and the comment says that 0 is what the model is shown.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:d51aec71411ccb2b",
+          "evaluatedRevision": 15
         },
         {
           "subject": "mcp-tools",
@@ -2889,7 +2893,11 @@
           "revision": 15,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/ai/tools/twin-reply.ts:155 A missing confidence score becomes 0, and 0 sits inside the legal 0–100 range the field is allowed to hold.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:d51aec71411ccb2b",
+          "evaluatedRevision": 15
         },
         {
           "subject": "channel-native-social-and-repurposing",
@@ -3145,7 +3153,11 @@
           "revision": 15,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/ai/tools/_shared.ts:17 An over-long model string is sliced to a legal length, so the limit failure becomes a shorter value the rest of the pipeline accepts.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:d51aec71411ccb2b",
+          "evaluatedRevision": 15
         },
         {
           "subject": "quality-gates",
@@ -10495,11 +10507,11 @@
           "revision": 15,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "conformant",
-          "evidence": "src/lib/llm/byom/schema.ts:73-75 toJsonSchema() derives the OpenAI/Anthropic strict JSON Schema from the SAME Google-Type schema used for native calls (one contract, two renderings, never hand-duplicated); byom/adapters.ts requests native schema-constrained decoding per vendor (json_schema/responseSchema/output_config) and falls back exactly once to a prompt-embedded schema, parsed through claude.ts's ordered extractJsonTraced ladder (direct parse -> fenced block -> stream-json envelope), each rung recorded.",
-          "evaluatedAt": "2026-08-31",
-          "evaluatedAgainst": "sha256:5215e21162717d59",
-          "stale": true
+          "state": "deviation",
+          "evidence": "src/lib/llm/byom/adapters.ts:205 BYOM adapters keep only extractJson's object, so the rung that produced a prompt-embed parse never leaves the adapter.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:d51aec71411ccb2b",
+          "evaluatedRevision": 15
         },
         {
           "subject": "multi-provider-gateway-plane",
@@ -10724,7 +10736,11 @@
           "revision": 15,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/llm/index.ts:411 A failed repair keeps the rejected candidate and normalize() clamps it into a delivered object instead of an extraction-failed outcome.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:d51aec71411ccb2b",
+          "evaluatedRevision": 15
         },
         {
           "subject": "guest-execution-bounding",
