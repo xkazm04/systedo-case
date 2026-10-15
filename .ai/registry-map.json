@@ -2945,7 +2945,11 @@
           "revision": 2,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/ai/tools/lead-source-diagnosis.ts:160 The tool splits spam from mis-targeting using an uncalibrated absolute currency constant rather than evaluating cost per lead relative to peer sources and prior period history.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:24365f04c5e856e8",
+          "evaluatedRevision": 2
         },
         {
           "subject": "performance-root-cause-diagnosis",
@@ -10048,7 +10052,11 @@
           "revision": 2,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/LeadQualityModule.tsx:262 The lead quality table renders evaluative score pills on all sources without a thin-sample state, violating the requirement that thin counts be withheld from scoring verdicts.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:24365f04c5e856e8",
+          "evaluatedRevision": 2
         },
         {
           "subject": "attribution-and-incrementality",
@@ -10255,7 +10263,11 @@
           "revision": 2,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/lead-quality/compute.ts:308 Cost-per-qualified-lead drift alerts and junk source flags are evaluated without checking minimum sample thresholds, allowing small-count noise to trigger warnings and negative classifications.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:24365f04c5e856e8",
+          "evaluatedRevision": 2
         },
         {
           "subject": "translation-quality-measurement",

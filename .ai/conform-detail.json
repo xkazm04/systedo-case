@@ -3982,6 +3982,85 @@
           "reason": "replaced by 120978b9-1675-4534-a4ec-2e69a1583dc3"
         }
       ]
+    },
+    "a9fd39c4-f205-436d-b257-706d86993128/lead-quality-and-source-diagnosis": {
+      "context": "lead-quality-signals",
+      "subject": "lead-quality-and-source-diagnosis",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T01:38:27.392Z",
+      "worker": "4eec1274-c4e5-43c1-85e9-1203638007c7",
+      "techniques": [
+        {
+          "technique": "quality-score-qualification-and-win",
+          "verdict": "conformant",
+          "evidence": "src/lib/lead-quality/compute.ts:49 Computes composite 0-100 quality score by weighting qualification rate (0.6) and win rate (0.4) on adjacent denominators."
+        },
+        {
+          "technique": "junk-source-rule",
+          "verdict": "deviation",
+          "evidence": "src/lib/lead-quality/compute.ts:50 Flags a paid source as junk based solely on qualification rate below 0.35 without checking whether the lead count clears the sample floor."
+        },
+        {
+          "technique": "minimum-sample-before-verdict",
+          "verdict": "deviation",
+          "evidence": "src/lib/lead-quality/compute.ts:308 Raises a CPQL rise drift alert on relative delta without checking whether current or prior periods clear a minimum qualified lead sample floor."
+        }
+      ]
+    },
+    "9c32aaab-b57d-4912-aa00-1e00b877253e/lead-quality-and-source-diagnosis": {
+      "context": "lead-management",
+      "subject": "lead-quality-and-source-diagnosis",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T01:38:27.392Z",
+      "worker": "4eec1274-c4e5-43c1-85e9-1203638007c7",
+      "techniques": [
+        {
+          "technique": "quality-score-qualification-and-win",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/LeadQualityModule.tsx:259 Renders undefined ROI on unpaid lead sources as infinity rather than rendering the absent metric as absent or null."
+        },
+        {
+          "technique": "minimum-sample-before-verdict",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/LeadQualityModule.tsx:262 Renders color-banded score pills on all sources without withholding verdicts or rendering a thin-sample state for low lead counts."
+        },
+        {
+          "technique": "junk-source-rule",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/LeadSourceDiagnosisPanel.tsx:259 Presents underperforming sources in a flat dropdown rather than grouping junk sources and weak-win-rate sources into distinct labelled categories."
+        }
+      ]
+    },
+    "6d067356-15d1-4b3d-bcee-6a1dc2122e05/lead-quality-and-source-diagnosis": {
+      "context": "ai-tools-diagnostics",
+      "subject": "lead-quality-and-source-diagnosis",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T01:38:27.392Z",
+      "worker": "4eec1274-c4e5-43c1-85e9-1203638007c7",
+      "techniques": [
+        {
+          "technique": "cause-taxonomy-spam-mistargeting-pricing-volume",
+          "verdict": "conformant",
+          "evidence": "src/lib/ai/tools/lead-source-diagnosis.ts:170 Follows the prescribed taxonomy and order in the deterministic fallback: volume sample gate first, then qualification split, win rate, and paid pricing."
+        },
+        {
+          "technique": "cheap-cpl-splits-spam-from-mistargeting",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/lead-source-diagnosis.ts:160 Hardcodes an absolute currency threshold (200 CZK) for cheap CPL instead of computing cheapness relative to peer median and prior-period baseline."
+        },
+        {
+          "technique": "minimum-sample-before-verdict",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/lead-source-diagnosis.ts:175 Diagnoses a win rate failure (mis-targeting) without enforcing a stage-specific sample floor on the qualified lead count."
+        }
+      ],
+      "registryProposal": "cheap-cpl-splits-spam-from-mistargeting requires comparing CPL against peer median and prior period, but does not specify a fallback rule when a project has zero or one peer sources and no prior period; specifying the single-source cold-start behavior would prevent implementations from falling back to hardcoded currency constants."
     }
   }
 }
