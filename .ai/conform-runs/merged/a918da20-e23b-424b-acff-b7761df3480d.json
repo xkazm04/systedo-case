@@ -1,0 +1,219 @@
+{
+ "schema": "conform-run/1",
+ "worker": "a918da20-e23b-424b-acff-b7761df3480d",
+ "subject": "multi-project",
+ "evaluatedAt": "2026-10-15T03:29:08.282895+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [
+  {
+   "context": "projects-lifecycle",
+   "subject": "multi-project",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/projects/delete-cascade.ts:65 Project retirement is handled through a destructive cascade that hard-deletes all satellite stores without providing a preserved archival state or a closed lifecycle state machine.",
+   "techniques": [
+    {
+     "technique": "project-onboarding-lifecycle",
+     "verdict": "deviation",
+     "evidence": "src/lib/projects/delete-cascade.ts:65 Deleting a project wipes all satellite stores via an un-archived destructive cascade rather than transitioning into a preserved archival state."
+    },
+    {
+     "technique": "project-identity-and-joins",
+     "verdict": "conformant",
+     "evidence": "src/lib/projects/duplicate-cascade.ts:190 Project duplication mints a fresh opaque project identity and remaps child resources rather than copying or deriving identity."
+    },
+    {
+     "technique": "per-project-tabs-and-state",
+     "verdict": "conformant",
+     "evidence": "src/lib/projects/brief-seed.ts:5 Session storage state is explicitly keyed by project identity so brief seeds do not leak across projects."
+    }
+   ]
+  },
+  {
+   "context": "projects-api",
+   "subject": "multi-project",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/app/api/projects/[id]/route.ts:131 The project deletion route completely purges the workspace and all attached satellite data instead of moving it into a preserved archival state under a closed lifecycle vocabulary.",
+   "techniques": [
+    {
+     "technique": "project-onboarding-lifecycle",
+     "verdict": "deviation",
+     "evidence": "src/app/api/projects/[id]/route.ts:131 The DELETE endpoint wipes all project records rather than transitioning the entity into an archival state, and the API has no closed lifecycle status transitions."
+    },
+    {
+     "technique": "project-identity-and-joins",
+     "verdict": "conformant",
+     "evidence": "src/app/api/projects/[id]/duplicate/route.ts:29 The duplicate route creates an independent workspace with freshly minted identity and maps setup resources."
+    },
+    {
+     "technique": "per-project-tabs-and-state",
+     "verdict": "conformant",
+     "evidence": "src/app/api/projects/[id]/state/[key]/route.ts:48 Key-value module state is persisted strictly per project ID and enforces a maximum byte budget."
+    }
+   ]
+  },
+  {
+   "context": "project-hub-onboarding",
+   "subject": "multi-project",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/app/app/[projectId]/page.tsx:24 The portfolio overview page renders cross-project data directly from un-rolled-up project objects without implementing a wall-to-matrix-to-detail drill hierarchy.",
+   "techniques": [
+    {
+     "technique": "portfolio-drill-hierarchy",
+     "verdict": "deviation",
+     "evidence": "src/app/app/[projectId]/page.tsx:24 The portfolio overview receives raw project lists and renders them without a three-level drill hierarchy or pre-aggregated summary row rollups."
+    },
+    {
+     "technique": "project-onboarding-lifecycle",
+     "verdict": "deviation",
+     "evidence": "src/app/app/[projectId]/start/page.tsx:13 Onboarding progress computes connector checks but does not populate a declared metadata contract with named artifact refreshers or a closed lifecycle state machine."
+    },
+    {
+     "technique": "project-identity-and-joins",
+     "verdict": "conformant",
+     "evidence": "src/app/app/[projectId]/page.tsx:15 The hub entry point resolves and guards access strictly through the route parameter's minted project ID."
+    },
+    {
+     "technique": "cross-project-comparison",
+     "verdict": "deviation",
+     "evidence": "src/app/app/[projectId]/page.tsx:17 Heterogeneous projects are listed for direct comparison on raw metrics without normalized dimensions or declared anchor policies."
+    }
+   ]
+  },
+  {
+   "context": "project-data-api",
+   "subject": "multi-project",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/app/api/projects/[id]/metrics/sync/route.ts:22 Data updates rely on caller-initiated round-trips to the Google Ads API rather than continuous passive listening to native project exhaust.",
+   "techniques": [
+    {
+     "technique": "passive-signal-ingestion",
+     "verdict": "deviation",
+     "evidence": "src/app/api/projects/[id]/metrics/sync/route.ts:22 Signal freshness is acquired through manual, user-triggered API syncs rather than automated passive watchers monitoring project exhaust."
+    },
+    {
+     "technique": "project-identity-and-joins",
+     "verdict": "conformant",
+     "evidence": "src/app/api/projects/[id]/local-signals/import/route.ts:70 Imported local signals are checked for ownership and scoped strictly to the minted project ID."
+    },
+    {
+     "technique": "per-project-tabs-and-state",
+     "verdict": "conformant",
+     "evidence": "src/app/api/projects/[id]/cost-model/route.ts:25 Financial cost models and inputs are stored strictly partitioned by project ID."
+    }
+   ]
+  },
+  {
+   "context": "projects-core",
+   "subject": "multi-project",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/projects/types.ts:173 The core project model does not define a closed lifecycle vocabulary or an archival state, treating projects as strictly active until permanent deletion.",
+   "techniques": [
+    {
+     "technique": "project-onboarding-lifecycle",
+     "verdict": "deviation",
+     "evidence": "src/lib/projects/types.ts:173 The central project domain type lacks a closed lifecycle vocabulary (candidate, onboarding, active, paused, archived) and does not support archival states."
+    },
+    {
+     "technique": "project-identity-and-joins",
+     "verdict": "conformant",
+     "evidence": "src/lib/projects/store.local.ts:73 Project identity is minted at admission as an opaque random string, independent of display name, filesystem path, or remote URL."
+    },
+    {
+     "technique": "per-project-tabs-and-state",
+     "verdict": "deviation",
+     "evidence": "src/lib/projects/context.tsx:17 Project context maintains only a single active project rather than a persisted working set of open project tabs with peripheral live status."
+    }
+   ]
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-15T03:29:08.282895+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "multi-project"
+   ],
+   "techniques": [
+    "per-project-tabs-and-state",
+    "project-identity-and-joins",
+    "project-onboarding-lifecycle"
+   ],
+   "deviations": 1,
+   "context": "projects-lifecycle",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-15T03:29:08.282895+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "multi-project"
+   ],
+   "techniques": [
+    "per-project-tabs-and-state",
+    "project-identity-and-joins",
+    "project-onboarding-lifecycle"
+   ],
+   "deviations": 1,
+   "context": "projects-api",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-15T03:29:08.282895+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "multi-project"
+   ],
+   "techniques": [
+    "cross-project-comparison",
+    "portfolio-drill-hierarchy",
+    "project-identity-and-joins",
+    "project-onboarding-lifecycle"
+   ],
+   "deviations": 1,
+   "context": "project-hub-onboarding",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-15T03:29:08.282895+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "multi-project"
+   ],
+   "techniques": [
+    "passive-signal-ingestion",
+    "per-project-tabs-and-state",
+    "project-identity-and-joins"
+   ],
+   "deviations": 1,
+   "context": "project-data-api",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-15T03:29:08.282895+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "multi-project"
+   ],
+   "techniques": [
+    "per-project-tabs-and-state",
+    "project-identity-and-joins",
+    "project-onboarding-lifecycle"
+   ],
+   "deviations": 1,
+   "context": "projects-core",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  }
+ ]
+}

@@ -4525,6 +4525,58 @@
           "evidence": "src/app/clanek/vykon/report-article.ts:10 The report computes its figures using the shared metrics builder on the fixed performance dataset, and the page and share card consume the same article."
         }
       ]
+    },
+    "54d3c914-764c-48d6-ba4e-6294c04afd4e/multi-project": {
+      "context": "projects-lifecycle",
+      "subject": "multi-project",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T03:29:08.282Z",
+      "worker": "a918da20-e23b-424b-acff-b7761df3480d",
+      "techniques": [
+        {
+          "technique": "project-onboarding-lifecycle",
+          "verdict": "deviation",
+          "evidence": "src/lib/projects/delete-cascade.ts:65 Deleting a project wipes all satellite stores via an un-archived destructive cascade rather than transitioning into a preserved archival state."
+        },
+        {
+          "technique": "project-identity-and-joins",
+          "verdict": "conformant",
+          "evidence": "src/lib/projects/duplicate-cascade.ts:190 Project duplication mints a fresh opaque project identity and remaps child resources rather than copying or deriving identity."
+        },
+        {
+          "technique": "per-project-tabs-and-state",
+          "verdict": "conformant",
+          "evidence": "src/lib/projects/brief-seed.ts:5 Session storage state is explicitly keyed by project identity so brief seeds do not leak across projects."
+        }
+      ]
+    },
+    "195906bc-e723-476a-97db-5e4fdb2cc171/multi-project": {
+      "context": "projects-core",
+      "subject": "multi-project",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-15",
+      "evaluatedTs": "2026-10-15T03:29:08.282Z",
+      "worker": "a918da20-e23b-424b-acff-b7761df3480d",
+      "techniques": [
+        {
+          "technique": "project-onboarding-lifecycle",
+          "verdict": "deviation",
+          "evidence": "src/lib/projects/types.ts:173 The central project domain type lacks a closed lifecycle vocabulary (candidate, onboarding, active, paused, archived) and does not support archival states."
+        },
+        {
+          "technique": "project-identity-and-joins",
+          "verdict": "conformant",
+          "evidence": "src/lib/projects/store.local.ts:73 Project identity is minted at admission as an opaque random string, independent of display name, filesystem path, or remote URL."
+        },
+        {
+          "technique": "per-project-tabs-and-state",
+          "verdict": "deviation",
+          "evidence": "src/lib/projects/context.tsx:17 Project context maintains only a single active project rather than a persisted working set of open project tabs with peripheral live status."
+        }
+      ]
     }
   }
 }

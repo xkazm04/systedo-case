@@ -14978,7 +14978,11 @@
           "revision": 3,
           "changedAt": "2026-08-29",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/projects/types.ts:173 The core project model does not define a closed lifecycle vocabulary or an archival state, treating projects as strictly active until permanent deletion.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:07b32de44fd25fc6",
+          "evaluatedRevision": 3
         }
       ],
       "governance": "governed"
@@ -15036,7 +15040,11 @@
           "revision": 3,
           "changedAt": "2026-08-29",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/projects/delete-cascade.ts:65 Project retirement is handled through a destructive cascade that hard-deletes all satellite stores without providing a preserved archival state or a closed lifecycle state machine.",
+          "evaluatedAt": "2026-10-15",
+          "evaluatedAgainst": "sha256-b2:07b32de44fd25fc6",
+          "evaluatedRevision": 3
         },
         {
           "subject": "markdown-vault",
