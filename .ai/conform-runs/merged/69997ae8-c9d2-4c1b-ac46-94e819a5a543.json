@@ -1,0 +1,202 @@
+{
+ "schema": "conform-run/1",
+ "worker": "69997ae8-c9d2-4c1b-ac46-94e819a5a543",
+ "subject": "site-architecture-and-topic-clusters",
+ "evaluatedAt": "2026-10-16T00:09:27.949136+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "ad-platform-integrations",
+   "subject": "site-architecture-and-topic-clusters",
+   "bundle": "marketing",
+   "state": "not-applicable",
+   "evidence": "src/lib/google/keyword-planner.ts:101 Searches found no pillar, spoke or inlinks constructs in this context and located topic-cluster code elsewhere; these clients return advertising data and keyword metrics without planning search pages.",
+   "techniques": [
+    {
+     "technique": "hub-spoke-sibling-standalone-labels",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/sklik/adapter.ts:93 The adapter maps advertising campaigns, not keyword-map pages."
+    },
+    {
+     "technique": "inlink-band-and-anchor-variety",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/sklik/adapter.ts:43 The aggregated data concerns campaign spend; no internal-link allocation occurs."
+    },
+    {
+     "technique": "one-primary-keyword-per-page",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/google/keyword-planner.ts:101 Keyword ideas remain raw metric records without page ownership assignments."
+    },
+    {
+     "technique": "pillar-passage-per-spoke-linking-contract",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/sklik/client.ts:257 The operation retrieves suggestions and authors no hub or spoke."
+    },
+    {
+     "technique": "pillar-weighted-completeness-and-decay",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/sklik/money-verdict.ts:59 This verdict evaluates campaign money units, not content completeness or organic decay."
+    },
+    {
+     "technique": "serp-overlap-same-page-test",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/sklik/keywords.ts:75 Fetching keyword suggestions makes no one-page-or-two decision."
+    },
+    {
+     "technique": "three-layer-pyramid-cities-at-layer-three",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/google/token.ts:43 These URLs address provider endpoints; the context defines no public website tree."
+    }
+   ],
+   "absenceTerms": [
+    "pillar",
+    "spoke",
+    "inlinks"
+   ]
+  },
+  {
+   "context": "project-hub-onboarding",
+   "subject": "site-architecture-and-topic-clusters",
+   "bundle": "marketing",
+   "state": "not-applicable",
+   "evidence": "src/app/app/[projectId]/page.tsx:15 Searches found no pillar, spoke or inlinks constructs in this context while finding topic-cluster implementations elsewhere; these guarded pages render project management and business onboarding rather than a search-facing page architecture.",
+   "techniques": [
+    {
+     "technique": "hub-spoke-sibling-standalone-labels",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/page.tsx:24 The hub presents projects, not a labeled keyword map."
+    },
+    {
+     "technique": "inlink-band-and-anchor-variety",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/page.tsx:15 This is a guarded workspace screen, not a search-facing money page or pillar."
+    },
+    {
+     "technique": "one-primary-keyword-per-page",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/start/page.tsx:19 The existing business domain seeds onboarding; no page primary is assigned."
+    },
+    {
+     "technique": "pillar-passage-per-spoke-linking-contract",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/page.tsx:23 Workspace area navigation creates no editorial or service-city spoke relationship."
+    },
+    {
+     "technique": "pillar-weighted-completeness-and-decay",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/start/page.tsx:13 The progress measure concerns setup completion, not published cluster coverage or organic decay."
+    },
+    {
+     "technique": "serp-overlap-same-page-test",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/page.tsx:17 Loading a user's projects makes no keyword merge/split decision."
+    },
+    {
+     "technique": "three-layer-pyramid-cities-at-layer-three",
+     "verdict": "not-applicable",
+     "evidence": "src/app/app/[projectId]/start/page.tsx:12 Authenticated project routing is outside the standard's public service/editorial tree."
+    }
+   ],
+   "absenceTerms": [
+    "pillar",
+    "spoke",
+    "inlinks"
+   ]
+  },
+  {
+   "context": "ai-tools-campaigns-research",
+   "subject": "site-architecture-and-topic-clusters",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/lib/ai/tools/keyword-clusters.ts:5 The tool presents semantic keyword groups as page structure without the required SERP-based page separation and complete relationship labeling.",
+   "techniques": [
+    {
+     "technique": "hub-spoke-sibling-standalone-labels",
+     "verdict": "deviation",
+     "evidence": "src/lib/ai/tools/keyword-clusters.ts:88 The schema requires pillar/supporting clusters, while the prompt forces two to six clusters and provides no sibling/standalone labels or decomposition test."
+    },
+    {
+     "technique": "one-primary-keyword-per-page",
+     "verdict": "deviation",
+     "evidence": "src/lib/ai/tools/keyword-clusters.ts:205 The collision guard checks normalized strings within the supplied batch; it does not test new targets against existing page primaries and secondaries or resolve intent-equivalent strings."
+    },
+    {
+     "technique": "serp-overlap-same-page-test",
+     "verdict": "deviation",
+     "evidence": "src/lib/ai/tools/keyword-clusters.ts:120 The deterministic path groups by first word and the model path requests semantic grouping; neither obtains shared top-ten URLs or marks the page structure as awaiting SERP validation."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "site-architecture-and-topic-clusters",
+   "context": "organic-channels-keywords",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "site-architecture-and-topic-clusters",
+   "context": "product-demo-pages",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-16T00:09:27.949136+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "site-architecture-and-topic-clusters"
+   ],
+   "techniques": [
+    "hub-spoke-sibling-standalone-labels",
+    "inlink-band-and-anchor-variety",
+    "one-primary-keyword-per-page",
+    "pillar-passage-per-spoke-linking-contract",
+    "pillar-weighted-completeness-and-decay",
+    "serp-overlap-same-page-test",
+    "three-layer-pyramid-cities-at-layer-three"
+   ],
+   "deviations": 0,
+   "context": "ad-platform-integrations",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-16T00:09:27.949136+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "site-architecture-and-topic-clusters"
+   ],
+   "techniques": [
+    "hub-spoke-sibling-standalone-labels",
+    "inlink-band-and-anchor-variety",
+    "one-primary-keyword-per-page",
+    "pillar-passage-per-spoke-linking-contract",
+    "pillar-weighted-completeness-and-decay",
+    "serp-overlap-same-page-test",
+    "three-layer-pyramid-cities-at-layer-three"
+   ],
+   "deviations": 0,
+   "context": "project-hub-onboarding",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-16T00:09:27.949136+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "site-architecture-and-topic-clusters"
+   ],
+   "techniques": [
+    "hub-spoke-sibling-standalone-labels",
+    "one-primary-keyword-per-page",
+    "serp-overlap-same-page-test"
+   ],
+   "deviations": 1,
+   "context": "ai-tools-campaigns-research",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}

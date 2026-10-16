@@ -1802,7 +1802,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/google/keyword-planner.ts:101 Searches found no pillar, spoke or inlinks constructs in this context and located topic-cluster code elsewhere; these clients return advertising data and keyword metrics without planning search pages.",
+          "evaluatedAt": "2026-10-16",
+          "evaluatedAgainst": "sha256-b2:76e9ced11d9cea5a",
+          "evaluatedRevision": 1
         },
         {
           "subject": "keyword-metric-reliability",
@@ -2771,7 +2775,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/ai/tools/keyword-clusters.ts:5 The tool presents semantic keyword groups as page structure without the required SERP-based page separation and complete relationship labeling.",
+          "evaluatedAt": "2026-10-16",
+          "evaluatedAgainst": "sha256-b2:76e9ced11d9cea5a",
+          "evaluatedRevision": 1
         }
       ],
       "governance": "governed"

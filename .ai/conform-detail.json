@@ -5608,6 +5608,78 @@
         }
       ],
       "registryProposal": "Clarify paused-sku-never-advertised: procedure steps 2-3 require filtering before a narrow consumer shape and excluding the pause flag, whereas its first decision rule requires that flag inside a narrow consumer input; distinguish trusted adapter outputs from unfiltered inputs."
+    },
+    "dcc78ba3-0c54-4352-acb4-6f0f4169ce58/site-architecture-and-topic-clusters": {
+      "context": "ad-platform-integrations",
+      "subject": "site-architecture-and-topic-clusters",
+      "bundle": "marketing",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-16",
+      "evaluatedTs": "2026-10-16T00:09:27.949Z",
+      "worker": "69997ae8-c9d2-4c1b-ac46-94e819a5a543",
+      "techniques": [
+        {
+          "technique": "hub-spoke-sibling-standalone-labels",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/sklik/adapter.ts:93 The adapter maps advertising campaigns, not keyword-map pages."
+        },
+        {
+          "technique": "inlink-band-and-anchor-variety",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/sklik/adapter.ts:43 The aggregated data concerns campaign spend; no internal-link allocation occurs."
+        },
+        {
+          "technique": "one-primary-keyword-per-page",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/google/keyword-planner.ts:101 Keyword ideas remain raw metric records without page ownership assignments."
+        },
+        {
+          "technique": "pillar-passage-per-spoke-linking-contract",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/sklik/client.ts:257 The operation retrieves suggestions and authors no hub or spoke."
+        },
+        {
+          "technique": "pillar-weighted-completeness-and-decay",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/sklik/money-verdict.ts:59 This verdict evaluates campaign money units, not content completeness or organic decay."
+        },
+        {
+          "technique": "serp-overlap-same-page-test",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/sklik/keywords.ts:75 Fetching keyword suggestions makes no one-page-or-two decision."
+        },
+        {
+          "technique": "three-layer-pyramid-cities-at-layer-three",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/google/token.ts:43 These URLs address provider endpoints; the context defines no public website tree."
+        }
+      ]
+    },
+    "9f9e2abc-db0d-4a9f-ac47-fd39d3b9b8b4/site-architecture-and-topic-clusters": {
+      "context": "ai-tools-campaigns-research",
+      "subject": "site-architecture-and-topic-clusters",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-16",
+      "evaluatedTs": "2026-10-16T00:09:27.949Z",
+      "worker": "69997ae8-c9d2-4c1b-ac46-94e819a5a543",
+      "techniques": [
+        {
+          "technique": "hub-spoke-sibling-standalone-labels",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/keyword-clusters.ts:88 The schema requires pillar/supporting clusters, while the prompt forces two to six clusters and provides no sibling/standalone labels or decomposition test."
+        },
+        {
+          "technique": "one-primary-keyword-per-page",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/keyword-clusters.ts:205 The collision guard checks normalized strings within the supplied batch; it does not test new targets against existing page primaries and secondaries or resolve intent-equivalent strings."
+        },
+        {
+          "technique": "serp-overlap-same-page-test",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/keyword-clusters.ts:120 The deterministic path groups by first word and the model path requests semantic grouping; neither obtains shared top-ten URLs or marks the page structure as awaiting SERP validation."
+        }
+      ]
     }
   }
 }
