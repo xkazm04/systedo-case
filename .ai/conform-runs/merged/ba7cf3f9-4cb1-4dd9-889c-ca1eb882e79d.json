@@ -1,0 +1,37 @@
+{
+ "schema": "conform-run/1",
+ "worker": "ba7cf3f9-4cb1-4dd9-889c-ca1eb882e79d",
+ "subject": "agent-instruction-files",
+ "evaluatedAt": "2026-10-16T01:10:20.492035+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [],
+ "declined": [
+  {
+   "subject": "agent-instruction-files",
+   "context": "ai-pipeline-limits",
+   "reason": "Inspected the listed files and the context-specific guidance in .github/context-conventions.json:86-99; runtime budget controls and advisory guard-chain guidance do not establish this context's compliance with the instruction-file techniques."
+  },
+  {
+   "subject": "agent-instruction-files",
+   "context": "project-management-ui",
+   "reason": "Inspected the listed components and searched their full contents for instruction-file constructs; project creation, navigation and advice rendering provide insufficient evidence for an instruction-file verdict."
+  },
+  {
+   "subject": "agent-instruction-files",
+   "context": "projects-core",
+   "reason": "Inspected the listed files and followed provision.ts:4 to the /onboard skill and its apply script; this establishes a related instruction surface, but insufficient evidence to judge its instruction lifecycle, loading and governance."
+  },
+  {
+   "subject": "agent-instruction-files",
+   "context": "session-firebase-core",
+   "reason": "Inspected the listed files and searched their full contents for instruction-file constructs; application sessions, storage and metering cannot substantiate coding-harness instruction delivery or governance."
+  },
+  {
+   "subject": "agent-instruction-files",
+   "context": "project-data-api",
+   "reason": "Inspected the listed handlers and searched their full contents for instruction-file constructs; project-data persistence and ownership checks provide insufficient evidence for this subject."
+  }
+ ],
+ "consults": []
+}
