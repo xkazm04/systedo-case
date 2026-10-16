@@ -3455,7 +3455,11 @@
           "revision": 6,
           "changedAt": "2026-09-23",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/AppTopbar.tsx:29 The topbar matches the first URL segment against module keys, so nested destinations such as reach/kampane display the project name instead of the sidebar's active module title.",
+          "evaluatedAt": "2026-10-16",
+          "evaluatedAgainst": "sha256-b2:62a9a7fc993ea8b5",
+          "evaluatedRevision": 6
         },
         {
           "subject": "mcp-tools",
@@ -3615,7 +3619,11 @@
           "revision": 6,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/nav/AreaRailNav.tsx:66 The settings preview resets only when area or roof status changes, so navigation between rooms within the same area can leave the panel showing settings.",
+          "evaluatedAt": "2026-10-16",
+          "evaluatedAgainst": "sha256-b2:62a9a7fc993ea8b5",
+          "evaluatedRevision": 6
         },
         {
           "subject": "lazy-section-addressability",
@@ -15474,7 +15482,11 @@
           "revision": 6,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/app/layout.tsx:98 The root fallback omits all navigation while locale-dependent rendering resolves, so the persistent frame waits on request data instead of painting usable chrome immediately.",
+          "evaluatedAt": "2026-10-16",
+          "evaluatedAgainst": "sha256-b2:62a9a7fc993ea8b5",
+          "evaluatedRevision": 6
         },
         {
           "subject": "tenant-scoped-agent-runtime",

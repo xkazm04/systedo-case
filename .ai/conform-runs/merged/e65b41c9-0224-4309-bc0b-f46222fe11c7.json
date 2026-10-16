@@ -1,0 +1,179 @@
+{
+ "schema": "conform-run/1",
+ "worker": "e65b41c9-0224-4309-bc0b-f46222fe11c7",
+ "subject": "app-shell",
+ "evaluatedAt": "2026-10-16T21:20:20.155048+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "app-shell-chrome",
+   "subject": "app-shell",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/app/AppTopbar.tsx:29 The topbar matches the first URL segment against module keys, so nested destinations such as reach/kampane display the project name instead of the sidebar's active module title.",
+   "techniques": [
+    {
+     "technique": "badge-and-attention",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/SampleDataNote.tsx:11 The inspected badges label data provenance or unavailability; they are not navigation attention counts."
+    },
+    {
+     "technique": "lazy-section-loading",
+     "verdict": "deviation",
+     "evidence": "src/components/app/AppShellSkeleton.tsx:22 Startup replaces navigation entries with inert skeletons, contrary to the requirement that the frame paint usable navigation immediately."
+    },
+    {
+     "technique": "navigation-model",
+     "verdict": "deviation",
+     "evidence": "src/components/app/AppTopbar.tsx:29 This independent first-segment parser disagrees with the sidebar's nested navLocation resolver."
+    }
+   ]
+  },
+  {
+   "context": "app-sidebar-nav",
+   "subject": "app-shell",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/app/nav/AreaRailNav.tsx:66 The settings preview resets only when area or roof status changes, so navigation between rooms within the same area can leave the panel showing settings.",
+   "techniques": [
+    {
+     "technique": "badge-and-attention",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/nav/AreaRailNav.tsx:128 The inspected navigation rows render labels and active markers, without attention counts or newness signals."
+    },
+    {
+     "technique": "entitlement-gating",
+     "verdict": "conformant",
+     "evidence": "src/components/app/AppSidebar.tsx:32 Entry availability derives from the registry's availableFor policy; inspected destination guards consult that same registry."
+    },
+    {
+     "technique": "nav-hierarchy",
+     "verdict": "deviation",
+     "evidence": "src/components/app/nav/AreaRailNav.tsx:66 Preview reset observes only area and roof status rather than the complete location; browser Back between sibling rooms can retain the wrong preview."
+    },
+    {
+     "technique": "navigation-model",
+     "verdict": "conformant",
+     "evidence": "src/components/app/AppSidebar.tsx:34 The sidebar derives area, roof status and active module from one shared pathname resolver over the module registry."
+    },
+    {
+     "technique": "shell-hosted-services",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/AppSidebar.tsx:119 The owned listener is scoped to the open drawer and cleaned up on close; these files introduce no session service host."
+    }
+   ]
+  },
+  {
+   "context": "app-shell",
+   "subject": "app-shell",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/app/app/[projectId]/loading.tsx:21 The module fallback displays its skeleton immediately without the required warm-path reveal delay, allowing brief loading transitions to flash placeholders.",
+   "techniques": [
+    {
+     "technique": "entitlement-gating",
+     "verdict": "conformant",
+     "evidence": "src/app/app/layout.tsx:55 The shared server auth gate replaces the protected subtree with a sign-in explanation, including on anonymous deep-link entry."
+    },
+    {
+     "technique": "lazy-section-loading",
+     "verdict": "deviation",
+     "evidence": "src/app/app/[projectId]/loading.tsx:21 The fallback has pulse animation but no delayed reveal; the inspected global CSS supplies no delay for this skeleton."
+    }
+   ]
+  },
+  {
+   "context": "public-home",
+   "subject": "app-shell",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/app/layout.tsx:98 The root fallback omits all navigation while locale-dependent rendering resolves, so the persistent frame waits on request data instead of painting usable chrome immediately.",
+   "techniques": [
+    {
+     "technique": "lazy-section-loading",
+     "verdict": "deviation",
+     "evidence": "src/app/layout.tsx:98 The boundary contains both chrome and content, leaving an empty frame until LocalizedApp resolves."
+    },
+    {
+     "technique": "navigation-model",
+     "verdict": "conformant",
+     "evidence": "src/app/sitemap.ts:19 This context derives sitemap destinations from the shared navigation model; its 404 recovery links also consume that model."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "app-shell",
+   "context": "demo-site-nav",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-16T21:20:20.155048+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "app-shell"
+   ],
+   "techniques": [
+    "badge-and-attention",
+    "lazy-section-loading",
+    "navigation-model"
+   ],
+   "deviations": 1,
+   "context": "app-shell-chrome",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-16T21:20:20.155048+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "app-shell"
+   ],
+   "techniques": [
+    "badge-and-attention",
+    "entitlement-gating",
+    "nav-hierarchy",
+    "navigation-model",
+    "shell-hosted-services"
+   ],
+   "deviations": 1,
+   "context": "app-sidebar-nav",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-16T21:20:20.155048+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "app-shell"
+   ],
+   "techniques": [
+    "entitlement-gating",
+    "lazy-section-loading"
+   ],
+   "deviations": 1,
+   "context": "app-shell",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-16T21:20:20.155048+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "app-shell"
+   ],
+   "techniques": [
+    "lazy-section-loading",
+    "navigation-model"
+   ],
+   "deviations": 1,
+   "context": "public-home",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}

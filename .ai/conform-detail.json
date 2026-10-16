@@ -5802,6 +5802,89 @@
         "at": "2026-10-16T00:46:58.893611+00:00",
         "reason": "reviewer (sonnet): The evidence anchor history.ts:71 is `serializeHistory`, which does not show that CLI transport is absent. The repo's AI layer spawns the Claude and Codex CLIs (status-core.ts, paid-guard.ts and rate-limit.ts talk about spawns and CLI ladders). The cache key also includes a providerTag, so the cache"
       }
+    },
+    "1c991169-7d14-40c0-8313-21163fcee359/app-shell": {
+      "context": "app-shell-chrome",
+      "subject": "app-shell",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-16",
+      "evaluatedTs": "2026-10-16T21:20:20.155Z",
+      "worker": "e65b41c9-0224-4309-bc0b-f46222fe11c7",
+      "techniques": [
+        {
+          "technique": "badge-and-attention",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/SampleDataNote.tsx:11 The inspected badges label data provenance or unavailability; they are not navigation attention counts."
+        },
+        {
+          "technique": "lazy-section-loading",
+          "verdict": "deviation",
+          "evidence": "src/components/app/AppShellSkeleton.tsx:22 Startup replaces navigation entries with inert skeletons, contrary to the requirement that the frame paint usable navigation immediately."
+        },
+        {
+          "technique": "navigation-model",
+          "verdict": "deviation",
+          "evidence": "src/components/app/AppTopbar.tsx:29 This independent first-segment parser disagrees with the sidebar's nested navLocation resolver."
+        }
+      ]
+    },
+    "8f9baf40-063d-446f-887a-74b7969983dc/app-shell": {
+      "context": "app-sidebar-nav",
+      "subject": "app-shell",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-16",
+      "evaluatedTs": "2026-10-16T21:20:20.155Z",
+      "worker": "e65b41c9-0224-4309-bc0b-f46222fe11c7",
+      "techniques": [
+        {
+          "technique": "badge-and-attention",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/nav/AreaRailNav.tsx:128 The inspected navigation rows render labels and active markers, without attention counts or newness signals."
+        },
+        {
+          "technique": "entitlement-gating",
+          "verdict": "conformant",
+          "evidence": "src/components/app/AppSidebar.tsx:32 Entry availability derives from the registry's availableFor policy; inspected destination guards consult that same registry."
+        },
+        {
+          "technique": "nav-hierarchy",
+          "verdict": "deviation",
+          "evidence": "src/components/app/nav/AreaRailNav.tsx:66 Preview reset observes only area and roof status rather than the complete location; browser Back between sibling rooms can retain the wrong preview."
+        },
+        {
+          "technique": "navigation-model",
+          "verdict": "conformant",
+          "evidence": "src/components/app/AppSidebar.tsx:34 The sidebar derives area, roof status and active module from one shared pathname resolver over the module registry."
+        },
+        {
+          "technique": "shell-hosted-services",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/AppSidebar.tsx:119 The owned listener is scoped to the open drawer and cleaned up on close; these files introduce no session service host."
+        }
+      ]
+    },
+    "abcf5405-b5f4-4113-9550-028fac0edd87/app-shell": {
+      "context": "public-home",
+      "subject": "app-shell",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-16",
+      "evaluatedTs": "2026-10-16T21:20:20.155Z",
+      "worker": "e65b41c9-0224-4309-bc0b-f46222fe11c7",
+      "techniques": [
+        {
+          "technique": "lazy-section-loading",
+          "verdict": "deviation",
+          "evidence": "src/app/layout.tsx:98 The boundary contains both chrome and content, leaving an empty frame until LocalizedApp resolves."
+        },
+        {
+          "technique": "navigation-model",
+          "verdict": "conformant",
+          "evidence": "src/app/sitemap.ts:19 This context derives sitemap destinations from the shared navigation model; its 404 recovery links also consume that model."
+        }
+      ]
     }
   }
 }
