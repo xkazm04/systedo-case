@@ -1,0 +1,37 @@
+{
+ "schema": "conform-run/1",
+ "worker": "e04e4730-c281-4bf3-8956-e3f879145624",
+ "subject": "data-video-art-direction",
+ "evaluatedAt": "2026-10-16T22:31:46.708495+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [],
+ "declined": [
+  {
+   "subject": "data-video-art-direction",
+   "context": "brand-landing",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "data-video-art-direction",
+   "context": "campaign-alerts-control",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "data-video-art-direction",
+   "context": "shared-ui-primitives",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "data-video-art-direction",
+   "context": "creative-studio",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "data-video-art-direction",
+   "context": "local-seo-marketing",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": []
+}
