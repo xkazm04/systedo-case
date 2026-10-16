@@ -498,9 +498,70 @@
       "subject": "agent-cli-transport",
       "bundle": "software-engineering",
       "state": "not-applicable",
-      "evaluatedAt": "2026-08-31",
-      "worker": "w7-systedo-llm",
-      "techniques": []
+      "evaluatedAt": "2026-10-16",
+      "evaluatedTs": "2026-10-16T00:46:39.494Z",
+      "techniques": [
+        {
+          "technique": "availability-probe",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/health/route.ts:75 This bounded probe checks Firestore reachability, not agent installation or authorization."
+        },
+        {
+          "technique": "child-observed-posture",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/health/route.ts:101 The observed result describes a database connection; no child posture is asserted."
+        },
+        {
+          "technique": "dated-capability-matrix",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/health/route.ts:31 The health configuration concerns cron freshness, not agent CLI capabilities."
+        },
+        {
+          "technique": "fallback-ladder",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/usage/route.ts:9 This endpoint returns usage data without selecting a model transport."
+        },
+        {
+          "technique": "host-routed-approval-round-trip",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/alerts/route.ts:61 Acknowledgement updates a campaign alert; it is not a response to a child's permission request."
+        },
+        {
+          "technique": "output-normalization",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/eval/telemetry/route.ts:21 The route aggregates stored telemetry rather than parsing a CLI answer envelope."
+        },
+        {
+          "technique": "permission-stance-enforcement",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/auth/[...nextauth]/route.ts:5 These are Auth.js HTTP handlers, not child-agent permission configuration."
+        },
+        {
+          "technique": "subscription-auth-selection",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/usage/route.ts:7 The identity is the application's signed-in user, not a spawned CLI's billing identity."
+        },
+        {
+          "technique": "thread-custody-across-resume",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/activity/route.ts:36 The activity feed reads tenant audit records without resuming an agent conversation."
+        }
+      ],
+      "superseded": [
+        {
+          "state": "not-applicable",
+          "evidence": "None of the six routes (auth, usage, health, alerts, activity, eval/telemetry) spawn a coding-agent CLI as an LLM transport — no child_process/spawn anywhere in this context; the map's own 'why' for this pair is generic words ('auth','api','health'), confirming a lexical match.",
+          "evaluatedAt": "2026-08-31",
+          "worker": null,
+          "reason": "replaced by 29454f23-3c58-4e12-bfba-bfa6e300d960"
+        }
+      ],
+      "withdrawn": {
+        "worker": "29454f23-3c58-4e12-bfba-bfa6e300d960",
+        "state": "not-applicable",
+        "at": "2026-10-16T00:46:58.852975+00:00",
+        "reason": "reviewer (sonnet): The evidence anchor health/route.ts:91 is the `readinessMatrix(...)` call, which does not show that CLI transport is absent. The technique anchors (:75, :101, :31) only describe Firestore, cron and usage code. The repo does run Claude and Codex CLIs, in src/lib/llm and src/lib/ai/status-core.ts, and"
+      }
     },
     "d248872f-eefa-40f7-8757-50f220334ff7/observability-telemetry": {
       "context": "platform-ops-api",
@@ -5680,6 +5741,67 @@
           "evidence": "src/lib/ai/tools/keyword-clusters.ts:120 The deterministic path groups by first word and the model path requests semantic grouping; neither obtains shared top-ten URLs or marks the page structure as awaiting SERP validation."
         }
       ]
+    },
+    "f1dca182-bbfa-4f32-97a6-48b3baf0f92b/agent-cli-transport": {
+      "context": "ai-cache-history",
+      "subject": "agent-cli-transport",
+      "bundle": "software-engineering",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-16",
+      "evaluatedTs": "2026-10-16T00:46:39.494Z",
+      "techniques": [
+        {
+          "technique": "availability-probe",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/response-cache-store.ts:29 Backend selection loads a cache store, not an agent executable."
+        },
+        {
+          "technique": "child-observed-posture",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/response-cache.ts:89 The observed value is a durable cache entry, not a child process report."
+        },
+        {
+          "technique": "dated-capability-matrix",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/history.ts:15 This version identifies persisted result shape, not CLI capability provenance."
+        },
+        {
+          "technique": "fallback-ladder",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/response-cache.ts:73 The cache excludes already-produced demo results; it does not choose a CLI fallback."
+        },
+        {
+          "technique": "host-routed-approval-round-trip",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/handoff.ts:39 Handoff maps one tool's result into another tool's input without an attended agent session."
+        },
+        {
+          "technique": "output-normalization",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/response-cache-store.firestore.ts:29 Parsing restores stored application JSON, not a CLI envelope."
+        },
+        {
+          "technique": "permission-stance-enforcement",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/response-cache-store.local.ts:18 This is a database read, not a workspace scan performed by an agent."
+        },
+        {
+          "technique": "subscription-auth-selection",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/response-cache.ts:53 Provider identity partitions cache keys; it does not construct a child's billing environment."
+        },
+        {
+          "technique": "thread-custody-across-resume",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/history.ts:66 History retains bounded generation results without storing or resuming a child thread."
+        }
+      ],
+      "withdrawn": {
+        "worker": "29454f23-3c58-4e12-bfba-bfa6e300d960",
+        "state": "not-applicable",
+        "at": "2026-10-16T00:46:58.893611+00:00",
+        "reason": "reviewer (sonnet): The evidence anchor history.ts:71 is `serializeHistory`, which does not show that CLI transport is absent. The repo's AI layer spawns the Claude and Codex CLIs (status-core.ts, paid-guard.ts and rate-limit.ts talk about spawns and CLI ladders). The cache key also includes a providerTag, so the cache"
+      }
     }
   }
 }

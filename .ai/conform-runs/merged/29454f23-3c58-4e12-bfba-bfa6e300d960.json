@@ -1,0 +1,77 @@
+{
+  "schema": "conform-run/1",
+  "worker": "29454f23-3c58-4e12-bfba-bfa6e300d960",
+  "subject": "agent-cli-transport",
+  "evaluatedAt": "2026-10-16T00:46:39.494688+00:00",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "pairs": [],
+  "declined": [
+    {
+      "subject": "agent-cli-transport",
+      "context": "llm-byom-keys",
+      "reason": "absence contradicted: src/lib/llm/claude-research.ts:11 contains 'permission-mode' (9 hit(s) in the context's directories)"
+    },
+    {
+      "subject": "agent-cli-transport",
+      "context": "session-firebase-core",
+      "reason": "absence contradicted: src/lib/llm/claude-research.ts:11 contains 'permission-mode' (9 hit(s) in the context's directories)"
+    },
+    {
+      "subject": "agent-cli-transport",
+      "context": "platform-ops-api",
+      "reason": "withdrawn after review: reviewer (sonnet): The evidence anchor health/route.ts:91 is the `readinessMatrix(...)` call, which does not show that CLI transport is absent. The technique anchors (:75, :101, :31) only describe Firestore, cron and usage code. The repo does run Claude and Codex CLIs, in src/lib/llm and src/lib/ai/status-core.ts, and"
+    },
+    {
+      "subject": "agent-cli-transport",
+      "context": "ai-cache-history",
+      "reason": "withdrawn after review: reviewer (sonnet): The evidence anchor history.ts:71 is `serializeHistory`, which does not show that CLI transport is absent. The repo's AI layer spawns the Claude and Codex CLIs (status-core.ts, paid-guard.ts and rate-limit.ts talk about spawns and CLI ladders). The cache key also includes a providerTag, so the cache"
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-16T00:46:39.494688+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "agent-cli-transport"
+      ],
+      "techniques": [
+        "availability-probe",
+        "child-observed-posture",
+        "dated-capability-matrix",
+        "fallback-ladder",
+        "host-routed-approval-round-trip",
+        "output-normalization",
+        "permission-stance-enforcement",
+        "subscription-auth-selection",
+        "thread-custody-across-resume"
+      ],
+      "deviations": 0,
+      "context": "platform-ops-api",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "ts": "2026-10-16T00:46:39.494688+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "agent-cli-transport"
+      ],
+      "techniques": [
+        "availability-probe",
+        "child-observed-posture",
+        "dated-capability-matrix",
+        "fallback-ladder",
+        "host-routed-approval-round-trip",
+        "output-normalization",
+        "permission-stance-enforcement",
+        "subscription-auth-selection",
+        "thread-custody-across-resume"
+      ],
+      "deviations": 0,
+      "context": "ai-cache-history",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    }
+  ]
+}
