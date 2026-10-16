@@ -1,0 +1,134 @@
+{
+ "schema": "conform-run/1",
+ "worker": "0c148438-cdd1-4cd9-9861-066628ec7ac7",
+ "subject": "campaign-anomaly-triage",
+ "evaluatedAt": "2026-10-16T22:10:55.325083+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [
+  {
+   "context": "campaigns-budget-alerts",
+   "subject": "campaign-anomaly-triage",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/lib/campaigns/triage.ts:197 The ROAS return rules lack a check for positive conversions, allowing both spending-without-conversions and far-below-target rules to match simultaneously when a zero-conversion campaign reports conversion value.",
+   "techniques": [
+    {
+     "technique": "crater-vs-slow-bleed",
+     "verdict": "deviation",
+     "evidence": "src/lib/campaigns/triage.ts:385 Daily return for zero-spend days is evaluated as zero rather than omitted from the noise floor, inflating sample variance for weekend-paused campaigns."
+    },
+    {
+     "technique": "disjoint-severity-rules-worst-first",
+     "verdict": "deviation",
+     "evidence": "src/lib/campaigns/triage.ts:197 The return rules omit the count complement (conversions > 0), so a row with zero conversions and positive value matches both no_conversions and roas_critical."
+    },
+    {
+     "technique": "hysteresis-and-cooldown-tombstones",
+     "verdict": "conformant",
+     "evidence": "src/lib/campaigns/alert-suppression.ts:124 Maintains cooldown tombstones upon recovery to healthy and suppresses repeated alerts within the cooldown window."
+    },
+    {
+     "technique": "one-target-reciprocal-thresholds",
+     "verdict": "conformant",
+     "evidence": "src/lib/campaigns/triage.ts:32 The critical PNO ratio is derived as the reciprocal of ROAS_CRITICAL_RATIO so colour and triage boundaries never disagree."
+    },
+    {
+     "technique": "severity-times-spend-attention-order",
+     "verdict": "conformant",
+     "evidence": "src/lib/campaigns/triage.ts:479 Sorts lexicographically with severity rank multiplied by 1e12 plus cost descending within each severity band."
+    },
+    {
+     "technique": "spend-spike-without-return",
+     "verdict": "conformant",
+     "evidence": "src/lib/campaigns/triage.ts:275 Flags a warning when cost rises by at least 50% while conversion value rises by less than half the cost increase."
+    },
+    {
+     "technique": "weekday-deseasonalised-baseline",
+     "verdict": "conformant",
+     "evidence": "src/lib/campaigns/anomaly-alerts.ts:94 Runs detectAnomalies on freshly synced series using the shared paid-portfolio PNO goal."
+    }
+   ],
+   "registryProposal": "In disjoint-severity-rules-worst-first, making the count complement clause explicit in the formal rule predicate definitions helps prevent implementations from only applying disjointness between adjacent ratio bands while overlooking overlap with zero-count rules on the same axis."
+  },
+  {
+   "context": "campaign-table",
+   "subject": "campaign-anomaly-triage",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/components/campaigns/table/sort.ts:35 CampaignTable defaults to sorting by cost descending instead of triage attention weight, leaving critical low-spend campaigns below healthy high-spend ones.",
+   "techniques": [
+    {
+     "technique": "disjoint-severity-rules-worst-first",
+     "verdict": "conformant",
+     "evidence": "src/components/campaigns/table/PriorityCell.tsx:84 Renders the campaign's worst matched severity badge in the priority column, displaying primary and secondary rule reasons in the detail tooltip."
+    },
+    {
+     "technique": "one-target-reciprocal-thresholds",
+     "verdict": "conformant",
+     "evidence": "src/components/campaigns/CampaignTable.tsx:675 Table cell tones for ROAS and PNO derive from the unified reciprocal tone helpers parameterized by tenant goals."
+    },
+    {
+     "technique": "severity-times-spend-attention-order",
+     "verdict": "deviation",
+     "evidence": "src/components/campaigns/table/sort.ts:35 The table default sort is cost descending rather than triage weight, and tie-breaking on equal spend does not fall back to stable campaign identifiers."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "campaign-anomaly-triage",
+   "context": "metrics-analysis",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "campaign-anomaly-triage",
+   "context": "campaign-reporting",
+   "reason": "Inspected ReportView.tsx, ReportSettings.tsx, SharedReportsList.tsx, PrintButton.tsx, and SyncProvenance.tsx; the context manages shareable report views, export controls, and settings chrome, containing no campaign triage rules, anomaly detection, or alert suppression logic."
+  },
+  {
+   "subject": "campaign-anomaly-triage",
+   "context": "campaigns-core-ui",
+   "reason": "Inspected CampaignsClient.tsx, useCampaigns.ts, HeaderKpis.tsx, and related UI components; the context orchestrates top-level page panels, auth, and ad network connector integration, delegating triage evaluation and table sorting to child components and domain modules."
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-16T22:10:55.325083+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "campaign-anomaly-triage"
+   ],
+   "techniques": [
+    "crater-vs-slow-bleed",
+    "disjoint-severity-rules-worst-first",
+    "hysteresis-and-cooldown-tombstones",
+    "one-target-reciprocal-thresholds",
+    "severity-times-spend-attention-order",
+    "spend-spike-without-return",
+    "weekday-deseasonalised-baseline"
+   ],
+   "deviations": 1,
+   "context": "campaigns-budget-alerts",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-16T22:10:55.325083+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "campaign-anomaly-triage"
+   ],
+   "techniques": [
+    "disjoint-severity-rules-worst-first",
+    "one-target-reciprocal-thresholds",
+    "severity-times-spend-attention-order"
+   ],
+   "deviations": 1,
+   "context": "campaign-table",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  }
+ ]
+}

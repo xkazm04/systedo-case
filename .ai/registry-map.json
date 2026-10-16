@@ -5208,7 +5208,11 @@
           "revision": 5,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/campaigns/table/sort.ts:35 CampaignTable defaults to sorting by cost descending instead of triage attention weight, leaving critical low-spend campaigns below healthy high-spend ones.",
+          "evaluatedAt": "2026-10-16",
+          "evaluatedAgainst": "sha256-b2:a78ea1170fae119e",
+          "evaluatedRevision": 5
         },
         {
           "subject": "migrations",
@@ -5477,7 +5481,11 @@
           "revision": 5,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/campaigns/triage.ts:197 The ROAS return rules lack a check for positive conversions, allowing both spending-without-conversions and far-below-target rules to match simultaneously when a zero-conversion campaign reports conversion value.",
+          "evaluatedAt": "2026-10-16",
+          "evaluatedAgainst": "sha256-b2:a78ea1170fae119e",
+          "evaluatedRevision": 5
         },
         {
           "subject": "alerting",
