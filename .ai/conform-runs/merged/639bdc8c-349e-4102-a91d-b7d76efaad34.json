@@ -1,0 +1,37 @@
+{
+ "schema": "conform-run/1",
+ "worker": "639bdc8c-349e-4102-a91d-b7d76efaad34",
+ "subject": "delivery-analytics",
+ "evaluatedAt": "2026-10-16T23:00:04.384747+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [],
+ "declined": [
+  {
+   "subject": "delivery-analytics",
+   "context": "metrics-analysis",
+   "reason": "Inspected anomalies.ts, trends.ts, pacing.ts, ratios.ts, and related metric analysis modules; the context implements mathematical analysis of advertising performance data (statistical anomaly detection on daily spend/revenue, budget pacing, CTR/ROAS/PNO ratios, and multi-week marketing trend computation) rather than software engineering delivery exhaust (git commits, change proposals, code review coverage, revert linkage, or change batch sizes)."
+  },
+  {
+   "subject": "delivery-analytics",
+   "context": "ai-tools-diagnostics",
+   "reason": "Inspected cohort-diagnosis.ts, lead-source-diagnosis.ts, local-diagnosis.ts, local-review-reply.ts, and ads-diagnosis.ts; the context provides LLM-assisted diagnostic tools for digital marketing campaigns, customer acquisition cohorts, lead source quality, and drafting responses to Google Business customer reviews (which triggered lexical matching on 'review'), containing no code review, change attribution, or software delivery analytics."
+  },
+  {
+   "subject": "delivery-analytics",
+   "context": "dashboard-vykon",
+   "reason": "Inspected KpiGrid.tsx, PnoGauge.tsx, ChannelsSection.tsx, TrendCard.tsx, and insight-lines.ts; the context implements React UI components for the marketing performance ('V\u00fdkon') dashboard (rendering PNO gauges, KPI tiles, marketing ad network breakdowns, and natural language insight lines), containing no software engineering delivery metrics or code change history."
+  },
+  {
+   "subject": "delivery-analytics",
+   "context": "metrics-core",
+   "reason": "Inspected channels.ts, snapshot.ts, series.ts, totals.ts, and goal-history.ts; the context defines foundational primitives for commercial marketing KPIs (revenue, ad spend, conversions, visits, and paid ad channels such as Google Ads and Sklik), containing no software delivery primitives or version control change tracking."
+  },
+  {
+   "subject": "delivery-analytics",
+   "context": "distribution-channels",
+   "reason": "Inspected generate.ts, handoff.ts, learnings.ts, newsletter.ts, and utm.ts; the context manages cross-platform promotional content distribution (generating variants for LinkedIn, Instagram, X/Twitter, and newsletters with UTM tracking parameters), which lexically matched 'distribution' and 'channels' but contains no software engineering delivery analytics."
+  }
+ ],
+ "consults": []
+}
