@@ -4794,7 +4794,11 @@
           "revision": 4,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/campaigns/BudgetMoves.tsx:313 The preview always prints a portfolio value-change percentage, including when the projected gain is zero or negative.",
+          "evaluatedAt": "2026-10-16",
+          "evaluatedAgainst": "sha256-b2:5cc151043ddffaf9",
+          "evaluatedRevision": 4
         },
         {
           "subject": "agent-memory",
@@ -5453,7 +5457,11 @@
           "revision": 4,
           "changedAt": "2026-10-14",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/campaigns/budget-moves.ts:146 A burner is detected by ROAS inside the waste-sorted loop that already stops at maxMoves, so the test is not the conversion count and a higher-waste shift can take the last slot before a smaller pause.",
+          "evaluatedAt": "2026-10-16",
+          "evaluatedAgainst": "sha256-b2:5cc151043ddffaf9",
+          "evaluatedRevision": 4
         },
         {
           "subject": "campaign-anomaly-triage",

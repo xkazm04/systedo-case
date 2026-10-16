@@ -5885,6 +5885,180 @@
           "evidence": "src/app/sitemap.ts:19 This context derives sitemap destinations from the shared navigation model; its 404 recovery links also consume that model."
         }
       ]
+    },
+    "855c339d-31d8-4527-a159-343da2a0ac9c/budget-reallocation-prescription": {
+      "context": "campaigns-budget-alerts",
+      "subject": "budget-reallocation-prescription",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-16",
+      "evaluatedTs": "2026-10-16T21:51:00.490Z",
+      "worker": "18ca905c-de68-4dd8-ba62-13f764da7878",
+      "techniques": [
+        {
+          "technique": "donor-floor-and-movable-amount",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/budget-moves.ts:181 This skip runs after usedRecipient.add on line 172, so a donor already at the daily floor still consumes the recipient."
+        },
+        {
+          "technique": "donor-ranking-waste-vs-profit-destruction",
+          "verdict": "conformant",
+          "evidence": "src/lib/campaigns/budget-moves.ts:119 A margin in (0, 1] ranks by cost minus gross profit; otherwise line 120 uses cost times (1 - roas/TARGET_ROAS), and the donor filter is unchanged."
+        },
+        {
+          "technique": "guardrails-simulate-approve-revert",
+          "verdict": "conformant",
+          "evidence": "src/lib/campaigns/budget-math.ts:84 The first stored micros for a Google budget resource is the one restored."
+        },
+        {
+          "technique": "linear-projection-with-confidence-cap",
+          "verdict": "conformant",
+          "evidence": "src/lib/campaigns/simulate.ts:110 The set is low-confidence once any shift exceeds half the donor's stored period spend; a pause share is 0."
+        },
+        {
+          "technique": "pause-zero-return-before-shifting",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/budget-moves.ts:146 ROAS, not the unrounded conversion count, selects the pause, and the cap is applied in waste order rather than pauses-first."
+        },
+        {
+          "technique": "realized-vs-projected-calibration",
+          "verdict": "conformant",
+          "evidence": "src/lib/campaigns/simulate.ts:189 The supplied multiplier scales the recipient's value and conversions; the donor half above it is unscaled, and a non-positive multiplier reads as 1."
+        }
+      ]
+    },
+    "96c8fbd1-421a-4330-8ccd-b10e44fa39ec/budget-reallocation-prescription": {
+      "context": "campaign-alerts-control",
+      "subject": "budget-reallocation-prescription",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-16",
+      "evaluatedTs": "2026-10-16T21:51:00.490Z",
+      "worker": "18ca905c-de68-4dd8-ba62-13f764da7878",
+      "techniques": [
+        {
+          "technique": "donor-floor-and-movable-amount",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/BudgetMoves.tsx:172 The preview passes periodDays into recommendBudgetMoves, but Propose posts a bare create and draftChangeSet rebuilds the set without periodDays, so the approved amount is not the floored preview."
+        },
+        {
+          "technique": "donor-ranking-waste-vs-profit-destruction",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/BudgetMoves.tsx:140 A margin outside (0, 1] is dropped before the recommender runs, and the panel states the margin it kept."
+        },
+        {
+          "technique": "guardrails-simulate-approve-revert",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/PendingProposal.tsx:137 A set with violations is confirmed only by a second click that passes override true, after the breach sentences are listed."
+        },
+        {
+          "technique": "linear-projection-with-confidence-cap",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/BudgetMoves.tsx:313 A zero or negative value gain still becomes a lift percentage whenever the portfolio has conversion value."
+        },
+        {
+          "technique": "pause-zero-return-before-shifting",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/BudgetMoves.tsx:68 A pause row shows the amount as spend saved and does not print estValueGain."
+        },
+        {
+          "technique": "realized-vs-projected-calibration",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/ProposalProjection.tsx:62 When the set carries no calibration stamp, the approval screen does not say the multiplier is 1 because history is insufficient."
+        }
+      ]
+    },
+    "591346d5-8bec-44cc-bc20-75f1ea2a7454/budget-reallocation-prescription": {
+      "context": "profit-analytics",
+      "subject": "budget-reallocation-prescription",
+      "bundle": "marketing",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-16",
+      "evaluatedTs": "2026-10-16T21:51:00.490Z",
+      "techniques": [
+        {
+          "technique": "donor-floor-and-movable-amount",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/profit/useProfitState.ts:265 The panel fills one channel total; it does not convert a campaign period amount into a daily donor delta."
+        },
+        {
+          "technique": "donor-ranking-waste-vs-profit-destruction",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/profit/ReallocationTable.tsx:53 Rows are priced by marginal profit per koruna, not by campaign revenue waste or profit destruction."
+        },
+        {
+          "technique": "guardrails-simulate-approve-revert",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/ProfitReallocationPanel.tsx:7 The panel displays a computed plan and does not approve or write a live account."
+        },
+        {
+          "technique": "linear-projection-with-confidence-cap",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/profit/ReallocationTable.tsx:52 A missing curve keeps constant ROAS under a 3× cap; there is no donor-share confidence label."
+        },
+        {
+          "technique": "pause-zero-return-before-shifting",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/ProfitReallocationPanel.tsx:3 There is no campaign pause move; the surface is a strategy toggle on a channel plan."
+        },
+        {
+          "technique": "realized-vs-projected-calibration",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/profit/useProfitState.ts:249 The plan is recomputed from current rows and is not a read of applied change sets."
+        }
+      ],
+      "withdrawn": {
+        "worker": "18ca905c-de68-4dd8-ba62-13f764da7878",
+        "state": "not-applicable",
+        "at": "2026-10-16T21:51:30.358900+00:00",
+        "reason": "reviewer (sonnet): Both not-applicable verdicts rest on a grep for campaign-module identifiers (movableAmount, includePauses and so on), which would not appear in a channel allocator even if it did the same job. The anchors (ProfitReallocationPanel.tsx:37, compute.ts:258) show these contexts do prescribe a budget real"
+      }
+    },
+    "1327d703-2851-41c0-b5c9-e135c7998cd6/budget-reallocation-prescription": {
+      "context": "profit-finance",
+      "subject": "budget-reallocation-prescription",
+      "bundle": "marketing",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-16",
+      "evaluatedTs": "2026-10-16T21:51:00.490Z",
+      "techniques": [
+        {
+          "technique": "donor-floor-and-movable-amount",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/profit/compute.ts:116 The input is one portfolio total, not a donor daily budget and a period length."
+        },
+        {
+          "technique": "donor-ranking-waste-vs-profit-destruction",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/profit/compute.ts:122 Channels are ordered by marginal profit per koruna, not by spend-weighted shortfall of a campaign ROAS target."
+        },
+        {
+          "technique": "guardrails-simulate-approve-revert",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/profit/compute.ts:102 The solver returns a plan and has no simulate-approve-revert lifecycle."
+        },
+        {
+          "technique": "linear-projection-with-confidence-cap",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/profit/compute.ts:180 Constant-ROAS revenue is the no-curve path of a channel fill, with no donor-share confidence cap."
+        },
+        {
+          "technique": "pause-zero-return-before-shifting",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/profit/compute.ts:145 An unprofitable channel is given zero spend inside the fill; there is no campaign pause kind."
+        },
+        {
+          "technique": "realized-vs-projected-calibration",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/profit/types.ts:173 The result is a simulator strategy, not a measured applied change set."
+        }
+      ],
+      "withdrawn": {
+        "worker": "18ca905c-de68-4dd8-ba62-13f764da7878",
+        "state": "not-applicable",
+        "at": "2026-10-16T21:51:30.358900+00:00",
+        "reason": "reviewer (sonnet): Both not-applicable verdicts rest on a grep for campaign-module identifiers (movableAmount, includePauses and so on), which would not appear in a channel allocator even if it did the same job. The anchors (ProfitReallocationPanel.tsx:37, compute.ts:258) show these contexts do prescribe a budget real"
+      }
     }
   }
 }

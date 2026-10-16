@@ -1,0 +1,183 @@
+{
+  "schema": "conform-run/1",
+  "worker": "18ca905c-de68-4dd8-ba62-13f764da7878",
+  "subject": "budget-reallocation-prescription",
+  "evaluatedAt": "2026-10-16T21:51:00.490016+00:00",
+  "provider": "grok",
+  "model": "grok-4.7",
+  "pairs": [
+    {
+      "context": "campaigns-budget-alerts",
+      "subject": "budget-reallocation-prescription",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/lib/campaigns/budget-moves.ts:146 A burner is detected by ROAS inside the waste-sorted loop that already stops at maxMoves, so the test is not the conversion count and a higher-waste shift can take the last slot before a smaller pause.",
+      "techniques": [
+        {
+          "technique": "donor-floor-and-movable-amount",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/budget-moves.ts:181 This skip runs after usedRecipient.add on line 172, so a donor already at the daily floor still consumes the recipient."
+        },
+        {
+          "technique": "donor-ranking-waste-vs-profit-destruction",
+          "verdict": "conformant",
+          "evidence": "src/lib/campaigns/budget-moves.ts:119 A margin in (0, 1] ranks by cost minus gross profit; otherwise line 120 uses cost times (1 - roas/TARGET_ROAS), and the donor filter is unchanged."
+        },
+        {
+          "technique": "guardrails-simulate-approve-revert",
+          "verdict": "conformant",
+          "evidence": "src/lib/campaigns/budget-math.ts:84 The first stored micros for a Google budget resource is the one restored."
+        },
+        {
+          "technique": "linear-projection-with-confidence-cap",
+          "verdict": "conformant",
+          "evidence": "src/lib/campaigns/simulate.ts:110 The set is low-confidence once any shift exceeds half the donor's stored period spend; a pause share is 0."
+        },
+        {
+          "technique": "pause-zero-return-before-shifting",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/budget-moves.ts:146 ROAS, not the unrounded conversion count, selects the pause, and the cap is applied in waste order rather than pauses-first."
+        },
+        {
+          "technique": "realized-vs-projected-calibration",
+          "verdict": "conformant",
+          "evidence": "src/lib/campaigns/simulate.ts:189 The supplied multiplier scales the recipient's value and conversions; the donor half above it is unscaled, and a non-positive multiplier reads as 1."
+        }
+      ]
+    },
+    {
+      "context": "campaign-alerts-control",
+      "subject": "budget-reallocation-prescription",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/components/campaigns/BudgetMoves.tsx:313 The preview always prints a portfolio value-change percentage, including when the projected gain is zero or negative.",
+      "techniques": [
+        {
+          "technique": "donor-floor-and-movable-amount",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/BudgetMoves.tsx:172 The preview passes periodDays into recommendBudgetMoves, but Propose posts a bare create and draftChangeSet rebuilds the set without periodDays, so the approved amount is not the floored preview."
+        },
+        {
+          "technique": "donor-ranking-waste-vs-profit-destruction",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/BudgetMoves.tsx:140 A margin outside (0, 1] is dropped before the recommender runs, and the panel states the margin it kept."
+        },
+        {
+          "technique": "guardrails-simulate-approve-revert",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/PendingProposal.tsx:137 A set with violations is confirmed only by a second click that passes override true, after the breach sentences are listed."
+        },
+        {
+          "technique": "linear-projection-with-confidence-cap",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/BudgetMoves.tsx:313 A zero or negative value gain still becomes a lift percentage whenever the portfolio has conversion value."
+        },
+        {
+          "technique": "pause-zero-return-before-shifting",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/BudgetMoves.tsx:68 A pause row shows the amount as spend saved and does not print estValueGain."
+        },
+        {
+          "technique": "realized-vs-projected-calibration",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/ProposalProjection.tsx:62 When the set carries no calibration stamp, the approval screen does not say the multiplier is 1 because history is insufficient."
+        }
+      ]
+    }
+  ],
+  "declined": [
+    {
+      "subject": "budget-reallocation-prescription",
+      "context": "campaigns-core-ui",
+      "reason": "the seat returned unknown"
+    },
+    {
+      "subject": "budget-reallocation-prescription",
+      "context": "profit-analytics",
+      "reason": "withdrawn after review: reviewer (sonnet): Both not-applicable verdicts rest on a grep for campaign-module identifiers (movableAmount, includePauses and so on), which would not appear in a channel allocator even if it did the same job. The anchors (ProfitReallocationPanel.tsx:37, compute.ts:258) show these contexts do prescribe a budget real"
+    },
+    {
+      "subject": "budget-reallocation-prescription",
+      "context": "profit-finance",
+      "reason": "withdrawn after review: reviewer (sonnet): Both not-applicable verdicts rest on a grep for campaign-module identifiers (movableAmount, includePauses and so on), which would not appear in a channel allocator even if it did the same job. The anchors (ProfitReallocationPanel.tsx:37, compute.ts:258) show these contexts do prescribe a budget real"
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-16T21:51:00.490016+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "budget-reallocation-prescription"
+      ],
+      "techniques": [
+        "donor-floor-and-movable-amount",
+        "donor-ranking-waste-vs-profit-destruction",
+        "guardrails-simulate-approve-revert",
+        "linear-projection-with-confidence-cap",
+        "pause-zero-return-before-shifting",
+        "realized-vs-projected-calibration"
+      ],
+      "deviations": 1,
+      "context": "campaigns-budget-alerts",
+      "via": "curator-multi:grok",
+      "model": "grok-4.7"
+    },
+    {
+      "ts": "2026-10-16T21:51:00.490016+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "budget-reallocation-prescription"
+      ],
+      "techniques": [
+        "donor-floor-and-movable-amount",
+        "donor-ranking-waste-vs-profit-destruction",
+        "guardrails-simulate-approve-revert",
+        "linear-projection-with-confidence-cap",
+        "pause-zero-return-before-shifting",
+        "realized-vs-projected-calibration"
+      ],
+      "deviations": 1,
+      "context": "campaign-alerts-control",
+      "via": "curator-multi:grok",
+      "model": "grok-4.7"
+    },
+    {
+      "ts": "2026-10-16T21:51:00.490016+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "budget-reallocation-prescription"
+      ],
+      "techniques": [
+        "donor-floor-and-movable-amount",
+        "donor-ranking-waste-vs-profit-destruction",
+        "guardrails-simulate-approve-revert",
+        "linear-projection-with-confidence-cap",
+        "pause-zero-return-before-shifting",
+        "realized-vs-projected-calibration"
+      ],
+      "deviations": 0,
+      "context": "profit-analytics",
+      "via": "curator-multi:grok",
+      "model": "grok-4.7"
+    },
+    {
+      "ts": "2026-10-16T21:51:00.490016+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "budget-reallocation-prescription"
+      ],
+      "techniques": [
+        "donor-floor-and-movable-amount",
+        "donor-ranking-waste-vs-profit-destruction",
+        "guardrails-simulate-approve-revert",
+        "linear-projection-with-confidence-cap",
+        "pause-zero-return-before-shifting",
+        "realized-vs-projected-calibration"
+      ],
+      "deviations": 0,
+      "context": "profit-finance",
+      "via": "curator-multi:grok",
+      "model": "grok-4.7"
+    }
+  ]
+}
