@@ -1,0 +1,298 @@
+{
+ "schema": "conform-run/1",
+ "worker": "544bf78c-7e0f-40ef-a210-1eb0a6540173",
+ "subject": "concurrency-guards",
+ "evaluatedAt": "2026-10-17T21:42:10.911631+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "ai-pipeline-limits",
+   "subject": "concurrency-guards",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/ai/paid-guard.ts:113 A failure escaping the durable guard's SQLite fallback leaks the already-acquired concurrency slot because this await occurs before the caller installs its finally block.",
+   "techniques": [
+    {
+     "technique": "cache-value-not-handle",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/ai/response-cache.ts:26 The inspected response cache stores completed values and publishes no shared in-flight completion handle."
+    },
+    {
+     "technique": "critical-section-across-a-suspension",
+     "verdict": "conformant",
+     "evidence": "src/lib/ai/experiments.ts:77 Variant read, append and persistence remain inside one transaction across the awaited read."
+    },
+    {
+     "technique": "cross-process-exclusion",
+     "verdict": "deviation",
+     "evidence": "src/app/api/ai/dispatch.ts:199 A durable cache miss acquires no shared claim, so separate instances can both miss and execute the same paid generation."
+    },
+    {
+     "technique": "guard-key-design",
+     "verdict": "conformant",
+     "evidence": "src/lib/ai/response-cache.ts:53 The generation equivalence key canonically includes mode, locale, provider identity and validated input without per-attempt randomness."
+    },
+    {
+     "technique": "idempotency-by-design",
+     "verdict": "deviation",
+     "evidence": "src/lib/ai/experiments.ts:81 Replaying the same variant upsert appends another variant; the deterministic experiment ID does not deduplicate the save intent."
+    },
+    {
+     "technique": "preparation-is-the-staleness-window",
+     "verdict": "conformant",
+     "evidence": "src/lib/ai/durable-limit.ts:119 The spend-ceiling decision and counter debit share the same Firestore transaction, rather than trusting an earlier status peek."
+    },
+    {
+     "technique": "release-guarantees",
+     "verdict": "deviation",
+     "evidence": "src/lib/ai/paid-guard.ts:113 Acquisition precedes this fallible await without exception cleanup; durableGuard's fallback calls localRateLimit without another catch."
+    },
+    {
+     "technique": "single-flight-primitives",
+     "verdict": "deviation",
+     "evidence": "src/app/api/ai/dispatch.ts:237 Concurrent callers missing both cache tiers independently generate and consume quota; no keyed refuse, join or coalesce primitive covers this path."
+    }
+   ]
+  },
+  {
+   "context": "catalog-import-export",
+   "subject": "concurrency-guards",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/catalog/feed-token-store.ts:79 Two concurrent mints can both finish deleting before either inserts, leaving two valid tokens despite the one-token-per-project contract.",
+   "techniques": [
+    {
+     "technique": "atomic-file-publish",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/catalog/export.ts:38 The inspected exporters construct strings or HTTP responses; they do not publish shared filesystem files."
+    },
+    {
+     "technique": "critical-section-across-a-suspension",
+     "verdict": "deviation",
+     "evidence": "src/lib/catalog/feed-token-store.ts:72 Delete and replacement insert are separate awaited operations without a transaction protecting the one-token invariant."
+    },
+    {
+     "technique": "cross-process-exclusion",
+     "verdict": "deviation",
+     "evidence": "src/lib/catalog/feed-token-store.firestore.ts:58 Concurrent mints write different randomly addressed documents without a conditional per-project claim or transactional replacement."
+    },
+    {
+     "technique": "idempotency-by-design",
+     "verdict": "deviation",
+     "evidence": "src/lib/catalog/feed-token-store.ts:74 Replaying a mint generates another token and revokes the previous result; no stable intent identity distinguishes retries from deliberate rotations."
+    }
+   ]
+  },
+  {
+   "context": "cron-scheduler",
+   "subject": "concurrency-guards",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/cron/sent-guard.firestore.ts:27 A process death after claiming but before delivery suppresses retries for that period because the stored claim has no automatic stale-holder recovery.",
+   "techniques": [
+    {
+     "technique": "critical-section-across-a-suspension",
+     "verdict": "conformant",
+     "evidence": "src/lib/cron/sent-guard.firestore.ts:23 Reading the previous period and conditionally claiming its successor remain inside one transaction across the awaited read."
+    },
+    {
+     "technique": "cross-process-exclusion",
+     "verdict": "deviation",
+     "evidence": "src/lib/cron/sent-guard.local.ts:24 Acquisition is atomic, but only a later period can replace an abandoned claim; there is no holder identity or stale takeover for unfinished same-period work."
+    },
+    {
+     "technique": "guard-key-design",
+     "verdict": "conformant",
+     "evidence": "src/lib/cron/sent-guard.ts:37 Digest duplicates are explicitly scoped by tenant, stable operation kind and normalized week."
+    },
+    {
+     "technique": "idempotency-by-design",
+     "verdict": "conformant",
+     "evidence": "src/lib/cron/schedule.ts:22 The durable monotonic period receipt refuses completed-period replays and stale periods, preserving the documented weekly deduplication scope."
+    },
+    {
+     "technique": "release-guarantees",
+     "verdict": "deviation",
+     "evidence": "src/lib/cron/sent-guard.firestore.ts:27 claimedAt is recorded but never used for reclamation; explicit exception-path release cannot recover a crashed or permanently suspended sender."
+    }
+   ],
+   "registryProposal": "Clarify how permanent claim-first deduplication receipts differ from in-flight guards, including the required outcome after a crash before any effect."
+  },
+  {
+   "context": "byom-api",
+   "subject": "concurrency-guards",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/app/api/byom/validate/route.ts:26 A probe can finish after a key or model replacement and stamp its old verdict onto the new configuration because write-back identifies only the user and vendor.",
+   "techniques": [
+    {
+     "technique": "attempt-attribution",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/keys/validate.ts:86 The asynchronous probe result carries no tested-key revision, model revision or attempt generation for comparison at write-back."
+    },
+    {
+     "technique": "critical-section-across-a-suspension",
+     "verdict": "conformant",
+     "evidence": "src/lib/llm/keys/store.firestore.ts:63 Config read, synchronous mutation and replacement write share one transaction across the awaited read."
+    },
+    {
+     "technique": "cross-process-exclusion",
+     "verdict": "conformant",
+     "evidence": "src/lib/llm/keys/store.local.ts:55 The local backend obtains a database write transaction before reading and mutating the config, excluding competing processes through SQLite."
+    },
+    {
+     "technique": "guard-key-design",
+     "verdict": "conformant",
+     "evidence": "src/lib/llm/keys/store.firestore.ts:9 All configuration mutations contend on one per-user aggregate, covering shared active-vendor and operation-matrix state."
+    },
+    {
+     "technique": "preparation-is-the-staleness-window",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/keys/validate.ts:118 Failed-probe rollback restores a vendor snapshot captured before storage and network awaits without conditioning the write on the current active vendor, potentially overwriting a later operator choice."
+    },
+    {
+     "technique": "release-guarantees",
+     "verdict": "conformant",
+     "evidence": "src/lib/llm/keys/store.local.ts:70 The local transaction commits on success and rolls back exceptions; its synchronous mutation body contains no suspension, and SQLite owns process-death lock cleanup."
+    }
+   ]
+  },
+  {
+   "context": "social-media-management",
+   "subject": "concurrency-guards",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/social/Inbox.tsx:116 Starting a send for message B replaces message A's busy marker, re-enabling A while its original send is still running.",
+   "techniques": [
+    {
+     "technique": "attempt-attribution",
+     "verdict": "deviation",
+     "evidence": "src/components/social/useSocialData.ts:56 Refreshes and invalidation events can overlap, but every completion overwrites the shared snapshot without checking an incumbent generation."
+    },
+    {
+     "technique": "critical-section-across-a-suspension",
+     "verdict": "deviation",
+     "evidence": "src/app/api/social/posts/route.ts:171 The earlier cadence read/check and this insertion have no common transaction or reservation, so two legitimate schedules can both consume the last available slot."
+    },
+    {
+     "technique": "cross-process-exclusion",
+     "verdict": "deviation",
+     "evidence": "src/app/api/social/posts/route.ts:82 The channel-week cap is checked against a read snapshot without a shared atomic claim, allowing different instances to admit conflicting schedules."
+    },
+    {
+     "technique": "idempotency-by-design",
+     "verdict": "deviation",
+     "evidence": "src/lib/social/store.ts:41 Every replayed create request mints a new post identity, so a lost-response retry can schedule or publish another post instead of returning the original intent's result."
+    },
+    {
+     "technique": "release-guarantees",
+     "verdict": "deviation",
+     "evidence": "src/components/social/Inbox.tsx:131 A completed send unconditionally clears the shared busy marker even when a different message's send now owns it."
+    },
+    {
+     "technique": "single-flight-primitives",
+     "verdict": "deviation",
+     "evidence": "src/components/social/Inbox.tsx:202 Per-message admission depends on one scalar marker rather than a keyed in-flight set; starting another message's send reopens the first."
+    }
+   ]
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-17T21:42:10.911631+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "concurrency-guards"
+   ],
+   "techniques": [
+    "cache-value-not-handle",
+    "critical-section-across-a-suspension",
+    "cross-process-exclusion",
+    "guard-key-design",
+    "idempotency-by-design",
+    "preparation-is-the-staleness-window",
+    "release-guarantees",
+    "single-flight-primitives"
+   ],
+   "deviations": 1,
+   "context": "ai-pipeline-limits",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-17T21:42:10.911631+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "concurrency-guards"
+   ],
+   "techniques": [
+    "atomic-file-publish",
+    "critical-section-across-a-suspension",
+    "cross-process-exclusion",
+    "idempotency-by-design"
+   ],
+   "deviations": 1,
+   "context": "catalog-import-export",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-17T21:42:10.911631+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "concurrency-guards"
+   ],
+   "techniques": [
+    "critical-section-across-a-suspension",
+    "cross-process-exclusion",
+    "guard-key-design",
+    "idempotency-by-design",
+    "release-guarantees"
+   ],
+   "deviations": 1,
+   "context": "cron-scheduler",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-17T21:42:10.911631+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "concurrency-guards"
+   ],
+   "techniques": [
+    "attempt-attribution",
+    "critical-section-across-a-suspension",
+    "cross-process-exclusion",
+    "guard-key-design",
+    "preparation-is-the-staleness-window",
+    "release-guarantees"
+   ],
+   "deviations": 1,
+   "context": "byom-api",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-17T21:42:10.911631+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "concurrency-guards"
+   ],
+   "techniques": [
+    "attempt-attribution",
+    "critical-section-across-a-suspension",
+    "cross-process-exclusion",
+    "idempotency-by-design",
+    "release-guarantees",
+    "single-flight-primitives"
+   ],
+   "deviations": 1,
+   "context": "social-media-management",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}

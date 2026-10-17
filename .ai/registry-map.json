@@ -2601,7 +2601,11 @@
           "revision": 14,
           "changedAt": "2026-09-17",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/ai/paid-guard.ts:113 A failure escaping the durable guard's SQLite fallback leaks the already-acquired concurrency slot because this await occurs before the caller installs its finally block.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:ccc991958e998a93",
+          "evaluatedRevision": 16
         },
         {
           "subject": "agent-memory",
@@ -4691,7 +4695,11 @@
           "revision": 14,
           "changedAt": "2026-09-17",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/app/api/byom/validate/route.ts:26 A probe can finish after a key or model replacement and stamp its old verdict onto the new configuration because write-back identifies only the user and vendor.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:ccc991958e998a93",
+          "evaluatedRevision": 16
         },
         {
           "subject": "quality-gates",
@@ -6890,7 +6898,11 @@
           "revision": 14,
           "changedAt": "2026-09-17",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/catalog/feed-token-store.ts:79 Two concurrent mints can both finish deleting before either inserts, leaving two valid tokens despite the one-token-per-project contract.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:ccc991958e998a93",
+          "evaluatedRevision": 16
         },
         {
           "subject": "voice-io",
@@ -8538,7 +8550,11 @@
           "revision": 14,
           "changedAt": "2026-09-17",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/cron/sent-guard.firestore.ts:27 A process death after claiming but before delivery suppresses retries for that period because the stored claim has no automatic stale-holder recovery.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:ccc991958e998a93",
+          "evaluatedRevision": 16
         },
         {
           "subject": "cost-metering",
@@ -17216,7 +17232,11 @@
           "revision": 14,
           "changedAt": "2026-09-17",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/social/Inbox.tsx:116 Starting a send for message B replaces message A's busy marker, re-enabling A while its original send is still running.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:ccc991958e998a93",
+          "evaluatedRevision": 16
         }
       ],
       "governance": "governed"
