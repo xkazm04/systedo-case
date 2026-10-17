@@ -1,0 +1,222 @@
+{
+ "schema": "conform-run/1",
+ "worker": "e83f4677-e5fd-4b79-aecc-25bf6176afd6",
+ "subject": "period-comparison-significance",
+ "evaluatedAt": "2026-10-17T23:34:00.241095+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [
+  {
+   "context": "dashboard-kpi",
+   "subject": "period-comparison-significance",
+   "bundle": "marketing",
+   "state": "conformant",
+   "evidence": "src/components/dashboard/DeltaBadge.tsx:67 DeltaBadge renders noise-tier deltas in a muted styling without good or bad coloration while preserving direction, magnitude, and an accessible variance note.",
+   "techniques": [
+    {
+     "technique": "noise-muted-not-coloured",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/DeltaBadge.tsx:67 Mutes delta badge when significance is noise, keeping arrow and value without green/red tone."
+    },
+    {
+     "technique": "funnel-decomposition-only-when-strong",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/DashboardClient.tsx:170 Gates revenue funnel decomposition strictly on strong significance tier."
+    },
+    {
+     "technique": "equal-windows-and-truncated-flag",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/DashboardClient.tsx:200 Passes period truncation flag to the period header for display."
+    },
+    {
+     "technique": "yoy-364-day-shift",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/DashboardClient.tsx:145 Validates year-over-year support against the 364-day shifted baseline before permitting selection."
+    },
+    {
+     "technique": "partial-buckets-flagged-not-compared",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/TrendChart.tsx:549 Renders partial month buckets with hollow fill and dashed stroke alongside an explanatory partial label."
+    },
+    {
+     "technique": "significance-tier-per-metric-class",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/KpiCard.tsx:56 Passes per-metric significance tier through to DeltaBadge."
+    }
+   ]
+  },
+  {
+   "context": "dashboard-vykon",
+   "subject": "period-comparison-significance",
+   "bundle": "marketing",
+   "state": "conformant",
+   "evidence": "src/components/dashboard/vykon/PeriodHeader.tsx:92 PeriodHeader surfaces the truncation state with an explicit shortened-days label and tooltip when the requested window exceeds available history.",
+   "techniques": [
+    {
+     "technique": "equal-windows-and-truncated-flag",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/vykon/PeriodHeader.tsx:92 Displays the cut indicator with formatted actual days and explanatory hover."
+    },
+    {
+     "technique": "yoy-364-day-shift",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/vykon/PeriodHeader.tsx:119 Disables the YoY segmented option with an honest explanation when historical span is insufficient."
+    },
+    {
+     "technique": "noise-muted-not-coloured",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/vykon/insight-lines.ts:337 Orders auto-generated insight lines by significance tier first and magnitude second."
+    },
+    {
+     "technique": "funnel-decomposition-only-when-strong",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/vykon/insight-lines.ts:265 Surfaces funnel attribution lines only when the gated decomposition exists."
+    },
+    {
+     "technique": "significance-tier-per-metric-class",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/vykon/KpiGrid.tsx:92 Feeds engine-computed significance tiers directly into each card badge."
+    }
+   ]
+  },
+  {
+   "context": "metrics-core",
+   "subject": "period-comparison-significance",
+   "bundle": "marketing",
+   "state": "conformant",
+   "evidence": "src/lib/metrics/series.ts:180 The metrics engine classifies value ratios to the orientational tier without sound two-window testing while reserving two-sample and two-proportion z-tests for additive and count-rate metrics.",
+   "techniques": [
+    {
+     "technique": "significance-tier-per-metric-class",
+     "verdict": "conformant",
+     "evidence": "src/lib/metrics/series.ts:180 Classifies value ratios (PNO, ROAS, AOV, CPC) as orientational with no confidence claimed."
+    },
+    {
+     "technique": "equal-windows-and-truncated-flag",
+     "verdict": "conformant",
+     "evidence": "src/lib/metrics/series.ts:217 Enforces equal window spans by capping to half the series and emitting a first-class truncated flag."
+    },
+    {
+     "technique": "yoy-364-day-shift",
+     "verdict": "conformant",
+     "evidence": "src/lib/metrics/series.ts:50 Shifts exactly 364 days (52 weeks) to preserve weekday alignment across years."
+    },
+    {
+     "technique": "funnel-decomposition-only-when-strong",
+     "verdict": "conformant",
+     "evidence": "src/lib/metrics/snapshot.ts:131 Attribution across multiplicative drivers only executes when revenue delta is strong."
+    },
+    {
+     "technique": "partial-buckets-flagged-not-compared",
+     "verdict": "conformant",
+     "evidence": "src/lib/metrics/series.ts:309 Flags month buckets with day counts strictly less than calendar length as partial."
+    }
+   ]
+  },
+  {
+   "context": "reporting-modules",
+   "subject": "period-comparison-significance",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/app/app/[projectId]/performance/mesicni-report/page.tsx:124 The monthly client recap module renders period comparison tiles with binary green/red coloring on raw deltas without significance testing or noise muting, and does not surface window truncation.",
+   "techniques": [
+    {
+     "technique": "noise-muted-not-coloured",
+     "verdict": "deviation",
+     "evidence": "src/app/app/[projectId]/performance/mesicni-report/page.tsx:124 MonthlyReport renders delta text using naive deltaTone positive/negative classes without muting noise-tier changes."
+    },
+    {
+     "technique": "equal-windows-and-truncated-flag",
+     "verdict": "deviation",
+     "evidence": "src/app/app/[projectId]/performance/mesicni-report/page.tsx:126 Passes period snaps into MonthlyReport without exposing a cut badge or shortened span notice when a period is truncated."
+    },
+    {
+     "technique": "significance-tier-per-metric-class",
+     "verdict": "deviation",
+     "evidence": "src/app/app/[projectId]/performance/mesicni-report/page.tsx:82 assembleReport strips engine significance tiers from ReportSnap, treating all metric classes identically."
+    }
+   ],
+   "registryProposal": "Clarify in the standard whether client-facing monthly recap modules should support an explicit fallback badge grammar when presenting overview snapshots without full timeseries data."
+  }
+ ],
+ "declined": [
+  {
+   "subject": "period-comparison-significance",
+   "context": "metrics-analysis",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-17T23:34:00.241095+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "period-comparison-significance"
+   ],
+   "techniques": [
+    "equal-windows-and-truncated-flag",
+    "funnel-decomposition-only-when-strong",
+    "noise-muted-not-coloured",
+    "partial-buckets-flagged-not-compared",
+    "significance-tier-per-metric-class",
+    "yoy-364-day-shift"
+   ],
+   "deviations": 0,
+   "context": "dashboard-kpi",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-17T23:34:00.241095+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "period-comparison-significance"
+   ],
+   "techniques": [
+    "equal-windows-and-truncated-flag",
+    "funnel-decomposition-only-when-strong",
+    "noise-muted-not-coloured",
+    "significance-tier-per-metric-class",
+    "yoy-364-day-shift"
+   ],
+   "deviations": 0,
+   "context": "dashboard-vykon",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-17T23:34:00.241095+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "period-comparison-significance"
+   ],
+   "techniques": [
+    "equal-windows-and-truncated-flag",
+    "funnel-decomposition-only-when-strong",
+    "partial-buckets-flagged-not-compared",
+    "significance-tier-per-metric-class",
+    "yoy-364-day-shift"
+   ],
+   "deviations": 0,
+   "context": "metrics-core",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-17T23:34:00.241095+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "period-comparison-significance"
+   ],
+   "techniques": [
+    "equal-windows-and-truncated-flag",
+    "noise-muted-not-coloured",
+    "significance-tier-per-metric-class"
+   ],
+   "deviations": 1,
+   "context": "reporting-modules",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  }
+ ]
+}

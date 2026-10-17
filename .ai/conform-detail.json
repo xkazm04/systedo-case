@@ -6753,6 +6753,119 @@
           "evidence": "src/components/marketing/charts/VisibilityGauge.tsx:48 The gauge displays its supplied value, rather than summarizing actions or assertions from a recorded take."
         }
       ]
+    },
+    "2052fdcd-7bf0-4625-b8c4-748279361350/period-comparison-significance": {
+      "context": "dashboard-kpi",
+      "subject": "period-comparison-significance",
+      "bundle": "marketing",
+      "state": "conformant",
+      "evaluatedAt": "2026-10-17",
+      "evaluatedTs": "2026-10-17T23:34:00.241Z",
+      "worker": "e83f4677-e5fd-4b79-aecc-25bf6176afd6",
+      "techniques": [
+        {
+          "technique": "noise-muted-not-coloured",
+          "verdict": "conformant",
+          "evidence": "src/components/dashboard/DeltaBadge.tsx:67 Mutes delta badge when significance is noise, keeping arrow and value without green/red tone."
+        },
+        {
+          "technique": "funnel-decomposition-only-when-strong",
+          "verdict": "conformant",
+          "evidence": "src/components/dashboard/DashboardClient.tsx:170 Gates revenue funnel decomposition strictly on strong significance tier."
+        },
+        {
+          "technique": "equal-windows-and-truncated-flag",
+          "verdict": "conformant",
+          "evidence": "src/components/dashboard/DashboardClient.tsx:200 Passes period truncation flag to the period header for display."
+        },
+        {
+          "technique": "yoy-364-day-shift",
+          "verdict": "conformant",
+          "evidence": "src/components/dashboard/DashboardClient.tsx:145 Validates year-over-year support against the 364-day shifted baseline before permitting selection."
+        },
+        {
+          "technique": "partial-buckets-flagged-not-compared",
+          "verdict": "conformant",
+          "evidence": "src/components/dashboard/TrendChart.tsx:549 Renders partial month buckets with hollow fill and dashed stroke alongside an explanatory partial label."
+        },
+        {
+          "technique": "significance-tier-per-metric-class",
+          "verdict": "conformant",
+          "evidence": "src/components/dashboard/KpiCard.tsx:56 Passes per-metric significance tier through to DeltaBadge."
+        }
+      ]
+    },
+    "1e5b0d65-7109-481e-ad01-7dd1b7afc143/period-comparison-significance": {
+      "context": "dashboard-vykon",
+      "subject": "period-comparison-significance",
+      "bundle": "marketing",
+      "state": "conformant",
+      "evaluatedAt": "2026-10-17",
+      "evaluatedTs": "2026-10-17T23:34:00.241Z",
+      "worker": "e83f4677-e5fd-4b79-aecc-25bf6176afd6",
+      "techniques": [
+        {
+          "technique": "equal-windows-and-truncated-flag",
+          "verdict": "conformant",
+          "evidence": "src/components/dashboard/vykon/PeriodHeader.tsx:92 Displays the cut indicator with formatted actual days and explanatory hover."
+        },
+        {
+          "technique": "yoy-364-day-shift",
+          "verdict": "conformant",
+          "evidence": "src/components/dashboard/vykon/PeriodHeader.tsx:119 Disables the YoY segmented option with an honest explanation when historical span is insufficient."
+        },
+        {
+          "technique": "noise-muted-not-coloured",
+          "verdict": "conformant",
+          "evidence": "src/components/dashboard/vykon/insight-lines.ts:337 Orders auto-generated insight lines by significance tier first and magnitude second."
+        },
+        {
+          "technique": "funnel-decomposition-only-when-strong",
+          "verdict": "conformant",
+          "evidence": "src/components/dashboard/vykon/insight-lines.ts:265 Surfaces funnel attribution lines only when the gated decomposition exists."
+        },
+        {
+          "technique": "significance-tier-per-metric-class",
+          "verdict": "conformant",
+          "evidence": "src/components/dashboard/vykon/KpiGrid.tsx:92 Feeds engine-computed significance tiers directly into each card badge."
+        }
+      ]
+    },
+    "01e1efff-ad9f-4d4a-aed3-51e85452f80e/period-comparison-significance": {
+      "context": "metrics-core",
+      "subject": "period-comparison-significance",
+      "bundle": "marketing",
+      "state": "conformant",
+      "evaluatedAt": "2026-10-17",
+      "evaluatedTs": "2026-10-17T23:34:00.241Z",
+      "worker": "e83f4677-e5fd-4b79-aecc-25bf6176afd6",
+      "techniques": [
+        {
+          "technique": "significance-tier-per-metric-class",
+          "verdict": "conformant",
+          "evidence": "src/lib/metrics/series.ts:180 Classifies value ratios (PNO, ROAS, AOV, CPC) as orientational with no confidence claimed."
+        },
+        {
+          "technique": "equal-windows-and-truncated-flag",
+          "verdict": "conformant",
+          "evidence": "src/lib/metrics/series.ts:217 Enforces equal window spans by capping to half the series and emitting a first-class truncated flag."
+        },
+        {
+          "technique": "yoy-364-day-shift",
+          "verdict": "conformant",
+          "evidence": "src/lib/metrics/series.ts:50 Shifts exactly 364 days (52 weeks) to preserve weekday alignment across years."
+        },
+        {
+          "technique": "funnel-decomposition-only-when-strong",
+          "verdict": "conformant",
+          "evidence": "src/lib/metrics/snapshot.ts:131 Attribution across multiplicative drivers only executes when revenue delta is strong."
+        },
+        {
+          "technique": "partial-buckets-flagged-not-compared",
+          "verdict": "conformant",
+          "evidence": "src/lib/metrics/series.ts:309 Flags month buckets with day counts strictly less than calendar length as partial."
+        }
+      ]
     }
   }
 }

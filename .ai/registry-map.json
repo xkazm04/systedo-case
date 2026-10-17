@@ -8612,7 +8612,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/components/dashboard/DeltaBadge.tsx:67 DeltaBadge renders noise-tier deltas in a muted styling without good or bad coloration while preserving direction, magnitude, and an accessible variance note.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:19d7b11db78bbddc",
+          "evaluatedRevision": 1
         },
         {
           "subject": "goal-pacing-and-forecast",
@@ -8776,7 +8780,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/components/dashboard/vykon/PeriodHeader.tsx:92 PeriodHeader surfaces the truncation state with an explicit shortened-days label and tooltip when the requested window exceeds available history.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:19d7b11db78bbddc",
+          "evaluatedRevision": 1
         },
         {
           "subject": "metrics-rollups",
@@ -12395,7 +12403,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/lib/metrics/series.ts:180 The metrics engine classifies value ratios to the orientational tier without sound two-window testing while reserving two-sample and two-proportion z-tests for additive and count-rate metrics.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:19d7b11db78bbddc",
+          "evaluatedRevision": 1
         },
         {
           "subject": "metric-gates",
