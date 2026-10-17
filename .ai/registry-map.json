@@ -1822,7 +1822,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/sklik/keywords.ts:53 The Sklik mapper treats a reported zero search count as missing and replaces it with the default volume of ten, inflating a measured value.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:3c031946f2a0d34d",
+          "evaluatedRevision": 1
         },
         {
           "subject": "optional-dependency-degradation",
@@ -10045,7 +10049,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/ai/KeywordResearch.tsx:688 The research UI presents summed cluster volumes as monthly amounts and displays defaulted bid metrics without marking their absence.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:3c031946f2a0d34d",
+          "evaluatedRevision": 1
         },
         {
           "subject": "search-intent-classification",
@@ -11491,7 +11499,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/local-signals/import.ts:119 Context searches found no volume, difficulty, competition, or avgMonthlySearches references, while repository searches located them in keyword and provider code; this importer handles observed ranks rather than keyword-demand metrics.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:3c031946f2a0d34d",
+          "evaluatedRevision": 1
         },
         {
           "subject": "quality-gates",
@@ -11848,7 +11860,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/CompareSeoTable.tsx:482 The SEO comparison summarizes keyword buckets as an additive monthly total, while its acquisition display also forecasts conversions from individual keyword volumes.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:3c031946f2a0d34d",
+          "evaluatedRevision": 1
         },
         {
           "subject": "multi-project",
@@ -13190,7 +13206,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/keywords/types.ts:270 Opportunity scoring treats bucketed volume as a cardinal quantity normalized against the largest term, flattening smaller opportunities.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:3c031946f2a0d34d",
+          "evaluatedRevision": 1
         },
         {
           "subject": "eval-harness",

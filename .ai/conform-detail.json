@@ -6333,6 +6333,196 @@
           "evidence": "src/components/social/Inbox.tsx:202 Per-message admission depends on one scalar marker rather than a keyed in-flight set; starting another message's send reopens the first."
         }
       ]
+    },
+    "2ed8a000-3407-40e1-9ba6-d78b2f872776/keyword-metric-reliability": {
+      "context": "organic-channels-keywords",
+      "subject": "keyword-metric-reliability",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-17",
+      "evaluatedTs": "2026-10-17T22:30:47.152Z",
+      "worker": "982195bf-5c9b-4f81-9c15-8f89e132a037",
+      "techniques": [
+        {
+          "technique": "authority-ceiling-blogs-not-money-pages",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/keywords/engine.ts:111 The resolver finalizes keyword suggestions without setting an authority-based difficulty ceiling."
+        },
+        {
+          "technique": "difficulty-is-a-link-count",
+          "verdict": "deviation",
+          "evidence": "src/lib/keywords/types.ts:271 Auction competition supplies organic opportunity's ease component, although it does not measure incumbent links."
+        },
+        {
+          "technique": "local-terms-rank-by-revenue-not-volume",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/keywords/engine.ts:55 This workflow retrieves suggestions for a seed rather than constructing a service-by-city grid or applying a volume floor."
+        },
+        {
+          "technique": "unknown-metric-sinks-never-flatters",
+          "verdict": "deviation",
+          "evidence": "src/lib/organic-channels/visibility-plan.ts:345 Saved-list deduplication chooses metrics before provenance, so a stronger-scoring sample can displace real measurements; line 351 then assigns the strongest provenance from either record."
+        },
+        {
+          "technique": "volume-as-order-of-magnitude",
+          "verdict": "deviation",
+          "evidence": "src/lib/keywords/types.ts:270 The composite score uses raw volume divided by the maximum instead of ranks or logarithms; intent-group volumes are also summed at line 302."
+        }
+      ]
+    },
+    "7e635441-8941-4193-9384-aca1c2e5c15b/keyword-metric-reliability": {
+      "context": "map-pack-seo-comparison",
+      "subject": "keyword-metric-reliability",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-17",
+      "evaluatedTs": "2026-10-17T22:30:47.152Z",
+      "worker": "982195bf-5c9b-4f81-9c15-8f89e132a037",
+      "techniques": [
+        {
+          "technique": "authority-ceiling-blogs-not-money-pages",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/CompareSeoTable.tsx:697 This table applies relative opportunity scoring, not an authority-based blog-versus-money-page ceiling."
+        },
+        {
+          "technique": "difficulty-is-a-link-count",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/CompareSeoTable.tsx:374 Difficulty is displayed without vendor, pull date, or link interpretation; the saved-list derivation was checked and converts auction competition into this organic difficulty value."
+        },
+        {
+          "technique": "local-terms-rank-by-revenue-not-volume",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/MapPackClient.tsx:193 The local surface orders observed business listings by position rather than prioritizing service-by-city keyword candidates."
+        },
+        {
+          "technique": "unknown-metric-sinks-never-flatters",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/CompareSeoTable.tsx:373 The table renders volume unconditionally as a number, including provider defaults carried through saved lists, without distinguishing unreported values."
+        },
+        {
+          "technique": "volume-as-order-of-magnitude",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/CompareSeoTable.tsx:482 The summary adds keyword buckets without family deduplication; the checked acquisition helper also multiplies keyword volume by CTR and conversion rate."
+        }
+      ]
+    },
+    "f18d8e93-bf49-4fd6-b66a-8445d1669a00/keyword-metric-reliability": {
+      "context": "keyword-research-ai",
+      "subject": "keyword-metric-reliability",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-17",
+      "evaluatedTs": "2026-10-17T22:30:47.152Z",
+      "worker": "982195bf-5c9b-4f81-9c15-8f89e132a037",
+      "techniques": [
+        {
+          "technique": "authority-ceiling-blogs-not-money-pages",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/KeywordResearch.tsx:249 Brief selection uses explicit picks or the leading suggestions; this component does not set an authority-based difficulty ceiling."
+        },
+        {
+          "technique": "difficulty-is-a-link-count",
+          "verdict": "deviation",
+          "evidence": "src/components/ai/KeywordResearch.tsx:319 The component describes saved auction competition as true SEO difficulty; the consumer was checked and indeed derives difficulty from competitionIndex."
+        },
+        {
+          "technique": "local-terms-rank-by-revenue-not-volume",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/KeywordResearch.tsx:200 Research accepts a free-form seed, including a handed-in local query, but does not build or prioritize a service-by-city grid or enforce a volume floor."
+        },
+        {
+          "technique": "unknown-metric-sinks-never-flatters",
+          "verdict": "deviation",
+          "evidence": "src/components/ai/KeywordResearch.tsx:642 Missing provider CPC becomes zero bid bounds upstream, and this cell renders the resulting zero-to-zero range without a not-reported state."
+        },
+        {
+          "technique": "volume-as-order-of-magnitude",
+          "verdict": "deviation",
+          "evidence": "src/components/ai/KeywordResearch.tsx:688 The checked clustering implementation sums member volumes, and this component presents that sum as a monthly amount rather than a family bucket."
+        }
+      ]
+    },
+    "dcc78ba3-0c54-4352-acb4-6f0f4169ce58/keyword-metric-reliability": {
+      "context": "ad-platform-integrations",
+      "subject": "keyword-metric-reliability",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-17",
+      "evaluatedTs": "2026-10-17T22:30:47.152Z",
+      "worker": "982195bf-5c9b-4f81-9c15-8f89e132a037",
+      "techniques": [
+        {
+          "technique": "authority-ceiling-blogs-not-money-pages",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/google/keyword-planner.ts:89 The client requests provider suggestions; it does not set keyword-map ceilings or decide whether pages should exist."
+        },
+        {
+          "technique": "difficulty-is-a-link-count",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/google/keyword-planner.ts:54 This adapter exposes the provider's auction competition as competition; organic difficulty interpretation occurs in consumers outside this context."
+        },
+        {
+          "technique": "local-terms-rank-by-revenue-not-volume",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/google/keyword-planner.ts:82 The request selects a national market rather than constructing or ranking service-by-city candidates."
+        },
+        {
+          "technique": "serp-age-and-topical-proximity",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/google/keyword-planner.ts:101 This layer maps returned suggestions and makes no new-site viability or topical build-order decision."
+        },
+        {
+          "technique": "unknown-metric-sinks-never-flatters",
+          "verdict": "deviation",
+          "evidence": "src/lib/sklik/keywords.ts:53 A measured zero fails this condition and becomes SKLIK_DEFAULT_VOLUME, violating the explicit rule against replacing measured zeros with defaults."
+        },
+        {
+          "technique": "volume-as-order-of-magnitude",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/google/keyword-planner.ts:53 The adapter extracts provider volume but performs no volume-based sorting, composite scoring, cluster summation, or traffic forecasting."
+        }
+      ]
+    },
+    "80f8ab66-8ef3-4766-a245-473b25775bfd/keyword-metric-reliability": {
+      "context": "local-signals",
+      "subject": "keyword-metric-reliability",
+      "bundle": "marketing",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-17",
+      "evaluatedTs": "2026-10-17T22:30:47.152Z",
+      "worker": "982195bf-5c9b-4f81-9c15-8f89e132a037",
+      "techniques": [
+        {
+          "technique": "authority-ceiling-blogs-not-money-pages",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/local-signals/import.ts:625 Coverage ingestion records page presence for a service and locality, not an authority-derived page eligibility ceiling."
+        },
+        {
+          "technique": "difficulty-is-a-link-count",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/local-signals/import.ts:139 The numeric value being normalized is an observed search position, not keyword difficulty."
+        },
+        {
+          "technique": "local-terms-rank-by-revenue-not-volume",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/local-signals/import.ts:638 Service-locality rows record coverage facts without choosing a keyword build order or applying a demand floor."
+        },
+        {
+          "technique": "serp-age-and-topical-proximity",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/local-signals/ladder-summary.ts:14 This summarizes map-pack positions, which the technique explicitly excludes from organic result-age analysis."
+        },
+        {
+          "technique": "unknown-metric-sinks-never-flatters",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/local-signals/import.ts:119 The rank import carries observation columns rather than provider volume, competition, or CPC metrics feeding keyword opportunity rankings."
+        },
+        {
+          "technique": "volume-as-order-of-magnitude",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/local-signals/summary.ts:53 The summary computes average observed position, not demand buckets or traffic estimates."
+        }
+      ]
     }
   }
 }
