@@ -1,0 +1,363 @@
+{
+ "schema": "conform-run/1",
+ "worker": "70de8892-7b98-452f-9610-37531cc9d38a",
+ "subject": "live-system-demo-film",
+ "evaluatedAt": "2026-10-17T23:01:36.100631+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "demo-mode",
+   "subject": "live-system-demo-film",
+   "bundle": "media-generation",
+   "state": "not-applicable",
+   "evidence": "src/components/demo/DemoModule.tsx:152 This context renders an interactive dashboard with sample data; context and repository searches found no ffmpeg, ffprobe, recordVideo or MediaRecorder implementation establishing a demo-film pipeline.",
+   "techniques": [
+    {
+     "technique": "audio-first-beat-pacing",
+     "verdict": "not-applicable",
+     "evidence": "src/components/demo/DemoModule.tsx:213 The clock supports sample inventory calculations; no captured picture is paced against narration."
+    },
+    {
+     "technique": "recorder-owned-overlay",
+     "verdict": "not-applicable",
+     "evidence": "src/components/demo/DemoShell.tsx:104 This disclosure belongs to the visitor-facing demo shell; no film recorder adds explanatory chrome."
+    },
+    {
+     "technique": "recording-that-asserts-its-claims",
+     "verdict": "not-applicable",
+     "evidence": "src/components/demo/DemoModule.tsx:10 The module renders public sample surfaces; no captured take establishes the recorder-assertion precondition."
+    },
+    {
+     "technique": "retake-without-an-edit-session",
+     "verdict": "not-applicable",
+     "evidence": "src/components/demo/DemoShell.tsx:75 Visitors navigate demo modules; there is no narrated film to regenerate or assemble."
+    },
+    {
+     "technique": "script-as-single-source",
+     "verdict": "not-applicable",
+     "evidence": "src/components/demo/DemoModule.tsx:636 The demo is organized as browser navigation, without a film beat script."
+    },
+    {
+     "technique": "seeded-stage-with-a-declared-boundary",
+     "verdict": "not-applicable",
+     "evidence": "src/components/demo/DemoModule.tsx:391 These fixtures populate interactive product previews; no film uses them as its stage."
+    },
+    {
+     "technique": "summary-rendered-from-the-run",
+     "verdict": "not-applicable",
+     "evidence": "src/components/demo/DemoModule.tsx:594 The monthly report summarizes product data, rather than a capture run's actions or assertions."
+    }
+   ],
+   "absenceTerms": [
+    "ffmpeg",
+    "ffprobe",
+    "recordVideo",
+    "MediaRecorder"
+   ]
+  },
+  {
+   "context": "public-demo-dashboard",
+   "subject": "live-system-demo-film",
+   "bundle": "media-generation",
+   "state": "not-applicable",
+   "evidence": "src/app/dashboard/page.tsx:47 The route serves a navigable product workspace; context and repository searches found no ffmpeg, ffprobe, recordVideo or MediaRecorder implementation connecting it to demo-film production.",
+   "techniques": [
+    {
+     "technique": "audio-first-beat-pacing",
+     "verdict": "not-applicable",
+     "evidence": "src/app/dashboard/page.tsx:26 This handles page streaming, without synthesized narration or audio-paced capture."
+    },
+    {
+     "technique": "recorder-owned-overlay",
+     "verdict": "not-applicable",
+     "evidence": "src/app/dashboard/report/page.tsx:33 The report uses the application's public demo shell, without a film recorder or injected overlay."
+    },
+    {
+     "technique": "recording-that-asserts-its-claims",
+     "verdict": "not-applicable",
+     "evidence": "src/app/dashboard/page.tsx:48 The route renders the selected module; it does not make a captured take."
+    },
+    {
+     "technique": "retake-without-an-edit-session",
+     "verdict": "not-applicable",
+     "evidence": "src/app/dashboard/page.tsx:42 A query parameter selects a browser module, without a film regeneration workflow."
+    },
+    {
+     "technique": "script-as-single-source",
+     "verdict": "not-applicable",
+     "evidence": "src/app/dashboard/page.tsx:37 Page parameters control the interactive view; no narration, driving and caption script is consumed."
+    },
+    {
+     "technique": "seeded-stage-with-a-declared-boundary",
+     "verdict": "not-applicable",
+     "evidence": "src/app/dashboard/report/page.tsx:31 The fixture supplies an interactive report, without an associated film stage."
+    },
+    {
+     "technique": "summary-rendered-from-the-run",
+     "verdict": "not-applicable",
+     "evidence": "src/app/dashboard/report/page.tsx:35 This is a performance report over a dataset, rather than a recap of a recorded demonstration."
+    }
+   ],
+   "absenceTerms": [
+    "ffmpeg",
+    "ffprobe",
+    "recordVideo",
+    "MediaRecorder"
+   ]
+  },
+  {
+   "context": "product-demo-pages",
+   "subject": "live-system-demo-film",
+   "bundle": "media-generation",
+   "state": "not-applicable",
+   "evidence": "src/app/kanaly-zdarma/page.tsx:16 These files implement public web showcases and product entry points; context and repository searches found no ffmpeg, ffprobe, recordVideo or MediaRecorder implementation establishing a demo-film production workflow.",
+   "techniques": [
+    {
+     "technique": "audio-first-beat-pacing",
+     "verdict": "not-applicable",
+     "evidence": "src/app/lokalni-seo/loading.tsx:24 The animation is a route-loading placeholder, without narrated picture beats."
+    },
+    {
+     "technique": "recorder-owned-overlay",
+     "verdict": "not-applicable",
+     "evidence": "src/app/lokalni-seo/page.tsx:17 The showcase is a web page component, without recorder-owned explanatory chrome."
+    },
+    {
+     "technique": "recording-that-asserts-its-claims",
+     "verdict": "not-applicable",
+     "evidence": "src/app/ai-asistent/page.tsx:128 Visitors use an embedded assistant; no captured take exists whose narration requires assertions."
+    },
+    {
+     "technique": "retake-without-an-edit-session",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/kanaly/FreeChannelsClosing.tsx:38 The closing section leads into the product, without film synthesis or retake controls."
+    },
+    {
+     "technique": "script-as-single-source",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/kanaly/FreeChannelsPath.tsx:112 Shared labels describe a product lifecycle; they are not a script consumed by film narration, capture and captions."
+    },
+    {
+     "technique": "seeded-stage-with-a-declared-boundary",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/kanaly/SeededPlanTable.tsx:45 The page discloses its sample data, but no film uses this fixture as a declared stage."
+    },
+    {
+     "technique": "summary-rendered-from-the-run",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/kanaly/facts.ts:81 The figure counts catalog categories, rather than events in a recorded demonstration."
+    }
+   ],
+   "absenceTerms": [
+    "ffmpeg",
+    "ffprobe",
+    "recordVideo",
+    "MediaRecorder"
+   ]
+  },
+  {
+   "context": "demo-site-nav",
+   "subject": "live-system-demo-film",
+   "bundle": "media-generation",
+   "state": "not-applicable",
+   "evidence": "src/lib/demo/projects.ts:92 This context supplies demo fixtures, browser navigation and microsite reports; context and repository searches found no ffmpeg, ffprobe, recordVideo or MediaRecorder implementation establishing film production.",
+   "techniques": [
+    {
+     "technique": "audio-first-beat-pacing",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/demo/projects.ts:17 The fixed timestamp stabilizes fixture data; it does not pace captured pictures against narration."
+    },
+    {
+     "technique": "recorder-owned-overlay",
+     "verdict": "not-applicable",
+     "evidence": "src/components/microsite/PerformanceMicrosite.tsx:102 This is a microsite disclosure rendered by the product, without a film recorder or overlay."
+    },
+    {
+     "technique": "recording-that-asserts-its-claims",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/demo/projects.ts:70 The code selects a fitting project fixture for a module, without driving a captured take."
+    },
+    {
+     "technique": "retake-without-an-edit-session",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/microsite.ts:90 The fallback serves a built-in microsite; it is not a film retake or narration cache."
+    },
+    {
+     "technique": "script-as-single-source",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/nav.ts:87 The shared source is website navigation, without film beats or synthesis consumers."
+    },
+    {
+     "technique": "seeded-stage-with-a-declared-boundary",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/demo/projects.ts:42 Deterministic project fixtures support the browser demo; no film-stage precondition was found."
+    },
+    {
+     "technique": "summary-rendered-from-the-run",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/microsite.ts:251 The article derives from a metrics snapshot, rather than a demo recorder's run record."
+    }
+   ],
+   "absenceTerms": [
+    "ffmpeg",
+    "ffprobe",
+    "recordVideo",
+    "MediaRecorder"
+   ]
+  },
+  {
+   "context": "local-seo-marketing",
+   "subject": "live-system-demo-film",
+   "bundle": "media-generation",
+   "state": "not-applicable",
+   "evidence": "src/components/marketing/RankClimbDemo.tsx:163 The demonstration changes a browser animation to a predefined ranking; context and repository searches found no ffmpeg, ffprobe, recordVideo or MediaRecorder implementation producing a captured demo film.",
+   "techniques": [
+    {
+     "technique": "audio-first-beat-pacing",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/RankClimbDemo.tsx:165 This duration controls an interactive counter animation, without synthesized narration to pace against."
+    },
+    {
+     "technique": "recorder-owned-overlay",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/LocalSeoShowcase.tsx:167 The illustration is embedded in the marketing page, without a film recorder requiring explanatory chrome."
+    },
+    {
+     "technique": "recording-that-asserts-its-claims",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/RankClimbDemo.tsx:195 A visitor triggers the illustration; there is no captured take carrying narrated behavioural claims."
+    },
+    {
+     "technique": "retake-without-an-edit-session",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/RankClimbDemo.tsx:181 Replay resets UI animation state; it does not regenerate narration or rebuild a film."
+    },
+    {
+     "technique": "script-as-single-source",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/charts/RankClimbChart.tsx:16 The series defines an illustrative chart, without a machine-readable film script or its four consumers."
+    },
+    {
+     "technique": "seeded-stage-with-a-declared-boundary",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/LocalSeoShowcase.tsx:77 The website labels illustrative charts; no associated film stage or film boundary is implemented."
+    },
+    {
+     "technique": "summary-rendered-from-the-run",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/charts/VisibilityGauge.tsx:48 The gauge displays its supplied value, rather than summarizing actions or assertions from a recorded take."
+    }
+   ],
+   "absenceTerms": [
+    "ffmpeg",
+    "ffprobe",
+    "recordVideo",
+    "MediaRecorder"
+   ]
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-17T23:01:36.100631+00:00",
+   "bundle": "media-generation",
+   "subjects": [
+    "live-system-demo-film"
+   ],
+   "techniques": [
+    "audio-first-beat-pacing",
+    "recorder-owned-overlay",
+    "recording-that-asserts-its-claims",
+    "retake-without-an-edit-session",
+    "script-as-single-source",
+    "seeded-stage-with-a-declared-boundary",
+    "summary-rendered-from-the-run"
+   ],
+   "deviations": 0,
+   "context": "demo-mode",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-17T23:01:36.100631+00:00",
+   "bundle": "media-generation",
+   "subjects": [
+    "live-system-demo-film"
+   ],
+   "techniques": [
+    "audio-first-beat-pacing",
+    "recorder-owned-overlay",
+    "recording-that-asserts-its-claims",
+    "retake-without-an-edit-session",
+    "script-as-single-source",
+    "seeded-stage-with-a-declared-boundary",
+    "summary-rendered-from-the-run"
+   ],
+   "deviations": 0,
+   "context": "public-demo-dashboard",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-17T23:01:36.100631+00:00",
+   "bundle": "media-generation",
+   "subjects": [
+    "live-system-demo-film"
+   ],
+   "techniques": [
+    "audio-first-beat-pacing",
+    "recorder-owned-overlay",
+    "recording-that-asserts-its-claims",
+    "retake-without-an-edit-session",
+    "script-as-single-source",
+    "seeded-stage-with-a-declared-boundary",
+    "summary-rendered-from-the-run"
+   ],
+   "deviations": 0,
+   "context": "product-demo-pages",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-17T23:01:36.100631+00:00",
+   "bundle": "media-generation",
+   "subjects": [
+    "live-system-demo-film"
+   ],
+   "techniques": [
+    "audio-first-beat-pacing",
+    "recorder-owned-overlay",
+    "recording-that-asserts-its-claims",
+    "retake-without-an-edit-session",
+    "script-as-single-source",
+    "seeded-stage-with-a-declared-boundary",
+    "summary-rendered-from-the-run"
+   ],
+   "deviations": 0,
+   "context": "demo-site-nav",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-17T23:01:36.100631+00:00",
+   "bundle": "media-generation",
+   "subjects": [
+    "live-system-demo-film"
+   ],
+   "techniques": [
+    "audio-first-beat-pacing",
+    "recorder-owned-overlay",
+    "recording-that-asserts-its-claims",
+    "retake-without-an-edit-session",
+    "script-as-single-source",
+    "seeded-stage-with-a-declared-boundary",
+    "summary-rendered-from-the-run"
+   ],
+   "deviations": 0,
+   "context": "local-seo-marketing",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}

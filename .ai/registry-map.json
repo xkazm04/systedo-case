@@ -8837,7 +8837,11 @@
           "revision": 2,
           "changedAt": "2026-09-28",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/demo/DemoModule.tsx:152 This context renders an interactive dashboard with sample data; context and repository searches found no ffmpeg, ffprobe, recordVideo or MediaRecorder implementation establishing a demo-film pipeline.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:ef4fc3b78116e73b",
+          "evaluatedRevision": 2
         },
         {
           "subject": "demo-data-plane",
@@ -8933,7 +8937,11 @@
           "revision": 2,
           "changedAt": "2026-09-28",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/demo/projects.ts:92 This context supplies demo fixtures, browser navigation and microsite reports; context and repository searches found no ffmpeg, ffprobe, recordVideo or MediaRecorder implementation establishing film production.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:ef4fc3b78116e73b",
+          "evaluatedRevision": 2
         },
         {
           "subject": "app-shell",
@@ -11217,7 +11225,11 @@
           "revision": 2,
           "changedAt": "2026-09-28",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/marketing/RankClimbDemo.tsx:163 The demonstration changes a browser animation to a predefined ranking; context and repository searches found no ffmpeg, ffprobe, recordVideo or MediaRecorder implementation producing a captured demo film.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:ef4fc3b78116e73b",
+          "evaluatedRevision": 2
         },
         {
           "subject": "grounded-marketing-generation",
@@ -13860,7 +13872,11 @@
           "revision": 2,
           "changedAt": "2026-09-28",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/app/kanaly-zdarma/page.tsx:16 These files implement public web showcases and product entry points; context and repository searches found no ffmpeg, ffprobe, recordVideo or MediaRecorder implementation establishing a demo-film production workflow.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:ef4fc3b78116e73b",
+          "evaluatedRevision": 2
         },
         {
           "subject": "zero-budget-channel-planning",
@@ -15342,7 +15358,11 @@
           "revision": 2,
           "changedAt": "2026-09-28",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/app/dashboard/page.tsx:47 The route serves a navigable product workspace; context and repository searches found no ffmpeg, ffprobe, recordVideo or MediaRecorder implementation connecting it to demo-film production.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:ef4fc3b78116e73b",
+          "evaluatedRevision": 2
         },
         {
           "subject": "demo-data-plane",
