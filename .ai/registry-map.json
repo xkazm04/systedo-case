@@ -2347,7 +2347,11 @@
           "revision": 5,
           "changedAt": "2026-09-25",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/ai/history.ts:71 Searches found no turnId, scrollTop or scrollHeight in src/lib/ai, and the inspected files cache response envelopes and retain per-tool generations rather than render a conversation.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:5b4e7d399a4d924e",
+          "evaluatedRevision": 5
         }
       ],
       "governance": "governed"
@@ -3739,7 +3743,11 @@
           "revision": 5,
           "changedAt": "2026-09-25",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/article/FaqSection.tsx:47 Context searches found no ChatTurn, MessageBubble or transcript references, while repository searches located the chat elsewhere; these files provide static FAQ and article-reading interactions.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:5b4e7d399a4d924e",
+          "evaluatedRevision": 5
         },
         {
           "subject": "translation-pipeline-topology",
@@ -12174,7 +12182,11 @@
           "revision": 5,
           "changedAt": "2026-09-25",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/app/clanek/page.tsx:234 Searches found no ChatTurn, MessageBubble or transcript references in the marketing paths, and inspection shows pricing cards and article documents rather than a conversational surface.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:5b4e7d399a4d924e",
+          "evaluatedRevision": 5
         }
       ],
       "governance": "governed"
@@ -15651,7 +15663,11 @@
           "revision": 5,
           "changedAt": "2026-09-25",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/app/page.tsx:6 Searches found no ChatTurn, MessageBubble or transcript references under src/app, and the inspected root renders the brand landing and shared page shell while the actual chat renderer lives elsewhere.",
+          "evaluatedAt": "2026-10-17",
+          "evaluatedAgainst": "sha256-b2:5b4e7d399a4d924e",
+          "evaluatedRevision": 5
         }
       ],
       "governance": "governed"

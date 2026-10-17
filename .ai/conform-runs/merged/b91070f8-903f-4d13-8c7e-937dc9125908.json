@@ -1,0 +1,343 @@
+{
+ "schema": "conform-run/1",
+ "worker": "b91070f8-903f-4d13-8c7e-937dc9125908",
+ "subject": "chat-transcript",
+ "evaluatedAt": "2026-10-17T23:54:27.433201+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "ai-cache-history",
+   "subject": "chat-transcript",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/lib/ai/history.ts:71 Searches found no turnId, scrollTop or scrollHeight in src/lib/ai, and the inspected files cache response envelopes and retain per-tool generations rather than render a conversation.",
+   "techniques": [
+    {
+     "technique": "composer-turn-queue",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/ai/handoff.ts:50 Handoff prepares validated form fields; it does not accept conversational submissions."
+    },
+    {
+     "technique": "immutable-model-cached-layout",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/ai/history.ts:66 This manages a bounded generation list, with no transcript layout or row renderer."
+    },
+    {
+     "technique": "inline-structured-rows",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/ai/response-cache-store.local.ts:42 Stored rows are response-cache entries, not rendered conversation events."
+    },
+    {
+     "technique": "markdown-and-code-rendering",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/ai/response-cache-store.firestore.ts:29 The backend deserializes response data without rendering model markup."
+    },
+    {
+     "technique": "progress-narration",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/ai/response-cache.ts:122 Cache persistence has no transcript activity presentation."
+    },
+    {
+     "technique": "transcript-scroll",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/ai/history.ts:10 The limit bounds stored generations, not a rendered conversation window."
+    },
+    {
+     "technique": "turn-metadata",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/ai/response-cache-store.firestore.ts:42 This is backend cache expiry metadata, not turn-level disclosure."
+    },
+    {
+     "technique": "turn-model",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/ai/history.ts:71 History serializes generation envelopes rather than authored conversational turns."
+    },
+    {
+     "technique": "virtual-filtered-channel",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/ai/response-cache.ts:26 The collection is a keyed response cache, not a channel consumed by transcript views."
+    }
+   ],
+   "absenceTerms": [
+    "turnId",
+    "scrollTop",
+    "scrollHeight"
+   ]
+  },
+  {
+   "context": "article-engagement",
+   "subject": "chat-transcript",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/components/article/FaqSection.tsx:47 Context searches found no ChatTurn, MessageBubble or transcript references, while repository searches located the chat elsewhere; these files provide static FAQ and article-reading interactions.",
+   "techniques": [
+    {
+     "technique": "composer-turn-queue",
+     "verdict": "not-applicable",
+     "evidence": "src/components/article/ShareBar.tsx:132 The write-like action shares an article URL rather than submitting a conversational turn."
+    },
+    {
+     "technique": "immutable-model-cached-layout",
+     "verdict": "not-applicable",
+     "evidence": "src/components/article/FaqSection.tsx:35 These identities belong to static FAQ disclosures, not transcript models shared across views."
+    },
+    {
+     "technique": "inline-structured-rows",
+     "verdict": "not-applicable",
+     "evidence": "src/components/article/FaqSection.tsx:40 The interactive row is an article FAQ question rather than a conversational event."
+    },
+    {
+     "technique": "markdown-and-code-rendering",
+     "verdict": "not-applicable",
+     "evidence": "src/components/article/CopyMarkdownButton.tsx:32 This copies a supplied article document, without rendering incremental model output."
+    },
+    {
+     "technique": "progress-narration",
+     "verdict": "not-applicable",
+     "evidence": "src/components/article/ReadingProgress.tsx:71 Progress measures the reader's page position rather than machine-turn activity."
+    },
+    {
+     "technique": "transcript-scroll",
+     "verdict": "not-applicable",
+     "evidence": "src/components/article/ReadingProgress.tsx:121 The explicit resume action navigates a static article, without a growing conversational tail."
+    },
+    {
+     "technique": "turn-metadata",
+     "verdict": "not-applicable",
+     "evidence": "src/components/article/reading-resume.ts:76 The derived number estimates remaining article-reading time, not a machine turn's duration or cost."
+    },
+    {
+     "technique": "turn-model",
+     "verdict": "not-applicable",
+     "evidence": "src/components/article/reading-resume.ts:18 Persistence identifies article reading positions by pathname rather than conversational turns."
+    },
+    {
+     "technique": "virtual-filtered-channel",
+     "verdict": "not-applicable",
+     "evidence": "src/components/article/FaqSection.tsx:31 The renderer consumes a static FAQ array rather than a filtered live channel."
+    }
+   ],
+   "absenceTerms": [
+    "ChatTurn",
+    "MessageBubble",
+    "transcript"
+   ]
+  },
+  {
+   "context": "marketing-content",
+   "subject": "chat-transcript",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/app/clanek/page.tsx:234 Searches found no ChatTurn, MessageBubble or transcript references in the marketing paths, and inspection shows pricing cards and article documents rather than a conversational surface.",
+   "techniques": [
+    {
+     "technique": "composer-turn-queue",
+     "verdict": "not-applicable",
+     "evidence": "src/app/cena/page.tsx:63 The pricing page composes plan content without a chat submission control."
+    },
+    {
+     "technique": "immutable-model-cached-layout",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/pricing/PricingPlans.tsx:40 The rendered rows are static pricing plans rather than long-lived conversational messages."
+    },
+    {
+     "technique": "inline-structured-rows",
+     "verdict": "not-applicable",
+     "evidence": "src/app/clanek/page.tsx:246 The interactive disclosures are article FAQs, without tool or approval events."
+    },
+    {
+     "technique": "markdown-and-code-rendering",
+     "verdict": "not-applicable",
+     "evidence": "src/app/clanek/page.tsx:58 Markdown is derived from an existing article document, not received incrementally from a conversational model."
+    },
+    {
+     "technique": "progress-narration",
+     "verdict": "not-applicable",
+     "evidence": "src/app/clanek/page.tsx:169 The progress affordance tracks article reading rather than a working machine turn."
+    },
+    {
+     "technique": "transcript-scroll",
+     "verdict": "not-applicable",
+     "evidence": "src/app/clanek/page.tsx:89 Navigation follows a static article's sections rather than arriving conversation turns."
+    },
+    {
+     "technique": "turn-metadata",
+     "verdict": "not-applicable",
+     "evidence": "src/app/clanek/page.tsx:199 Displayed timing describes the article's reading estimate rather than model execution."
+    },
+    {
+     "technique": "turn-model",
+     "verdict": "not-applicable",
+     "evidence": "src/app/clanek/page.tsx:234 The document consists of article blocks, without authored turn identities or lifecycles."
+    },
+    {
+     "technique": "virtual-filtered-channel",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/pricing/planRows.ts:131 Plan rows are derived once from a static registry rather than ingested from conversational channels."
+    }
+   ],
+   "absenceTerms": [
+    "ChatTurn",
+    "MessageBubble",
+    "transcript"
+   ]
+  },
+  {
+   "context": "public-home",
+   "subject": "chat-transcript",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/app/page.tsx:6 Searches found no ChatTurn, MessageBubble or transcript references under src/app, and the inspected root renders the brand landing and shared page shell while the actual chat renderer lives elsewhere.",
+   "techniques": [
+    {
+     "technique": "composer-turn-queue",
+     "verdict": "not-applicable",
+     "evidence": "src/app/page.tsx:6 The home entry renders a marketing landing rather than a conversational composer."
+    },
+    {
+     "technique": "immutable-model-cached-layout",
+     "verdict": "not-applicable",
+     "evidence": "src/app/template.tsx:24 This wrapper controls route transitions, without owning transcript models or row layouts."
+    },
+    {
+     "technique": "inline-structured-rows",
+     "verdict": "not-applicable",
+     "evidence": "src/app/layout.tsx:123 The shell renders site navigation rather than conversational event rows."
+    },
+    {
+     "technique": "markdown-and-code-rendering",
+     "verdict": "not-applicable",
+     "evidence": "src/app/layout.tsx:75 The shell's embedded script is application-authored locale initialization, not model-authored transcript content."
+    },
+    {
+     "technique": "progress-narration",
+     "verdict": "not-applicable",
+     "evidence": "src/app/layout.tsx:98 The loading boundary concerns page readiness rather than machine-turn activity."
+    },
+    {
+     "technique": "transcript-scroll",
+     "verdict": "not-applicable",
+     "evidence": "src/app/layout.tsx:125 This is the shared page-content region, without a transcript scroll authority."
+    },
+    {
+     "technique": "turn-metadata",
+     "verdict": "not-applicable",
+     "evidence": "src/app/sitemap.ts:19 Generated metadata describes site routes rather than conversational turns."
+    },
+    {
+     "technique": "turn-model",
+     "verdict": "not-applicable",
+     "evidence": "src/app/layout.tsx:126 The root delegates route content and does not own message identities or turn lifecycles."
+    },
+    {
+     "technique": "virtual-filtered-channel",
+     "verdict": "not-applicable",
+     "evidence": "src/app/layout.tsx:129 The surrounding surface is shared site chrome rather than a channel-consuming transcript view."
+    }
+   ],
+   "absenceTerms": [
+    "ChatTurn",
+    "MessageBubble",
+    "transcript"
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "chat-transcript",
+   "context": "dashboard-kpi",
+   "reason": "pair anchor refused: placeholder evidence at src/components/dashboard/ReportChat.tsx:356"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-17T23:54:27.433201+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "chat-transcript"
+   ],
+   "techniques": [
+    "composer-turn-queue",
+    "immutable-model-cached-layout",
+    "inline-structured-rows",
+    "markdown-and-code-rendering",
+    "progress-narration",
+    "transcript-scroll",
+    "turn-metadata",
+    "turn-model",
+    "virtual-filtered-channel"
+   ],
+   "deviations": 0,
+   "context": "ai-cache-history",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-17T23:54:27.433201+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "chat-transcript"
+   ],
+   "techniques": [
+    "composer-turn-queue",
+    "immutable-model-cached-layout",
+    "inline-structured-rows",
+    "markdown-and-code-rendering",
+    "progress-narration",
+    "transcript-scroll",
+    "turn-metadata",
+    "turn-model",
+    "virtual-filtered-channel"
+   ],
+   "deviations": 0,
+   "context": "article-engagement",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-17T23:54:27.433201+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "chat-transcript"
+   ],
+   "techniques": [
+    "composer-turn-queue",
+    "immutable-model-cached-layout",
+    "inline-structured-rows",
+    "markdown-and-code-rendering",
+    "progress-narration",
+    "transcript-scroll",
+    "turn-metadata",
+    "turn-model",
+    "virtual-filtered-channel"
+   ],
+   "deviations": 0,
+   "context": "marketing-content",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-17T23:54:27.433201+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "chat-transcript"
+   ],
+   "techniques": [
+    "composer-turn-queue",
+    "immutable-model-cached-layout",
+    "inline-structured-rows",
+    "markdown-and-code-rendering",
+    "progress-narration",
+    "transcript-scroll",
+    "turn-metadata",
+    "turn-model",
+    "virtual-filtered-channel"
+   ],
+   "deviations": 0,
+   "context": "public-home",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}
