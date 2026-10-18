@@ -4961,7 +4961,11 @@
           "revision": 18,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/campaigns/ControlPlane.tsx:105 The control plane asserts its response shape without validating change-set records or documenting an invariant that makes the unchecked assertion valid.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:7c8008f2207b1946",
+          "evaluatedRevision": 18
         },
         {
           "subject": "test-harness",
@@ -5790,7 +5794,11 @@
           "revision": 18,
           "changedAt": "2026-10-14",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/campaigns/store/search-terms.ts:94 The store asserts that arbitrary array elements are SearchTermRow values without validating them or stating the invariant that justifies the unchecked boundary.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:7c8008f2207b1946",
+          "evaluatedRevision": 18
         },
         {
           "subject": "test-harness",
@@ -6959,7 +6967,11 @@
           "revision": 18,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/catalog/feed.ts:318 The importer deliberately preserves undefined availability while publishing a required boolean, using an unchecked assertion where an explicit intermediate import type could represent the actual contract.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:7c8008f2207b1946",
+          "evaluatedRevision": 18
         },
         {
           "subject": "standards-layered-runtime",
@@ -16684,7 +16696,11 @@
           "revision": 18,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/readiness.ts:53 Production local-store eligibility is independently encoded here and in local-mode.ts:19–20, so changing one policy requires synchronized edits across two modules.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:7c8008f2207b1946",
+          "evaluatedRevision": 18
         },
         {
           "subject": "codebase-scanning",

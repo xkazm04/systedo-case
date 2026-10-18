@@ -1,0 +1,359 @@
+{
+ "schema": "conform-run/1",
+ "worker": "f1a07dab-5b12-4c9d-8b99-926a44912de5",
+ "subject": "module-design",
+ "evaluatedAt": "2026-10-18T01:48:39.204896+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "campaigns-core-lib",
+   "subject": "module-design",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/campaigns/store/search-terms.ts:94 The store asserts that arbitrary array elements are SearchTermRow values without validating them or stating the invariant that justifies the unchecked boundary.",
+   "techniques": [
+    {
+     "technique": "borrowed-surface",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/campaigns/connector.ts:237 The fallback wrapper explicitly implements its methods; no implicit whole-surface delegation or foreign-category disjointness extension was found."
+    },
+    {
+     "technique": "concurrency-at-the-edge",
+     "verdict": "conformant",
+     "evidence": "src/lib/campaigns/connector.ts:143 Retry waiting belongs to the live-provider adapter; recommendation and arithmetic functions remain synchronous."
+    },
+    {
+     "technique": "declarative-or-sequential",
+     "verdict": "conformant",
+     "evidence": "src/lib/campaigns/term-moves.ts:147 An explicit loop maintains shared deduplication state while building negative and promote outputs."
+    },
+    {
+     "technique": "emitted-code-names-from-a-root",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/campaigns/move-label.ts:40 The inspected string producers emit display text, and no caller-scope code generator was found."
+    },
+    {
+     "technique": "host-primitive-facade",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/campaigns/connector.ts:369 These are server provider adapters; no work-driving library targeting incompatible execution hosts was found."
+    },
+    {
+     "technique": "io-free-core",
+     "verdict": "conformant",
+     "evidence": "src/lib/campaigns/term-moves.ts:134 Recommendation receives records and returns moves without fetching, waiting or reading a clock; the property test supplies ordinary fixtures."
+    },
+    {
+     "technique": "locality-and-leverage",
+     "verdict": "conformant",
+     "evidence": "src/lib/campaigns/mutations.ts:304 Both platform branches use one budget planner, keeping the donor-floor decision in one implementation."
+    },
+    {
+     "technique": "marked-unverifiable-region",
+     "verdict": "deviation",
+     "evidence": "src/lib/campaigns/connection.ts:39 The Firestore shape assertion has neither field validation nor a written invariant establishing why the document satisfies ConnectionsDoc."
+    },
+    {
+     "technique": "mirror-type-at-the-edge",
+     "verdict": "not-applicable",
+     "evidence": "test-unit/campaigns-term-moves.test.mjs:90 The decision inputs are directly constructible records; no host session is required."
+    },
+    {
+     "technique": "module-depth",
+     "verdict": "conformant",
+     "evidence": "src/lib/campaigns/currency.ts:48 The factory hides currency normalization, base-currency fallback, Intl construction and non-finite handling behind a reusable formatter."
+    },
+    {
+     "technique": "state-carrier-decides-the-lane",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/campaigns/store.ts:83 Concurrent reads return results to their caller; no existing shared carrier copied across a worker or process boundary was found."
+    }
+   ]
+  },
+  {
+   "context": "catalog-import-export",
+   "subject": "module-design",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/catalog/feed.ts:318 The importer deliberately preserves undefined availability while publishing a required boolean, using an unchecked assertion where an explicit intermediate import type could represent the actual contract.",
+   "techniques": [
+    {
+     "technique": "concurrency-at-the-edge",
+     "verdict": "conformant",
+     "evidence": "src/lib/catalog/feed-fetch.ts:199 Stream coordination and body-size enforcement stay in the fetch adapter; parsing and merging consume ordinary values."
+    },
+    {
+     "technique": "declarative-or-sequential",
+     "verdict": "conformant",
+     "evidence": "src/lib/catalog/import.ts:107 The merge loop builds matched and added collections alongside deduplication state and preview counters."
+    },
+    {
+     "technique": "emitted-code-names-from-a-root",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/catalog/feed-out.ts:103 The generator emits XML data rather than source code resolved in a caller's scope."
+    },
+    {
+     "technique": "host-primitive-facade",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/catalog/feed-fetch.ts:15 The work-driving fetch adapter targets Node; the two storage backends do not constitute incompatible timer or executor hosts."
+    },
+    {
+     "technique": "io-free-core",
+     "verdict": "conformant",
+     "evidence": "src/lib/catalog/import.ts:85 Merge inputs include the timestamp, and the function returns the next catalog, diff and warnings without performing persistence."
+    },
+    {
+     "technique": "locality-and-leverage",
+     "verdict": "conformant",
+     "evidence": "src/lib/catalog/feed-labels.ts:63 Feed labels reuse the existing stock and margin computation instead of maintaining another implementation."
+    },
+    {
+     "technique": "marked-unverifiable-region",
+     "verdict": "deviation",
+     "evidence": "src/lib/catalog/feed.ts:318 The comment acknowledges that undefined survives the cast, so it supplies intent rather than a true invariant supporting the asserted boolean type."
+    },
+    {
+     "technique": "mirror-type-at-the-edge",
+     "verdict": "not-applicable",
+     "evidence": "test-unit/catalog-feed-routes.test.mjs:113 The route's Request input is publicly constructible in the test runner, so the host-only-input precondition does not hold."
+    },
+    {
+     "technique": "module-depth",
+     "verdict": "conformant",
+     "evidence": "src/lib/catalog/feed-out.ts:258 One value-based interface hides product filtering, label assembly, XML escaping and three channel serializations."
+    },
+    {
+     "technique": "state-carrier-decides-the-lane",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/catalog/feed-token-store.firestore.ts:68 Batch deletion proceeds sequentially, and no forked runner copying an existing shared state carrier was found."
+    }
+   ]
+  },
+  {
+   "context": "shared-lib-primitives",
+   "subject": "module-design",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/readiness.ts:53 Production local-store eligibility is independently encoded here and in local-mode.ts:19\u201320, so changing one policy requires synchronized edits across two modules.",
+   "techniques": [
+    {
+     "technique": "borrowed-surface",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/journey.ts:13 The storage boundary explicitly selects two methods rather than implicitly forwarding the entire upstream surface."
+    },
+    {
+     "technique": "concurrency-at-the-edge",
+     "verdict": "conformant",
+     "evidence": "src/lib/useCopyFeedback.ts:29 Browser timer ownership stays in the UI feedback hook rather than spreading into readiness or formatting decisions."
+    },
+    {
+     "technique": "declarative-or-sequential",
+     "verdict": "conformant",
+     "evidence": "src/lib/journey.ts:53 A side-effect-free filtering and ordering pipeline expresses the single transformed sequence directly."
+    },
+    {
+     "technique": "emitted-code-names-from-a-root",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/email.ts:68 Serialization produces request data; no source generator splicing names into caller scope was found."
+    },
+    {
+     "technique": "host-primitive-facade",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/clipboard.ts:21 Clipboard work explicitly targets the browser, and no single work-driving primitive library spanning incompatible hosts was found."
+    },
+    {
+     "technique": "io-free-core",
+     "verdict": "conformant",
+     "evidence": "src/lib/readiness.ts:164 Cron staleness receives time as a value and computes its result without a clock, storage or scheduler dependency."
+    },
+    {
+     "technique": "locality-and-leverage",
+     "verdict": "conformant",
+     "evidence": "src/lib/format.ts:11 The supported locale type and locale configuration keys derive from one runtime vocabulary."
+    },
+    {
+     "technique": "marked-unverifiable-region",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/journey.ts:21 Parsed JSON is narrowed with runtime checks; searches found const assertions but no unchecked shape cast, eval or reflective execution hatch in these primitives."
+    },
+    {
+     "technique": "mirror-type-at-the-edge",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/readiness.ts:7 Environment and probe inputs are ordinary constructible records, as exercised by the readiness tests."
+    },
+    {
+     "technique": "module-depth",
+     "verdict": "deviation",
+     "evidence": "src/lib/readiness.ts:53 This restates local-mode.ts:19\u201320's production eligibility decision; the adjacent comment explicitly calls it a mirror, demonstrating information leakage between modules."
+    },
+    {
+     "technique": "state-carrier-decides-the-lane",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/optimistic-delete.ts:26 The helper awaits a callback result in its existing flow; no shared carrier copied into a worker or subprocess was found."
+    }
+   ]
+  },
+  {
+   "context": "campaign-alerts-control",
+   "subject": "module-design",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/campaigns/ControlPlane.tsx:105 The control plane asserts its response shape without validating change-set records or documenting an invariant that makes the unchecked assertion valid.",
+   "techniques": [
+    {
+     "technique": "borrowed-surface",
+     "verdict": "conformant",
+     "evidence": "src/components/campaigns/PillButton.tsx:50 The wrapper intentionally retains native button attributes while adding visual styling, an orthogonal capability rather than an invariant restricting native operations."
+    },
+    {
+     "technique": "concurrency-at-the-edge",
+     "verdict": "conformant",
+     "evidence": "src/components/campaigns/ControlPlane.tsx:92 Clock scheduling stays in the outer control component; the realized-impact display receives now as a number."
+    },
+    {
+     "technique": "declarative-or-sequential",
+     "verdict": "conformant",
+     "evidence": "src/components/campaigns/SearchTermsLists.tsx:100 A pure filter-and-cap pipeline produces one display collection without interleaved effects."
+    },
+    {
+     "technique": "emitted-code-names-from-a-root",
+     "verdict": "not-applicable",
+     "evidence": "src/components/campaigns/ScoreTimeline.tsx:75 The generated text is SVG path data, with no caller-scope source-code name resolution."
+    },
+    {
+     "technique": "host-primitive-facade",
+     "verdict": "not-applicable",
+     "evidence": "src/components/campaigns/ControlPlane.tsx:73 These are React UI adapters; no portable work-driving library requiring different executor primitives on two hosts was found."
+    },
+    {
+     "technique": "io-free-core",
+     "verdict": "conformant",
+     "evidence": "src/components/campaigns/BudgetMoves.tsx:141 Recommendation consumes campaign values through the extracted model, while the separate propose handler owns network effects."
+    },
+    {
+     "technique": "locality-and-leverage",
+     "verdict": "conformant",
+     "evidence": "src/components/campaigns/SearchTermsLists.tsx:102 The display reuses the recommender's predicate and threshold instead of independently encoding eligibility."
+    },
+    {
+     "technique": "marked-unverifiable-region",
+     "verdict": "deviation",
+     "evidence": "src/components/campaigns/ControlPlane.tsx:105 The assertion is greppable, but nullish fallback on the following line does not check record shapes, and no validity invariant accompanies the cast."
+    },
+    {
+     "technique": "mirror-type-at-the-edge",
+     "verdict": "not-applicable",
+     "evidence": "src/components/campaigns/SourceSwitch.tsx:52 Selection logic receives an ordinary source value rather than an unconstructible event or host context."
+    },
+    {
+     "technique": "module-depth",
+     "verdict": "conformant",
+     "evidence": "src/components/campaigns/SourceSwitch.tsx:13 The switch exposes its accepted source vocabulary as a checked closed set instead of an undocumented text parameter."
+    },
+    {
+     "technique": "state-carrier-decides-the-lane",
+     "verdict": "not-applicable",
+     "evidence": "src/components/campaigns/SearchTermsPanel.tsx:115 The crossing payload is constructed for this request, rather than copied from a shared carrier containing accumulators or latched decisions."
+    }
+   ]
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-18T01:48:39.204896+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "module-design"
+   ],
+   "techniques": [
+    "borrowed-surface",
+    "concurrency-at-the-edge",
+    "declarative-or-sequential",
+    "emitted-code-names-from-a-root",
+    "host-primitive-facade",
+    "io-free-core",
+    "locality-and-leverage",
+    "marked-unverifiable-region",
+    "mirror-type-at-the-edge",
+    "module-depth",
+    "state-carrier-decides-the-lane"
+   ],
+   "deviations": 1,
+   "context": "campaigns-core-lib",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T01:48:39.204896+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "module-design"
+   ],
+   "techniques": [
+    "concurrency-at-the-edge",
+    "declarative-or-sequential",
+    "emitted-code-names-from-a-root",
+    "host-primitive-facade",
+    "io-free-core",
+    "locality-and-leverage",
+    "marked-unverifiable-region",
+    "mirror-type-at-the-edge",
+    "module-depth",
+    "state-carrier-decides-the-lane"
+   ],
+   "deviations": 1,
+   "context": "catalog-import-export",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T01:48:39.204896+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "module-design"
+   ],
+   "techniques": [
+    "borrowed-surface",
+    "concurrency-at-the-edge",
+    "declarative-or-sequential",
+    "emitted-code-names-from-a-root",
+    "host-primitive-facade",
+    "io-free-core",
+    "locality-and-leverage",
+    "marked-unverifiable-region",
+    "mirror-type-at-the-edge",
+    "module-depth",
+    "state-carrier-decides-the-lane"
+   ],
+   "deviations": 1,
+   "context": "shared-lib-primitives",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T01:48:39.204896+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "module-design"
+   ],
+   "techniques": [
+    "borrowed-surface",
+    "concurrency-at-the-edge",
+    "declarative-or-sequential",
+    "emitted-code-names-from-a-root",
+    "host-primitive-facade",
+    "io-free-core",
+    "locality-and-leverage",
+    "marked-unverifiable-region",
+    "mirror-type-at-the-edge",
+    "module-depth",
+    "state-carrier-decides-the-lane"
+   ],
+   "deviations": 1,
+   "context": "campaign-alerts-control",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}
