@@ -1,0 +1,27 @@
+{
+ "schema": "conform-run/1",
+ "worker": "afa66c6a-3a56-45ac-8888-07037cf2af03",
+ "subject": "grounded-marketing-generation",
+ "evaluatedAt": "2026-10-18T22:12:53.734338+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [],
+ "declined": [
+  {
+   "subject": "grounded-marketing-generation",
+   "context": "product-demo-pages",
+   "reason": "The product-demo-pages context consists of public showcase pages (/ai-asistent, /kampane, /lokalni-seo, /socialni, /mapa, /knihovna, /kanaly-zdarma) and presentation components for free organic channels (facts.ts, FreeChannelsHero, FreeChannelsPath, SeededPlanTable, VisibilityPlanBand, FreeChannelsClosing) that embed real product modules fed with seeded sample data for unauthenticated visitors. The context contains no LLM marketing generation pipelines, prompt engineering, generation schemas, model output validators, partition-based self-repair loops, or judged quality evaluations (which reside in src/lib/ai/tools/* and src/lib/llm/index.ts). As not-applicable is barred from this seat, this pair is declined."
+  },
+  {
+   "subject": "grounded-marketing-generation",
+   "context": "marketing-content",
+   "reason": "The marketing-content context consists of static marketing and educational content pages: the pricing page (/cena, PricingPlans, SelfHostBand, planRows.ts derived from lib/plans.ts), markdown article presentation (/clanek), and a deterministic 90-day performance report article (/clanek/vykon, report-article.ts) built via snapshotToArticle. The context contains no LLM marketing generation routines, prompt templates, output clamping/re-prompting, or quality drift benchmarking. As not-applicable is barred from this seat, this pair is declined."
+  },
+  {
+   "subject": "grounded-marketing-generation",
+   "context": "local-seo-marketing",
+   "reason": "The local-seo-marketing context consists exclusively of public-facing client-side marketing components (LocalSeoShowcase, RankClimbDemo) and hand-rolled SVG charting components (CompetitorBars, RankClimbChart, VisibilityGauge) illustrating local SEO map-pack ranking features. It contains no text or copy generation mechanisms, prompts, model validators, or quality gates. As not-applicable is barred from this seat, this pair is declined."
+  }
+ ],
+ "consults": []
+}
