@@ -1,0 +1,168 @@
+{
+ "schema": "conform-run/1",
+ "worker": "e382f28b-49b0-4860-ad68-b68e11002c10",
+ "subject": "model-routing",
+ "evaluatedAt": "2026-10-18T01:36:19.615793+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "byom-ai-configuration",
+   "subject": "model-routing",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/ByomMatrix.tsx:190 Changing the provider selector immediately submits a routing change without presenting the before/after review artifact required by policy governance.",
+   "techniques": [
+    {
+     "technique": "policy-governance",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/ByomMatrix.tsx:101 Selector changes send the new assignment directly; the component provides no reviewed before/after change, impact presentation, or recorded approval rationale."
+    }
+   ]
+  },
+  {
+   "context": "llm-core-providers",
+   "subject": "model-routing",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/llm/models.ts:51 The model resolver reads a process-wide override internally, allowing routing to change without an explicit consumer override parameter.",
+   "techniques": [
+    {
+     "technique": "candidate-ranking",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/provider-order.ts:25 The in-app ladder orders candidates solely by deployment mode, without live measurement, evidence windows, sample sizes, or uncertainty."
+    },
+    {
+     "technique": "consumer-overrides",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/models.ts:63 An internally read environment pin overrides both tiers rather than arriving as a consumer-scoped parameter."
+    },
+    {
+     "technique": "effort-calibration",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/models.ts:96 All CLI generations receive one fixed thinking budget instead of a measured, dated per-class tier-and-effort mapping."
+    },
+    {
+     "technique": "failover-horizon",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/index.ts:491 After computing a potentially corrupt status, the wrapper still marks the attempt successful and breaks the provider loop instead of using the remaining substitution window."
+    },
+    {
+     "technique": "model-identity",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/models.ts:75 The Codex path records a transport label rather than the served model, preventing model identity from being reconstructed across substitutions or model changes."
+    },
+    {
+     "technique": "policy-governance",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/telemetry.ts:129 Failed decision-record writes are swallowed, whereas the standard requires the routing audit record to remain mandatory."
+    },
+    {
+     "technique": "routing-policy",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/index.ts:231 The in-app routing decision constructs a provider array directly rather than evaluating validated policy data and returning the deciding rule chain."
+    },
+    {
+     "technique": "turn-classification",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/index.ts:95 Callers optionally choose a tier directly; the entry contract does not require a semantic class mapped centrally to a tier-and-effort pair."
+    }
+   ]
+  },
+  {
+   "context": "llm-byom-keys",
+   "subject": "model-routing",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/llm/byom/reasoning.ts:12 Default reasoning omits the effort parameter and delegates the purchasing decision to the serving model rather than resolving to a system-owned calibrated setting.",
+   "techniques": [
+    {
+     "technique": "consumer-overrides",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/keys/store.ts:280 An operation override populates model but never fastModel, so a fast-tier call resolves to the vendor's fast default instead of the consumer's selected operation model."
+    },
+    {
+     "technique": "effort-calibration",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/byom/reasoning.ts:19 The OpenRouter default passes through to the model's effort default, without a system-owned terminal effort or calibrated class mapping."
+    },
+    {
+     "technique": "model-identity",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/byom/adapters.ts:216 The OpenAI adapter returns output and usage while discarding upstream model identity, so a provider substitution cannot be compared with the routed selection."
+    },
+    {
+     "technique": "policy-governance",
+     "verdict": "deviation",
+     "evidence": "src/lib/llm/keys/store.ts:305 Routing assignments overwrite active configuration without retaining a policy version, reviewed change artifact, approver, or rationale."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "model-routing",
+   "context": "ai-cache-history",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "model-routing",
+   "context": "session-firebase-core",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-18T01:36:19.615793+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "model-routing"
+   ],
+   "techniques": [
+    "policy-governance"
+   ],
+   "deviations": 1,
+   "context": "byom-ai-configuration",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T01:36:19.615793+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "model-routing"
+   ],
+   "techniques": [
+    "candidate-ranking",
+    "consumer-overrides",
+    "effort-calibration",
+    "failover-horizon",
+    "model-identity",
+    "policy-governance",
+    "routing-policy",
+    "turn-classification"
+   ],
+   "deviations": 1,
+   "context": "llm-core-providers",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T01:36:19.615793+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "model-routing"
+   ],
+   "techniques": [
+    "consumer-overrides",
+    "effort-calibration",
+    "model-identity",
+    "policy-governance"
+   ],
+   "deviations": 1,
+   "context": "llm-byom-keys",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}

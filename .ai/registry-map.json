@@ -4468,7 +4468,11 @@
           "revision": 21,
           "changedAt": "2026-09-29",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/ByomMatrix.tsx:190 Changing the provider selector immediately submits a routing change without presenting the before/after review artifact required by policy governance.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:5484901d8df95b15",
+          "evaluatedRevision": 21
         },
         {
           "subject": "eval-harness",
@@ -10724,7 +10728,11 @@
           "revision": 21,
           "changedAt": "2026-09-29",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/llm/byom/reasoning.ts:12 Default reasoning omits the effort parameter and delegates the purchasing decision to the serving model rather than resolving to a system-owned calibrated setting.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:5484901d8df95b15",
+          "evaluatedRevision": 21
         }
       ],
       "governance": "governed"
@@ -10953,11 +10961,12 @@
           "revision": 21,
           "changedAt": "2026-09-29",
           "confidence": "probable",
-          "state": "unknown",
-          "evidence": "Corrected pairing from /conform: the text-LLM chokepoint the media subject was wrongly matched to. Not yet evaluated.",
-          "evaluatedAt": "2026-08-23",
-          "evaluatedAgainst": "sha256:1117665ec59c1168",
-          "source": "conform"
+          "state": "deviation",
+          "evidence": "src/lib/llm/models.ts:51 The model resolver reads a process-wide override internally, allowing routing to change without an explicit consumer override parameter.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:5484901d8df95b15",
+          "source": "conform",
+          "evaluatedRevision": 21
         }
       ],
       "governance": "governed"
