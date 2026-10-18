@@ -7423,6 +7423,210 @@
         "at": "2026-10-18T00:28:39.615291+00:00",
         "reason": "reviewer (sonnet): The sklik-connection.local.ts:18 technique cites 'token deserialization', but toStored() only copies the encrypted token string and parses nothing, so that claim doesn't hold."
       }
+    },
+    "a2c078d2-2ceb-4916-9245-b7610cf41e51/generated-output-grading": {
+      "context": "creative-studio",
+      "subject": "generated-output-grading",
+      "bundle": "media-generation",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:39:37.640Z",
+      "worker": "94d67cf8-60dd-476b-8151-137f71a4b1cb",
+      "techniques": [
+        {
+          "technique": "cross-provider-flip-analysis",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/images/route.ts:126 This distinguishes live generation from fallback results; it makes no comparative provider verdict."
+        },
+        {
+          "technique": "input-channel-parity",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/images/route.ts:121 Reference modes configure production requests rather than compare generators with unequal input channels."
+        },
+        {
+          "technique": "regrade-without-regenerate",
+          "verdict": "deviation",
+          "evidence": "src/app/api/images/route.ts:111 POST invokes combined generation and grading; the inspected routes provide no mode for grading existing images."
+        },
+        {
+          "technique": "replication-as-comprehension-test",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/images/route.ts:65 The request supplies a production brief, with no visual annotation vocabulary being validated by reconstruction."
+        },
+        {
+          "technique": "trial-matrix-design",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/images/route.ts:71 These are candidates for one production request, not a benchmark selecting a generator or house style."
+        },
+        {
+          "technique": "two-grader-disagreement-rule",
+          "verdict": "deviation",
+          "evidence": "src/app/api/images/route.ts:172 Automatic persistence accepts the scorer-selected winner or first candidate without requiring two judgements or resolving disagreement."
+        },
+        {
+          "technique": "unconditional-fail-criteria",
+          "verdict": "deviation",
+          "evidence": "src/app/api/images/route.ts:181 The save path carries the winner's score and defects but checks no separate usability veto before saving."
+        },
+        {
+          "technique": "vision-model-grading-schema",
+          "verdict": "deviation",
+          "evidence": "src/app/api/images/attribution/route.ts:59 An explicit null grade becomes numeric zero through Number(null), collapsing the required distinction between ungraded and graded."
+        }
+      ]
+    },
+    "774bd300-8694-43db-9a93-2c44c27a843d/generated-output-grading": {
+      "context": "image-generation-studio",
+      "subject": "generated-output-grading",
+      "bundle": "media-generation",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:39:37.640Z",
+      "worker": "94d67cf8-60dd-476b-8151-137f71a4b1cb",
+      "techniques": [
+        {
+          "technique": "cross-provider-flip-analysis",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/leonardo/client.ts:149 The inspected branches select Leonardo models by generation mode and make no cross-provider failure attribution."
+        },
+        {
+          "technique": "input-channel-parity",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/leonardo/client.ts:136 Input availability selects a production mode; no benchmark attributes differences between these modes to model capability."
+        },
+        {
+          "technique": "regrade-without-regenerate",
+          "verdict": "deviation",
+          "evidence": "src/lib/images/studio.ts:107 The live orchestration generates fresh candidates before grading; searches found no existing-image regrade caller or resume mode."
+        },
+        {
+          "technique": "replication-as-comprehension-test",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/leonardo/client.ts:156 Styles map directly to provider identifiers; this context does not validate extracted visual annotations through reconstruction."
+        },
+        {
+          "technique": "trial-matrix-design",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/images/studio.ts:95 The orchestrator ranks candidates for individual briefs; historical revenue priors are not presented as a controlled generator or house-style benchmark."
+        },
+        {
+          "technique": "two-grader-disagreement-rule",
+          "verdict": "deviation",
+          "evidence": "src/lib/images/studio.ts:146 Each candidate receives one Gemini judgement that determines selection, without an independent second grader or human disagreement queue."
+        },
+        {
+          "technique": "unconditional-fail-criteria",
+          "verdict": "deviation",
+          "evidence": "src/lib/images/studio.ts:46 Winner selection sorts scalar scores without excluding veto-failed candidates, so a serious defect can trade against other qualities."
+        },
+        {
+          "technique": "vision-model-grading-schema",
+          "verdict": "deviation",
+          "evidence": "src/lib/leonardo/rate.ts:68 A missing judgement field is synthesized as 'none' rather than invalidating the grade; the rubric also lacks required countable checks and grader provenance."
+        }
+      ]
+    },
+    "8ecba2b3-a0af-455f-b207-3e737e7ea484/generated-output-grading": {
+      "context": "ai-tools-content",
+      "subject": "generated-output-grading",
+      "bundle": "media-generation",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:39:37.640Z",
+      "worker": "94d67cf8-60dd-476b-8151-137f71a4b1cb",
+      "techniques": [
+        {
+          "technique": "cross-provider-flip-analysis",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/brief.ts:212 This invokes a text-brief skill, not an image-provider comparison."
+        },
+        {
+          "technique": "input-channel-parity",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/repurpose.ts:170 Channels here are destinations for repurposed prose, not differing image-generator control interfaces."
+        },
+        {
+          "technique": "regrade-without-regenerate",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/article-draft.ts:203 The article tool emits an empty image slot rather than rendered bytes with recoverable vision grades."
+        },
+        {
+          "technique": "replication-as-comprehension-test",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/twin-style.ts:209 Style distillation concerns written messages, not visual annotations or a visual vocabulary."
+        },
+        {
+          "technique": "trial-matrix-design",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/comparison-outline.ts:298 This tool authors comparison-page content; it does not benchmark image generators or house styles."
+        },
+        {
+          "technique": "two-grader-disagreement-rule",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/twin-reply.ts:225 Reply confidence and risks concern generated messages rather than vision judgements."
+        },
+        {
+          "technique": "unconditional-fail-criteria",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/social.ts:209 The output contract describes social-post text, without a generated-image rubric."
+        },
+        {
+          "technique": "vision-model-grading-schema",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/tools/brief.ts:197 This schema generates SEO brief fields rather than grading visible image properties."
+        }
+      ]
+    },
+    "7401830b-40e4-4950-be27-a91bba99198c/generated-output-grading": {
+      "context": "content-brief-pipeline",
+      "subject": "generated-output-grading",
+      "bundle": "media-generation",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:39:37.640Z",
+      "worker": "94d67cf8-60dd-476b-8151-137f71a4b1cb",
+      "techniques": [
+        {
+          "technique": "cross-provider-flip-analysis",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/ContentPipeline.tsx:265 The pipeline clusters keywords rather than comparing image generators."
+        },
+        {
+          "technique": "input-channel-parity",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/ContentPipeline.tsx:268 Repurposing produces channel-specific text, without comparative image-control arms."
+        },
+        {
+          "technique": "regrade-without-regenerate",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/ContentBriefGenerator.tsx:421 Restoration concerns a text brief, not a rendered image awaiting a recovered grade."
+        },
+        {
+          "technique": "replication-as-comprehension-test",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/ArticleDraftPanel.tsx:370 Alternative text accompanies a manually chosen image; it is not tested as a reconstruction annotation."
+        },
+        {
+          "technique": "trial-matrix-design",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/ContentPipeline.tsx:266 This is an editorial generation stage rather than image-model or house-style selection."
+        },
+        {
+          "technique": "two-grader-disagreement-rule",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/ArticleDraftPanel.tsx:309 The machine operation drafts article text; image insertion is selected manually."
+        },
+        {
+          "technique": "unconditional-fail-criteria",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/ArticleDraftPanel.tsx:366 The insertion path reads image dimensions for figure metadata and implements no generated-image grading rubric."
+        },
+        {
+          "technique": "vision-model-grading-schema",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/ContentBriefGenerator.tsx:331 The displayed score evaluates SEO text rather than visual adherence."
+        }
+      ]
     }
   }
 }

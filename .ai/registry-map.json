@@ -2953,7 +2953,11 @@
           "revision": 11,
           "changedAt": "2026-09-20",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/ai/tools/article-draft.ts:203 These tools generate text and empty figure placeholders, and context-directory searches found no rateImage, gradedBy or regrade implementation while repository matches located image scoring in the image contexts.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:a433b5aafd6813f5",
+          "evaluatedRevision": 11
         }
       ],
       "governance": "governed"
@@ -7577,7 +7581,11 @@
           "revision": 11,
           "changedAt": "2026-09-20",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/ai/ArticleDraftPanel.tsx:622 This context generates text and lets users manually insert library images, and searches found no rateImage, gradedBy or regrade implementation in its files or component directory despite locating image scoring elsewhere in the repository.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:a433b5aafd6813f5",
+          "evaluatedRevision": 11
         }
       ],
       "governance": "governed"
@@ -8112,7 +8120,11 @@
           "revision": 11,
           "changedAt": "2026-09-20",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/app/api/images/route.ts:158 The API automatically saves a winner based on authentication and generation source without requiring a usability veto check or independent grader agreement.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:a433b5aafd6813f5",
+          "evaluatedRevision": 11
         },
         {
           "subject": "voice-io",
@@ -9753,7 +9765,11 @@
           "revision": 11,
           "changedAt": "2026-09-20",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/leonardo/rate.ts:64 The grader accepts optional scalar-score and defects fields instead of required veto and adherence checks, leaving winner selection without an auditable usability verdict.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:a433b5aafd6813f5",
+          "evaluatedRevision": 11
         },
         {
           "subject": "cost-metering",
