@@ -6758,7 +6758,11 @@
           "revision": 10,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/catalog/generate.ts:32 The catalog ad copy generator mutates copy by slicing words and appending ellipses to force-fit character limits instead of reporting length budget violations to an authoring quality gate.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:f00a2dbd4e8fdce1",
+          "evaluatedRevision": 10
         },
         {
           "subject": "connector-catalog",
@@ -7299,7 +7303,11 @@
           "revision": 10,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/CatalogModule.tsx:148 The catalog module displays length overflow as an advisory visual badge rather than enforcing a blocking quality gate prior to clipboard copy or CSV export.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:f00a2dbd4e8fdce1",
+          "evaluatedRevision": 10
         },
         {
           "subject": "multi-provider-gateway-plane",

@@ -1,0 +1,135 @@
+{
+ "schema": "conform-run/1",
+ "worker": "34406f90-6d80-4be5-82b5-b70ce3541fe8",
+ "subject": "copy-quality-gates",
+ "evaluatedAt": "2026-10-18T21:40:52.905460+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [
+  {
+   "context": "catalog-core",
+   "subject": "copy-quality-gates",
+   "bundle": "localization",
+   "state": "deviation",
+   "evidence": "src/lib/catalog/generate.ts:32 The catalog ad copy generator mutates copy by slicing words and appending ellipses to force-fit character limits instead of reporting length budget violations to an authoring quality gate.",
+   "techniques": [
+    {
+     "technique": "copy-contract-before-drafting",
+     "verdict": "conformant",
+     "evidence": "src/lib/catalog/generate.ts:78 The FloorClaims interface restricts ad copy promises strictly to verifiable shop facts (shipping, rating, returns, dispatch), omitting missing fields rather than inventing claims."
+    },
+    {
+     "technique": "deterministic-repair-classes",
+     "verdict": "deviation",
+     "evidence": "src/lib/catalog/generate.ts:32 fit() mutates copy by slicing at word boundaries and appending an ellipsis to force-fit character limits, violating the rule that repairs altering words or meaning are not deterministic repair classes and must be reported."
+    },
+    {
+     "technique": "length-and-render-budgets",
+     "verdict": "deviation",
+     "evidence": "src/lib/catalog/generate.ts:10 Limits are implemented as bare character limits (RSA_HEADLINE_MAX = 30) without rendered box budgets or early-warning thresholds on source copy at 85% of budget."
+    },
+    {
+     "technique": "anchored-model-review",
+     "verdict": "deviation",
+     "evidence": "src/lib/catalog/ad-copy.ts:64 sanitizeAdCopy bounds string lengths and counts but performs no anchored model review (no binary surface checklist, rule identifiers, verbatim span check, or consensus sampling)."
+    },
+    {
+     "technique": "enforcement-at-the-write-seams",
+     "verdict": "deviation",
+     "evidence": "src/lib/catalog/ad-copy-store.ts:49 recordAdCopy mutates project state directly without passing generated ad copy through an end-of-session or write-seam copy quality gate."
+    },
+    {
+     "technique": "format-aware-check-catalog",
+     "verdict": "deviation",
+     "evidence": "src/lib/catalog/validate.ts:141 sanitizeOfferings validates entities and bounds properties but implements no format-aware copy check catalog for catalog text attributes (syntax, markup, literals, whitespace)."
+    },
+    {
+     "technique": "layered-mechanical-gate",
+     "verdict": "deviation",
+     "evidence": "src/lib/catalog/ad-copy.ts:160 Ad copy is transformed into asset groups with limits without a layered mechanical gate that stops on deterministic L1 failures."
+    }
+   ]
+  },
+  {
+   "context": "catalog-offerings",
+   "subject": "copy-quality-gates",
+   "bundle": "localization",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/CatalogModule.tsx:148 The catalog module displays length overflow as an advisory visual badge rather than enforcing a blocking quality gate prior to clipboard copy or CSV export.",
+   "techniques": [
+    {
+     "technique": "layered-mechanical-gate",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/CatalogModule.tsx:148 Length overflow is treated merely as an advisory UI styling flag (over ? 'text-negative' : 'text-muted') rather than a blocking L1 gate that halts copy export."
+    },
+    {
+     "technique": "length-and-render-budgets",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/CatalogModule.tsx:152 Length is tracked only as a character counter in a UI badge with no pixel-rendered font box measurement or non-dismissible overflow blocking."
+    },
+    {
+     "technique": "anchored-model-review",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/catalog/useAdCopyBatch.ts:86 Batch ad generation receives model responses from /api/ai and immediately converts them to stored copy without anchored binary review, rule citation, or multi-sample consensus."
+    },
+    {
+     "technique": "enforcement-at-the-write-seams",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/catalog/ad-copy-actions.ts:30 saveAdCopyAction persists freshly generated copy directly via recordAdCopy without running any copy quality gate at the server action write seam."
+    },
+    {
+     "technique": "reviewer-calibration-and-sampling",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/CatalogModule.tsx:186 Copy actions allow unvetted batch export to clipboard and CSV without role-separated review or sampling discipline."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "copy-quality-gates",
+   "context": "shared-lib-primitives",
+   "reason": "Framework-free utility primitives provide low-level formatting, HTML sanitisation, and type definitions with no catalog copy drafting pipeline, write seams, or copy quality gates; the subject's preconditions do not hold here."
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-18T21:40:52.905460+00:00",
+   "bundle": "localization",
+   "subjects": [
+    "copy-quality-gates"
+   ],
+   "techniques": [
+    "anchored-model-review",
+    "copy-contract-before-drafting",
+    "deterministic-repair-classes",
+    "enforcement-at-the-write-seams",
+    "format-aware-check-catalog",
+    "layered-mechanical-gate",
+    "length-and-render-budgets"
+   ],
+   "deviations": 1,
+   "context": "catalog-core",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-18T21:40:52.905460+00:00",
+   "bundle": "localization",
+   "subjects": [
+    "copy-quality-gates"
+   ],
+   "techniques": [
+    "anchored-model-review",
+    "enforcement-at-the-write-seams",
+    "layered-mechanical-gate",
+    "length-and-render-budgets",
+    "reviewer-calibration-and-sampling"
+   ],
+   "deviations": 1,
+   "context": "catalog-offerings",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  }
+ ]
+}
