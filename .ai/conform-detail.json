@@ -8302,6 +8302,67 @@
           "evidence": "src/components/campaigns/SearchTermsPanel.tsx:115 The crossing payload is constructed for this request, rather than copied from a shared carrier containing accumulators or latched decisions."
         }
       ]
+    },
+    "d9aac7fe-6ae6-4684-a3e8-3b9bb4223138/plan-entitlements": {
+      "context": "byom-api",
+      "subject": "plan-entitlements",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T01:53:24.570Z",
+      "worker": "499175c2-7547-4735-83b0-6d23402d3f93",
+      "techniques": [
+        {
+          "technique": "capability-gate-predicates",
+          "verdict": "deviation",
+          "evidence": "src/app/api/byom/guard.ts:31 The entitlement gate returns a boolean rather than an enumerated decision (unlimited, allowance, credit, denied), and getUserPlan converts missing Firestore tenant records to 'free' rather than refusing unknown tenants."
+        },
+        {
+          "technique": "deployment-mode-short-circuit",
+          "verdict": "conformant",
+          "evidence": "src/app/api/byom/guard.ts:28 In self-hosted mode (SELF_HOSTED=true), byomUnlocked short-circuits the BYOM entitlement to true via devByomUnlockActive while preserving user authentication."
+        },
+        {
+          "technique": "entitlement-lifecycle-revocation",
+          "verdict": "conformant",
+          "evidence": "src/app/api/byom/keys/route.ts:56 User configuration survives plan downgrades as dormant read-only data, and DELETE permits cleaning up stored provider keys without requiring an active BYOM entitlement."
+        },
+        {
+          "technique": "id-vs-label-split",
+          "verdict": "conformant",
+          "evidence": "src/app/api/byom/guard.ts:35 The machine identifier 'byom' is used for store reads and internal entitlement checks, while localized user-facing copy and upgrade links remain decoupled."
+        },
+        {
+          "technique": "inherited-tier-not-cloned-tier",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/byom/route.ts:14 BYOM settings routes do not support custom enterprise negotiated contracts or bespoke price agreements."
+        },
+        {
+          "technique": "live-catalog-edit-is-a-lifecycle-event",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/byom/matrix/route.ts:6 Tiers and operation definitions are code-resident in TypeScript modules rather than an operator-editable live store."
+        },
+        {
+          "technique": "price-book-authority",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/byom/guard.ts:36 The route guard points to /cena for upgrades but does not render prices or derive billing amounts."
+        },
+        {
+          "technique": "provider-publishes-state-not-decision",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/byom/route.ts:15 The endpoint serves internal application clients rather than publishing operator-defined limit vocabularies to external consumers."
+        },
+        {
+          "technique": "subtractive-entitlement",
+          "verdict": "not-applicable",
+          "evidence": "src/app/api/byom/matrix/route.ts:4 Operation overrides in the BYOM matrix configure routing per user, not subtractive capability removals against an inherited plan tier."
+        },
+        {
+          "technique": "tier-model-single-source",
+          "verdict": "conformant",
+          "evidence": "src/app/api/byom/guard.ts:12 Route guards import their entitlement check from the central usage and plans model rather than duplicating tier logic."
+        }
+      ]
     }
   }
 }

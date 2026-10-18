@@ -4703,7 +4703,11 @@
           "revision": 7,
           "changedAt": "2026-09-18",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/app/api/byom/guard.ts:31 The gate collapses the entitlement check to a boolean (byomUnlocked) and coerces missing tenant records to the free tier (getUserPlan) instead of returning an enumerated decision or treating an unknown tenant as a distinct refusal.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:58f21c0561a86e45",
+          "evaluatedRevision": 7
         },
         {
           "subject": "concurrency-guards",
