@@ -1,0 +1,188 @@
+{
+  "schema": "conform-run/1",
+  "worker": "e0f415e9-af6d-48cb-992c-760e5e61c9e9",
+  "subject": "local-page-doorway-prevention",
+  "evaluatedAt": "2026-10-18T01:26:31.962761+00:00",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "pairs": [
+    {
+      "context": "local-seo-core-lib",
+      "subject": "local-page-doorway-prevention",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/lib/ai/tools/local-page.ts:284 The fallback FAQ substitutes the locality into an otherwise identical answer, realizing the standard's place-name substitution failure.",
+      "techniques": [
+        {
+          "technique": "boilerplate-strip-then-containment",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/local-page.ts:232 The generation validator checks required strings and section count without comparing siblings, stripping shared shingles or measuring containment."
+        },
+        {
+          "technique": "localize-the-problem-not-the-place",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/local-page.ts:284 The fallback answer survives swapping the area name; normalization can use this fallback for live output."
+        },
+        {
+          "technique": "read-the-engines-verdict-via-url-inspection",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/local/compute.ts:42 This calculation identifies weak ranking positions; it does not adjudicate a disputed duplication or indexation finding."
+        },
+        {
+          "technique": "rewrite-before-consolidate",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/local/compute.ts:56 The gap workflow selects missing pages, rather than existing pages flagged as clones."
+        },
+        {
+          "technique": "three-of-four-local-material-gate",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/tools/local-page.ts:314 Generation proceeds from the request without an owner-evidence score, a three-item minimum or a held result."
+        }
+      ]
+    },
+    {
+      "context": "local-seo-modules",
+      "subject": "local-page-doorway-prevention",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/components/app/modules/local/GapPageAction.tsx:140 The Lokalni module's gap action starts area-page generation with only project, service and area identifiers, without collecting or requiring the local material gate.",
+      "techniques": [
+        {
+          "technique": "boilerplate-strip-then-containment",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/local/GapPageAction.tsx:77 The preview-to-publication path submits the draft without a sibling similarity check; the traced publish handler supplies no such check either."
+        },
+        {
+          "technique": "read-the-engines-verdict-via-url-inspection",
+          "verdict": "not-applicable",
+          "evidence": "src/app/app/[projectId]/local/mapa/page.tsx:22 This route resolves imported map-ranking observations, rather than investigating an area-page canonical or indexation dispute."
+        },
+        {
+          "technique": "rewrite-before-consolidate",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/LocalModule.tsx:284 These actions operate on missing-page gaps, not an audited set of clone-remediation candidates."
+        },
+        {
+          "technique": "three-of-four-local-material-gate",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/local/GapPageAction.tsx:140 The generate action requires no owner-supplied job, local conditions, differentiated FAQ or local person, and offers no held state."
+        }
+      ]
+    },
+    {
+      "context": "local-signals",
+      "subject": "local-page-doorway-prevention",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/lib/local-signals/page-grounding.ts:114 The grounding builder returns a generation-ready request even when no local review or other qualifying local evidence exists, allowing areas below the required three-of-four threshold to proceed.",
+      "techniques": [
+        {
+          "technique": "boilerplate-strip-then-containment",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/local-signals/import.ts:638 The coverage importer processes page-presence observations, not page bodies or similarity measurements."
+        },
+        {
+          "technique": "funnel-not-city-is-the-doorway-test",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/local-signals/page-grounding.ts:129 This resolver supplies facts for one requested page and does not decide a set's visitor paths or CTA destinations."
+        },
+        {
+          "technique": "read-the-engines-verdict-via-url-inspection",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/local-signals/summary.ts:51 This summary measures map-pack ranks and does not claim to resolve area-page duplication or indexation."
+        },
+        {
+          "technique": "rewrite-before-consolidate",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/local-signals/resolve.ts:259 The published-page overlay records existence and clears unmeasured ranks; it does not classify clone-remediation candidates."
+        },
+        {
+          "technique": "three-of-four-local-material-gate",
+          "verdict": "deviation",
+          "evidence": "src/lib/local-signals/page-grounding.ts:114 Reviews are optional, and the builder neither collects the four evidence categories nor returns a held result when fewer than three are supplied."
+        }
+      ]
+    }
+  ],
+  "declined": [
+    {
+      "subject": "local-page-doorway-prevention",
+      "context": "content-engine-module",
+      "reason": "withdrawn after review: reviewer (sonnet): The not-applicable anchor is a context-map.json description, not code that shows no area-page generation exists. My own grep of the obsahovy-engine and obsah route directories for local, area and landing found nothing, but the claim itself rests on a manifest line."
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-18T01:26:31.962761+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "local-page-doorway-prevention"
+      ],
+      "techniques": [
+        "boilerplate-strip-then-containment",
+        "localize-the-problem-not-the-place",
+        "read-the-engines-verdict-via-url-inspection",
+        "rewrite-before-consolidate",
+        "three-of-four-local-material-gate"
+      ],
+      "deviations": 1,
+      "context": "local-seo-core-lib",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "ts": "2026-10-18T01:26:31.962761+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "local-page-doorway-prevention"
+      ],
+      "techniques": [
+        "boilerplate-strip-then-containment",
+        "read-the-engines-verdict-via-url-inspection",
+        "rewrite-before-consolidate",
+        "three-of-four-local-material-gate"
+      ],
+      "deviations": 1,
+      "context": "local-seo-modules",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "ts": "2026-10-18T01:26:31.962761+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "local-page-doorway-prevention"
+      ],
+      "techniques": [
+        "boilerplate-strip-then-containment",
+        "funnel-not-city-is-the-doorway-test",
+        "localize-the-problem-not-the-place",
+        "read-the-engines-verdict-via-url-inspection",
+        "rewrite-before-consolidate",
+        "three-of-four-local-material-gate"
+      ],
+      "deviations": 0,
+      "context": "content-engine-module",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "ts": "2026-10-18T01:26:31.962761+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "local-page-doorway-prevention"
+      ],
+      "techniques": [
+        "boilerplate-strip-then-containment",
+        "funnel-not-city-is-the-doorway-test",
+        "read-the-engines-verdict-via-url-inspection",
+        "rewrite-before-consolidate",
+        "three-of-four-local-material-gate"
+      ],
+      "deviations": 1,
+      "context": "local-signals",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    }
+  ]
+}

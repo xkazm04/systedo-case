@@ -11161,7 +11161,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/ai/tools/local-page.ts:284 The fallback FAQ substitutes the locality into an otherwise identical answer, realizing the standard's place-name substitution failure.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:3394edfce6761e94",
+          "evaluatedRevision": 1
         },
         {
           "subject": "answer-engine-visibility",
@@ -11390,7 +11394,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/local/GapPageAction.tsx:140 The Lokalni module's gap action starts area-page generation with only project, service and area identifiers, without collecting or requiring the local material gate.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:3394edfce6761e94",
+          "evaluatedRevision": 1
         },
         {
           "subject": "test-harness",
@@ -11616,7 +11624,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/local-signals/page-grounding.ts:114 The grounding builder returns a generation-ready request even when no local review or other qualifying local evidence exists, allowing areas below the required three-of-four threshold to proceed.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:3394edfce6761e94",
+          "evaluatedRevision": 1
         }
       ],
       "governance": "governed"
