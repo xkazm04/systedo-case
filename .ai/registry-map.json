@@ -1906,7 +1906,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/google/ads.ts:158 Searches for proof line and thankYou found no context hits; these files transport and normalize advertising data rather than compose money pages or decide their conversion fixes.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:81ff70c9711d06b0",
+          "evaluatedRevision": 1
         },
         {
           "subject": "quality-gates",
@@ -4208,7 +4212,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/brand/optic/hero/Hero.tsx:30 The hero renders the live-example destination as a second button alongside Start free, violating the standard's explicit text-link exception.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:81ff70c9711d06b0",
+          "evaluatedRevision": 1
         },
         {
           "subject": "table",
@@ -7512,7 +7520,11 @@
           "revision": 1,
           "changedAt": "2026-09-09",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/microsite/LpCtaLink.tsx:63 The hosted experiment counts a CTA click as a conversion before confirming any successful lead hand-off, contrary to the completed-lead tracking rule.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:81ff70c9711d06b0",
+          "evaluatedRevision": 1
         },
         {
           "subject": "browser-credential-boundary",

@@ -8949,6 +8949,165 @@
           "evidence": "src/lib/distribution/learnings.ts:153 Computes CTR as clicks / reach where reach represents minted link count rather than impressions."
         }
       ]
+    },
+    "9c32aaab-b57d-4912-aa00-1e00b877253e/money-page-conversion-craft": {
+      "context": "lead-management",
+      "subject": "money-page-conversion-craft",
+      "bundle": "marketing",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T03:26:44.163Z",
+      "techniques": [
+        {
+          "technique": "cro-leak-order",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/LeadSourceDiagnosisPanel.tsx:132 The specialized source diagnosis hands off to campaigns; it does not conduct a money-page conversion walkthrough."
+        },
+        {
+          "technique": "diagnostic-quadrant-clicks-leads-impressions",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/LeadQualityModule.tsx:159 This is the deeper source-quality analysis assigned to a neighboring subject, rather than initial page-versus-traffic triage."
+        },
+        {
+          "technique": "hero-proof-first-one-cta",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/LeadQualityModule.tsx:275 The component presents an operational CRM funnel, not a service or product sales hero."
+        },
+        {
+          "technique": "progressive-disclosure-five-visible",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/LeadImportPanel.tsx:75 The importer is an authenticated data-management interface, not sales-page depth."
+        },
+        {
+          "technique": "proof-count-five-real-and-checkable",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/ReviewInbox.tsx:200 Reviews are managed for reply and owner triage, rather than assembled into money-page proof."
+        },
+        {
+          "technique": "thank-you-page-is-the-conversion-event",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/leads/conversion-events.ts:168 Qualified and won events originate in CRM stage transitions; they are not website form-completion events."
+        }
+      ],
+      "withdrawn": {
+        "worker": "adfc359a-2588-407e-b0fb-19e126b2d337",
+        "state": "not-applicable",
+        "at": "2026-10-18T03:27:06.212221+00:00",
+        "reason": "reviewer (sonnet): The evidence anchor conversion-events.ts:180 is the GclidCoverage interface, which doesn't show that money-page or page-versus-traffic triage is absent, and technique anchors LeadQualityModule.tsx:159 and :275 land on comments and a funnel card rather than lines showing the precondition is absent."
+      }
+    },
+    "90b16b0d-c2cb-496a-b7c0-26ab9456cb84/money-page-conversion-craft": {
+      "context": "brand-landing",
+      "subject": "money-page-conversion-craft",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T03:26:44.163Z",
+      "worker": "adfc359a-2588-407e-b0fb-19e126b2d337",
+      "techniques": [
+        {
+          "technique": "cro-leak-order",
+          "verdict": "not-applicable",
+          "evidence": "src/components/brand/optic/bench/StationMeasure.tsx:45 The landing displays illustrative product measurements, not an observed clicks-without-leads case or a conversion walkthrough."
+        },
+        {
+          "technique": "diagnostic-quadrant-clicks-leads-impressions",
+          "verdict": "not-applicable",
+          "evidence": "src/components/brand/optic/bench/StationTriage.tsx:49 The triage display is a labeled sample illustration, not a diagnosis of an underperforming page."
+        },
+        {
+          "technique": "hero-proof-first-one-cta",
+          "verdict": "deviation",
+          "evidence": "src/components/brand/optic/hero/Hero.tsx:30 See a live example is styled as a second button; the technique permits this secondary destination only as a text link."
+        },
+        {
+          "technique": "progressive-disclosure-five-visible",
+          "verdict": "deviation",
+          "evidence": "src/components/brand/optic/path/Path.tsx:44 All five process descriptions remain on the scrolling page, alongside station and channel explanations, instead of collapsing depth outside the visible list."
+        },
+        {
+          "technique": "thank-you-page-is-the-conversion-event",
+          "verdict": "not-applicable",
+          "evidence": "src/components/brand/optic/hero/Hero.tsx:27 The primary action navigates into the application; this landing does not submit a lead form or fire its completion event."
+        }
+      ]
+    },
+    "ba612214-b8bb-41d4-85b1-130c60b302fe/money-page-conversion-craft": {
+      "context": "client-facing-pages",
+      "subject": "money-page-conversion-craft",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T03:26:44.163Z",
+      "worker": "adfc359a-2588-407e-b0fb-19e126b2d337",
+      "techniques": [
+        {
+          "technique": "cro-leak-order",
+          "verdict": "not-applicable",
+          "evidence": "src/app/m/[slug]/page.tsx:108 This route renders experiment arms and deliverables; it does not implement an ordered conversion-leak walkthrough, and mid-test arms are expressly excluded."
+        },
+        {
+          "technique": "diagnostic-quadrant-clicks-leads-impressions",
+          "verdict": "not-applicable",
+          "evidence": "src/app/report/[token]/page.tsx:212 The shared report presents an existing portfolio evaluation rather than performing initial diagnosis of a money page."
+        },
+        {
+          "technique": "hero-proof-first-one-cta",
+          "verdict": "deviation",
+          "evidence": "src/components/microsite/LocalLanding.tsx:90 The service-page hero action depends on an optional contact; publication accepts its absence, allowing a money page with no actionable hero CTA."
+        },
+        {
+          "technique": "progressive-disclosure-five-visible",
+          "verdict": "deviation",
+          "evidence": "src/components/microsite/LocalLanding.tsx:121 FAQ answers and body sections always render expanded, including supported pages with four body sections plus FAQ depth."
+        },
+        {
+          "technique": "thank-you-page-is-the-conversion-event",
+          "verdict": "deviation",
+          "evidence": "src/components/microsite/LpCtaLink.tsx:63 The click sends the conversion beacon immediately; the endpoint increments conversions without evidence of a persisted lead or completed off-site outcome."
+        }
+      ]
+    },
+    "dcc78ba3-0c54-4352-acb4-6f0f4169ce58/money-page-conversion-craft": {
+      "context": "ad-platform-integrations",
+      "subject": "money-page-conversion-craft",
+      "bundle": "marketing",
+      "state": "not-applicable",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T03:26:44.163Z",
+      "worker": "adfc359a-2588-407e-b0fb-19e126b2d337",
+      "techniques": [
+        {
+          "technique": "cro-leak-order",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/sklik/money-verdict.ts:61 The money verdict classifies currency units from spend-to-budget ratios, not conversion leaks."
+        },
+        {
+          "technique": "diagnostic-quadrant-clicks-leads-impressions",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/sklik/adapter.ts:78 The adapter retrieves campaign metrics for consumers; it does not own page-versus-source diagnostic routing."
+        },
+        {
+          "technique": "hero-proof-first-one-cta",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/sklik/keywords.ts:75 Keyword retrieval does not render a product or service hero."
+        },
+        {
+          "technique": "progressive-disclosure-five-visible",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/google/keyword-planner.ts:91 This server-side API request has no sales-page visibility or disclosure decisions."
+        },
+        {
+          "technique": "proof-count-five-real-and-checkable",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/sklik/client.ts:232 Listing advertising campaigns does not publish or inventory customer-facing proof."
+        },
+        {
+          "technique": "thank-you-page-is-the-conversion-event",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/google/ads.ts:862 The client uploads supplied offline outcomes; it does not determine when a website lead-completion event fires."
+        }
+      ]
     }
   }
 }
