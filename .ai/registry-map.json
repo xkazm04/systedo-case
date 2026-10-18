@@ -15751,7 +15751,11 @@
           "revision": 15,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/recaps/store.local.ts:13 The local recaps store reads directly from an unpooled global database instance and silently swallows JSON corruption without quarantine or typed classification.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:0722fec97cff5b66",
+          "evaluatedRevision": 15
         },
         {
           "subject": "performance-root-cause-diagnosis",
@@ -16013,7 +16017,11 @@
           "revision": 15,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/report-metrics/store.local.ts:13 The report engine metrics store accesses an unpooled, uninstrumented database handle and swallows parse corruption into silent sample degradation without quarantine.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:0722fec97cff5b66",
+          "evaluatedRevision": 15
         },
         {
           "subject": "executive-reporting",

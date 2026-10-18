@@ -7234,6 +7234,195 @@
           "evidence": "src/components/usage/UsageMeter.tsx:80 The warning and normal quota states reach directly into palette ramps rather than consuming status roles."
         }
       ]
+    },
+    "682ee603-c9cf-4a2e-b0c5-07c5047a018a/embedded-db": {
+      "context": "recaps-activity",
+      "subject": "embedded-db",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:28:20.489Z",
+      "worker": "1fd8595f-8ebe-4ef5-90aa-a36777b4d016",
+      "techniques": [
+        {
+          "technique": "connection-pooling",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/store.local.ts:13 Directly queries the unpooled global DatabaseSync handle without admission control or acquisition tracking."
+        },
+        {
+          "technique": "corruption-class-response",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/store.local.ts:19 JSON deserialization failure silently returns null without carrying a typed error, quarantining the handle, or routing writes to an alternative sink."
+        },
+        {
+          "technique": "storage-accounting-and-pruning",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/store.local.ts:36 No per-table usage accounting, dry-run pruning, or space reclamation exists; rows are only dropped by un-reclaimed hard delete."
+        },
+        {
+          "technique": "db-self-instrumentation",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/store.local.ts:24 Recap store operations are not tracked in latency ring buffers, do not record rows touched or lock wait times, and emit no slow-operation warnings."
+        },
+        {
+          "technique": "quiet-window-maintenance",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/store.local.ts:1 No activity gauge exists to gate WAL checkpoints or maintenance passes based on foreground load."
+        },
+        {
+          "technique": "single-writer-holder-discipline",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/store.ts:17 Module dynamic import caches the store layer without coordinated invalidation or holder checks against concurrent processes."
+        },
+        {
+          "technique": "derived-capacity-limits",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/types.ts:19 Per-period history cap is hardcoded without derivation from underlying storage or memory limits."
+        },
+        {
+          "technique": "analytical-reads-off-the-serving-store",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/recaps/store.local.ts:14 Store only executes single-row primary key point reads and writes rather than analytical scans or joins."
+        }
+      ]
+    },
+    "f476272b-f1dd-4c67-91ff-8de3485431bd/embedded-db": {
+      "context": "campaigns-store-backend",
+      "subject": "embedded-db",
+      "bundle": "software-engineering",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:28:20.489Z",
+      "techniques": [
+        {
+          "technique": "connection-pooling",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/store/local-docs.ts:107 Operations query getDb() directly on a single synchronous SQLite connection without connection pooling, admission control, or acquisition wait attribution."
+        },
+        {
+          "technique": "single-writer-holder-discipline",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/store/backend.ts:93 The tenant store promise is cached in module scope without lockstep invalidation if the underlying database connection closes or reopens."
+        },
+        {
+          "technique": "storage-accounting-and-pruning",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/store/local-docs.ts:155 No per-table/collection storage accounting report or dry-run pruner exists; rows are only removed by un-reclaimed raw SQL delete during tenant cascades."
+        },
+        {
+          "technique": "corruption-class-response",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/store/local-docs.ts:265 Batch transaction failures do not classify corruption as canonical versus derived, nor do they quarantine the handle or divert writes to a fallback spool."
+        },
+        {
+          "technique": "db-self-instrumentation",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/store/local-docs.ts:113 Writes to campaign_docs lack bounded-ring latency tracking, row-count and lock-wait recording, and slow-operation threshold alerting."
+        },
+        {
+          "technique": "quiet-window-maintenance",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/store/local-docs.ts:1 No activity gauge or maintenance scheduler manages journal checkpoints or space reclamation for campaign docs."
+        },
+        {
+          "technique": "analytical-reads-off-the-serving-store",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/campaigns/store/backend.ts:57 The interface serves document-level reads and ID ranges rather than analytical aggregations or multi-table joins."
+        }
+      ],
+      "withdrawn": {
+        "worker": "1fd8595f-8ebe-4ef5-90aa-a36777b4d016",
+        "state": "deviation",
+        "at": "2026-10-18T00:28:39.569884+00:00",
+        "reason": "reviewer (sonnet): The backend.ts:93 technique is wrong: the cached promise holds only the stateless localTenantStore object, which calls getDb() on every operation, so it never holds a connection that could go stale."
+      }
+    },
+    "8b63aca5-0881-499d-9426-2dada7a4a985/embedded-db": {
+      "context": "report-engine",
+      "subject": "embedded-db",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:28:20.489Z",
+      "worker": "1fd8595f-8ebe-4ef5-90aa-a36777b4d016",
+      "techniques": [
+        {
+          "technique": "corruption-class-response",
+          "verdict": "deviation",
+          "evidence": "src/lib/report-metrics/store.local.ts:23 Corrupted metric blobs are caught and logged but return null to trigger a silent downstream fallback to sample data without handle quarantine."
+        },
+        {
+          "technique": "connection-pooling",
+          "verdict": "deviation",
+          "evidence": "src/lib/report-metrics/store.local.ts:13 Directly invokes getDb() on an unpooled single connection with no admission control, acquisition timeout tracking, or caller labeling."
+        },
+        {
+          "technique": "storage-accounting-and-pruning",
+          "verdict": "deviation",
+          "evidence": "src/lib/report-metrics/store.local.ts:40 No storage accounting breakdown or dry-run pruner exists for report_metrics, and deletions do not trigger page reclamation."
+        },
+        {
+          "technique": "db-self-instrumentation",
+          "verdict": "deviation",
+          "evidence": "src/lib/report-metrics/store.local.ts:28 Operations on the metrics store do not record execution durations into bounded rings or alert on slow local query thresholds."
+        },
+        {
+          "technique": "quiet-window-maintenance",
+          "verdict": "deviation",
+          "evidence": "src/lib/report-metrics/store.local.ts:1 No activity gauge exists to defer store maintenance or coordinate journal checkpointing with foreground interaction state."
+        },
+        {
+          "technique": "analytical-reads-off-the-serving-store",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/report/assemble.ts:10 Report metrics are loaded as point blobs and all analytical calculations are executed in memory rather than as SQL aggregates on the serving DB."
+        }
+      ]
+    },
+    "fbc19c03-8bc8-4f0b-95db-3d4115dc7063/embedded-db": {
+      "context": "campaigns-sklik-sync",
+      "subject": "embedded-db",
+      "bundle": "software-engineering",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:28:20.489Z",
+      "techniques": [
+        {
+          "technique": "connection-pooling",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/sklik-connection.local.ts:30 Queries the shared single database connection directly without admission control, pool timeout policies, or checkout attribution."
+        },
+        {
+          "technique": "storage-accounting-and-pruning",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/sklik-connection.local.ts:63 Connection storage lacks table usage accounting, pruner dry-run mechanisms, age bounds, and post-delete space reclamation."
+        },
+        {
+          "technique": "db-self-instrumentation",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/sklik-connection.local.ts:36 Operations on sklik_connection do not track latencies in bounded memory rings or warn on slow execution thresholds."
+        },
+        {
+          "technique": "corruption-class-response",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/sklik-connection.local.ts:18 Database errors during token deserialization or statement execution are unclassified and do not quarantine the handle or redirect writes."
+        },
+        {
+          "technique": "quiet-window-maintenance",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/sklik-connection.local.ts:1 No activity gauge exists to coordinate journal checkpoints or background maintenance around foreground request load."
+        },
+        {
+          "technique": "analytical-reads-off-the-serving-store",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/campaigns/sklik-connection.ts:1 Connection store operations are simple primary key lookups and inserts with no heavy analytical scans or joins."
+        }
+      ],
+      "withdrawn": {
+        "worker": "1fd8595f-8ebe-4ef5-90aa-a36777b4d016",
+        "state": "deviation",
+        "at": "2026-10-18T00:28:39.615291+00:00",
+        "reason": "reviewer (sonnet): The sklik-connection.local.ts:18 technique cites 'token deserialization', but toStored() only copies the encrypted token string and parses nothing, so that claim doesn't hold."
+      }
     }
   }
 }

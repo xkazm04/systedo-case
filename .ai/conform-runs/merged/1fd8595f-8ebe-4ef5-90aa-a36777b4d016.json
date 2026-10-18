@@ -1,0 +1,196 @@
+{
+  "schema": "conform-run/1",
+  "worker": "1fd8595f-8ebe-4ef5-90aa-a36777b4d016",
+  "subject": "embedded-db",
+  "evaluatedAt": "2026-10-18T00:28:20.489619+00:00",
+  "provider": "agy",
+  "model": "gemini-3.8-flash-high",
+  "pairs": [
+    {
+      "context": "recaps-activity",
+      "subject": "embedded-db",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/lib/recaps/store.local.ts:13 The local recaps store reads directly from an unpooled global database instance and silently swallows JSON corruption without quarantine or typed classification.",
+      "techniques": [
+        {
+          "technique": "connection-pooling",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/store.local.ts:13 Directly queries the unpooled global DatabaseSync handle without admission control or acquisition tracking."
+        },
+        {
+          "technique": "corruption-class-response",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/store.local.ts:19 JSON deserialization failure silently returns null without carrying a typed error, quarantining the handle, or routing writes to an alternative sink."
+        },
+        {
+          "technique": "storage-accounting-and-pruning",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/store.local.ts:36 No per-table usage accounting, dry-run pruning, or space reclamation exists; rows are only dropped by un-reclaimed hard delete."
+        },
+        {
+          "technique": "db-self-instrumentation",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/store.local.ts:24 Recap store operations are not tracked in latency ring buffers, do not record rows touched or lock wait times, and emit no slow-operation warnings."
+        },
+        {
+          "technique": "quiet-window-maintenance",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/store.local.ts:1 No activity gauge exists to gate WAL checkpoints or maintenance passes based on foreground load."
+        },
+        {
+          "technique": "single-writer-holder-discipline",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/store.ts:17 Module dynamic import caches the store layer without coordinated invalidation or holder checks against concurrent processes."
+        },
+        {
+          "technique": "derived-capacity-limits",
+          "verdict": "deviation",
+          "evidence": "src/lib/recaps/types.ts:19 Per-period history cap is hardcoded without derivation from underlying storage or memory limits."
+        },
+        {
+          "technique": "analytical-reads-off-the-serving-store",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/recaps/store.local.ts:14 Store only executes single-row primary key point reads and writes rather than analytical scans or joins."
+        }
+      ]
+    },
+    {
+      "context": "report-engine",
+      "subject": "embedded-db",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evidence": "src/lib/report-metrics/store.local.ts:13 The report engine metrics store accesses an unpooled, uninstrumented database handle and swallows parse corruption into silent sample degradation without quarantine.",
+      "techniques": [
+        {
+          "technique": "corruption-class-response",
+          "verdict": "deviation",
+          "evidence": "src/lib/report-metrics/store.local.ts:23 Corrupted metric blobs are caught and logged but return null to trigger a silent downstream fallback to sample data without handle quarantine."
+        },
+        {
+          "technique": "connection-pooling",
+          "verdict": "deviation",
+          "evidence": "src/lib/report-metrics/store.local.ts:13 Directly invokes getDb() on an unpooled single connection with no admission control, acquisition timeout tracking, or caller labeling."
+        },
+        {
+          "technique": "storage-accounting-and-pruning",
+          "verdict": "deviation",
+          "evidence": "src/lib/report-metrics/store.local.ts:40 No storage accounting breakdown or dry-run pruner exists for report_metrics, and deletions do not trigger page reclamation."
+        },
+        {
+          "technique": "db-self-instrumentation",
+          "verdict": "deviation",
+          "evidence": "src/lib/report-metrics/store.local.ts:28 Operations on the metrics store do not record execution durations into bounded rings or alert on slow local query thresholds."
+        },
+        {
+          "technique": "quiet-window-maintenance",
+          "verdict": "deviation",
+          "evidence": "src/lib/report-metrics/store.local.ts:1 No activity gauge exists to defer store maintenance or coordinate journal checkpointing with foreground interaction state."
+        },
+        {
+          "technique": "analytical-reads-off-the-serving-store",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/report/assemble.ts:10 Report metrics are loaded as point blobs and all analytical calculations are executed in memory rather than as SQL aggregates on the serving DB."
+        }
+      ]
+    }
+  ],
+  "declined": [
+    {
+      "subject": "embedded-db",
+      "context": "metrics-core",
+      "reason": "metrics-core is a pure numerics and analytics computation library (ratios, totals, response curves, pacing, goal history) with no database storage or persistence layer; per instructions from this seat where not-applicable is not accepted, the pair is declined."
+    },
+    {
+      "subject": "embedded-db",
+      "context": "campaigns-store-backend",
+      "reason": "withdrawn after review: reviewer (sonnet): The backend.ts:93 technique is wrong: the cached promise holds only the stateless localTenantStore object, which calls getDb() on every operation, so it never holds a connection that could go stale."
+    },
+    {
+      "subject": "embedded-db",
+      "context": "campaigns-sklik-sync",
+      "reason": "withdrawn after review: reviewer (sonnet): The sklik-connection.local.ts:18 technique cites 'token deserialization', but toStored() only copies the encrypted token string and parses nothing, so that claim doesn't hold."
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-18T00:28:20.489619+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "embedded-db"
+      ],
+      "techniques": [
+        "analytical-reads-off-the-serving-store",
+        "connection-pooling",
+        "corruption-class-response",
+        "db-self-instrumentation",
+        "derived-capacity-limits",
+        "quiet-window-maintenance",
+        "single-writer-holder-discipline",
+        "storage-accounting-and-pruning"
+      ],
+      "deviations": 1,
+      "context": "recaps-activity",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-18T00:28:20.489619+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "embedded-db"
+      ],
+      "techniques": [
+        "analytical-reads-off-the-serving-store",
+        "connection-pooling",
+        "corruption-class-response",
+        "db-self-instrumentation",
+        "quiet-window-maintenance",
+        "single-writer-holder-discipline",
+        "storage-accounting-and-pruning"
+      ],
+      "deviations": 1,
+      "context": "campaigns-store-backend",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-18T00:28:20.489619+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "embedded-db"
+      ],
+      "techniques": [
+        "analytical-reads-off-the-serving-store",
+        "connection-pooling",
+        "corruption-class-response",
+        "db-self-instrumentation",
+        "quiet-window-maintenance",
+        "storage-accounting-and-pruning"
+      ],
+      "deviations": 1,
+      "context": "report-engine",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    },
+    {
+      "ts": "2026-10-18T00:28:20.489619+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "embedded-db"
+      ],
+      "techniques": [
+        "analytical-reads-off-the-serving-store",
+        "connection-pooling",
+        "corruption-class-response",
+        "db-self-instrumentation",
+        "quiet-window-maintenance",
+        "storage-accounting-and-pruning"
+      ],
+      "deviations": 1,
+      "context": "campaigns-sklik-sync",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    }
+  ]
+}
