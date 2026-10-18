@@ -309,24 +309,50 @@
       "context": "onboarding-flow",
       "subject": "public-claim-provenance",
       "bundle": "software-engineering",
-      "state": "conformant",
-      "evaluatedAt": "2026-08-31",
-      "worker": "w7-systedo-llm",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T02:01:38.377Z",
+      "worker": "3d3792ef-1cd4-4f72-9889-a7cbed5b640a",
       "techniques": [
         {
-          "technique": "no-data-source-labelled-inline",
-          "verdict": "conformant",
-          "evidence": "src/components/marketing/sken/SkenHero.tsx:19,28 — AI-suggested content explicitly labelled unverified at the claim site"
+          "technique": "build-time-derivation-off-the-client-bundle",
+          "verdict": "not-applicable",
+          "evidence": "src/components/marketing/sken/SkenPlanTable.tsx:47 The plan supplies the displayed channel entries themselves, rather than being downloaded solely to establish a public catalog count."
         },
         {
-          "technique": "promise-only-what-ships",
+          "technique": "degraded-never-claims-live",
           "verdict": "conformant",
-          "evidence": "src/app/api/sken/redeem/route.ts:1-18 — the 'keep it after sign-in' promise is a working, single-use mechanism, never a stated intention"
+          "evidence": "src/components/marketing/sken/SkenProfileCard.tsx:69 Fallback output receives the explicit 'Basic profile, no AI' badge, selected from result.source rather than plausible field values."
         },
         {
           "technique": "derived-numerator-authored-denominator",
           "verdict": "not-applicable",
-          "evidence": "no numeric fraction/counter appears anywhere in this context's files"
+          "evidence": "src/components/marketing/sken/SkenPlanTable.tsx:97 The displayed subset and total both derive from the same plan; neither is an authored shipping target."
+        },
+        {
+          "technique": "no-data-source-labelled-inline",
+          "verdict": "deviation",
+          "evidence": "src/components/marketing/sken/SkenPlanTable.tsx:82 src/lib/organic-channels/sample.ts:46 types a seed score, and line 470 perturbs it deterministically; the public note describes a curated plan but does not identify these individual scores as editorial, explain the missing measurement, or name an exit to derivation."
+        },
+        {
+          "technique": "presentation-invariants-on-derived-values",
+          "verdict": "conformant",
+          "evidence": "src/components/marketing/sken/SkenProfileCard.tsx:71 The explanatory fallback note and fallback badge use the same isFallback condition."
+        },
+        {
+          "technique": "promise-only-what-ships",
+          "verdict": "conformant",
+          "evidence": "src/app/api/sken/redeem/route.ts:168 The advertised save-and-seed action has an implemented claim, sign-in, provisioning and scan-application mechanism."
+        }
+      ],
+      "registryProposal": "Clarify explicitly that deterministic variation of authored scores does not establish measured provenance.",
+      "superseded": [
+        {
+          "state": "conformant",
+          "evidence": "src/components/marketing/sken/SkenHero.tsx:17-19/26-28 labels AI-derived claims inline ('Konkurenty navrhuje, neověřuje.' / 'Competitors are suggested, not verified.') and states the scan's real limits; the claim→redeem flow (src/app/api/sken/claim/route.ts, redeem/route.ts) implements the 'keep your scan' promise as a real single-use mechanism, not unbacked copy. No numeric roadmap/counter claim exists in this context's files, so the fraction/build-gate techniques have nothing to test.",
+          "evaluatedAt": "2026-08-31",
+          "worker": null,
+          "reason": "replaced by 3d3792ef-1cd4-4f72-9889-a7cbed5b640a"
         }
       ]
     },
@@ -8361,6 +8387,47 @@
           "technique": "tier-model-single-source",
           "verdict": "conformant",
           "evidence": "src/app/api/byom/guard.ts:12 Route guards import their entitlement check from the central usage and plans model rather than duplicating tier logic."
+        }
+      ]
+    },
+    "de3aacbd-0b24-4258-9865-e400559d4a65/public-claim-provenance": {
+      "context": "public-demo-dashboard",
+      "subject": "public-claim-provenance",
+      "bundle": "software-engineering",
+      "state": "conformant",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T02:01:38.377Z",
+      "worker": "3d3792ef-1cd4-4f72-9889-a7cbed5b640a",
+      "techniques": [
+        {
+          "technique": "build-time-derivation-off-the-client-bundle",
+          "verdict": "not-applicable",
+          "evidence": "src/app/dashboard/report/page.tsx:35 This renders the sample report itself, rather than reducing a heavy shipped catalog to a marketing count."
+        },
+        {
+          "technique": "degraded-never-claims-live",
+          "verdict": "conformant",
+          "evidence": "src/app/dashboard/report/page.tsx:42 The illustrative report cannot select ReportChat's live-data source badge."
+        },
+        {
+          "technique": "derived-numerator-authored-denominator",
+          "verdict": "not-applicable",
+          "evidence": "src/components/demo/DemoModule.tsx:162 This is explicitly seeded onboarding state within the product demo, not a public claim about shipped catalog completeness."
+        },
+        {
+          "technique": "no-data-source-labelled-inline",
+          "verdict": "not-applicable",
+          "evidence": "src/components/demo/DemoModule.tsx:151 The performance demo selects the shared illustrative-data disclosure, so its fixture figures are presented as examples rather than measured product claims."
+        },
+        {
+          "technique": "presentation-invariants-on-derived-values",
+          "verdict": "conformant",
+          "evidence": "src/components/dashboard/ReportChat.tsx:213 The assistant description uses the same live flag as the source note on line 212 and the indicator styling."
+        },
+        {
+          "technique": "promise-only-what-ships",
+          "verdict": "not-applicable",
+          "evidence": "src/app/dashboard/page.tsx:48 The route renders an interactive sample workspace; it does not issue a post-submission follow-up commitment."
         }
       ]
     }

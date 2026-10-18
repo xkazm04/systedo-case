@@ -1,0 +1,183 @@
+{
+ "schema": "conform-run/1",
+ "worker": "3d3792ef-1cd4-4f72-9889-a7cbed5b640a",
+ "subject": "public-claim-provenance",
+ "evaluatedAt": "2026-10-18T02:01:38.377157+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "onboarding-flow",
+   "subject": "public-claim-provenance",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/marketing/sken/SkenPlanTable.tsx:82 The public table presents precise fit scores derived from typed seed scores and deterministic variation without explaining those scores' unmeasured provenance.",
+   "techniques": [
+    {
+     "technique": "build-time-derivation-off-the-client-bundle",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/sken/SkenPlanTable.tsx:47 The plan supplies the displayed channel entries themselves, rather than being downloaded solely to establish a public catalog count."
+    },
+    {
+     "technique": "degraded-never-claims-live",
+     "verdict": "conformant",
+     "evidence": "src/components/marketing/sken/SkenProfileCard.tsx:69 Fallback output receives the explicit 'Basic profile, no AI' badge, selected from result.source rather than plausible field values."
+    },
+    {
+     "technique": "derived-numerator-authored-denominator",
+     "verdict": "not-applicable",
+     "evidence": "src/components/marketing/sken/SkenPlanTable.tsx:97 The displayed subset and total both derive from the same plan; neither is an authored shipping target."
+    },
+    {
+     "technique": "no-data-source-labelled-inline",
+     "verdict": "deviation",
+     "evidence": "src/components/marketing/sken/SkenPlanTable.tsx:82 src/lib/organic-channels/sample.ts:46 types a seed score, and line 470 perturbs it deterministically; the public note describes a curated plan but does not identify these individual scores as editorial, explain the missing measurement, or name an exit to derivation."
+    },
+    {
+     "technique": "presentation-invariants-on-derived-values",
+     "verdict": "conformant",
+     "evidence": "src/components/marketing/sken/SkenProfileCard.tsx:71 The explanatory fallback note and fallback badge use the same isFallback condition."
+    },
+    {
+     "technique": "promise-only-what-ships",
+     "verdict": "conformant",
+     "evidence": "src/app/api/sken/redeem/route.ts:168 The advertised save-and-seed action has an implemented claim, sign-in, provisioning and scan-application mechanism."
+    }
+   ],
+   "registryProposal": "Clarify explicitly that deterministic variation of authored scores does not establish measured provenance."
+  },
+  {
+   "context": "public-demo-dashboard",
+   "subject": "public-claim-provenance",
+   "bundle": "software-engineering",
+   "state": "conformant",
+   "evidence": "src/app/dashboard/report/page.tsx:42 The demo report explicitly selects illustrative provenance, and its shared renderer keeps the source note and assistant description consistent with that selection.",
+   "techniques": [
+    {
+     "technique": "build-time-derivation-off-the-client-bundle",
+     "verdict": "not-applicable",
+     "evidence": "src/app/dashboard/report/page.tsx:35 This renders the sample report itself, rather than reducing a heavy shipped catalog to a marketing count."
+    },
+    {
+     "technique": "degraded-never-claims-live",
+     "verdict": "conformant",
+     "evidence": "src/app/dashboard/report/page.tsx:42 The illustrative report cannot select ReportChat's live-data source badge."
+    },
+    {
+     "technique": "derived-numerator-authored-denominator",
+     "verdict": "not-applicable",
+     "evidence": "src/components/demo/DemoModule.tsx:162 This is explicitly seeded onboarding state within the product demo, not a public claim about shipped catalog completeness."
+    },
+    {
+     "technique": "no-data-source-labelled-inline",
+     "verdict": "not-applicable",
+     "evidence": "src/components/demo/DemoModule.tsx:151 The performance demo selects the shared illustrative-data disclosure, so its fixture figures are presented as examples rather than measured product claims."
+    },
+    {
+     "technique": "presentation-invariants-on-derived-values",
+     "verdict": "conformant",
+     "evidence": "src/components/dashboard/ReportChat.tsx:213 The assistant description uses the same live flag as the source note on line 212 and the indicator styling."
+    },
+    {
+     "technique": "promise-only-what-ships",
+     "verdict": "not-applicable",
+     "evidence": "src/app/dashboard/page.tsx:48 The route renders an interactive sample workspace; it does not issue a post-submission follow-up commitment."
+    }
+   ]
+  },
+  {
+   "context": "client-facing-pages",
+   "subject": "public-claim-provenance",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/app/report/[token]/page.tsx:267 A shared monthly report can display only one network from a mixed-currency project under an undifferentiated live-data badge because the snapshot discards the resolver's partial-source disclosure.",
+   "techniques": [
+    {
+     "technique": "build-time-derivation-off-the-client-bundle",
+     "verdict": "not-applicable",
+     "evidence": "src/app/report/[token]/page.tsx:106 These are tenant-specific saved report values, not deployment-known counts over a shipped product catalog."
+    },
+    {
+     "technique": "degraded-never-claims-live",
+     "verdict": "deviation",
+     "evidence": "src/app/report/[token]/page.tsx:267 blendSections returns primary-only rows with mixedCurrency:true at src/lib/report-metrics/blend.ts:198; resolveReportDataset retains that warning alongside live:true, but buildSharedMonthlyReport copies only live and the report values, leaving this public renderer unable to disclose the omitted network."
+    },
+    {
+     "technique": "derived-numerator-authored-denominator",
+     "verdict": "not-applicable",
+     "evidence": "src/app/report/[token]/page.tsx:300 Hits and total both describe the persisted monthly attainment collection, rather than mixing a shipped-product count with an authored roadmap target."
+    },
+    {
+     "technique": "presentation-invariants-on-derived-values",
+     "verdict": "conformant",
+     "evidence": "src/app/report/[token]/page.tsx:277 A missing persisted metric removes the whole tile, including its dependent delta, instead of fabricating zero while retaining comparison chrome."
+    },
+    {
+     "technique": "promise-only-what-ships",
+     "verdict": "not-applicable",
+     "evidence": "src/app/report/[token]/page.tsx:158 The shared report is a read-only deliverable, without a confirmation panel promising subsequent delivery."
+    }
+   ],
+   "registryProposal": "Add an example requiring partial-source provenance to survive serialization into a public report snapshot."
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-18T02:01:38.377157+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "public-claim-provenance"
+   ],
+   "techniques": [
+    "build-time-derivation-off-the-client-bundle",
+    "degraded-never-claims-live",
+    "derived-numerator-authored-denominator",
+    "no-data-source-labelled-inline",
+    "presentation-invariants-on-derived-values",
+    "promise-only-what-ships"
+   ],
+   "deviations": 1,
+   "context": "onboarding-flow",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T02:01:38.377157+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "public-claim-provenance"
+   ],
+   "techniques": [
+    "build-time-derivation-off-the-client-bundle",
+    "degraded-never-claims-live",
+    "derived-numerator-authored-denominator",
+    "no-data-source-labelled-inline",
+    "presentation-invariants-on-derived-values",
+    "promise-only-what-ships"
+   ],
+   "deviations": 0,
+   "context": "public-demo-dashboard",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T02:01:38.377157+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "public-claim-provenance"
+   ],
+   "techniques": [
+    "build-time-derivation-off-the-client-bundle",
+    "degraded-never-claims-live",
+    "derived-numerator-authored-denominator",
+    "presentation-invariants-on-derived-values",
+    "promise-only-what-ships"
+   ],
+   "deviations": 1,
+   "context": "client-facing-pages",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}

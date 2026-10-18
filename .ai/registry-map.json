@@ -12824,12 +12824,12 @@
           "revision": 3,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "conformant",
-          "evidence": "src/components/marketing/sken/SkenHero.tsx:17-19/26-28 labels AI-derived claims inline ('Konkurenty navrhuje, neověřuje.' / 'Competitors are suggested, not verified.') and states the scan's real limits; the claim→redeem flow (src/app/api/sken/claim/route.ts, redeem/route.ts) implements the 'keep your scan' promise as a real single-use mechanism, not unbacked copy. No numeric roadmap/counter claim exists in this context's files, so the fraction/build-gate techniques have nothing to test.",
-          "evaluatedAt": "2026-08-31",
-          "evaluatedAgainst": "sha256-b2:df9980b5ba402dfc",
+          "state": "deviation",
+          "evidence": "src/components/marketing/sken/SkenPlanTable.tsx:82 The public table presents precise fit scores derived from typed seed scores and deterministic variation without explaining those scores' unmeasured provenance.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:60eb54ef03f44a69",
           "source": "retained",
-          "stale": true
+          "evaluatedRevision": 3
         },
         {
           "subject": "docs-sync",
@@ -15528,7 +15528,11 @@
           "revision": 3,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/app/dashboard/report/page.tsx:42 The demo report explicitly selects illustrative provenance, and its shared renderer keeps the source note and assistant description consistent with that selection.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:60eb54ef03f44a69",
+          "evaluatedRevision": 3
         },
         {
           "subject": "quality-gates",
