@@ -9469,6 +9469,123 @@
           "evidence": "src/lib/campaigns/budget-math.ts:1 Context implements pure arithmetic for budget mutations and does not triangulate across attribution, incrementality, and marketing mix models."
         }
       ]
+    },
+    "f1dca182-bbfa-4f32-97a6-48b3baf0f92b/client-fetch-cache": {
+      "context": "ai-cache-history",
+      "subject": "client-fetch-cache",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T04:40:48.900Z",
+      "worker": "179e290a-b335-4d1d-819a-b55272ea307f",
+      "techniques": [
+        {
+          "technique": "admission-hypothesis",
+          "verdict": "conformant",
+          "evidence": "src/lib/ai/response-cache.ts:21 The construction site explicitly bets on repeated identical submissions within fifteen minutes; admission also excludes demo results."
+        },
+        {
+          "technique": "cache-key-discipline",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/response-cache.ts:53 Serialization is canonical, but the durable key contains no output-schema or prompt-version namespace to separate entries across incompatible deployments."
+        },
+        {
+          "technique": "in-flight-dedup",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/response-cache.ts:89 Each caller starts its own durable lookup; dispatch.ts then independently invokes gen() on a miss, without registering or joining a pending result."
+        },
+        {
+          "technique": "parse-and-derive-caches",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/handoff.ts:40 The handoff transformation is recomputed directly; the history parser likewise does not maintain a memoized derivation cache."
+        },
+        {
+          "technique": "plural-policy-claims",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/response-cache.ts:74 Readers cannot submit competing freshness or retention options; this cache applies one fixed policy."
+        },
+        {
+          "technique": "prefetch-and-defer",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/response-cache.ts:102 This layer stores completed, explicitly requested generations; it does not schedule mounted read surfaces or speculative data loads."
+        },
+        {
+          "technique": "sibling-entry-warmth",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/handoff.ts:39 The handoff prepares another tool's request input rather than borrowing a listing summary for a detail fetch."
+        },
+        {
+          "technique": "similarity-keyed-admission",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/response-cache.ts:52 Lookup uses an exact digest of canonical request arguments, with no resemblance metric or similarity threshold."
+        },
+        {
+          "technique": "swr-design",
+          "verdict": "deviation",
+          "evidence": "src/lib/ai/response-cache.ts:60 The single expiry threshold immediately deletes an expired L1 value; there is no separately declared stale-serving window or background revalidation."
+        },
+        {
+          "technique": "warm-remount-caches",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/ai/history.ts:71 These helpers persist bounded historical generations rather than managing a live read surface's remount cache; the response-cache tiers are server-side."
+        }
+      ]
+    },
+    "b3d55aa0-0e4c-4a59-9668-dacaeb6b23a9/client-fetch-cache": {
+      "context": "campaigns-core-ui",
+      "subject": "client-fetch-cache",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T04:40:48.900Z",
+      "worker": "179e290a-b335-4d1d-819a-b55272ea307f",
+      "techniques": [
+        {
+          "technique": "cache-key-discipline",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/useAuthedResource.ts:44 One unkeyed slot survives fetcher changes; changing resource scope retains the previous resource's snapshot until a successful replacement, including indefinitely after failure."
+        },
+        {
+          "technique": "in-flight-dedup",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/useAuthedResource.ts:49 Every reload independently invokes the fetcher, with no request identity or pending-result registry for concurrent identical reads."
+        },
+        {
+          "technique": "plural-policy-claims",
+          "verdict": "not-applicable",
+          "evidence": "src/components/campaigns/useAuthedResource.ts:41 The hook accepts a refresh signal, without a shared keyed entry or competing reader retention/freshness options."
+        },
+        {
+          "technique": "portable-read-definitions",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/useCampaigns.ts:43 The campaign read is defined inside the hook instead of an exported plain definition binding identity, retrieval, and default policies for non-component consumers."
+        },
+        {
+          "technique": "prefetch-and-defer",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/CampaignsClient.tsx:529 The below-fold panel mounts unconditionally and fetches on authenticated mount; dynamic code splitting supplies no idle, visibility, or intent scheduling for its data."
+        },
+        {
+          "technique": "sibling-entry-warmth",
+          "verdict": "not-applicable",
+          "evidence": "src/components/campaigns/table/RowFunnel.tsx:52 The expanded funnel renders fields already carried by the complete campaign row, without a separate detail request needing a borrowed summary."
+        },
+        {
+          "technique": "similarity-keyed-admission",
+          "verdict": "not-applicable",
+          "evidence": "src/components/campaigns/useCampaigns.ts:45 Campaign retrieval addresses an exact project resource, without approximate request matching or a similarity threshold."
+        },
+        {
+          "technique": "swr-design",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/useAuthedResource.ts:68 Failed reloads preserve prior data but expose no refresh-error outcome or freshness state; the hook also declares no fresh/stale thresholds."
+        },
+        {
+          "technique": "warm-remount-caches",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/useCampaigns.ts:24 Fetched campaigns disappear with the hook instance, and each mount reloads from an empty initial state."
+        }
+      ]
     }
   }
 }

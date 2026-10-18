@@ -2253,7 +2253,11 @@
           "revision": 15,
           "changedAt": "2026-09-25",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/ai/response-cache.ts:89 Concurrent cold requests independently consult storage and generate results because completed-result caching provides no keyed pending-request registry.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:20824426732ffb6a",
+          "evaluatedRevision": 15
         },
         {
           "subject": "session-continuation",
@@ -5662,7 +5666,11 @@
           "revision": 15,
           "changedAt": "2026-09-25",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/campaigns/useCampaigns.ts:24 Campaign data belongs to the hook instance, so remounting starts empty and repeats the fetch instead of painting a retained result.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:20824426732ffb6a",
+          "evaluatedRevision": 15
         },
         {
           "subject": "multi-provider-gateway-plane",
