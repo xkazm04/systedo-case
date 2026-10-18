@@ -1,0 +1,112 @@
+{
+ "schema": "conform-run/1",
+ "worker": "c2199c74-9c7b-4e5a-8f04-ad22eace482f",
+ "subject": "review-iteration-loops",
+ "evaluatedAt": "2026-10-18T03:49:00.633525+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [
+  {
+   "context": "content-engine-module",
+   "subject": "review-iteration-loops",
+   "bundle": "media-generation",
+   "state": "deviation",
+   "evidence": "src/app/app/[projectId]/studio/obsahovy-engine/page.tsx:43 The content engine module mounts the creation surface where generation iteration re-runs full prompts instead of executing an edit plan with minimal operations over reviewed drafts.",
+   "techniques": [
+    {
+     "technique": "edit-plan-over-regeneration",
+     "verdict": "deviation",
+     "evidence": "src/components/ai/useAiTool.ts:266 Iteration re-runs the entire generation prompt with the steering note appended rather than outputting a minimal list of edit operations (retime, rewrite, cut, insert) over reviewed drafts."
+    },
+    {
+     "technique": "note-taxonomy-focus-scope-order",
+     "verdict": "deviation",
+     "evidence": "src/components/ai/primitives.tsx:423 Feedback accepts unstructured free text in RefineBar rather than mapping review notes to a typed taxonomy of focus, scope, and order."
+    },
+    {
+     "technique": "partial-regeneration-seams",
+     "verdict": "deviation",
+     "evidence": "src/components/ai/ArticleDraftPanel.tsx:384 Regeneration invalidates and clears pinned imagery instead of keeping approved sections by reference and preserving structural seams."
+    },
+    {
+     "technique": "refusal-as-valid-outcome",
+     "verdict": "deviation",
+     "evidence": "src/components/ai/useAiTool.ts:211 Non-satisfiable review notes trigger generic errors rather than first-class refusal responses carrying explicit reasons and unchanged lists."
+    },
+    {
+     "technique": "anchored-variation-slate",
+     "verdict": "deviation",
+     "evidence": "src/components/ai/ArticleDraftPanel.tsx:469 The interface provides a single unanchored regenerate button rather than generating a divergent candidate slate anchored to named references."
+    },
+    {
+     "technique": "scope-vs-preference-signals",
+     "verdict": "deviation",
+     "evidence": "src/components/ai/ContentBriefGenerator.tsx:769 Steering notes entered via RefineBar bypass the structured scope parameters without precedence rules or collision routing."
+    },
+    {
+     "technique": "gate-record-outlives-the-media",
+     "verdict": "deviation",
+     "evidence": "src/components/ai/useAiTool.ts:238 Generations are serialized into transient browser localStorage history without separating durable gate verdict records from heavy media."
+    },
+    {
+     "technique": "attribution-share-accounting",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/DistributionModule.tsx:176 Attribution is limited to marketing channel click shares rather than beat-to-source evidence shares with a sum-to-runtime invariant."
+    },
+    {
+     "technique": "critique-carries-its-fix",
+     "verdict": "deviation",
+     "evidence": "src/components/ai/ContentBriefGenerator.tsx:331 Automated SEO scoring provides advisory hint chips without carrying concrete repair text or fixes to an automated revision stage."
+    },
+    {
+     "technique": "follow-up-that-can-kill-a-fact",
+     "verdict": "deviation",
+     "evidence": "src/components/ai/ContentBriefGenerator.tsx:524 Grounding keywords enter generation without a follow-up interrogation queue that can kill, downgrade, or retract evidence facts."
+    }
+   ],
+   "registryProposal": "The standard assumes review iteration loops are implemented primarily for timeline-based continuous or discrete media (beats, seconds, audio seams); web text content engines (articles, outlines, briefs) require explicit adaptation guidelines for hierarchical block-structured text where operations map to document blocks rather than timeline seconds."
+  }
+ ],
+ "declined": [
+  {
+   "subject": "review-iteration-loops",
+   "context": "app-shell-chrome",
+   "reason": "The context covers application shell layout, topbar, authentication gates, and loading skeletons; it contains no generative media workflows or review iteration loops."
+  },
+  {
+   "subject": "review-iteration-loops",
+   "context": "local-signals",
+   "reason": "The context covers local ranking signal ingestion, keyword position tracking, and dual-store persistence; it contains no generative media workflows or review iteration loops."
+  },
+  {
+   "subject": "review-iteration-loops",
+   "context": "profit-analytics",
+   "reason": "The context covers margin analytics, revenue reconciliation, and scenario modelling; it contains no generative media workflows or review iteration loops."
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-18T03:49:00.633525+00:00",
+   "bundle": "media-generation",
+   "subjects": [
+    "review-iteration-loops"
+   ],
+   "techniques": [
+    "anchored-variation-slate",
+    "attribution-share-accounting",
+    "critique-carries-its-fix",
+    "edit-plan-over-regeneration",
+    "follow-up-that-can-kill-a-fact",
+    "gate-record-outlives-the-media",
+    "note-taxonomy-focus-scope-order",
+    "partial-regeneration-seams",
+    "refusal-as-valid-outcome",
+    "scope-vs-preference-signals"
+   ],
+   "deviations": 1,
+   "context": "content-engine-module",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  }
+ ]
+}
