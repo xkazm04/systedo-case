@@ -1,0 +1,124 @@
+{
+ "schema": "conform-run/1",
+ "worker": "dca896e3-263c-4122-83ca-e90a46d01ab5",
+ "subject": "search-term-mining",
+ "evaluatedAt": "2026-10-18T03:52:47.832644+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "campaigns-core-lib",
+   "subject": "search-term-mining",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/lib/campaigns/term-moves.ts:77 The promotion predicate accepts OTHER match types, allowing unclassifiable queries to become permanent keywords.",
+   "techniques": [
+    {
+     "technique": "campaign-level-phrase-negative",
+     "verdict": "deviation",
+     "evidence": "src/lib/campaigns/term-moves.ts:160 Eligibility is evaluated per row without campaign aggregation or a veto from converting queries containing the negative phrase; campaign-level phrase writes can therefore block converters in another row."
+    },
+    {
+     "technique": "exact-promote-into-serving-ad-group",
+     "verdict": "deviation",
+     "evidence": "src/lib/campaigns/term-moves.ts:77 OTHER passes the not-EXACT test, contrary to the required exclusion of unknown match types."
+    },
+    {
+     "technique": "negatives-before-promotes",
+     "verdict": "deviation",
+     "evidence": "test-unit/campaigns-term-moves-apply.test.mjs:275 Emission correctly orders and caps negatives before promotes, but this integration test explicitly expects promotion to continue after the negative fails, contrary to stop-on-failure."
+    },
+    {
+     "technique": "never-mine-demo-data",
+     "verdict": "deviation",
+     "evidence": "src/lib/campaigns/store/search-terms.ts:80 The sample connector returns nothing and sync filters empty results, but saveSearchTerms itself unconditionally replaces the document even for an empty list, missing the standard's store-level refusal."
+    },
+    {
+     "technique": "spend-and-click-floors-before-negation",
+     "verdict": "deviation",
+     "evidence": "src/lib/campaigns/term-moves.ts:136 Both floors exist, but the defaults remain fixed at 500 account-currency units and 10 clicks without being labelled practitioner conventions; the mining path also provides no conversion-lag allowance."
+    },
+    {
+     "technique": "zero-conversions-on-unrounded-count",
+     "verdict": "deviation",
+     "evidence": "src/lib/google/ads.ts:967 The mapper used by this context's connector preserves fractions, but num defaults missing and nonnumeric conversions to zero instead of dropping an otherwise measurable row."
+    }
+   ],
+   "registryProposal": "Reconcile negatives-before-promotes' statement that the first row decides eligibility with campaign-level-phrase-negative's requirement to aggregate across ad groups and veto phrases that match converting queries before deduplication."
+  },
+  {
+   "context": "campaign-alerts-control",
+   "subject": "search-term-mining",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/components/campaigns/SearchTermsLists.tsx:102 The UI uses the predicate that accepts OTHER match types, so it presents unclassifiable queries as promotion candidates.",
+   "techniques": [
+    {
+     "technique": "exact-promote-into-serving-ad-group",
+     "verdict": "deviation",
+     "evidence": "src/components/campaigns/SearchTermsLists.tsx:102 The checked imported predicate admits OTHER, so the converting list includes queries whose match type cannot justify promotion."
+    },
+    {
+     "technique": "negatives-before-promotes",
+     "verdict": "conformant",
+     "evidence": "src/components/campaigns/PendingProposal.tsx:99 The approval surface preserves the supplied change-set order without sorting or truncating its moves; server apply behavior is judged separately."
+    },
+    {
+     "technique": "spend-and-click-floors-before-negation",
+     "verdict": "deviation",
+     "evidence": "src/components/campaigns/SearchTermsPanel.tsx:157 The threshold disclosure presents fixed spend and click constants without identifying them as practitioner conventions."
+    },
+    {
+     "technique": "zero-conversions-on-unrounded-count",
+     "verdict": "conformant",
+     "evidence": "src/components/campaigns/SearchTermsLists.tsx:100 The UI passes original rows to the checked exact-zero predicate before any display rounding, preserving fractional-conversion protection locally."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "search-term-mining",
+   "context": "ads-creative-spend",
+   "reason": "absence contradicted: src/lib/campaigns/connector.ts:27 contains 'searchTerms' (56 hit(s) in the context's directories)"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-18T03:52:47.832644+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "search-term-mining"
+   ],
+   "techniques": [
+    "campaign-level-phrase-negative",
+    "exact-promote-into-serving-ad-group",
+    "negatives-before-promotes",
+    "never-mine-demo-data",
+    "spend-and-click-floors-before-negation",
+    "zero-conversions-on-unrounded-count"
+   ],
+   "deviations": 1,
+   "context": "campaigns-core-lib",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T03:52:47.832644+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "search-term-mining"
+   ],
+   "techniques": [
+    "exact-promote-into-serving-ad-group",
+    "negatives-before-promotes",
+    "spend-and-click-floors-before-negation",
+    "zero-conversions-on-unrounded-count"
+   ],
+   "deviations": 1,
+   "context": "campaign-alerts-control",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}

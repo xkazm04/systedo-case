@@ -9237,6 +9237,79 @@
         "at": "2026-10-18T03:39:56.440828+00:00",
         "reason": "reviewer (sonnet): The not-applicable anchor (KeywordsModule.tsx:25) is just the router.push handoff to the content engine and doesn't show the precondition is absent. The claim rests on a narrow absence search, and the 'page-head composition happens outside' claim is not shown by the anchor."
       }
+    },
+    "67b653f8-91d5-47ea-919a-09b0d6315f76/search-term-mining": {
+      "context": "campaigns-core-lib",
+      "subject": "search-term-mining",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T03:52:47.832Z",
+      "worker": "dca896e3-263c-4122-83ca-e90a46d01ab5",
+      "techniques": [
+        {
+          "technique": "campaign-level-phrase-negative",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/term-moves.ts:160 Eligibility is evaluated per row without campaign aggregation or a veto from converting queries containing the negative phrase; campaign-level phrase writes can therefore block converters in another row."
+        },
+        {
+          "technique": "exact-promote-into-serving-ad-group",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/term-moves.ts:77 OTHER passes the not-EXACT test, contrary to the required exclusion of unknown match types."
+        },
+        {
+          "technique": "negatives-before-promotes",
+          "verdict": "deviation",
+          "evidence": "test-unit/campaigns-term-moves-apply.test.mjs:275 Emission correctly orders and caps negatives before promotes, but this integration test explicitly expects promotion to continue after the negative fails, contrary to stop-on-failure."
+        },
+        {
+          "technique": "never-mine-demo-data",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/store/search-terms.ts:80 The sample connector returns nothing and sync filters empty results, but saveSearchTerms itself unconditionally replaces the document even for an empty list, missing the standard's store-level refusal."
+        },
+        {
+          "technique": "spend-and-click-floors-before-negation",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/term-moves.ts:136 Both floors exist, but the defaults remain fixed at 500 account-currency units and 10 clicks without being labelled practitioner conventions; the mining path also provides no conversion-lag allowance."
+        },
+        {
+          "technique": "zero-conversions-on-unrounded-count",
+          "verdict": "deviation",
+          "evidence": "src/lib/google/ads.ts:967 The mapper used by this context's connector preserves fractions, but num defaults missing and nonnumeric conversions to zero instead of dropping an otherwise measurable row."
+        }
+      ],
+      "registryProposal": "Reconcile negatives-before-promotes' statement that the first row decides eligibility with campaign-level-phrase-negative's requirement to aggregate across ad groups and veto phrases that match converting queries before deduplication."
+    },
+    "96c8fbd1-421a-4330-8ccd-b10e44fa39ec/search-term-mining": {
+      "context": "campaign-alerts-control",
+      "subject": "search-term-mining",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T03:52:47.832Z",
+      "worker": "dca896e3-263c-4122-83ca-e90a46d01ab5",
+      "techniques": [
+        {
+          "technique": "exact-promote-into-serving-ad-group",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/SearchTermsLists.tsx:102 The checked imported predicate admits OTHER, so the converting list includes queries whose match type cannot justify promotion."
+        },
+        {
+          "technique": "negatives-before-promotes",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/PendingProposal.tsx:99 The approval surface preserves the supplied change-set order without sorting or truncating its moves; server apply behavior is judged separately."
+        },
+        {
+          "technique": "spend-and-click-floors-before-negation",
+          "verdict": "deviation",
+          "evidence": "src/components/campaigns/SearchTermsPanel.tsx:157 The threshold disclosure presents fixed spend and click constants without identifying them as practitioner conventions."
+        },
+        {
+          "technique": "zero-conversions-on-unrounded-count",
+          "verdict": "conformant",
+          "evidence": "src/components/campaigns/SearchTermsLists.tsx:100 The UI passes original rows to the checked exact-zero predicate before any display rounding, preserving fractional-conversion protection locally."
+        }
+      ]
     }
   }
 }

@@ -4945,7 +4945,11 @@
           "revision": 2,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/campaigns/SearchTermsLists.tsx:102 The UI uses the predicate that accepts OTHER match types, so it presents unclassifiable queries as promotion candidates.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:1621d4afd9f6763b",
+          "evaluatedRevision": 2
         },
         {
           "subject": "performance-root-cause-diagnosis",
@@ -5794,7 +5798,11 @@
           "revision": 2,
           "changedAt": "2026-10-14",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/campaigns/term-moves.ts:77 The promotion predicate accepts OTHER match types, allowing unclassifiable queries to become permanent keywords.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:1621d4afd9f6763b",
+          "evaluatedRevision": 2
         },
         {
           "subject": "module-design",
