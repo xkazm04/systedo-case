@@ -9310,6 +9310,83 @@
           "evidence": "src/components/campaigns/SearchTermsLists.tsx:100 The UI passes original rows to the checked exact-zero predicate before any display rounding, preserving fractional-conversion protection locally."
         }
       ]
+    },
+    "2052fdcd-7bf0-4625-b8c4-748279361350/analytics-time-windows": {
+      "context": "dashboard-kpi",
+      "subject": "analytics-time-windows",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T04:15:38.335Z",
+      "worker": "5f9afbc3-3178-401e-9306-70f63d1851f6",
+      "techniques": [
+        {
+          "technique": "baseline-as-window-start",
+          "verdict": "not-applicable",
+          "evidence": "src/components/dashboard/DashboardClient.tsx:153 The dashboard compares daily flow totals and their derived ratios; these do not provide an instantaneous state baseline."
+        },
+        {
+          "technique": "calendar-arithmetic",
+          "verdict": "deviation",
+          "evidence": "src/lib/metrics/series.ts:27 The dashboard's named 12-month selection is implemented as a fixed 365-day span."
+        },
+        {
+          "technique": "canonical-zone-single-source",
+          "verdict": "deviation",
+          "evidence": "src/lib/format.ts:251 Dashboard date formatters parse date-only values in the runtime's ambient zone instead of a resolved reporting zone."
+        },
+        {
+          "technique": "cohort-matched-comparison",
+          "verdict": "not-applicable",
+          "evidence": "src/components/dashboard/DashboardClient.tsx:171 The decomposition compares traffic, conversion and revenue flows, rather than changes in persistent entity states."
+        },
+        {
+          "technique": "half-open-interval-policy",
+          "verdict": "deviation",
+          "evidence": "src/lib/activity/compute.ts:17 ActivityModule's helper includes daysAgo equal to N; recordToEvent floors elapsed age, so this admits events older than the stated N-day horizon."
+        },
+        {
+          "technique": "range-precedence-resolution",
+          "verdict": "deviation",
+          "evidence": "src/components/dashboard/report-chat-store.ts:19 Missing and invalid explicit periods receive the same silent fallback, including the dashboard's unsupported 7d selection."
+        }
+      ]
+    },
+    "4669bc3a-19ce-46c3-ab23-79f5dcf6a2dd/analytics-time-windows": {
+      "context": "spend-reporting",
+      "subject": "analytics-time-windows",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T04:15:38.335Z",
+      "worker": "5f9afbc3-3178-401e-9306-70f63d1851f6",
+      "techniques": [
+        {
+          "technique": "baseline-as-window-start",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:355 Recap deltas explicitly compare period-flow aggregates against the previous period; a point-state baseline is not required."
+        },
+        {
+          "technique": "calendar-arithmetic",
+          "verdict": "deviation",
+          "evidence": "src/lib/report/assemble.ts:90 MonthlyReport receives snapshots assembled here; the opened buildSnapshot implementation maps 12m to 365 days rather than calendar-month boundaries."
+        },
+        {
+          "technique": "cohort-matched-comparison",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/SpendModule.tsx:107 Usage counts call occurrences and associated token/cost flows; recap comparisons likewise concern period flows rather than entity-state movement."
+        },
+        {
+          "technique": "half-open-interval-policy",
+          "verdict": "deviation",
+          "evidence": "src/lib/spend/compute.ts:16 telemetryToSpend floors elapsed days, and this inclusive comparison retains the entire Nth age bin instead of cutting at the exact horizon."
+        },
+        {
+          "technique": "range-precedence-resolution",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/MonthlyReport.tsx:197 The inspected modules use local period selectors; stored recap results are keyed by that selection and do not supply a competing period preference."
+        }
+      ]
     }
   }
 }

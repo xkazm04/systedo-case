@@ -1,0 +1,175 @@
+{
+ "schema": "conform-run/1",
+ "worker": "5f9afbc3-3178-401e-9306-70f63d1851f6",
+ "subject": "analytics-time-windows",
+ "evaluatedAt": "2026-10-18T04:15:38.335192+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "reporting-modules",
+   "subject": "analytics-time-windows",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/app/app/[projectId]/performance/report/page.tsx:25 The report silently replaces an invalid explicit period with 90d instead of rejecting it or disclosing the fallback.",
+   "techniques": [
+    {
+     "technique": "baseline-as-window-start",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/report/assemble.ts:99 The recap compares period flows such as revenue, cost and conversions; the standard permits prior-window comparisons for these metrics."
+    },
+    {
+     "technique": "calendar-arithmetic",
+     "verdict": "deviation",
+     "evidence": "src/lib/snapshot.ts:53 The report snapshot defines the named 12-month period as 365 days rather than calendar months."
+    },
+    {
+     "technique": "cohort-matched-comparison",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/report/assemble.ts:115 These are period-flow aggregates, not movement in an entity-state population; the event-window exception applies."
+    },
+    {
+     "technique": "half-open-interval-policy",
+     "verdict": "deviation",
+     "evidence": "src/lib/snapshot.ts:294 Anomaly membership uses closed bounds and a separately reconstructed requested-day window, which can exceed the effective truncated comparison window."
+    },
+    {
+     "technique": "range-precedence-resolution",
+     "verdict": "deviation",
+     "evidence": "src/app/app/[projectId]/performance/report/page.tsx:25 The called helper returns 90d for invalid explicit input without returning provenance or a validation signal."
+    }
+   ]
+  },
+  {
+   "context": "dashboard-kpi",
+   "subject": "analytics-time-windows",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/activity/compute.ts:17 ActivityModule includes integer age bins 0 through N, allowing events almost N+1 days old into an N-day view.",
+   "techniques": [
+    {
+     "technique": "baseline-as-window-start",
+     "verdict": "not-applicable",
+     "evidence": "src/components/dashboard/DashboardClient.tsx:153 The dashboard compares daily flow totals and their derived ratios; these do not provide an instantaneous state baseline."
+    },
+    {
+     "technique": "calendar-arithmetic",
+     "verdict": "deviation",
+     "evidence": "src/lib/metrics/series.ts:27 The dashboard's named 12-month selection is implemented as a fixed 365-day span."
+    },
+    {
+     "technique": "canonical-zone-single-source",
+     "verdict": "deviation",
+     "evidence": "src/lib/format.ts:251 Dashboard date formatters parse date-only values in the runtime's ambient zone instead of a resolved reporting zone."
+    },
+    {
+     "technique": "cohort-matched-comparison",
+     "verdict": "not-applicable",
+     "evidence": "src/components/dashboard/DashboardClient.tsx:171 The decomposition compares traffic, conversion and revenue flows, rather than changes in persistent entity states."
+    },
+    {
+     "technique": "half-open-interval-policy",
+     "verdict": "deviation",
+     "evidence": "src/lib/activity/compute.ts:17 ActivityModule's helper includes daysAgo equal to N; recordToEvent floors elapsed age, so this admits events older than the stated N-day horizon."
+    },
+    {
+     "technique": "range-precedence-resolution",
+     "verdict": "deviation",
+     "evidence": "src/components/dashboard/report-chat-store.ts:19 Missing and invalid explicit periods receive the same silent fallback, including the dashboard's unsupported 7d selection."
+    }
+   ]
+  },
+  {
+   "context": "spend-reporting",
+   "subject": "analytics-time-windows",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/spend/compute.ts:16 SpendModule includes age bin N in an N-day selection, so floored telemetry ages admit almost one extra day of spend.",
+   "techniques": [
+    {
+     "technique": "baseline-as-window-start",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/MonthlyReport.tsx:355 Recap deltas explicitly compare period-flow aggregates against the previous period; a point-state baseline is not required."
+    },
+    {
+     "technique": "calendar-arithmetic",
+     "verdict": "deviation",
+     "evidence": "src/lib/report/assemble.ts:90 MonthlyReport receives snapshots assembled here; the opened buildSnapshot implementation maps 12m to 365 days rather than calendar-month boundaries."
+    },
+    {
+     "technique": "cohort-matched-comparison",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/SpendModule.tsx:107 Usage counts call occurrences and associated token/cost flows; recap comparisons likewise concern period flows rather than entity-state movement."
+    },
+    {
+     "technique": "half-open-interval-policy",
+     "verdict": "deviation",
+     "evidence": "src/lib/spend/compute.ts:16 telemetryToSpend floors elapsed days, and this inclusive comparison retains the entire Nth age bin instead of cutting at the exact horizon."
+    },
+    {
+     "technique": "range-precedence-resolution",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/MonthlyReport.tsx:197 The inspected modules use local period selectors; stored recap results are keyed by that selection and do not supply a competing period preference."
+    }
+   ]
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-18T04:15:38.335192+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "analytics-time-windows"
+   ],
+   "techniques": [
+    "baseline-as-window-start",
+    "calendar-arithmetic",
+    "cohort-matched-comparison",
+    "half-open-interval-policy",
+    "range-precedence-resolution"
+   ],
+   "deviations": 1,
+   "context": "reporting-modules",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T04:15:38.335192+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "analytics-time-windows"
+   ],
+   "techniques": [
+    "baseline-as-window-start",
+    "calendar-arithmetic",
+    "canonical-zone-single-source",
+    "cohort-matched-comparison",
+    "half-open-interval-policy",
+    "range-precedence-resolution"
+   ],
+   "deviations": 1,
+   "context": "dashboard-kpi",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T04:15:38.335192+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "analytics-time-windows"
+   ],
+   "techniques": [
+    "baseline-as-window-start",
+    "calendar-arithmetic",
+    "cohort-matched-comparison",
+    "half-open-interval-policy",
+    "range-precedence-resolution"
+   ],
+   "deviations": 1,
+   "context": "spend-reporting",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}
