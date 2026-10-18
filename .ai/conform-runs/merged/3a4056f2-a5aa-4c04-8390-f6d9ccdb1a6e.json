@@ -1,0 +1,32 @@
+{
+ "schema": "conform-run/1",
+ "worker": "3a4056f2-a5aa-4c04-8390-f6d9ccdb1a6e",
+ "subject": "hitl-approval",
+ "evaluatedAt": "2026-10-18T02:25:17.918617+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [],
+ "declined": [
+  {
+   "subject": "hitl-approval",
+   "context": "organic-channels",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "hitl-approval",
+   "context": "diagnoses-engine",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "hitl-approval",
+   "context": "shared-ui-primitives",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "hitl-approval",
+   "context": "site-chrome",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": []
+}
