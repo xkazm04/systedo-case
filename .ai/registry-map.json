@@ -5572,7 +5572,11 @@
           "revision": 3,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/campaigns/budget-moves.ts:125 The budget recommender filters and ranks donors by distance below a single last-click ROAS target, systematically starving prospecting campaigns that create demand rather than harvest it.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:ec4c7c4c286f6f72",
+          "evaluatedRevision": 3
         }
       ],
       "governance": "governed"
@@ -10324,7 +10328,11 @@
           "revision": 3,
           "changedAt": "2026-10-14",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/lib/leads/conversion-events.ts:86 Lead conversions are stored as append-only idempotent ledger events keyed by contact and stage, ensuring offline conversion uploads to ad platforms never double-count re-qualifications.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:ec4c7c4c286f6f72",
+          "evaluatedRevision": 3
         },
         {
           "subject": "agent-memory",

@@ -1,0 +1,129 @@
+{
+ "schema": "conform-run/1",
+ "worker": "ba514261-8c94-4e1d-ae70-caacdc141885",
+ "subject": "attribution-and-incrementality",
+ "evaluatedAt": "2026-10-18T04:28:31.050164+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [
+  {
+   "context": "lead-management",
+   "subject": "attribution-and-incrementality",
+   "bundle": "marketing",
+   "state": "conformant",
+   "evidence": "src/lib/leads/conversion-events.ts:86 Lead conversions are stored as append-only idempotent ledger events keyed by contact and stage, ensuring offline conversion uploads to ad platforms never double-count re-qualifications.",
+   "techniques": [
+    {
+     "technique": "offline-conversion-upload-guards",
+     "verdict": "conformant",
+     "evidence": "src/lib/leads/conversion-events.ts:86 Enforces stable contact-plus-stage upsert keys, omission of unknown values, and four independent upload guards."
+    },
+    {
+     "technique": "platform-conversions-are-self-attributed",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/leads/ConversionLedgerStrip.tsx:30 Discloses Google Click ID share as uploadable proportion rather than success rate, separating Google and Sklik exports."
+    },
+    {
+     "technique": "before-after-is-not-an-experiment",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/LeadQualityModule.tsx:95 Period comparison tracks descriptive metrics drift without measuring applied budget interventions or asserting causal deltas."
+    },
+    {
+     "technique": "holdout-test-on-the-biggest-channel",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/leads/conversion-events.ts:4 Conversion ledger records CRM conversions for upload; channel-level holdout experiments are not conducted in lead management."
+    },
+    {
+     "technique": "last-click-under-credits-prospecting",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/leads/FunnelBySourceCard.tsx:11 Funnel analysis operates on CRM contact stages by lead source rather than ad campaign return targets."
+    },
+    {
+     "technique": "triangulate-attribution-incrementality-and-mix-model",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/conversions/types.ts:1 Module handles conversion upload contracts without mix model triangulation or multi-instrument weighting."
+    }
+   ]
+  },
+  {
+   "context": "campaigns-budget-alerts",
+   "subject": "attribution-and-incrementality",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/lib/campaigns/budget-moves.ts:125 The budget recommender filters and ranks donors by distance below a single last-click ROAS target, systematically starving prospecting campaigns that create demand rather than harvest it.",
+   "techniques": [
+    {
+     "technique": "last-click-under-credits-prospecting",
+     "verdict": "deviation",
+     "evidence": "src/lib/campaigns/budget-moves.ts:125 Recommender selects donors solely by ROAS under target without checking funnel roles, even though types.ts notes prospecting under-credit."
+    },
+    {
+     "technique": "holdout-test-on-the-biggest-channel",
+     "verdict": "deviation",
+     "evidence": "src/lib/campaigns/budget-moves.ts:185 Reallocates budget and estimates gain assuming attributed ROAS equals causal marginal return, without running holdout tests."
+    },
+    {
+     "technique": "platform-conversions-are-self-attributed",
+     "verdict": "deviation",
+     "evidence": "src/lib/campaigns/anomaly-alerts.ts:43 Maps platform conversionValue directly to revenue for anomaly alerts without qualification of platform provenance or reconciliation against actual bookings."
+    },
+    {
+     "technique": "before-after-is-not-an-experiment",
+     "verdict": "conformant",
+     "evidence": "src/lib/campaigns/simulate.ts:120 Budget simulation applies an optional calibration multiplier derived from historical before-and-after reads rather than claiming the read is a causal experiment."
+    },
+    {
+     "technique": "offline-conversion-upload-guards",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/campaigns/alerts.ts:44 Campaign alerts and suppression logic evaluate live campaign metrics rather than managing offline conversion uploads."
+    },
+    {
+     "technique": "triangulate-attribution-incrementality-and-mix-model",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/campaigns/budget-math.ts:1 Context implements pure arithmetic for budget mutations and does not triangulate across attribution, incrementality, and marketing mix models."
+    }
+   ]
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-18T04:28:31.050164+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "attribution-and-incrementality"
+   ],
+   "techniques": [
+    "before-after-is-not-an-experiment",
+    "holdout-test-on-the-biggest-channel",
+    "last-click-under-credits-prospecting",
+    "offline-conversion-upload-guards",
+    "platform-conversions-are-self-attributed",
+    "triangulate-attribution-incrementality-and-mix-model"
+   ],
+   "deviations": 0,
+   "context": "lead-management",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-18T04:28:31.050164+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "attribution-and-incrementality"
+   ],
+   "techniques": [
+    "before-after-is-not-an-experiment",
+    "holdout-test-on-the-biggest-channel",
+    "last-click-under-credits-prospecting",
+    "offline-conversion-upload-guards",
+    "platform-conversions-are-self-attributed",
+    "triangulate-attribution-incrementality-and-mix-model"
+   ],
+   "deviations": 1,
+   "context": "campaigns-budget-alerts",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  }
+ ]
+}

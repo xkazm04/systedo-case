@@ -9387,6 +9387,88 @@
           "evidence": "src/components/app/modules/MonthlyReport.tsx:197 The inspected modules use local period selectors; stored recap results are keyed by that selection and do not supply a competing period preference."
         }
       ]
+    },
+    "9c32aaab-b57d-4912-aa00-1e00b877253e/attribution-and-incrementality": {
+      "context": "lead-management",
+      "subject": "attribution-and-incrementality",
+      "bundle": "marketing",
+      "state": "conformant",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T04:28:31.050Z",
+      "worker": "ba514261-8c94-4e1d-ae70-caacdc141885",
+      "techniques": [
+        {
+          "technique": "offline-conversion-upload-guards",
+          "verdict": "conformant",
+          "evidence": "src/lib/leads/conversion-events.ts:86 Enforces stable contact-plus-stage upsert keys, omission of unknown values, and four independent upload guards."
+        },
+        {
+          "technique": "platform-conversions-are-self-attributed",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/leads/ConversionLedgerStrip.tsx:30 Discloses Google Click ID share as uploadable proportion rather than success rate, separating Google and Sklik exports."
+        },
+        {
+          "technique": "before-after-is-not-an-experiment",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/LeadQualityModule.tsx:95 Period comparison tracks descriptive metrics drift without measuring applied budget interventions or asserting causal deltas."
+        },
+        {
+          "technique": "holdout-test-on-the-biggest-channel",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/leads/conversion-events.ts:4 Conversion ledger records CRM conversions for upload; channel-level holdout experiments are not conducted in lead management."
+        },
+        {
+          "technique": "last-click-under-credits-prospecting",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/leads/FunnelBySourceCard.tsx:11 Funnel analysis operates on CRM contact stages by lead source rather than ad campaign return targets."
+        },
+        {
+          "technique": "triangulate-attribution-incrementality-and-mix-model",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/conversions/types.ts:1 Module handles conversion upload contracts without mix model triangulation or multi-instrument weighting."
+        }
+      ]
+    },
+    "855c339d-31d8-4527-a159-343da2a0ac9c/attribution-and-incrementality": {
+      "context": "campaigns-budget-alerts",
+      "subject": "attribution-and-incrementality",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T04:28:31.050Z",
+      "worker": "ba514261-8c94-4e1d-ae70-caacdc141885",
+      "techniques": [
+        {
+          "technique": "last-click-under-credits-prospecting",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/budget-moves.ts:125 Recommender selects donors solely by ROAS under target without checking funnel roles, even though types.ts notes prospecting under-credit."
+        },
+        {
+          "technique": "holdout-test-on-the-biggest-channel",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/budget-moves.ts:185 Reallocates budget and estimates gain assuming attributed ROAS equals causal marginal return, without running holdout tests."
+        },
+        {
+          "technique": "platform-conversions-are-self-attributed",
+          "verdict": "deviation",
+          "evidence": "src/lib/campaigns/anomaly-alerts.ts:43 Maps platform conversionValue directly to revenue for anomaly alerts without qualification of platform provenance or reconciliation against actual bookings."
+        },
+        {
+          "technique": "before-after-is-not-an-experiment",
+          "verdict": "conformant",
+          "evidence": "src/lib/campaigns/simulate.ts:120 Budget simulation applies an optional calibration multiplier derived from historical before-and-after reads rather than claiming the read is a causal experiment."
+        },
+        {
+          "technique": "offline-conversion-upload-guards",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/campaigns/alerts.ts:44 Campaign alerts and suppression logic evaluate live campaign metrics rather than managing offline conversion uploads."
+        },
+        {
+          "technique": "triangulate-attribution-incrementality-and-mix-model",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/campaigns/budget-math.ts:1 Context implements pure arithmetic for budget mutations and does not triangulate across attribution, incrementality, and marketing mix models."
+        }
+      ]
     }
   }
 }
