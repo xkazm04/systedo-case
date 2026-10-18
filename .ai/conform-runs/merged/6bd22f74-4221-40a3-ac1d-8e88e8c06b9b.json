@@ -1,0 +1,27 @@
+{
+ "schema": "conform-run/1",
+ "worker": "6bd22f74-4221-40a3-ac1d-8e88e8c06b9b",
+ "subject": "client-state",
+ "evaluatedAt": "2026-10-18T21:19:03.361935+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [],
+ "declined": [
+  {
+   "subject": "client-state",
+   "context": "projects-lifecycle",
+   "reason": "The projects-lifecycle context governs server-side project lifecycle operations (cascaded deletion across Firestore and SQLite in delete-cascade.ts, template duplication in duplicate-cascade.ts, demo ID prefix branding in demo.ts, ads account linking in ads-link.ts, orphan sweeps in orphan-walk.ts) and the server-side project-state store backend (store.ts); brief-seed.ts only exports a key string generator. The context contains no client-side state architecture, React components, hooks, or client cache management. Per seat instructions barring not-applicable, this pair is declined."
+  },
+  {
+   "subject": "client-state",
+   "context": "campaigns-store-backend",
+   "reason": "The campaigns-store-backend context is a server-only persistence layer (backend.ts begins with import 'server-only') providing SQLite (campaign_docs) and Firestore document storage for synced ad campaign data, report series, and snapshots. It contains no client-side state architecture, UI stores, or frontend subscription mechanisms. Per seat instructions barring not-applicable, this pair is declined."
+  },
+  {
+   "subject": "client-state",
+   "context": "projects-api",
+   "reason": "The projects-api context consists exclusively of server-side Next.js App Router API route handlers under src/app/api/projects/ handling project CRUD, template duplication, onboarding scan results, project goals, annotations, and key-value state persistence via HTTP. It contains no client-side state management, React UI surfaces, or client-side caching. Per seat instructions barring not-applicable, this pair is declined."
+  }
+ ],
+ "consults": []
+}
