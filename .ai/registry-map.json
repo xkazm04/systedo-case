@@ -9045,7 +9045,11 @@
           "revision": 2,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/microsite/PerformanceMicrosite.tsx:61 The performance renderer unconditionally emits a Dataset node for illustrative sample metrics, violating the requirement to omit that node even though the sample route uses noindex.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:24c8250c98eaae02",
+          "evaluatedRevision": 2
         },
         {
           "subject": "agent-memory",

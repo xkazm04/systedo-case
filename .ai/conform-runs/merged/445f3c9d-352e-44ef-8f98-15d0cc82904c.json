@@ -1,0 +1,158 @@
+{
+  "schema": "conform-run/1",
+  "worker": "445f3c9d-352e-44ef-8f98-15d0cc82904c",
+  "subject": "on-page-and-metadata-craft",
+  "evaluatedAt": "2026-10-18T03:39:38.505796+00:00",
+  "provider": "codex",
+  "model": "gpt-6.1-sol",
+  "pairs": [
+    {
+      "context": "demo-site-nav",
+      "subject": "on-page-and-metadata-craft",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evidence": "src/components/microsite/PerformanceMicrosite.tsx:61 The performance renderer unconditionally emits a Dataset node for illustrative sample metrics, violating the requirement to omit that node even though the sample route uses noindex.",
+      "techniques": [
+        {
+          "technique": "ctr-lifts-as-tie-breakers-not-a-stack",
+          "verdict": "not-applicable",
+          "evidence": "src/components/microsite/PerformanceMicrosite.tsx:93 Renders the supplied article title without selecting between snippet variants."
+        },
+        {
+          "technique": "low-ctr-high-impression-rewrite-targets",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/microsite.ts:314 Uses project performance metrics to build a report, not console data to select metadata rewrites."
+        },
+        {
+          "technique": "mechanical-layer-only-never-the-copy",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/microsite.ts:251 Authors a generated report from a snapshot rather than fixing an owner-written page."
+        },
+        {
+          "technique": "structured-data-by-page-kind",
+          "verdict": "deviation",
+          "evidence": "src/components/microsite/PerformanceMicrosite.tsx:78 The graph includes Dataset unconditionally; microsite.ts:67 supplies illustrative:true for the demo, and the renderer only gates the disclosure, not the graph."
+        }
+      ]
+    },
+    {
+      "context": "campaigns-module",
+      "subject": "on-page-and-metadata-craft",
+      "bundle": "marketing",
+      "state": "not-applicable",
+      "evidence": "src/app/app/[projectId]/reach/srovnani-seo/page.tsx:42 Searches found campaign consoles, query planning and experiment management, with no metadata-generation or JSON-LD emission matches in the listed pages, so this context does not implement the subject's page-craft workflow.",
+      "techniques": [
+        {
+          "technique": "ctr-lifts-as-tie-breakers-not-a-stack",
+          "verdict": "not-applicable",
+          "evidence": "src/app/app/[projectId]/reach/kampane/page.tsx:61 Displays campaign economics rather than choosing organic snippet variants."
+        },
+        {
+          "technique": "low-ctr-high-impression-rewrite-targets",
+          "verdict": "not-applicable",
+          "evidence": "src/app/app/[projectId]/reach/srovnani-seo/page.tsx:36 Generates comparison-query opportunities from catalog data rather than selecting existing pages for metadata rewrites."
+        },
+        {
+          "technique": "mechanical-layer-only-never-the-copy",
+          "verdict": "not-applicable",
+          "evidence": "src/app/app/[projectId]/studio/experimenty-lp/page.tsx:17 Manages landing-page experiments rather than performing an on-page fix pass."
+        },
+        {
+          "technique": "metadata-shape-uniformity-site-wide",
+          "verdict": "not-applicable",
+          "evidence": "src/app/app/[projectId]/reach/klicova-slova/page.tsx:36 Hosts keyword research rather than publishing a batch of meta descriptions."
+        },
+        {
+          "technique": "primary-keyword-triple-placement",
+          "verdict": "not-applicable",
+          "evidence": "src/app/app/[projectId]/reach/srovnani-seo/page.tsx:37 Supplies query candidates; these pages do not compose or grade the target pages' keyword slots."
+        },
+        {
+          "technique": "structured-data-by-page-kind",
+          "verdict": "not-applicable",
+          "evidence": "src/app/app/[projectId]/studio/experimenty-lp/page.tsx:16 Renders the experiment-management module; the public experiment renderer belongs to a separate route."
+        },
+        {
+          "technique": "title-and-meta-pixel-budget",
+          "verdict": "not-applicable",
+          "evidence": "src/app/app/[projectId]/reach/kampane/page.tsx:59 Passes a module-interface description rather than a search-snippet description."
+        }
+      ],
+      "absenceTerms": [
+        "generateMetadata",
+        "application/ld+json"
+      ]
+    }
+  ],
+  "declined": [
+    {
+      "subject": "on-page-and-metadata-craft",
+      "context": "ads-creative-spend",
+      "reason": "absence contradicted: src/lib/site.ts:37 contains 'generateMetadata' (1 hit(s) in the context's directories)"
+    },
+    {
+      "subject": "on-page-and-metadata-craft",
+      "context": "keyword-research-ai",
+      "reason": "withdrawn after review: reviewer (sonnet): The not-applicable anchor (KeywordsModule.tsx:25) is just the router.push handoff to the content engine and doesn't show the precondition is absent. The claim rests on a narrow absence search, and the 'page-head composition happens outside' claim is not shown by the anchor."
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-18T03:39:38.505796+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "on-page-and-metadata-craft"
+      ],
+      "techniques": [
+        "ctr-lifts-as-tie-breakers-not-a-stack",
+        "low-ctr-high-impression-rewrite-targets",
+        "mechanical-layer-only-never-the-copy",
+        "structured-data-by-page-kind"
+      ],
+      "deviations": 1,
+      "context": "demo-site-nav",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "ts": "2026-10-18T03:39:38.505796+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "on-page-and-metadata-craft"
+      ],
+      "techniques": [
+        "ctr-lifts-as-tie-breakers-not-a-stack",
+        "low-ctr-high-impression-rewrite-targets",
+        "mechanical-layer-only-never-the-copy",
+        "metadata-shape-uniformity-site-wide",
+        "primary-keyword-triple-placement",
+        "structured-data-by-page-kind",
+        "title-and-meta-pixel-budget"
+      ],
+      "deviations": 0,
+      "context": "campaigns-module",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    },
+    {
+      "ts": "2026-10-18T03:39:38.505796+00:00",
+      "bundle": "marketing",
+      "subjects": [
+        "on-page-and-metadata-craft"
+      ],
+      "techniques": [
+        "ctr-lifts-as-tie-breakers-not-a-stack",
+        "low-ctr-high-impression-rewrite-targets",
+        "mechanical-layer-only-never-the-copy",
+        "metadata-shape-uniformity-site-wide",
+        "primary-keyword-triple-placement",
+        "structured-data-by-page-kind",
+        "title-and-meta-pixel-budget"
+      ],
+      "deviations": 0,
+      "context": "keyword-research-ai",
+      "via": "curator-multi:codex",
+      "model": "gpt-6.1-sol"
+    }
+  ]
+}

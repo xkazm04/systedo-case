@@ -9155,6 +9155,88 @@
         "at": "2026-10-18T03:36:27.670113+00:00",
         "reason": "reviewer (sonnet): The deviation bundles several claims that I could not confirm in the code. Bench.tsx and the station files contain no inline print opacities. The timer-driven gestures live in fx/typeAd.ts and are not shown to belong to the bench. The aria-hidden art claim for stations 01-02 shows up only in Station"
       }
+    },
+    "13df4f04-ee34-48ad-a5b9-d17dc62cee80/on-page-and-metadata-craft": {
+      "context": "demo-site-nav",
+      "subject": "on-page-and-metadata-craft",
+      "bundle": "marketing",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T03:39:38.505Z",
+      "worker": "445f3c9d-352e-44ef-8f98-15d0cc82904c",
+      "techniques": [
+        {
+          "technique": "ctr-lifts-as-tie-breakers-not-a-stack",
+          "verdict": "not-applicable",
+          "evidence": "src/components/microsite/PerformanceMicrosite.tsx:93 Renders the supplied article title without selecting between snippet variants."
+        },
+        {
+          "technique": "low-ctr-high-impression-rewrite-targets",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/microsite.ts:314 Uses project performance metrics to build a report, not console data to select metadata rewrites."
+        },
+        {
+          "technique": "mechanical-layer-only-never-the-copy",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/microsite.ts:251 Authors a generated report from a snapshot rather than fixing an owner-written page."
+        },
+        {
+          "technique": "structured-data-by-page-kind",
+          "verdict": "deviation",
+          "evidence": "src/components/microsite/PerformanceMicrosite.tsx:78 The graph includes Dataset unconditionally; microsite.ts:67 supplies illustrative:true for the demo, and the renderer only gates the disclosure, not the graph."
+        }
+      ]
+    },
+    "f18d8e93-bf49-4fd6-b66a-8445d1669a00/on-page-and-metadata-craft": {
+      "context": "keyword-research-ai",
+      "subject": "on-page-and-metadata-craft",
+      "bundle": "marketing",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T03:39:38.505Z",
+      "techniques": [
+        {
+          "technique": "ctr-lifts-as-tie-breakers-not-a-stack",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/KeywordResearch.tsx:182 Generates keyword clusters rather than title or description variants."
+        },
+        {
+          "technique": "low-ctr-high-impression-rewrite-targets",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/KeywordResearch.tsx:241 Sorts keyword opportunities by estimated spend efficiency, not existing pages by organic click gap."
+        },
+        {
+          "technique": "mechanical-layer-only-never-the-copy",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/SavedKeywordLists.tsx:106 Edits saved keyword tags rather than owner-written page content."
+        },
+        {
+          "technique": "metadata-shape-uniformity-site-wide",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/KeywordResearch.tsx:328 Persists keyword lists rather than a batch of page descriptions."
+        },
+        {
+          "technique": "primary-keyword-triple-placement",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/KeywordsModule.tsx:21 Hands a keyword seed to another workflow; it does not write or grade a brief's title, description and opening."
+        },
+        {
+          "technique": "structured-data-by-page-kind",
+          "verdict": "not-applicable",
+          "evidence": "src/components/app/modules/KeywordsModule.tsx:31 Composes a research interface rather than selecting markup for generated public pages."
+        },
+        {
+          "technique": "title-and-meta-pixel-budget",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ai/KeywordResearch.tsx:626 Truncates keyword labels in the interface rather than previewing search-result snippets."
+        }
+      ],
+      "withdrawn": {
+        "worker": "445f3c9d-352e-44ef-8f98-15d0cc82904c",
+        "state": "not-applicable",
+        "at": "2026-10-18T03:39:56.440828+00:00",
+        "reason": "reviewer (sonnet): The not-applicable anchor (KeywordsModule.tsx:25) is just the router.push handoff to the content engine and doesn't show the precondition is absent. The claim rests on a narrow absence search, and the 'page-head composition happens outside' claim is not shown by the anchor."
+      }
     }
   }
 }
