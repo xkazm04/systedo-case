@@ -11206,7 +11206,11 @@
           "revision": 4,
           "changedAt": "2026-10-14",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/seo-compare/compute.ts:82 Opportunity scoring weights queries by keyword intent label and search volume without observing live answer-box presence or sorting build queues into citation tiers.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:89fa7ab511e67376",
+          "evaluatedRevision": 4
         },
         {
           "subject": "mcp-tools",

@@ -1,0 +1,104 @@
+{
+ "schema": "conform-run/1",
+ "worker": "defde2b9-3738-4b25-a650-dd0c08a922dc",
+ "subject": "answer-engine-visibility",
+ "evaluatedAt": "2026-10-18T02:09:34.700556+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [
+  {
+   "context": "local-seo-core-lib",
+   "subject": "answer-engine-visibility",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/lib/seo-compare/compute.ts:82 Opportunity scoring weights queries by keyword intent label and search volume without observing live answer-box presence or sorting build queues into citation tiers.",
+   "techniques": [
+    {
+     "technique": "weight-the-map-toward-transactional-and-local",
+     "verdict": "deviation",
+     "evidence": "src/lib/seo-compare/compute.ts:82 Multiplies search volume by static intent weights rather than classifying observed answer-box presence on live results pages and sorting build order by tier."
+    },
+    {
+     "technique": "self-contained-passages-with-original-data",
+     "verdict": "deviation",
+     "evidence": "src/lib/ai/tools/local-page.ts:184 Generation schema restricts sections strictly to heading and body text strings with no structured table capability, while prompt rules instruct the model not to invent numbers or reviews."
+    },
+    {
+     "technique": "third-party-mentions-over-on-page-tricks",
+     "verdict": "conformant",
+     "evidence": "src/lib/microsite/local-jsonld.ts:7 Emits only server-verified facts in LocalBusiness JSON-LD and strictly avoids fabricating NAP or review markup."
+    },
+    {
+     "technique": "answer-block-under-question-heading",
+     "verdict": "conformant",
+     "evidence": "src/lib/ai/tools/local-page.ts:52 Prompts and parses paired question-and-answer FAQ items with character bounds for generated local landing pages."
+    }
+   ]
+  },
+  {
+   "context": "content-engine-module",
+   "subject": "answer-engine-visibility",
+   "bundle": "marketing",
+   "state": "deviation",
+   "evidence": "src/app/app/[projectId]/studio/obsahovy-engine/page.tsx:44 The content engine structures topic clusters and decaying content around monthly search volume and organic traffic trends without observing AI answer boxes, blanking traffic forecasts, or tracking citation scoreboards.",
+   "techniques": [
+    {
+     "technique": "informational-as-linking-fuel-not-traffic",
+     "verdict": "deviation",
+     "evidence": "src/app/app/[projectId]/studio/obsahovy-engine/page.tsx:44 Topic clusters and decaying posts are prioritized by search volume and organic traffic trends without assigning non-traffic jobs or blanking traffic forecasts for boxed queries."
+    },
+    {
+     "technique": "weight-the-map-toward-transactional-and-local",
+     "verdict": "deviation",
+     "evidence": "src/app/app/[projectId]/local/obsah-plan/page.tsx:61 The content schedule plans posts chronologically across weeks without reweighting candidate topics by observed answer-box presence or citation viability."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "answer-engine-visibility",
+   "context": "marketing-content",
+   "reason": "the seat returned unknown"
+  },
+  {
+   "subject": "answer-engine-visibility",
+   "context": "mappack-reviews-competitors",
+   "reason": "the seat returned unknown"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-18T02:09:34.700556+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "answer-engine-visibility"
+   ],
+   "techniques": [
+    "answer-block-under-question-heading",
+    "self-contained-passages-with-original-data",
+    "third-party-mentions-over-on-page-tricks",
+    "weight-the-map-toward-transactional-and-local"
+   ],
+   "deviations": 1,
+   "context": "local-seo-core-lib",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-18T02:09:34.700556+00:00",
+   "bundle": "marketing",
+   "subjects": [
+    "answer-engine-visibility"
+   ],
+   "techniques": [
+    "informational-as-linking-fuel-not-traffic",
+    "weight-the-map-toward-transactional-and-local"
+   ],
+   "deviations": 1,
+   "context": "content-engine-module",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  }
+ ]
+}
