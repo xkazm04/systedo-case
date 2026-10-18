@@ -165,18 +165,38 @@
       "subject": "i18n",
       "bundle": "software-engineering",
       "state": "deviation",
-      "evaluatedAt": "2026-08-31",
-      "worker": "w6-systedo-reporting",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:57:10.718Z",
+      "worker": "da4e62ec-be65-472a-b82a-dda2706ecde8",
       "techniques": [
+        {
+          "technique": "catalog-architecture",
+          "verdict": "deviation",
+          "evidence": "src/lib/i18n/messages.ts:214 Both complete locale dictionaries are eagerly included in one module rather than independently loadable locale/section units; the message interface is manually maintained."
+        },
         {
           "technique": "completeness-gates",
           "verdict": "deviation",
-          "evidence": ".github/workflows/ci.yml:82 continue-on-error:true; package.json:19 check:ci omits i18n:audit:check"
+          "evidence": "src/lib/i18n/messages.ts:46 Navigation keys are unrestricted strings, so the type permits locale-specific missing and extra entries; the inspected navigation test asserts exact coverage only for cs."
         },
         {
-          "technique": "catalog-architecture",
-          "verdict": "conformant",
-          "evidence": "src/lib/i18n/interpolate.ts:22 TDict<K> = Record<SupportedLocale, Record<K,string>> types every colocated table's cs/en columns against one key set; docs/adr/0006-colocated-i18n-dictionaries.md"
+          "technique": "incomplete-bundle-kill-switch",
+          "verdict": "deviation",
+          "evidence": "src/lib/i18n/LocaleProvider.tsx:31 The setter accepts every supported locale without a shipping predicate; cookie resolution likewise checks membership rather than per-locale availability."
+        },
+        {
+          "technique": "interpolation-and-plurals",
+          "verdict": "deviation",
+          "evidence": "src/lib/i18n/interpolate.ts:24 Variables are not typed against each message's placeholders, and the implementation retains unresolved placeholders rather than preventing malformed calls."
+        }
+      ],
+      "superseded": [
+        {
+          "state": "deviation",
+          "evidence": "scripts/i18n-audit.mjs's completeness check runs in CI (i18n:audit:check) but with continue-on-error:true (.github/workflows/ci.yml:82) and is absent from check:ci (package.json:19), the actual blocking pre-push/CI gate — the repo's own comment on that step admits 40 coverage gaps / 42 leftover-source values ship today, which is the completeness-gates use_when case ('a green report over an untranslated locale') realized as an explicitly non-blocking one instead.",
+          "evaluatedAt": "2026-08-31",
+          "worker": null,
+          "reason": "replaced by da4e62ec-be65-472a-b82a-dda2706ecde8"
         }
       ]
     },
@@ -7625,6 +7645,27 @@
           "technique": "vision-model-grading-schema",
           "verdict": "not-applicable",
           "evidence": "src/components/ai/ContentBriefGenerator.tsx:331 The displayed score evaluates SEO text rather than visual adherence."
+        }
+      ]
+    },
+    "dc5e80ff-b37c-478a-93e5-f626b0aeafe8/i18n": {
+      "context": "utility-components",
+      "subject": "i18n",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:57:10.718Z",
+      "worker": "da4e62ec-be65-472a-b82a-dda2706ecde8",
+      "techniques": [
+        {
+          "technique": "interpolation-and-plurals",
+          "verdict": "deviation",
+          "evidence": "src/components/LocaleShowcase.tsx:135 Together with footnoteLead on line 133 and the intervening code element, this composes a message from independently translated fragments."
+        },
+        {
+          "technique": "token-label-separation",
+          "verdict": "deviation",
+          "evidence": "src/components/usage/UsageMeter.tsx:85 The tooltip renders the Plan token directly, including byom, instead of resolving a display label; src/lib/plans.ts defines Plan as free | pro | byom."
         }
       ]
     }

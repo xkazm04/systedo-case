@@ -1,0 +1,99 @@
+{
+ "schema": "conform-run/1",
+ "worker": "da4e62ec-be65-472a-b82a-dda2706ecde8",
+ "subject": "i18n",
+ "evaluatedAt": "2026-10-18T00:57:10.718111+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "i18n-localization",
+   "subject": "i18n",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/i18n/interpolate.ts:24 Translation calls accept arbitrary optional variables rather than message-specific placeholder signatures, so missing or misspelled placeholders are not compile-time errors.",
+   "techniques": [
+    {
+     "technique": "catalog-architecture",
+     "verdict": "deviation",
+     "evidence": "src/lib/i18n/messages.ts:214 Both complete locale dictionaries are eagerly included in one module rather than independently loadable locale/section units; the message interface is manually maintained."
+    },
+    {
+     "technique": "completeness-gates",
+     "verdict": "deviation",
+     "evidence": "src/lib/i18n/messages.ts:46 Navigation keys are unrestricted strings, so the type permits locale-specific missing and extra entries; the inspected navigation test asserts exact coverage only for cs."
+    },
+    {
+     "technique": "incomplete-bundle-kill-switch",
+     "verdict": "deviation",
+     "evidence": "src/lib/i18n/LocaleProvider.tsx:31 The setter accepts every supported locale without a shipping predicate; cookie resolution likewise checks membership rather than per-locale availability."
+    },
+    {
+     "technique": "interpolation-and-plurals",
+     "verdict": "deviation",
+     "evidence": "src/lib/i18n/interpolate.ts:24 Variables are not typed against each message's placeholders, and the implementation retains unresolved placeholders rather than preventing malformed calls."
+    }
+   ]
+  },
+  {
+   "context": "utility-components",
+   "subject": "i18n",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/LocaleShowcase.tsx:135 The footnote assembles separately translated fragments around code elements, preventing translators from controlling the complete message's word order and punctuation.",
+   "techniques": [
+    {
+     "technique": "interpolation-and-plurals",
+     "verdict": "deviation",
+     "evidence": "src/components/LocaleShowcase.tsx:135 Together with footnoteLead on line 133 and the intervening code element, this composes a message from independently translated fragments."
+    },
+    {
+     "technique": "token-label-separation",
+     "verdict": "deviation",
+     "evidence": "src/components/usage/UsageMeter.tsx:85 The tooltip renders the Plan token directly, including byom, instead of resolving a display label; src/lib/plans.ts defines Plan as free | pro | byom."
+    }
+   ]
+  }
+ ],
+ "declined": [
+  {
+   "subject": "i18n",
+   "context": "site-chrome",
+   "reason": "pair anchor refused: src/components/site/Nav.tsx:136 does not contain the quoted text"
+  }
+ ],
+ "consults": [
+  {
+   "ts": "2026-10-18T00:57:10.718111+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "i18n"
+   ],
+   "techniques": [
+    "catalog-architecture",
+    "completeness-gates",
+    "incomplete-bundle-kill-switch",
+    "interpolation-and-plurals"
+   ],
+   "deviations": 1,
+   "context": "i18n-localization",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T00:57:10.718111+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "i18n"
+   ],
+   "techniques": [
+    "interpolation-and-plurals",
+    "token-label-separation"
+   ],
+   "deviations": 1,
+   "context": "utility-components",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}

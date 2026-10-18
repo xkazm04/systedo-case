@@ -9622,10 +9622,10 @@
           "changedAt": "2026-09-06",
           "confidence": "strong",
           "state": "deviation",
-          "evidence": "scripts/i18n-audit.mjs's completeness check runs in CI (i18n:audit:check) but with continue-on-error:true (.github/workflows/ci.yml:82) and is absent from check:ci (package.json:19), the actual blocking pre-push/CI gate — the repo's own comment on that step admits 40 coverage gaps / 42 leftover-source values ship today, which is the completeness-gates use_when case ('a green report over an untranslated locale') realized as an explicitly non-blocking one instead.",
-          "evaluatedAt": "2026-08-31",
-          "evaluatedAgainst": "sha256:78381092ab5e0cf9",
-          "stale": true
+          "evidence": "src/lib/i18n/interpolate.ts:24 Translation calls accept arbitrary optional variables rather than message-specific placeholder signatures, so missing or misspelled placeholders are not compile-time errors.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:13f1a2698a82c874",
+          "evaluatedRevision": 7
         },
         {
           "subject": "translation-pipeline-topology",
@@ -18505,7 +18505,11 @@
           "revision": 7,
           "changedAt": "2026-09-06",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/LocaleShowcase.tsx:135 The footnote assembles separately translated fragments around code elements, preventing translators from controlling the complete message's word order and punctuation.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:13f1a2698a82c874",
+          "evaluatedRevision": 7
         },
         {
           "subject": "mcp-tools",
