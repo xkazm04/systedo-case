@@ -4152,7 +4152,11 @@
           "revision": 12,
           "changedAt": "2026-09-21",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/brand/BrandLanding.tsx:12 Repository searches located prompting in other features but found none of the searched terms in the brand context, whose inspected visuals use SVG, CSS and DOM animation rather than generation prompts.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:ab55ca3342630ee1",
+          "evaluatedRevision": 12
         },
         {
           "subject": "brand-voice-capture",
@@ -8104,7 +8108,11 @@
           "revision": 12,
           "changedAt": "2026-09-21",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/app/api/images/route.ts:66 The API limits the raw user description while accepting additional brand and avoidance text without bounding the assembled generation prompt.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:ab55ca3342630ee1",
+          "evaluatedRevision": 12
         },
         {
           "subject": "generated-output-grading",
@@ -9749,7 +9757,11 @@
           "revision": 12,
           "changedAt": "2026-09-21",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/images/studio.ts:101 The compiler makes brand styling optional rather than restating a mandatory project style contract on every generation.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:ab55ca3342630ee1",
+          "evaluatedRevision": 12
         },
         {
           "subject": "generated-output-grading",

@@ -1,0 +1,198 @@
+{
+ "schema": "conform-run/1",
+ "worker": "b78f7d9f-8db3-41b3-9cba-a037130f15f4",
+ "subject": "image-prompt-composition",
+ "evaluatedAt": "2026-10-18T01:11:57.785955+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "image-generation-studio",
+   "subject": "image-prompt-composition",
+   "bundle": "media-generation",
+   "state": "deviation",
+   "evidence": "src/lib/images/studio.ts:101 The compiler makes brand styling optional rather than restating a mandatory project style contract on every generation.",
+   "techniques": [
+    {
+     "technique": "negative-prompting",
+     "verdict": "deviation",
+     "evidence": "src/lib/images/studio.ts:105 Exclusions are optional per-request prose; neither model branch receives a stable project negative through a model-aware adapter."
+    },
+    {
+     "technique": "prompt-budget-limits",
+     "verdict": "deviation",
+     "evidence": "src/lib/leonardo/client.ts:162 The inspected compiler and client submit the assembled prompt without model-specific character ceilings or recorded attention budgets."
+    },
+    {
+     "technique": "prompt-dialect-matching",
+     "verdict": "deviation",
+     "evidence": "src/lib/leonardo/client.ts:139 Product mode switches to the documented SDXL model while both branches forward the same prompt string without dialect-specific serialization."
+    },
+    {
+     "technique": "reference-role-map",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/leonardo/client.ts:159 The exposed references are one style-reference class; the alternative product path uses a single initialization image rather than heterogeneous labelled attachments."
+    },
+    {
+     "technique": "two-block-style-and-action",
+     "verdict": "deviation",
+     "evidence": "src/lib/images/studio.ts:104 Optional brand and attribution hints are concatenated with free-form action text; a complete project style block is not mandatory, including reference-guided calls."
+    }
+   ]
+  },
+  {
+   "context": "creative-studio",
+   "subject": "image-prompt-composition",
+   "bundle": "media-generation",
+   "state": "deviation",
+   "evidence": "src/app/api/images/route.ts:66 The API limits the raw user description while accepting additional brand and avoidance text without bounding the assembled generation prompt.",
+   "techniques": [
+    {
+     "technique": "negative-prompting",
+     "verdict": "deviation",
+     "evidence": "src/app/api/images/route.ts:72 The generation request accepts optional per-image avoidance text rather than requiring a stable project exclusion contract."
+    },
+    {
+     "technique": "prompt-budget-limits",
+     "verdict": "deviation",
+     "evidence": "src/app/api/images/route.ts:66 The fixed limit covers body.prompt alone; brand and avoid remain unbounded and no model-specific assembled-prompt budget is enforced here."
+    },
+    {
+     "technique": "reference-role-map",
+     "verdict": "not-applicable",
+     "evidence": "src/app/api/images/route.ts:121 The route supplies at most one style reference, mutually exclusive with its single product initialization reference."
+    },
+    {
+     "technique": "two-block-style-and-action",
+     "verdict": "deviation",
+     "evidence": "src/app/api/images/route.ts:73 Repeated project generation can omit brand styling entirely; the endpoint neither loads nor requires a ratified project style block."
+    }
+   ]
+  },
+  {
+   "context": "brand-landing",
+   "subject": "image-prompt-composition",
+   "bundle": "media-generation",
+   "state": "not-applicable",
+   "evidence": "src/components/brand/BrandLanding.tsx:12 Repository searches located prompting in other features but found none of the searched terms in the brand context, whose inspected visuals use SVG, CSS and DOM animation rather than generation prompts.",
+   "techniques": [
+    {
+     "technique": "assigned-colour-roles",
+     "verdict": "not-applicable",
+     "evidence": "src/components/brand/optic/bench/StationMeasure.tsx:46 Colour assignment occurs directly in rendered markup, without an image-generation palette prompt."
+    },
+    {
+     "technique": "identity-split-from-state",
+     "verdict": "not-applicable",
+     "evidence": "src/components/brand/optic/defs/BenchArt.tsx:70 The recurring lens is fixed SVG geometry rather than a generated subject needing identity restatement."
+    },
+    {
+     "technique": "negative-prompting",
+     "verdict": "not-applicable",
+     "evidence": "src/components/brand/optic/bench/StationShell.tsx:48 Station art is rendered SVG; there is no generation sampler or exclusion prompt."
+    },
+    {
+     "technique": "prompt-budget-limits",
+     "verdict": "not-applicable",
+     "evidence": "src/components/brand/optic/bench/StationShell.tsx:14 Framing is controlled by numeric CSS properties rather than a budgeted generation prompt."
+    },
+    {
+     "technique": "prompt-dialect-matching",
+     "verdict": "not-applicable",
+     "evidence": "src/components/brand/optic/Arrow.tsx:7 Artwork references local SVG definitions without invoking an image model."
+    },
+    {
+     "technique": "reference-role-map",
+     "verdict": "not-applicable",
+     "evidence": "src/components/brand/optic/defs/SpriteDefs.tsx:22 The shared art library composes React components rather than attaching reference assets to a model call."
+    },
+    {
+     "technique": "shape-language-over-nouns",
+     "verdict": "not-applicable",
+     "evidence": "src/components/brand/optic/defs/BenchArt.tsx:55 The prism is drawn with explicit coordinates rather than described in a plate prompt."
+    },
+    {
+     "technique": "style-first-token-ordering",
+     "verdict": "not-applicable",
+     "evidence": "src/components/brand/optic/bench/StationGenerate.tsx:31 Composition is encoded as path geometry, with no prompt-token ordering."
+    },
+    {
+     "technique": "two-block-style-and-action",
+     "verdict": "not-applicable",
+     "evidence": "src/components/brand/optic/fx/camera.ts:49 Changing frames result from DOM transforms, not separately generated images requiring style restatement."
+    },
+    {
+     "technique": "verbatim-text-locking",
+     "verdict": "not-applicable",
+     "evidence": "src/components/brand/optic/bench/StationGenerate.tsx:57 The sample headline is rendered as HTML text rather than typeset by an image model."
+    }
+   ],
+   "absenceTerms": [
+    "prompt",
+    "imagePrompts",
+    "generateCandidates"
+   ]
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-18T01:11:57.785955+00:00",
+   "bundle": "media-generation",
+   "subjects": [
+    "image-prompt-composition"
+   ],
+   "techniques": [
+    "negative-prompting",
+    "prompt-budget-limits",
+    "prompt-dialect-matching",
+    "reference-role-map",
+    "two-block-style-and-action"
+   ],
+   "deviations": 1,
+   "context": "image-generation-studio",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T01:11:57.785955+00:00",
+   "bundle": "media-generation",
+   "subjects": [
+    "image-prompt-composition"
+   ],
+   "techniques": [
+    "negative-prompting",
+    "prompt-budget-limits",
+    "reference-role-map",
+    "two-block-style-and-action"
+   ],
+   "deviations": 1,
+   "context": "creative-studio",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T01:11:57.785955+00:00",
+   "bundle": "media-generation",
+   "subjects": [
+    "image-prompt-composition"
+   ],
+   "techniques": [
+    "assigned-colour-roles",
+    "identity-split-from-state",
+    "negative-prompting",
+    "prompt-budget-limits",
+    "prompt-dialect-matching",
+    "reference-role-map",
+    "shape-language-over-nouns",
+    "style-first-token-ordering",
+    "two-block-style-and-action",
+    "verbatim-text-locking"
+   ],
+   "deviations": 0,
+   "context": "brand-landing",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}
