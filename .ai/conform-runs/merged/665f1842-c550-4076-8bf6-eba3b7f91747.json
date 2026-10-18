@@ -1,0 +1,27 @@
+{
+ "schema": "conform-run/1",
+ "worker": "665f1842-c550-4076-8bf6-eba3b7f91747",
+ "subject": "hash-pinned-translation-pipeline",
+ "evaluatedAt": "2026-10-18T22:25:53.739135+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [],
+ "declined": [
+  {
+   "subject": "hash-pinned-translation-pipeline",
+   "context": "cron-jobs",
+   "reason": "The cron-jobs context governs autonomous scheduled background operations on Vercel Cron timers (syncing Google Ads and Sklik campaign data in sync/route.ts and plan.ts, re-pulling warehouse catalog products in catalog-sync/route.ts, publishing due social posts in social/route.ts, sending scheduled client reports in report/route.ts, generating weekly performance digests in digest/route.ts, and running registered background ledger ticks in ledgers/route.ts). It contains no content translation workflows, locale corpus management, source-hash pinning, or translation staleness detection. The registry map matched on lexical keyword overlap ('sync', 'scheduled', 'fan-out', 'pipeline', 'audit') relating to ad/inventory data synchronization. Per seat rules barring not-applicable, this pair is declined."
+  },
+  {
+   "subject": "hash-pinned-translation-pipeline",
+   "context": "campaign-reporting",
+   "reason": "The campaign-reporting context provides campaign report UI components and settings (rendering AI evaluation summaries, scores, and recommendations in ReportView.tsx; configuring scheduled client reports, white-label branding, and recipient emails in ReportSettings.tsx; managing tokenized report share links in SharedReportsList.tsx; print/PDF triggering in PrintButton.tsx; and displaying ad data synchronization provenance timestamps and per-period sync freshness in SyncProvenance.tsx). It contains no translation pipeline, source hash stamping, or localization fan-out budgeting. The registry map matched on lexical overlap ('provenance', 'sync', 'fresh', 'stale', 'report') relating to ad performance data freshness and report caching rather than translation drift. Per seat rules barring not-applicable, this pair is declined."
+  },
+  {
+   "subject": "hash-pinned-translation-pipeline",
+   "context": "spend-reporting",
+   "reason": "The spend-reporting context renders ad platform spend breakdowns, LLM token usage telemetry, and monthly performance recaps (tracking metered LLM calls and token spend by operation/model in SpendModule.tsx; rendering monthly KPI tiles, revenue goal attainment, and AI narrative summaries in MonthlyReport.tsx; presenting CAC/LTV and stock/seasonality cards in ReportBeyond.tsx; showing an inline live vs sample data indicator in ProvenanceChip.tsx; and displaying warehouse ERP/3PL connection status in WarehouseSourceBar.tsx). It operates no multilingual translation pipeline, content unit hash pinning, or translation staleness tracking. The registry map matched on lexical collisions ('provenance', 'reporting', 'summary', 'breakdown') relating to ad spend reporting and data provenance. Per seat rules barring not-applicable, this pair is declined."
+  }
+ ],
+ "consults": []
+}
