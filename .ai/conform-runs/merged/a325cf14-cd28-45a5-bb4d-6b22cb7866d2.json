@@ -1,0 +1,245 @@
+{
+ "schema": "conform-run/1",
+ "worker": "a325cf14-cd28-45a5-bb4d-6b22cb7866d2",
+ "subject": "measurement-honesty",
+ "evaluatedAt": "2026-10-18T03:03:52.776464+00:00",
+ "provider": "agy",
+ "model": "gemini-3.8-flash-high",
+ "pairs": [
+  {
+   "context": "speed-lead-lib",
+   "subject": "measurement-honesty",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/speed-lead/qualification.ts:67 Uncaptured leads with all fields unknown are assigned a score of zero and classified as cold rather than distinguishing unmeasured absence from a measured score.",
+   "techniques": [
+    {
+     "technique": "unmeasurable-vs-zero",
+     "verdict": "deviation",
+     "evidence": "src/lib/speed-lead/qualification.ts:61 Imputes 0 points for unknown fields, mapping an untouched qualification to score 0 and a cold classification."
+    },
+    {
+     "technique": "incomplete-not-verdict",
+     "verdict": "deviation",
+     "evidence": "src/lib/speed-lead/qualification.ts:95 Returns cold lead for score 0 when 0/3 fields are answered, turning an uncollected lead into a damning verdict."
+    },
+    {
+     "technique": "minimum-sample-floors",
+     "verdict": "deviation",
+     "evidence": "src/lib/speed-lead/analytics.ts:97 Calculates withinSlaRate on judged >= 1 without a minimum sample floor, allowing single observations to swing the rate 100 points."
+    },
+    {
+     "technique": "co-published-numbers-must-reconcile",
+     "verdict": "conformant",
+     "evidence": "src/lib/speed-lead/analytics.ts:72 Hits are bounded by judged outcomes and partitioned between hits and breaches, ensuring the SLA rate reconciles with counts."
+    },
+    {
+     "technique": "renormalize-over-present",
+     "verdict": "deviation",
+     "evidence": "src/lib/speed-lead/qualification.ts:73 Computes qualificationScore across uncaptured fields by imputing 0 instead of renormalizing over present answers."
+    },
+    {
+     "technique": "speed-figure-names-its-endpoints",
+     "verdict": "conformant",
+     "evidence": "src/lib/speed-lead/analytics.ts:15 Explicitly defines response time interval as seconds from arrival to response once answered."
+    }
+   ]
+  },
+  {
+   "context": "speed-lead-ui",
+   "subject": "measurement-honesty",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/components/app/modules/speed-lead/LeadQualificationPanel.tsx:123 The UI displays a negative-tone Cold Lead pill for an unassessed lead with zero answered fields rather than holding the score unrated.",
+   "techniques": [
+    {
+     "technique": "incomplete-not-verdict",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/speed-lead/LeadQualificationPanel.tsx:124 Renders score 0 and Cold lead label even when fieldsAnswered is 0/3 pol\u00ed."
+    },
+    {
+     "technique": "unmeasurable-vs-zero",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/speed-lead/LeadQualificationPanel.tsx:126 Displays 0/3 fields answered alongside a computed score and negative band pill instead of displaying an unrated state."
+    },
+    {
+     "technique": "minimum-sample-floors",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/speed-lead/ResponseBand.tsx:98 Renders withinSlaRate percentage and colored tone pill with judged = 1, lacking any minimum sample floor."
+    },
+    {
+     "technique": "noise-band-and-hysteresis",
+     "verdict": "deviation",
+     "evidence": "src/components/app/modules/speed-lead/ResponseBand.tsx:101 Applies hard threshold cuts at 0.5 and 0.8 without a noise band or hysteresis around the pill classification boundaries."
+    },
+    {
+     "technique": "co-published-numbers-must-reconcile",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/speed-lead/ResponseBand.tsx:107 Co-publishes judged count alongside total leads count and pending at-risk count."
+    },
+    {
+     "technique": "speed-figure-names-its-endpoints",
+     "verdict": "conformant",
+     "evidence": "src/components/app/modules/speed-lead/useLeadSla.ts:114 Measures response time from pinned arrival timestamp to markResponded invocation."
+    }
+   ]
+  },
+  {
+   "context": "report-engine",
+   "subject": "measurement-honesty",
+   "bundle": "software-engineering",
+   "state": "conformant",
+   "evidence": "src/lib/report/assemble.ts:96 The report pipeline enforces sample floors, guards against truncated datasets, applies noise bands, and prevents cross-currency blending.",
+   "techniques": [
+    {
+     "technique": "unmeasurable-vs-zero",
+     "verdict": "conformant",
+     "evidence": "src/lib/report/compute.ts:142 tileSnapshotValue returns null when a metric key is absent, allowing reports to skip the tile rather than fabricating 0."
+    },
+    {
+     "technique": "minimum-sample-floors",
+     "verdict": "conformant",
+     "evidence": "src/lib/report/recap-context.ts:72 Enforces a 700-day minimum sample floor before quoting 12-month totals and YoY deltas."
+    },
+    {
+     "technique": "noise-band-and-hysteresis",
+     "verdict": "conformant",
+     "evidence": "src/lib/report/recap-context.ts:37 Applies a \u00b13% dead band to net profit changes so accounts inside the noise band are reported as stable."
+    },
+    {
+     "technique": "incomplete-not-verdict",
+     "verdict": "conformant",
+     "evidence": "src/lib/report/assemble.ts:96 Suppresses 12-month overhead reference totals when the snapshot series is truncated."
+    },
+    {
+     "technique": "renormalize-over-present",
+     "verdict": "conformant",
+     "evidence": "src/lib/report-metrics/blend.ts:149 Emits optional paid-traffic metrics only when every contributing source provides them to avoid deflating blended CTR/CPC."
+    },
+    {
+     "technique": "co-published-numbers-must-reconcile",
+     "verdict": "conformant",
+     "evidence": "src/lib/report-metrics/blend.ts:197 Refuses to blend totals when sources disagree on currency, preventing invalid cross-currency aggregate numbers."
+    },
+    {
+     "technique": "the-baseline-is-the-untouched-path",
+     "verdict": "conformant",
+     "evidence": "src/lib/report/assemble.ts:99 Reads baseline comparison totals directly from previous window instead of reconstructing them by inverting deltas."
+    },
+    {
+     "technique": "speed-figure-names-its-endpoints",
+     "verdict": "conformant",
+     "evidence": "src/lib/report-metrics/freshness.ts:76 Explicitly discloses the duration since the last sync endpoint and caveats stale live data."
+    },
+    {
+     "technique": "lower-bound-disclosure",
+     "verdict": "conformant",
+     "evidence": "src/lib/report/compute.ts:130 Explicitly flags truncated snapshots so consumers know when totals cover fewer days than the period label claims."
+    }
+   ]
+  },
+  {
+   "context": "distribution-channels",
+   "subject": "measurement-honesty",
+   "bundle": "software-engineering",
+   "state": "deviation",
+   "evidence": "src/lib/distribution/learnings.ts:134 Dimension leaders are ranked and selected by CTR without a minimum sample floor on variant count or reach.",
+   "techniques": [
+    {
+     "technique": "minimum-sample-floors",
+     "verdict": "deviation",
+     "evidence": "src/lib/distribution/learnings.ts:134 Selects the best channel, format, and length by CTR even when a bucket contains only one variant."
+    },
+    {
+     "technique": "unmeasurable-vs-zero",
+     "verdict": "deviation",
+     "evidence": "src/lib/distribution/measured.ts:26 Filters out channels with 0 clicks claiming zero clicks is absence of data, excluding measured zeros."
+    },
+    {
+     "technique": "co-published-numbers-must-reconcile",
+     "verdict": "deviation",
+     "evidence": "src/lib/distribution/learnings.ts:153 Computes CTR as clicks / reach where reach represents minted link count rather than impressions."
+    }
+   ]
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-18T03:03:52.776464+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "measurement-honesty"
+   ],
+   "techniques": [
+    "co-published-numbers-must-reconcile",
+    "incomplete-not-verdict",
+    "minimum-sample-floors",
+    "renormalize-over-present",
+    "speed-figure-names-its-endpoints",
+    "unmeasurable-vs-zero"
+   ],
+   "deviations": 1,
+   "context": "speed-lead-lib",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-18T03:03:52.776464+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "measurement-honesty"
+   ],
+   "techniques": [
+    "co-published-numbers-must-reconcile",
+    "incomplete-not-verdict",
+    "minimum-sample-floors",
+    "noise-band-and-hysteresis",
+    "speed-figure-names-its-endpoints",
+    "unmeasurable-vs-zero"
+   ],
+   "deviations": 1,
+   "context": "speed-lead-ui",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-18T03:03:52.776464+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "measurement-honesty"
+   ],
+   "techniques": [
+    "co-published-numbers-must-reconcile",
+    "incomplete-not-verdict",
+    "lower-bound-disclosure",
+    "minimum-sample-floors",
+    "noise-band-and-hysteresis",
+    "renormalize-over-present",
+    "speed-figure-names-its-endpoints",
+    "the-baseline-is-the-untouched-path",
+    "unmeasurable-vs-zero"
+   ],
+   "deviations": 0,
+   "context": "report-engine",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  },
+  {
+   "ts": "2026-10-18T03:03:52.776464+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "measurement-honesty"
+   ],
+   "techniques": [
+    "co-published-numbers-must-reconcile",
+    "minimum-sample-floors",
+    "unmeasurable-vs-zero"
+   ],
+   "deviations": 1,
+   "context": "distribution-channels",
+   "via": "curator-multi:agy",
+   "model": "gemini-3.8-flash-high"
+  }
+ ]
+}

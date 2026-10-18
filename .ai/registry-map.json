@@ -9477,7 +9477,11 @@
           "revision": 10,
           "changedAt": "2026-09-25",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/distribution/learnings.ts:134 Dimension leaders are ranked and selected by CTR without a minimum sample floor on variant count or reach.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:b702c58e785c6c51",
+          "evaluatedRevision": 11
         },
         {
           "subject": "zero-budget-channel-planning",
@@ -16082,7 +16086,11 @@
           "revision": 10,
           "changedAt": "2026-09-25",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "conformant",
+          "evidence": "src/lib/report/assemble.ts:96 The report pipeline enforces sample floors, guards against truncated datasets, applies noise bands, and prevents cross-currency blending.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:b702c58e785c6c51",
+          "evaluatedRevision": 11
         },
         {
           "subject": "embedded-db",
@@ -17563,7 +17571,11 @@
           "revision": 10,
           "changedAt": "2026-09-25",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/speed-lead/LeadQualificationPanel.tsx:123 The UI displays a negative-tone Cold Lead pill for an unassessed lead with zero answered fields rather than holding the score unrated.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:b702c58e785c6c51",
+          "evaluatedRevision": 11
         },
         {
           "subject": "voice-io",
@@ -17650,7 +17662,11 @@
           "revision": 10,
           "changedAt": "2026-09-25",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/speed-lead/qualification.ts:67 Uncaptured leads with all fields unknown are assigned a score of zero and classified as cold rather than distinguishing unmeasured absence from a measured score.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:b702c58e785c6c51",
+          "evaluatedRevision": 11
         },
         {
           "subject": "voice-io",
