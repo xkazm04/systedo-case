@@ -1,0 +1,453 @@
+{
+ "schema": "conform-run/1",
+ "worker": "911bd13f-b9d5-462e-b289-066daa933fe0",
+ "subject": "codebase-scanning",
+ "evaluatedAt": "2026-10-18T02:17:42.195952+00:00",
+ "provider": "codex",
+ "model": "gpt-6.1-sol",
+ "pairs": [
+  {
+   "context": "speed-lead-ui",
+   "subject": "codebase-scanning",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/components/app/modules/SpeedLeadModule.tsx:200 The module manages lead response SLAs, and searches for scanner, ruleset, and codebase-scanning found no context matches establishing a codebase scanner.",
+   "techniques": [
+    {
+     "technique": "causes-beside-the-finding-count",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/speed-lead/useLeadSla.ts:83 Counts overdue leads rather than findings emitted by a codebase scan."
+    },
+    {
+     "technique": "dead-code-detection",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/speed-lead/useSnippetLibrary.ts:16 Loads reply snippets; no code-reference or reachability analysis was found."
+    },
+    {
+     "technique": "evidence-scoping",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/SpeedLeadModule.tsx:261 Scopes a reply request to a selected lead, not a detector to repository evidence."
+    },
+    {
+     "technique": "finding-lifecycle",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/speed-lead/useContactWriteBack.ts:42 Records a CRM response event rather than advancing a code finding."
+    },
+    {
+     "technique": "incremental-scanning",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/speed-lead/useLeadSla.ts:71 Refreshes an SLA clock; no changed-code scan ledger was found."
+    },
+    {
+     "technique": "ingestion-budget",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/SpeedLeadModule.tsx:198 Reads a project's snippet library rather than a remote repository corpus."
+    },
+    {
+     "technique": "llm-assisted-scanning",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/SpeedLeadModule.tsx:214 The model operation drafts customer replies rather than examining code."
+    },
+    {
+     "technique": "precision-trades-have-a-direction",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/speed-lead/useLeadSla.ts:32 Speed here concerns response deadlines; no scanner backend substitution was found."
+    },
+    {
+     "technique": "rule-precision-discipline",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/speed-lead/LeadQualificationPanel.tsx:115 Scores lead qualification rather than applying code-defect detection rules."
+    },
+    {
+     "technique": "sensor-pipeline",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/speed-lead/useLeadSla.ts:94 Computes response analytics; no repository-sensor sweep was found."
+    },
+    {
+     "technique": "the-broad-root-is-the-unaudited-one",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/speed-lead/useLeadSla.ts:78 Enumerates supplied leads rather than declared scanner roots."
+    },
+    {
+     "technique": "the-narrowest-view-owns-the-number",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/speed-lead/ResponseBand.tsx:107 Reports the lead population judged for SLA analytics, not code-evidence coverage."
+    },
+    {
+     "technique": "the-tree-is-not-the-population",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/SpeedLeadModule.tsx:456 Renders an inbox population; no filesystem traversal or scan exclusions were found."
+    },
+    {
+     "technique": "verify-after-generate",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/SpeedLeadModule.tsx:245 The generated material is reply text, not a scanner-produced repository inventory."
+    }
+   ],
+   "absenceTerms": [
+    "scanner",
+    "ruleset"
+   ]
+  },
+  {
+   "context": "shared-lib-primitives",
+   "subject": "codebase-scanning",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/lib/ai-types.ts:1346 Searches found no scanner, ruleset, or codebase-scanning matches in the context directories, while the scan contracts inspected concern business website text rather than codebase defects.",
+   "techniques": [
+    {
+     "technique": "causes-beside-the-finding-count",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/email.ts:85 Summarizes email delivery outcomes rather than scan findings and causes."
+    },
+    {
+     "technique": "dead-code-detection",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/journey.ts:54 Finds an unvisited navigation destination, not unreachable source code."
+    },
+    {
+     "technique": "evidence-scoping",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/html.ts:5 Escapes HTML text rather than selecting evidence for a repository detector."
+    },
+    {
+     "technique": "finding-lifecycle",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/optimistic-delete.ts:36 Reconciles an optimistic UI deletion; no scan-finding ledger was found."
+    },
+    {
+     "technique": "incremental-scanning",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/useCopyFeedback.ts:29 Expires clipboard feedback rather than scheduling incremental code inspection."
+    },
+    {
+     "technique": "ingestion-budget",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/clipboard.ts:17 Transfers caller-provided text to the clipboard, not a metered repository corpus."
+    },
+    {
+     "technique": "llm-assisted-scanning",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/ai-types.ts:1346 The inspected scan contract supplies website text to the model, not source-code evidence."
+    },
+    {
+     "technique": "precision-trades-have-a-direction",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/format.ts:124 Caches number formatters; no analysis-backend precision trade was found."
+    },
+    {
+     "technique": "rule-precision-discipline",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/readiness.ts:55 Evaluates runtime credential readiness rather than code-scanning rules."
+    },
+    {
+     "technique": "sensor-pipeline",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/email.ts:16 Provides outbound notification transport, not repository-sensor collection."
+    },
+    {
+     "technique": "the-broad-root-is-the-unaudited-one",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/journey.ts:53 Selects navigation tasks rather than scanner entry roots."
+    },
+    {
+     "technique": "the-narrowest-view-owns-the-number",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/format.ts:389 Formats a caller-supplied currency value; no scan-coverage judgment is computed."
+    },
+    {
+     "technique": "the-tree-is-not-the-population",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/readiness.ts:171 Checks cron execution age rather than enumerating and filtering source files."
+    },
+    {
+     "technique": "verify-after-generate",
+     "verdict": "not-applicable",
+     "evidence": "src/lib/ai-types.ts:1373 The onboarding output describes a business; no generated repository inventory consumer was found."
+    }
+   ],
+   "absenceTerms": [
+    "scanner",
+    "ruleset"
+   ]
+  },
+  {
+   "context": "audience-goals-ltv",
+   "subject": "codebase-scanning",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/components/app/modules/LtvModule.tsx:247 The modules analyze audience and cohort economics, and searches for scanner, ruleset, and codebase-scanning found no context matches establishing source-code scanning.",
+   "techniques": [
+    {
+     "technique": "causes-beside-the-finding-count",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/AudienceModule.tsx:229 Summarizes audience economics rather than a scan's findings and independent causes."
+    },
+    {
+     "technique": "dead-code-detection",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/BrandingModule.tsx:127 Persists branding settings; no source-reference analysis was found."
+    },
+    {
+     "technique": "evidence-scoping",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/LtvDiagnosisPanel.tsx:203 Requests a project-grounded cohort diagnosis rather than a repository evidence assessment."
+    },
+    {
+     "technique": "finding-lifecycle",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/LtvDiagnosisPanel.tsx:140 Persists a business-cohort diagnosis, not a code-defect finding."
+    },
+    {
+     "technique": "incremental-scanning",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/LtvDiagnosisPanel.tsx:150 Tracks freshness of diagnosed cohort data rather than incremental source-code coverage."
+    },
+    {
+     "technique": "ingestion-budget",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/BrandingModule.tsx:49 Reads a selected logo asset, not a foreign repository over a metered interface."
+    },
+    {
+     "technique": "llm-assisted-scanning",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/LtvDiagnosisPanel.tsx:122 The model diagnoses customer-cohort economics rather than source-code defects."
+    },
+    {
+     "technique": "precision-trades-have-a-direction",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/LtvProjectionPanel.tsx:88 Memoizes an economic projection; no scanner backend replacement was found."
+    },
+    {
+     "technique": "rule-precision-discipline",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/LtvModule.tsx:282 Applies a unit-economics threshold rather than a source-code detection rule."
+    },
+    {
+     "technique": "sensor-pipeline",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/LtvModule.tsx:239 Retrieves stored cohort diagnoses rather than collecting codebase-sensor snapshots."
+    },
+    {
+     "technique": "the-broad-root-is-the-unaudited-one",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/AudienceModule.tsx:231 Works with subscriber acquisition sources, not scanner root declarations."
+    },
+    {
+     "technique": "the-narrowest-view-owns-the-number",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/LtvProjectionPanel.tsx:96 Computes an LTV-to-CAC ratio, not confidence in a restricted code-evidence view."
+    },
+    {
+     "technique": "the-tree-is-not-the-population",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/AudienceModule.tsx:294 Renders audience segments; no source-tree traversal or exclusion accounting was found."
+    },
+    {
+     "technique": "verify-after-generate",
+     "verdict": "not-applicable",
+     "evidence": "src/components/app/modules/LtvReportButton.tsx:23 Exports a computed cohort CSV rather than consuming a model-generated repository inventory."
+    }
+   ],
+   "absenceTerms": [
+    "scanner",
+    "ruleset"
+   ]
+  },
+  {
+   "context": "performance-analyst-ai",
+   "subject": "codebase-scanning",
+   "bundle": "software-engineering",
+   "state": "not-applicable",
+   "evidence": "src/components/ai/PerformanceAnalyst.tsx:55 The panel interprets marketing performance data, and searches for scanner, ruleset, and codebase-scanning found no context matches establishing code-at-rest inspection.",
+   "techniques": [
+    {
+     "technique": "causes-beside-the-finding-count",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/PerformanceAnalyst.tsx:280 Counts marketing recommendations rather than findings emitted by a codebase scanner."
+    },
+    {
+     "technique": "dead-code-detection",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/PerformanceAnalyst.tsx:101 Formats performance wins; no source-code reachability analysis was found."
+    },
+    {
+     "technique": "evidence-scoping",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/PerformanceAnalyst.tsx:55 The evidence domain is client performance data rather than repository contents."
+    },
+    {
+     "technique": "finding-lifecycle",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/useDiagnosisPersistence.ts:81 Stores product diagnoses, not candidates from codebase-defect detection."
+    },
+    {
+     "technique": "incremental-scanning",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/PerformanceAnalyst.tsx:84 Persists an analysis period rather than a ledger of scanned code units."
+    },
+    {
+     "technique": "ingestion-budget",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/PerformanceAnalyst.tsx:160 Submits a reporting period, not a budgeted repository-ingestion request."
+    },
+    {
+     "technique": "llm-assisted-scanning",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/PerformanceAnalyst.tsx:92 Invokes performance analysis rather than an LLM source-code scanner."
+    },
+    {
+     "technique": "precision-trades-have-a-direction",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/usePersistedForm.ts:52 Validates restored form state; no scanner analysis-backend trade was found."
+    },
+    {
+     "technique": "rule-precision-discipline",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/PerformanceAnalyst.tsx:74 Checks membership in allowed reporting periods rather than calibrating code-defect rules."
+    },
+    {
+     "technique": "sensor-pipeline",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/useDiagnosisPersistence.ts:78 Calls the project diagnosis store rather than gathering repository sensors."
+    },
+    {
+     "technique": "the-broad-root-is-the-unaudited-one",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/PerformanceAnalyst.tsx:141 Enumerates reporting-period choices rather than scanner root patterns."
+    },
+    {
+     "technique": "the-narrowest-view-owns-the-number",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/DiagnosisTracking.tsx:65 Displays a diagnosed metric's change, not code-evidence coverage confidence."
+    },
+    {
+     "technique": "the-tree-is-not-the-population",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/DiagnosisTracking.tsx:311 Renders stored diagnosis history; no filesystem population traversal was found."
+    },
+    {
+     "technique": "verify-after-generate",
+     "verdict": "not-applicable",
+     "evidence": "src/components/ai/PerformanceAnalyst.tsx:129 Exports a client-facing performance report rather than an automated repository inventory."
+    }
+   ],
+   "absenceTerms": [
+    "scanner",
+    "ruleset"
+   ]
+  }
+ ],
+ "declined": [],
+ "consults": [
+  {
+   "ts": "2026-10-18T02:17:42.195952+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "codebase-scanning"
+   ],
+   "techniques": [
+    "causes-beside-the-finding-count",
+    "dead-code-detection",
+    "evidence-scoping",
+    "finding-lifecycle",
+    "incremental-scanning",
+    "ingestion-budget",
+    "llm-assisted-scanning",
+    "precision-trades-have-a-direction",
+    "rule-precision-discipline",
+    "sensor-pipeline",
+    "the-broad-root-is-the-unaudited-one",
+    "the-narrowest-view-owns-the-number",
+    "the-tree-is-not-the-population",
+    "verify-after-generate"
+   ],
+   "deviations": 0,
+   "context": "speed-lead-ui",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T02:17:42.195952+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "codebase-scanning"
+   ],
+   "techniques": [
+    "causes-beside-the-finding-count",
+    "dead-code-detection",
+    "evidence-scoping",
+    "finding-lifecycle",
+    "incremental-scanning",
+    "ingestion-budget",
+    "llm-assisted-scanning",
+    "precision-trades-have-a-direction",
+    "rule-precision-discipline",
+    "sensor-pipeline",
+    "the-broad-root-is-the-unaudited-one",
+    "the-narrowest-view-owns-the-number",
+    "the-tree-is-not-the-population",
+    "verify-after-generate"
+   ],
+   "deviations": 0,
+   "context": "shared-lib-primitives",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T02:17:42.195952+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "codebase-scanning"
+   ],
+   "techniques": [
+    "causes-beside-the-finding-count",
+    "dead-code-detection",
+    "evidence-scoping",
+    "finding-lifecycle",
+    "incremental-scanning",
+    "ingestion-budget",
+    "llm-assisted-scanning",
+    "precision-trades-have-a-direction",
+    "rule-precision-discipline",
+    "sensor-pipeline",
+    "the-broad-root-is-the-unaudited-one",
+    "the-narrowest-view-owns-the-number",
+    "the-tree-is-not-the-population",
+    "verify-after-generate"
+   ],
+   "deviations": 0,
+   "context": "audience-goals-ltv",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  },
+  {
+   "ts": "2026-10-18T02:17:42.195952+00:00",
+   "bundle": "software-engineering",
+   "subjects": [
+    "codebase-scanning"
+   ],
+   "techniques": [
+    "causes-beside-the-finding-count",
+    "dead-code-detection",
+    "evidence-scoping",
+    "finding-lifecycle",
+    "incremental-scanning",
+    "ingestion-budget",
+    "llm-assisted-scanning",
+    "precision-trades-have-a-direction",
+    "rule-precision-discipline",
+    "sensor-pipeline",
+    "the-broad-root-is-the-unaudited-one",
+    "the-narrowest-view-owns-the-number",
+    "the-tree-is-not-the-population",
+    "verify-after-generate"
+   ],
+   "deviations": 0,
+   "context": "performance-analyst-ai",
+   "via": "curator-multi:codex",
+   "model": "gpt-6.1-sol"
+  }
+ ]
+}

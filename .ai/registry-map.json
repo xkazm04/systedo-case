@@ -4002,7 +4002,11 @@
           "revision": 12,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/app/modules/LtvModule.tsx:247 The modules analyze audience and cohort economics, and searches for scanner, ruleset, and codebase-scanning found no context matches establishing source-code scanning.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:06416fce13bc2342",
+          "evaluatedRevision": 12
         },
         {
           "subject": "profit-on-ad-spend-economics",
@@ -13484,7 +13488,11 @@
           "revision": 12,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/ai/PerformanceAnalyst.tsx:55 The panel interprets marketing performance data, and searches for scanner, ruleset, and codebase-scanning found no context matches establishing code-at-rest inspection.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:06416fce13bc2342",
+          "evaluatedRevision": 12
         }
       ],
       "governance": "governed"
@@ -16728,7 +16736,11 @@
           "revision": 12,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/lib/ai-types.ts:1346 Searches found no scanner, ruleset, or codebase-scanning matches in the context directories, while the scan contracts inspected concern business website text rather than codebase defects.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:06416fce13bc2342",
+          "evaluatedRevision": 12
         },
         {
           "subject": "supply-chain",
@@ -17531,7 +17543,11 @@
           "revision": 12,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "src/components/app/modules/SpeedLeadModule.tsx:200 The module manages lead response SLAs, and searches for scanner, ruleset, and codebase-scanning found no context matches establishing a codebase scanner.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:06416fce13bc2342",
+          "evaluatedRevision": 12
         },
         {
           "subject": "measurement-honesty",
