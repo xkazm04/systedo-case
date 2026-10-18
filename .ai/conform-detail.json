@@ -9108,6 +9108,53 @@
           "evidence": "src/lib/google/ads.ts:862 The client uploads supplied offline outcomes; it does not determine when a website lead-completion event fires."
         }
       ]
+    },
+    "90b16b0d-c2cb-496a-b7c0-26ab9456cb84/narrative-scroll-surface": {
+      "context": "brand-landing",
+      "subject": "narrative-scroll-surface",
+      "bundle": "software-engineering",
+      "state": "unknown",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T03:36:11.237Z",
+      "techniques": [
+        {
+          "technique": "sequence-as-spine",
+          "verdict": "deviation",
+          "evidence": "src/components/brand/optic/copy/bench.ts:11 Station numbering is hardcoded into the authored copy dictionary rather than derived from page order, and stations maintain no alternation rhythm."
+        },
+        {
+          "technique": "illustration-carries-the-claim",
+          "verdict": "deviation",
+          "evidence": "src/components/brand/optic/styles/bench.css:75 Mockup copy uses per-element font-size patching via max(16px, ...) instead of a uniform scale lift across the whole illustration block, and stations 01-02 use decorative aria-hidden physical optics art."
+        },
+        {
+          "technique": "motion-carries-the-mechanism",
+          "verdict": "deviation",
+          "evidence": "src/components/brand/optic/styles/bench.css:98 Active station traces scan on an infinite CSS loop without stop controls and lack an authored beat list allowing stepping, scrubbing, or frame-exact capture."
+        },
+        {
+          "technique": "no-orientation-tax",
+          "verdict": "deviation",
+          "evidence": "src/components/brand/optic/fx/camera.ts:141 Rail button navigation scrolls the window without moving programmatic focus to the target station, and the rail is hidden on narrow viewports without a substitute readout."
+        },
+        {
+          "technique": "reveal-without-loss",
+          "verdict": "deviation",
+          "evidence": "src/components/brand/optic/fx/camera.ts:62 The camera sets inline opacities on station copy that leave non-current stations at opacity 0, with no print styles to resolve them for print or static export."
+        },
+        {
+          "technique": "scroll-bound-progression",
+          "verdict": "deviation",
+          "evidence": "src/components/brand/optic/fx/typeAd.ts:42 Station 03's ad-generation entrance triggers a setInterval clock timer upon arrival rather than driving progress purely from reader scroll position."
+        }
+      ],
+      "registryProposal": "The standard assumes a vertical scroll sequence where stations alternate sides of a vertical spine; it should explicitly document how horizontal pinned stages (camera translation along an optical beam) map onto the alternation rhythm and spine geometry constraints.",
+      "withdrawn": {
+        "worker": "059f2241-b160-4a72-8b1e-6f89056e67ba",
+        "state": "deviation",
+        "at": "2026-10-18T03:36:27.670113+00:00",
+        "reason": "reviewer (sonnet): The deviation bundles several claims that I could not confirm in the code. Bench.tsx and the station files contain no inline print opacities. The timer-driven gestures live in fx/typeAd.ts and are not shown to belong to the bench. The aria-hidden art claim for stations 01-02 shows up only in Station"
+      }
     }
   }
 }

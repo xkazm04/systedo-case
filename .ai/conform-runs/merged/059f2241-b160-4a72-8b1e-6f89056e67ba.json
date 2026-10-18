@@ -1,0 +1,47 @@
+{
+  "schema": "conform-run/1",
+  "worker": "059f2241-b160-4a72-8b1e-6f89056e67ba",
+  "subject": "narrative-scroll-surface",
+  "evaluatedAt": "2026-10-18T03:36:11.237790+00:00",
+  "provider": "agy",
+  "model": "gemini-3.8-flash-high",
+  "pairs": [],
+  "declined": [
+    {
+      "subject": "narrative-scroll-surface",
+      "context": "shared-ui-primitives",
+      "reason": "This context provides low-level UI components, charts, and application widgets for the authenticated product interface (ADR-0013 area roofs), not a published narrative scroll surface or marketing walkthrough."
+    },
+    {
+      "subject": "narrative-scroll-surface",
+      "context": "design-system-a11y",
+      "reason": "This context provides design tokens (colors, spacing, house motion easing curves) and accessibility utilities (focusTrap, rowActivation), which define movement and styling vocabulary rather than a narrative scroll surface choreography."
+    },
+    {
+      "subject": "narrative-scroll-surface",
+      "context": "brand-landing",
+      "reason": "withdrawn after review: reviewer (sonnet): The deviation bundles several claims that I could not confirm in the code. Bench.tsx and the station files contain no inline print opacities. The timer-driven gestures live in fx/typeAd.ts and are not shown to belong to the bench. The aria-hidden art claim for stations 01-02 shows up only in Station"
+    }
+  ],
+  "consults": [
+    {
+      "ts": "2026-10-18T03:36:11.237790+00:00",
+      "bundle": "software-engineering",
+      "subjects": [
+        "narrative-scroll-surface"
+      ],
+      "techniques": [
+        "illustration-carries-the-claim",
+        "motion-carries-the-mechanism",
+        "no-orientation-tax",
+        "reveal-without-loss",
+        "scroll-bound-progression",
+        "sequence-as-spine"
+      ],
+      "deviations": 1,
+      "context": "brand-landing",
+      "via": "curator-multi:agy",
+      "model": "gemini-3.8-flash-high"
+    }
+  ]
+}
