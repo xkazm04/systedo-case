@@ -7090,6 +7090,150 @@
           "evidence": "src/app/layout.tsx:129 The surrounding surface is shared site chrome rather than a channel-consuming transcript view."
         }
       ]
+    },
+    "463ec209-219f-44e4-bc61-acfee823fd9c/design-tokens": {
+      "context": "design-system-a11y",
+      "subject": "design-tokens",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:10:13.115Z",
+      "worker": "f1189e55-ddd7-48a3-b6e4-2ce2498e778e",
+      "techniques": [
+        {
+          "technique": "cross-language-token-parity",
+          "verdict": "deviation",
+          "evidence": "src/lib/motion.ts:13 The CSS curve is hand-mirrored with a keep-in-sync comment; searches found no generation or parity gate, and the accompanying fadeUp durations already differ: motion.ts:36 uses 0.6 seconds while globals.css:395 uses 0.5 seconds."
+        },
+        {
+          "technique": "density-and-scale-axes",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/design-tokens.ts:101 This module enumerates stylesheet declarations; searches of the context and repository found no user density or text-scale preference implementation."
+        },
+        {
+          "technique": "motion-tokens",
+          "verdict": "deviation",
+          "evidence": "src/lib/motion.ts:36 The duration is numeric rather than a named ladder step, and the easing name identifies the brand rather than its choreography role."
+        },
+        {
+          "technique": "theme-architecture",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/design-tokens.ts:39 The context reads the single stylesheet binding and provides color math; it implements no theme selection, derivation, or scope switching."
+        },
+        {
+          "technique": "token-taxonomy",
+          "verdict": "deviation",
+          "evidence": "src/lib/motion.ts:44 Stagger and initial-delay decisions remain anonymous numbers instead of members of a named timing vocabulary."
+        }
+      ]
+    },
+    "e4602231-6186-4493-90f5-5d263f902f54/design-tokens": {
+      "context": "shared-ui-primitives",
+      "subject": "design-tokens",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:10:13.115Z",
+      "worker": "f1189e55-ddd7-48a3-b6e4-2ce2498e778e",
+      "techniques": [
+        {
+          "technique": "cross-language-token-parity",
+          "verdict": "conformant",
+          "evidence": "src/components/charts/Sparkline.tsx:75 The chart passes CSS variable references to SVG, allowing the styling runtime to resolve authoritative values without a numeric color mirror."
+        },
+        {
+          "technique": "density-and-scale-axes",
+          "verdict": "not-applicable",
+          "evidence": "src/components/ui.tsx:84 These are component sizes, not a user appearance preference; searches found no density or text-scale axis in this context or elsewhere in the implementation."
+        },
+        {
+          "technique": "motion-tokens",
+          "verdict": "deviation",
+          "evidence": "src/components/motion/Kinetics.tsx:138 Kinetic declares a literal duration rather than consuming a duration step; reduced-motion handling is also implemented separately inside the component."
+        },
+        {
+          "technique": "theme-architecture",
+          "verdict": "conformant",
+          "evidence": "src/components/kit/Dial.tsx:42 The gauge selects a semantic status from its data and delegates color resolution to scoped variables without branching on theme identity."
+        },
+        {
+          "technique": "token-taxonomy",
+          "verdict": "deviation",
+          "evidence": "src/components/ui.tsx:34 The component consumes numbered palette steps; text-brand-800 also duplicates the existing brand-accent color binding instead of referencing that semantic role."
+        }
+      ]
+    },
+    "3b496078-50bc-4cb0-bc23-1cdbda0766c4/design-tokens": {
+      "context": "dev-tools",
+      "subject": "design-tokens",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:10:13.115Z",
+      "worker": "f1189e55-ddd7-48a3-b6e4-2ce2498e778e",
+      "techniques": [
+        {
+          "technique": "cross-language-token-parity",
+          "verdict": "conformant",
+          "evidence": "src/app/design-system/Swatch.tsx:59 The swatch paints from the value parsed from the authoritative stylesheet, and its ink calculation receives that same value rather than a separately maintained palette."
+        },
+        {
+          "technique": "density-and-scale-axes",
+          "verdict": "not-applicable",
+          "evidence": "src/app/design-system/Swatch.tsx:30 The big flag is a local gallery presentation option; searches found no user density, text-scale, or brightness axis."
+        },
+        {
+          "technique": "theme-architecture",
+          "verdict": "conformant",
+          "evidence": "src/app/design-system/KitShowcase.tsx:85 The showcase references a semantic accent binding without a theme identity branch; the inspected context contains no theme-specific markup fork."
+        },
+        {
+          "technique": "token-enforcement",
+          "verdict": "deviation",
+          "evidence": "src/app/_dev-inspector/devInspectorUi.tsx:157 Copy failure uses an inline raw status color despite the negative role, with no explicit, justified token-rule escape hatch."
+        },
+        {
+          "technique": "token-taxonomy",
+          "verdict": "deviation",
+          "evidence": "src/app/_dev-inspector/devInspectorUi.tsx:117 Muted and emphasized foreground decisions are literal colors rather than semantic foreground references."
+        }
+      ]
+    },
+    "dc5e80ff-b37c-478a-93e5-f626b0aeafe8/design-tokens": {
+      "context": "utility-components",
+      "subject": "design-tokens",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T00:10:13.115Z",
+      "worker": "f1189e55-ddd7-48a3-b6e4-2ce2498e778e",
+      "techniques": [
+        {
+          "technique": "cross-language-token-parity",
+          "verdict": "not-applicable",
+          "evidence": "src/components/usage/UsageMeter.tsx:95 The scripting calculation represents quota data, not a mirrored design token; inspection found no cross-runtime token-value copy in these three files."
+        },
+        {
+          "technique": "density-and-scale-axes",
+          "verdict": "not-applicable",
+          "evidence": "src/components/LocaleShowcase.tsx:104 The available switch changes locale, not appearance; searches found no user density or text-scale preference implementation."
+        },
+        {
+          "technique": "theme-architecture",
+          "verdict": "conformant",
+          "evidence": "src/components/LocaleShowcase.tsx:97 The container obtains its surface and border through semantic bindings without consulting theme identity."
+        },
+        {
+          "technique": "token-enforcement",
+          "verdict": "deviation",
+          "evidence": "src/components/LocaleShowcase.tsx:121 The raw 14px text size bypasses the existing text-xs binding, defined as 0.875rem, without a justified suppression."
+        },
+        {
+          "technique": "token-taxonomy",
+          "verdict": "deviation",
+          "evidence": "src/components/usage/UsageMeter.tsx:80 The warning and normal quota states reach directly into palette ramps rather than consuming status roles."
+        }
+      ]
     }
   }
 }

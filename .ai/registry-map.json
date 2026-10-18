@@ -9069,7 +9069,11 @@
           "revision": 7,
           "changedAt": "2026-09-24",
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/motion.ts:36 The entrance variant embeds a literal duration instead of a named duration step, preventing motion retuning through one vocabulary.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:165125b7a54d0de3",
+          "evaluatedRevision": 7
         },
         {
           "subject": "motion",
@@ -9186,7 +9190,11 @@
           "revision": 7,
           "changedAt": "2026-09-24",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/app/_dev-inspector/devInspectorUi.tsx:117 Inspector foreground emphasis uses inline hex colors instead of semantic foreground roles, creating an independent styling vocabulary.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:165125b7a54d0de3",
+          "evaluatedRevision": 7
         },
         {
           "subject": "embedded-preview",
@@ -16770,7 +16778,11 @@
           "revision": 7,
           "changedAt": "2026-09-24",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/ui.tsx:34 The shared Pill consumes numbered palette steps directly, so its styling bypasses semantic role bindings.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:165125b7a54d0de3",
+          "evaluatedRevision": 7
         },
         {
           "subject": "narrative-scroll-surface",
@@ -18534,7 +18546,11 @@
           "revision": 7,
           "changedAt": "2026-09-24",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/usage/UsageMeter.tsx:80 Quota states mix a semantic negative role with numbered palette steps, leaving warning and normal states outside a consistent semantic vocabulary.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:165125b7a54d0de3",
+          "evaluatedRevision": 7
         },
         {
           "subject": "translation-pipeline-topology",
