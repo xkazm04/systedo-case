@@ -9668,6 +9668,109 @@
           "evidence": "src/components/app/modules/CatalogModule.tsx:186 Copy actions allow unvetted batch export to clipboard and CSV without role-separated review or sampling discipline."
         }
       ]
+    },
+    "814514dd-4fbf-49e3-ad3f-b57ed4e005da/credential-vault": {
+      "context": "inventory-connection",
+      "subject": "credential-vault",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T21:57:15.532Z",
+      "worker": "424c8b9e-8d55-41c5-af11-b4b691abdb73",
+      "techniques": [
+        {
+          "technique": "encryption-at-rest",
+          "verdict": "deviation",
+          "evidence": "src/lib/inventory/token-crypto.ts:89 Ciphertext is not bound to record identity via authenticated associated data (AAD), and keys are derived directly from a server secret without a master key envelope."
+        },
+        {
+          "technique": "brokered-egress",
+          "verdict": "deviation",
+          "evidence": "src/lib/inventory/token-crypto.ts:98 Plaintext credentials are decrypted and returned directly to callers instead of brokering calls through a single egress door where callers submit intent."
+        },
+        {
+          "technique": "acquisition",
+          "verdict": "deviation",
+          "evidence": "src/lib/inventory/connection-store.ts:11 StoredConnection omits provenance tracking for credential acquisition mode, and tokens are stored without live validation probes against the provider before admission."
+        },
+        {
+          "technique": "health-probing",
+          "verdict": "deviation",
+          "evidence": "src/lib/inventory/warehouse.ts:83 Health status collapses transient network or provider errors into failing rather than separating them into an unknown state from broken credentials."
+        },
+        {
+          "technique": "rotation-and-remediation",
+          "verdict": "deviation",
+          "evidence": "src/lib/inventory/token-crypto.ts:40 The vault lacks an overlap window or planned rotation mechanism for keys; changing server secrets invalidates all stored tokens and requires manual re-entry."
+        },
+        {
+          "technique": "token-refresh-lifecycle",
+          "verdict": "not-applicable",
+          "evidence": "src/lib/inventory/token-crypto.ts:3 Warehouse tokens are non-expiring API tokens without an issuer expiry clock or grant/proof refresh lifecycle."
+        }
+      ]
+    },
+    "ed374616-ff33-4cfb-af7b-01bc9f2c2126/credential-vault": {
+      "context": "byom-ai-configuration",
+      "subject": "credential-vault",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T21:57:15.532Z",
+      "worker": "424c8b9e-8d55-41c5-af11-b4b691abdb73",
+      "techniques": [
+        {
+          "technique": "brokered-egress",
+          "verdict": "deviation",
+          "evidence": "src/components/app/modules/ByomKeys.tsx:374 The UI partially echoes credential values by displaying the last 4 characters rather than confirming purely by identity."
+        },
+        {
+          "technique": "health-probing",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/ByomKeys.tsx:328 The UI checks and renders verification staleness explicitly rather than displaying a stale verification as current health."
+        },
+        {
+          "technique": "rotation-and-remediation",
+          "verdict": "conformant",
+          "evidence": "src/components/app/modules/ByomKeys.tsx:502 The UI distinguishes definitive faults that bench a key from transient failures that safely fall back to the app provider."
+        }
+      ]
+    },
+    "dcc78ba3-0c54-4352-acb4-6f0f4169ce58/credential-vault": {
+      "context": "ad-platform-integrations",
+      "subject": "credential-vault",
+      "bundle": "software-engineering",
+      "state": "deviation",
+      "evaluatedAt": "2026-10-18",
+      "evaluatedTs": "2026-10-18T21:57:15.532Z",
+      "worker": "424c8b9e-8d55-41c5-af11-b4b691abdb73",
+      "techniques": [
+        {
+          "technique": "token-refresh-lifecycle",
+          "verdict": "deviation",
+          "evidence": "src/lib/google/token.ts:83 Token refresh evaluates a fixed 60-second window only lazily on caller demand, lacks a background cadence, has no single-flight mutex against stampedes, and fails without error classification."
+        },
+        {
+          "technique": "encryption-at-rest",
+          "verdict": "deviation",
+          "evidence": "src/lib/google/token.ts:90 Google OAuth access and refresh tokens are stored in plaintext in the Firestore accounts collection without envelope encryption."
+        },
+        {
+          "technique": "brokered-egress",
+          "verdict": "deviation",
+          "evidence": "src/lib/google/token.ts:74 The module returns the raw plaintext bearer token directly to external callers rather than brokering calls through an internal authenticated gateway."
+        },
+        {
+          "technique": "renew-at-two-thirds-with-grace",
+          "verdict": "deviation",
+          "evidence": "src/lib/google/token.ts:85 Token refreshes are not managed by an active two-thirds renewal loop with jittered grace and look-ahead exit, relying solely on caller-triggered checks."
+        },
+        {
+          "technique": "rotation-and-remediation",
+          "verdict": "deviation",
+          "evidence": "src/lib/google/ads.ts:56 API errors are classified into binary retry vs degradation with no graduated remediation ladder (observe -> warn -> degrade -> suspend) and no credential rotation overlap."
+        }
+      ]
     }
   }
 }

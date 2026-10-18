@@ -1890,7 +1890,11 @@
           "revision": 4,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/google/token.ts:74 The platform integration dispenses raw plaintext bearer tokens to callers via getUserAccessToken, stores OAuth tokens unencrypted in Firestore, and lacks scheduled single-flight refresh lifecycle management.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:1c57e44b947c96ef",
+          "evaluatedRevision": 4
         },
         {
           "subject": "money-page-conversion-craft",
@@ -4573,7 +4577,11 @@
           "revision": 4,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/components/app/modules/ByomKeys.tsx:374 The UI displays key suffix characters rather than confirming purely by identity, and provides an unguided paste field lacking provider deep-links and scope instructions.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:1c57e44b947c96ef",
+          "evaluatedRevision": 4
         },
         {
           "subject": "node-boot-and-declarative-bootstrap",
@@ -10001,7 +10009,11 @@
           "revision": 4,
           "changedAt": "2026-09-23",
           "confidence": "probable",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "src/lib/inventory/token-crypto.ts:98 The vault exposes plaintext credential values directly to callers via decryptToken instead of brokering egress, lacks AAD record binding and envelope encryption in token-crypto, and collapses health probing into a binary failure without live admission validation.",
+          "evaluatedAt": "2026-10-18",
+          "evaluatedAgainst": "sha256-b2:1c57e44b947c96ef",
+          "evaluatedRevision": 4
         },
         {
           "subject": "agent-memory",
