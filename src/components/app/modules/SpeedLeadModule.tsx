@@ -140,7 +140,7 @@ const T = {
       "A real CRM contact: the AI draft is off so the lead's personal data never reaches the model. Reply on your own channel (templates help), then record it.",
     markReplied: "Record reply",
     replied: "Reply recorded",
-    recordDisclaimer: "Nothing is sent from here — it only records that you replied.",
+    recordDisclaimer: "Nothing is sent from here: it only records that you replied.",
     qualify: "Qualify into Leads",
     qualified: "Qualified",
     writeBackFailed: "Writing to the CRM failed. Try again.",
