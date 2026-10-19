@@ -24,7 +24,7 @@ import {
   pnoMetricTone,
   roasMetricTone,
   triageReasonLabel,
-  triageWeight,
+  attentionOrder,
   type MetricTone,
   type TriageGoals,
 } from "@/lib/campaigns/triage";
@@ -314,14 +314,8 @@ export default function CampaignTable({
   // ordered queue (it owns batchPending + the triage weighting).
   const { batch, runBatch, cancelBatch } = useBatchRunner(onAnalyze);
   const runFlaggedBatch = () => {
-    const queue = batchPending
-      .slice()
-      .sort(
-        (a, b) =>
-          triageWeight(b.c, changesById[b.c.id], goals, campaignSeries?.[b.c.id]) -
-          triageWeight(a.c, changesById[a.c.id], goals, campaignSeries?.[a.c.id])
-      )
-      .map(({ c }) => c.id);
+    const byId = new Map(batchPending.map(({ c }) => [c.id, c]));
+    const queue = attentionOrder([...byId.values()], changesById, goals, campaignSeries).map((c) => c.id);
     void runBatch(queue);
   };
   // First click sorts (numeric/severity desc, text asc); clicking the active column flips.

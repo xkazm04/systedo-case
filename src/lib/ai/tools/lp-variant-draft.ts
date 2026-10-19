@@ -127,10 +127,42 @@ export const LP_DRAFT_LIMITS = {
   cta: 60,
 } as const;
 
-function cleanBullets(v: unknown): string[] {
+/** A percentage figure in prose ("63 %", "12,5 procent"). The one invented-statistic
+ *  shape that is unambiguous in Czech marketing copy: conversion rates, savings and
+ *  satisfaction scores all arrive as one. Phone numbers, prices and "24 hodin" do not
+ *  match, so the screen does not touch the facts a brand legitimately owns. */
+const PERCENT_FIGURE = /(\d+(?:[.,]\d+)?)\s?(?:%|procent)/gi;
+
+function percentFigures(text: string): string[] {
+  return Array.from(text.matchAll(PERCENT_FIGURE), (m) => m[1]!.replace(",", "."));
+}
+
+/** The percentage figures the request itself carries (brand fact block, cluster, the
+ *  operator's seeds). A figure the model repeats from these is supplied; any other is
+ *  invented. The prompt only INSTRUCTS the model not to invent one (registry technique
+ *  experiment-pages-print-no-numbers, step 2); this is the structural half. */
+function suppliedFigures(req: LpVariantDraftRequest): Set<string> {
+  const src = [
+    req.brand,
+    req.cluster,
+    req.brandContext ?? "",
+    ...req.arms.flatMap((a) => [a.label, a.hypothesis ?? "", a.headline ?? ""]),
+  ].join("\n");
+  return new Set(percentFigures(src));
+}
+
+/** True when `text` prints a percentage figure the request did not supply. */
+export function inventsFigure(text: unknown, req: LpVariantDraftRequest): boolean {
+  if (typeof text !== "string") return false;
+  const ok = suppliedFigures(req);
+  return percentFigures(text).some((f) => !ok.has(f));
+}
+
+function cleanBullets(v: unknown, req?: LpVariantDraftRequest): string[] {
   return Array.isArray(v)
     ? v
         .filter((x): x is string => typeof x === "string")
+        .filter((x) => !req || !inventsFigure(x, req))
         .map((s) => clamp(s.trim(), LP_DRAFT_LIMITS.bullet))
         .filter(Boolean)
         .slice(0, LP_DRAFT_LIMITS.bullets)
@@ -183,14 +215,17 @@ export function normalizeLpVariantDraft(
       claimed.get(seed.armId) ??
       (byPosition ? (raw[i] as Record<string, unknown> | undefined) : undefined);
     const floor = baseLpArm(seed, req);
-    const bullets = cleanBullets(match?.bullets);
+    // A field carrying an invented percentage falls to the deterministic floor for
+    // that field: the public page prints no number the brand did not supply.
+    const clean = (v: unknown) => (inventsFigure(v, req) ? "" : txt(v));
+    const bullets = cleanBullets(match?.bullets, req);
     return {
       armId: seed.armId,
       label: seed.label,
-      headline: clamp(txt(match?.headline), LP_DRAFT_LIMITS.headline) || floor.headline,
-      intro: clamp(txt(match?.intro), LP_DRAFT_LIMITS.intro) || floor.intro,
+      headline: clamp(clean(match?.headline), LP_DRAFT_LIMITS.headline) || floor.headline,
+      intro: clamp(clean(match?.intro), LP_DRAFT_LIMITS.intro) || floor.intro,
       bullets: bullets.length > 0 ? bullets : floor.bullets,
-      cta: clamp(txt(match?.cta), LP_DRAFT_LIMITS.cta) || floor.cta,
+      cta: clamp(clean(match?.cta), LP_DRAFT_LIMITS.cta) || floor.cta,
     };
   });
   return { arms };
@@ -239,6 +274,20 @@ export function validateLpVariantDraft(parsed: unknown, req: LpVariantDraftReque
     if (headlines.length > 1 && new Set(headlines).size < headlines.length) {
       violations.push(
         "Varianty mají shodný nadpis — každá varianta musí mít vlastní nadpis a vlastní úhel, jinak není co testovat."
+      );
+    }
+    const fields = (x: Record<string, unknown>): unknown[] => [
+      x.headline,
+      x.intro,
+      x.cta,
+      ...(Array.isArray(x.bullets) ? x.bullets : []),
+    ];
+    const invented = raw.some(
+      (x) => Boolean(x) && typeof x === "object" && fields(x as Record<string, unknown>).some((f) => inventsFigure(f, req))
+    );
+    if (invented) {
+      violations.push(
+        "Text obsahuje procentuální údaj, který není v podkladech — vymyšlená čísla na veřejnou stránku nepatří. Přepiš bez čísel."
       );
     }
     return violations;

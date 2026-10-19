@@ -1,7 +1,7 @@
 /** WP S2 — the `twin-dispatch` ledger step: AUTONOMY ON THE WIRE.
  *
  *  Registered in src/lib/cron/ledgers.ts — that one line in LEDGER_STEPS is the whole
- *  registration ceremony (no new route, no `vercel.json` entry, no new guard; WP F4).
+ *  registration ceremony (no new route, no `cron-schedules.json` entry, no new guard; WP F4).
  *
  *  WHAT IT DOES, per project that has a twin, and ONLY on a channel the operator put
  *  on `autonomy: "auto"` with a real, configured connector:

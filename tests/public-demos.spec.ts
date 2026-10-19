@@ -81,7 +81,7 @@ test.describe("public demo surfaces", () => {
     await gotoPublic(page, "/kampane");
     // Cold DB → the empty state with its sync affordance; already synced → the
     // triage table. Both are correct; a spinner that never resolves is not.
-    const sync = page.getByRole("button", { name: /Synchronizovat z Google Ads|Sync from Google Ads/ });
+    const sync = page.getByRole("button", { name: /^(Synchronizovat data|Sync data)$/ });
     const priority = page.getByRole("columnheader", { name: /^(Priorita|Priority)$/ });
     await expect(sync.or(priority).first()).toBeVisible({ timeout: 30_000 });
   });

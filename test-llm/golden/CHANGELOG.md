@@ -99,3 +99,19 @@ channel taxonomy gains a newsletter category (push kind): the category enum is i
 | tool | from | to |
 |---|---|---|
 | channel-research | b78a5a2a23afd349 | 941897c1eb7130ff |
+
+## 2026-10-14 — article-draft
+
+article-draft: answer-first opener under question-phrased sections, complete-sentence FAQ answers, no invented figures (answer-block-under-question-heading)
+
+| tool | from | to |
+|---|---|---|
+| article-draft | b9a285bdfb1bedc0 | d0a4c09a076da10c |
+
+## 2026-10-14 — repurpose
+
+repurpose: system prompt states the hook, concrete value and single call to action triad and the Instagram link-in-bio rule social already carried; no invented figures
+
+| tool | from | to |
+|---|---|---|
+| repurpose | 477112d2c6590b01 | c4fa268712dcc7ae |

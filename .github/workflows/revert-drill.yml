@@ -3,7 +3,7 @@ name: Revert drill
 # The rehearsal of the way back OUT, on a schedule, with the verdicts kept where
 # a trend is readable.
 #
-# WHY. Vercel ships `master` on push, so the push is the release act
+# WHY. A push to `master` is the release act
 # (docs/deploy.md § Delivery contract) and ~97% of the pushes are agent-written.
 # Every gate in this repository verifies a change on the way in. The way back was
 # a runbook — docs/runbooks/revert-drill.md — which said plainly on its own first
@@ -141,7 +141,7 @@ jobs:
     steps:
       - name: Fetch the report
         continue-on-error: true
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: revert-drill
 

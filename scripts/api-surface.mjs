@@ -15,7 +15,7 @@
  *  is the design:
  *
  *    DERIVED and pinned — path template, exported verbs, path parameters, the
- *      identity posture the handler establishes, and the Vercel `maxDuration`.
+ *      identity posture the handler establishes, and the function `maxDuration`.
  *      `scripts/lib/api-surface-core.mjs` reads all five out of the tree; `--check`
  *      fails when the document and the tree disagree about any of them.
  *    WRITTEN and required — one sentence per operation. Not generated, because a

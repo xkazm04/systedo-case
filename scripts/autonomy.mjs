@@ -3,7 +3,7 @@
  *  (zero-dependency, reads committed data only).
  *
  *  WHY THIS EXISTS. Every other control here is about a CHANGE — fifteen gates, a
- *  rubric review, three drills, a post-deploy probe — and all of them rest on one
+ *  rubric review, three drills — and all of them rest on one
  *  unstated assumption: that a maintainer reads the trail every week. On a repository
  *  where ~97% of commits are agent-written and a push to master IS the release, that
  *  assumption is load-bearing, and it was the only thing in the design that had never

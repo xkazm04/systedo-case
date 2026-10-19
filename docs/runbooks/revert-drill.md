@@ -7,8 +7,8 @@ rehearsal, and the number it exists to produce is one line: *from the moment a
 bad change is live, how long until it is not.*
 
 It matters here more than it would elsewhere for a topology reason stated in
-[`../deploy.md`](../deploy.md) § Delivery contract: **Vercel ships `master` on
-push**, so the push is the release act, and ~97% of the pushes are agent-written
+[`../deploy.md`](../deploy.md) § Delivery contract: **a push to `master` is
+the release act**, and ~97% of the pushes are agent-written
 — some of them by runs that were stopped by a wall clock mid-task. The way in is
 well defended. The way back is unmeasured.
 
@@ -19,8 +19,8 @@ well defended. The way back is unmeasured.
 > are now `npm run revert:drill` (`scripts/revert-drill.mjs`), fired weekly and on
 > demand by [`.github/workflows/revert-drill.yml`](../../.github/workflows/revert-drill.yml),
 > which publishes a dated row into a GitHub issue and keeps the verdict as a
-> 90-day artifact. The **promote leg is still the operator's** and still
-> unmeasured: `vercel promote` is a production action under the operator's name
+> 90-day artifact. The **redeploy leg is still the operator's** and still
+> unmeasured: rebuilding a running instance from the last good commit is a production action under the operator's name
 > (`AGENTS.md` § Red), so the number this file most wants — how long the live site
 > stays wrong — is owed until an operator times one. The manual procedure below
 > is what they follow; everything the machine now does is marked.
@@ -45,7 +45,7 @@ where the drill will spend its time.
 | # | Layer | Fires | Cannot see |
 | --- | --- | --- | --- |
 | 1 | `.husky/pre-push` → `npm run check:ci` | before the release exists | anything that type-checks, lints, builds and keeps the suite green while being wrong |
-| 2 | `ci.yml` (`check`, `e2e-smoke`) | after the push, racing the Vercel build | same blind spot; and its verdict arrives after the deploy has begun |
+| 2 | `ci.yml` (`check`, `e2e-smoke`) | after the push, racing whatever consumes the push | same blind spot; and its verdict arrives after the push has landed |
 | 3 | `agent-review.yml` mechanical annotations on the commit | after the push | Part A is five structural rules — it judges shape, never behaviour |
 | 4 | `src/instrumentation.ts` → Sentry `onRequestError` | at runtime, on a thrown error | **inert in production today**: it initialises only when `SENTRY_DSN` is set, and per `../deploy.md` § Production env gap the Vercel project holds one variable. Also errors-only — a wrong number renders fine |
 | 5 | Cron alert mail / webhook | hourly at the earliest | needs `RESEND_API_KEY` / `ALERT_WEBHOOK_URL`, also absent today |
@@ -116,8 +116,8 @@ survives `check:ci` would have shipped.
 Two paths, and they are not alternatives — the first stops the bleeding, the
 second cleans the repository.
 
-- **Live site (operator).** `vercel promote <last-good-deployment-url>` flips the
-  alias atomically; `../deploy.md` § Deploy + rollback has the dashboard
+- **Live instance (operator).** Rebuild from the last good commit
+  (`git checkout <last-good-sha> && docker compose up -d --build`); `../deploy.md` § Deploy + rollback has the dashboard
   equivalent. Time the flip, not the decision. If a real promote is not
   acceptable on the day, time it against a preview alias and mark the row
   `promote: preview`.
@@ -150,7 +150,7 @@ each one is to undo:
 | **Sklik / Google Ads mutations** | Only reachable when `SKLIK_WRITES_ENABLED=1` (unset by default, and the operator's decision alone). A promote does not undo a budget change made in an advertiser's account. | The control plane's own changeset history; treat it as a separate incident. |
 | **Firestore documents written under a new shape** | Stay. There is no schema version on production data and no down-migration: the previous code reads whatever the newer code wrote, which is fine when the change was additive and is silent corruption when it was not. | This is the question to answer *before* promoting. If the bad version wrote a new field shape, fix forward. |
 | **Local `node:sqlite` schema (`LOCAL_DB`)** | `MIGRATIONS` in `src/lib/db.ts` is append-only and there are no down-steps, so a dev checkout that ran the newer code carries the newer schema. Harmless — the store is per-developer. | Delete `.data/systedo.db` and `npm run seed:local`. |
-| **Crons that fired during the bad window** | The six schedules in `vercel.json` kept running. Their ledger rows, period claims and `cron_runs` counters are already written; a claim kept on a permanent 4xx means the next attempt is tomorrow, not in an hour. | Read `cron_runs` for the window before assuming the promote fixed the job. |
+| **Crons that fired during the bad window** | The six schedules in `cron-schedules.json` kept running. Their ledger rows, period claims and `cron_runs` counters are already written; a claim kept on a permanent 4xx means the next attempt is tomorrow, not in an hour. | Read `cron_runs` for the window before assuming the promote fixed the job. |
 
 The short version: **promote first when the fault is in rendering or reading,
 fix forward when the fault WROTE something.** A promote is atomic and cheap; it
@@ -221,5 +221,5 @@ and it has two reds worth knowing apart:
   it, or drop it and say in the commit which seam is now unrehearsed.
 
 What is still owed is the number the machine cannot produce: **T3−T2 for the live
-site**, which needs an operator timing one `vercel promote`. Two of those rows in
+site**, which needs an operator timing one rebuild-and-restart. Two of those rows in
 the table above and the recency check is worth having.

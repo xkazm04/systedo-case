@@ -1,9 +1,24 @@
-# Deploy runbook — Adamant on Vercel
+# Deploy runbook — running Adamant yourself
 
-How to ship, verify, and roll back the production deployment. Env vars are
-listed by NAME only — values live in the Vercel project settings (and locally
-in `.env.local`, which is gitignored). `.env.example` is the annotated source
-of truth for what each variable does.
+**There is no hosted deployment.** Since 2026-10-13 this repository is local open
+source only: the Vercel project was disconnected from the repository, `vercel.json`
+and the post-deploy workflow were removed, and nothing ships on a push. You run it
+one of two ways:
+
+```bash
+npm run dev:local                 # fully offline: DEV_AUTH + LOCAL_DB, sqlite under .data/
+docker compose up -d --build      # the container image, http://localhost:3000
+                                  #   (add the cron sidecar service for scheduled jobs)
+```
+
+The self-hosting guide, [`docs/open-source/self-hosting.md`](open-source/self-hosting.md),
+covers the container path in depth. The rest of this page is the contract for **any**
+instance an operator runs (container, VPS, or another host they choose): the
+variables, the stores, the gates a change passes before it lands on `master`, and the
+operator checks no committed file can make. Env vars are listed by NAME only — values
+live in your `.env` file or the orchestrator's secret store (locally in
+`.env.local`, which is gitignored). `.env.example` is the annotated source of truth
+for what each variable does.
 
 ## The manifest — this page's machine-readable half
 
@@ -18,38 +33,37 @@ npm run env:manifest         # print the declared target
 npm run env:manifest:check   # …and fail on drift
 ```
 
-The check diffs that declaration against `vercel.json`, `package.json`,
+The check diffs that declaration against `cron-schedules.json`, `package.json`,
 `next.config.ts`, `.env.example`, the workflows and this page, and the same comparison
 runs on **every build** (`test-unit/environment-manifest.test.mjs`, inside
 `npm run test:unit` → `npm run check:ci` → `.husky/pre-push`). So a cron nobody
 declared, a Node bump in one workflow and not the others, or a new variable classified
 nowhere refuses the push rather than surfacing after a deploy.
 
-**It reads the repository, not the Vercel project.** What is actually configured
-there — whether a secret is set, which region a function landed in, whether the
-Firestore TTL policy below exists — is not in any committed file, and the manifest's
-`cannotSee` list says so. That half is § Post-deploy verification, and it is the
-operator's.
+**It reads the repository, not a host.** What is actually configured wherever the
+image runs — whether a secret is set, whether the Firestore TTL policy below exists —
+is not in any committed file, and the manifest's `cannotSee` list says so. That half
+is § Operator checks, and it is the operator's.
 
 ## Environment variables (by name)
 
-Required in production:
+Required for a production-mode instance (`NODE_ENV=production`):
 
 | Name | Why |
 | --- | --- |
 | `GEMINI_API_KEY` | Prod LLM provider (the dev fallback is the Claude CLI; without a provider, AI tools run in demo mode) |
 | `AUTH_SECRET` | Auth.js session signing |
-| `AUTH_TRUST_HOST` | `true` — callback URL behind Vercel's proxy |
+| `AUTH_TRUST_HOST` | `true` — callback URL behind your reverse proxy |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth sign-in |
 | `FIREBASE_SERVICE_ACCOUNT` | Full service-account JSON. Prod REFUSES silent fallback to ambient ADC (set `FIREBASE_ALLOW_ADC=true` only for an intentional ADC deploy) |
 | `GOOGLE_CLOUD_PROJECT` | Firestore project id |
-| `CRON_SECRET` | Bearer token Vercel Cron sends; cron routes fail closed without it |
+| `CRON_SECRET` | Bearer token the cron runner (`scripts/cron-runner.mjs`) sends; cron routes fail closed without it |
 
 Optional / feature-gating:
 
 | Name | Feature |
 | --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | Canonical origin for OG/canonical/share URLs (see host rename below) |
+| `NEXT_PUBLIC_SITE_URL` | Canonical origin for OG/canonical/share URLs (set it for any hosted instance; the default is `http://localhost:3000`) |
 | `GEMINI_MODEL`, `GEMINI_VISION_MODEL`, `GEMINI_EMBED_MODEL` | Model overrides (cost table in `src/lib/llm/cost.ts` is keyed by model name) |
 | `LEONARDO_API_KEY` | Creative Studio image generation (demo placeholders without it) |
 | `FIREBASE_STORAGE_BUCKET` | Generated-asset library persistence |
@@ -83,10 +97,13 @@ stored `email-smtp` connector id is read as `email`.
 
 ## Data stores — Firestore vs `.data/`
 
-- **Production (Vercel)**: everything durable lives in **Firestore**
+- **Firestore-backed instance**: everything durable lives in **Firestore**
   (users, sessions, projects, usage metering, durable rate-limit counters).
-  The serverless filesystem is read-only and ephemeral per instance — never
-  rely on it for state.
+  On any host with an ephemeral or read-only filesystem, never rely on the
+  filesystem for state.
+- **Self-hosted container**: `SELF_HOSTED=true` keeps the sqlite store under
+  `/app/.data` (a mounted volume) as the data layer
+  ([self-hosting guide](open-source/self-hosting.md)).
 - **Local dev**: `LOCAL_DB=true` swaps the store layer to **node:sqlite** files
   under `.data/` (`.data/systedo.db`, seeded by `npm run seed:local`), and the
   local Firebase service-account key is read from `.data/firebase-sa.json`.
@@ -144,7 +161,7 @@ Notes:
       deliberately does not restate them, because the copy that gets restated is
       the copy that falls behind. `.husky/pre-push` runs it for you on any push
       to `master`.
-- [ ] **`DEV_AUTH` and `LOCAL_DB` are UNSET in the Vercel environment.** They
+- [ ] **`DEV_AUTH` and `LOCAL_DB` are UNSET in a production-mode environment** (`LOCAL_DB` is the data layer under `SELF_HOSTED=true`). They
       are ignored in production by code, but an unset variable is the only
       configuration that cannot rot.
 - [ ] `CRON_SECRET` set (cron routes fail closed, so a missing secret means
@@ -155,9 +172,10 @@ Notes:
 
 ## Delivery contract
 
-This repo ships by **direct push to `master`** — there is no PR / merge-queue
-stage between a developer and production. That makes the push itself the
-release act, and the contract below is what keeps it honest.
+`master` is the release branch and the maintainer lands changes by **direct push** —
+there is no PR / merge-queue stage in between. Nothing deploys from a push any more,
+but the push is still the act that decides what an operator builds next, and the
+contract below is what keeps it honest.
 
 - **The full blocking gate is `npm run check:ci`**, and it is declared exactly
   once — in `package.json`. These are its stages, in the order they run,
@@ -188,7 +206,7 @@ release act, and the contract below is what keeps it honest.
   (`scripts/agent-review.mjs --base origin/master`), the same code
   `agent-review.yml`'s `mechanical` job runs. It is in `check:ci` because a
   required status check only bites on a PR: on a direct push the workflow's
-  verdict arrives *after* Vercel has begun building, so a finding would have been
+  verdict arrives *after* the push has landed, so a finding would have been
   a comment on a release rather than a gate before one. In CI's `check` job the
   stage is a deliberate no-op — that checkout is shallow, `origin/master` is the
   pushed commit, the diff is empty — while the dedicated job does the real review
@@ -213,7 +231,7 @@ release act, and the contract below is what keeps it honest.
   reason each one earns a red build. `npm run merge-gate` (inside `check:ci`,
   therefore inside the pre-push hook) fails if one of them is renamed, stops
   running on pull requests, or gains a `continue-on-error` on a step that is not
-  declared reporting-rung. Because master ships on push, that list is doing two
+  declared reporting-rung. Because a push to master is the release, that list is doing two
   jobs: it is what a contributor's PR is required to pass, and it is what the
   maintainer's own push cannot get around without `SYSTEDO_SKIP_GATE=1`. Keep
   GitHub's *Settings → Branches → require status checks* a copy of that file;
@@ -228,133 +246,68 @@ release act, and the contract below is what keeps it honest.
   appends the answer to the published trail issue — reporting rung, because it
   needs a token. Note what it can see: rulesets, not classic branch protection, so
   a "no" there means *no ruleset requires this check*, not *the branch is open*.
-  The admin bypass in that payload is deliberate — master ships on push, and
+  The admin bypass in that payload is deliberate — the maintainer pushes to master directly, and
   without it the ruleset would refuse the release act itself; `.husky/pre-push` is
   what governs the maintainer.
 - **Escape hatch**: `SYSTEDO_SKIP_GATE=1 git push` skips the gate. The hook
   prints loudly what was skipped; the operator owes a **recorded reason**
   (commit message or this doc). An unrecorded skip is an incident.
 - **Red master = outage.** Because of the race below, a red gate on master is
-  not "CI is unhappy", it is "production is (or is about to be) broken".
+  not "CI is unhappy", it is "the branch operators build from is broken".
 - **After every master push**: `gh run watch --exit-status` — do not walk away
   until CI confirms what the local gate predicted.
 
 ### The race
 
-**Vercel deploys `master` on push, regardless of CI's verdict.** The Git
-integration and GitHub Actions are parallel consumers of the same push event —
-CI going red does not stop, delay, or roll back the Vercel build. The
-compensation is the pre-push gate above: prove CI's exact contract *before*
-the push exists. Corollary: **keep `check:ci` equal to CI's blocking set
-whenever either changes** — ci.yml, the `check:ci` script in `package.json`,
-and `.husky/pre-push` cross-reference each other so the three cannot silently
-drift.
+**A push to `master` lands regardless of CI's verdict.** GitHub Actions is a
+consumer of the push event, not a gate in front of it, so CI going red does not stop,
+delay, or roll back the push. The compensation is the pre-push gate above: prove CI's
+exact contract *before* the push exists. Corollary: **keep `check:ci` equal to CI's
+blocking set whenever either changes** — ci.yml, the `check:ci` script in
+`package.json`, and `.husky/pre-push` cross-reference each other so the three cannot
+silently drift.
 
 ### Node version authority
 
 Four opinions on Node existed: `engines` said `>=22.5`, `.nvmrc` says `24`,
-CI pins `24.14.0` exactly, and Vercel was unpinned. Resolved (2026-08-27):
+CI pins `24.14.0` exactly, and the hosted target was unpinned. Resolved (2026-08-27):
 
-- **`package.json` `engines` is now `"24.x"`** — Vercel selects its build/
-  runtime Node major from `engines`, so this pins production to the same major
-  as local dev and CI.
+- **`package.json` `engines` is now `"24.x"`** — a host selects its build/
+  runtime Node major from `engines`, so this pins an instance to the same major
+  as local dev and CI (the Dockerfile uses the same Node 24 line).
 - **CI stays `24.14.0`-exact deliberately**: the Intl format goldens
   (`test-unit/fixtures/format-golden.json`) are byte-pinned to the minting
   version's ICU, and ICU shifts across Node minors. Do not loosen CI to `24.x`;
-  do not tighten `engines` to a patch version (Vercel needs only the major).
+  do not tighten `engines` to a patch version (a host needs only the major).
 
 ### Rollback
 
-Rollback is **promote the previous Vercel deployment**, not a git revert under
-pressure — see [Deploy + rollback (Vercel)](#deploy--rollback-vercel) below
-for the exact steps (`vercel promote <deployment-url>` / dashboard promote).
+Rollback is **rebuild and restart from the last good commit**, not a git revert under
+pressure — see [Deploy + rollback](#deploy--rollback) below for the exact steps.
 Fix forward in git afterwards.
-
-**And something now asks whether the rollback is needed, instead of waiting for
-you to notice.** Every gate in this repository runs *before* the push, and the
-push is the release — so for the minutes that matter most nothing was looking.
-[`.github/workflows/post-deploy.yml`](../.github/workflows/post-deploy.yml) fires
-on the same push, polls `/api/health` (the readiness probe that already existed
-and that nothing was wired to) for up to five minutes through
-[`scripts/post-deploy-verify.mjs`](../scripts/post-deploy-verify.mjs), and fails
-the run when the release does not report `ok`, when Firestore is unreadable with
-credentials present, or when the guard answers 401 — the last of which is also a
-cron outage, since they share `CRON_SECRET`. The verdict is kept as a 90-day
-artifact, so "was the release on the 3rd healthy?" is answerable later.
-
-It needs two things configured and **says so loudly when they are not**: the
-deployment URL in the repository variable `ADAMANT_HEALTH_URL`, and `CRON_SECRET`
-as a repository secret. Without them it records `status: "skipped"` with the
-reason rather than a green it did not earn — declared as the `post-deploy-verify`
-capability in [`scripts/harness-degradation.mjs`](../scripts/harness-degradation.mjs).
-
-**It does not revert for you, on purpose.** An automatic revert needs a token that
-can write `refs/heads/master`, which on this topology is a release under the
-operator's name — `AGENTS.md` § Red. The job holds `contents: read`. What changed
-is that the rehearsed rollback below now starts from an automatic dated signal
-instead of from somebody opening the app.
 
 [`runbooks/revert-drill.md`](runbooks/revert-drill.md) is the rehearsal — a
 seeded fault on one of the seams that matter, timed from "applied" to "tree clean
 again", with the detection layers ranked by when they fire and what each one
-cannot see. **Its two machine legs now run themselves**: `npm run revert:drill`
+cannot see. **Its two machine legs run themselves**: `npm run revert:drill`
 (`scripts/revert-drill.mjs`), fired weekly and on demand by
 [`.github/workflows/revert-drill.yml`](../.github/workflows/revert-drill.yml),
 which proves the tree is green, seeds the fault, records which layer caught it
 and after how long, then removes the seed and asserts the file is byte-for-byte
-what it was — and publishes the dated row into a trail issue. **The promote leg
-is still the operator's and still unmeasured**, so how long the live site stays
-wrong is the number this contract still owes. The runbook also now states what a
-promote does *not* take back (uploaded conversions, sent mail, Firestore
-documents written under a new shape, crons that fired in the window), which is
-the question to answer before choosing promote over fix-forward. Note what the
-detection ranking already shows without a stopwatch: layers 4 and 5
-(Sentry, cron alerts) are inert in this deployment because their env vars are
-absent (see the production env gap above), so a change that clears `check:ci`
-and then misbehaves at runtime is currently detected by somebody looking.
+what it was — and publishes the dated row into a trail issue. **The redeploy leg
+is the operator's and unmeasured**, so how long a running instance stays wrong is
+the number this contract still owes. The runbook also states what a rollback does
+*not* take back (uploaded conversions, sent mail, Firestore documents written under
+a new shape, crons that fired in the window), which is the question to answer before
+choosing rollback over fix-forward.
 
-### Vercel CLI identity
-
-`.vercel/` is absent/gitignored, so the CLI is not linked to the project on a
-fresh checkout. For CLI deploys or `vercel promote`, either run `vercel link`
-once (recreates `.vercel/project.json`) or export
-`VERCEL_ORG_ID` + `VERCEL_PROJECT_ID`:
-
-```
-VERCEL_ORG_ID=team_x2mjBAxi3mgsZkKQ1SJgkjqL        # identifiers, not secrets
-VERCEL_PROJECT_ID=prj_FJLHnh7OQtLipEXldZHB1FEzcHp6  # linked 2026-08-27; also in .vercel/project.json
-```
-
-The Git-integration path (push to master) needs none of this.
-
-### Production env gap (found 2026-08-27, owed)
-
-`vercel env ls` shows the project holds **one** variable — `GEMINI_API_KEY`
-(Production + Preview). Everything else in the required table above is absent
-on Vercel: `AUTH_SECRET`, `AUTH_TRUST_HOST`, `GOOGLE_CLIENT_ID`,
-`GOOGLE_CLIENT_SECRET`, `FIREBASE_SERVICE_ACCOUNT`, `GOOGLE_CLOUD_PROJECT`,
-`CRON_SECRET`. Consequences today: sign-in cannot work, Firestore-backed
-routes fail (prod refuses the ADC fallback by design), and all six crons
-fail closed (no `CRON_SECRET`). The build is green because none of these are
-build-time inputs — this is exactly the "deployed" versus "working" gap the
-delivery contract warns about.
-
-Operator recipe (values are typed interactively, never pasted into a file):
-
-```
-vercel env add AUTH_SECRET production
-vercel env add AUTH_TRUST_HOST production        # true
-vercel env add GOOGLE_CLIENT_ID production
-vercel env add GOOGLE_CLIENT_SECRET production
-vercel env add FIREBASE_SERVICE_ACCOUNT production
-vercel env add GOOGLE_CLOUD_PROJECT production
-vercel env add CRON_SECRET production
-```
-
-Use production-grade values (a production OAuth client, a dedicated service
-account) — not the local `.env.local` ones. Add Preview-scoped, lower-privilege
-counterparts afterwards so previews prove behavior, not just layout. Redeploy
-(or promote) after adding; env changes do not re-run a build on their own.
+The automatic post-deploy health probe (`post-deploy.yml`, `post-deploy-verify.mjs`
+and `post-deploy-budgets.json`) was **removed on 2026-10-13** together with the Vercel
+connection: with no hosted deployment there is no release URL for it to poll. It was a
+reporting-rung workflow, absent from `.github/required-checks.json`; the one place it
+ran, the `harness-degradation` capability list, no longer declares it. An operator who
+hosts an instance polls `/api/health` from their own uptime monitor (§ Operator
+checks).
 
 ### Known red, owed
 
@@ -406,20 +359,25 @@ Red that exists on master today, documented so nobody re-diagnoses it. The
    (eslint-config-next / typescript-eslint) ships TS7 support. Close or
    snooze the PRs; do not force-merge past lint.
 
-## Deploy + rollback (Vercel)
+## Deploy + rollback
 
-Deploys happen on push to `master` (Vercel Git integration) or explicitly with
-`vercel deploy --prod`. Every production deploy is immutable and kept.
+Nothing deploys automatically. To run or update an instance, build from a checkout
+of the commit you want:
 
-**Rollback = promote the previous deployment**, not a git revert under
-pressure: Vercel dashboard → Project → *Deployments* → pick the last good
-production deployment → **⋯ → Promote to Production** (CLI:
-`vercel promote <deployment-url>`). This flips the alias atomically; fix
-forward in git afterwards.
+```bash
+git checkout <commit>
+docker compose up -d --build     # rebuilds the image and restarts app (+ cron sidecar)
+```
+
+**Rollback = rebuild from the previous good commit** (`git checkout <last-good-sha>`,
+then the same `docker compose up -d --build`), not a git revert under pressure. The
+sqlite volume (`adamant-data`) is untouched by a rebuild; see
+`docs/runbooks/revert-drill.md` for what a rollback does not take back. Fix forward
+in git afterwards.
 
 ## Crons
 
-Six schedules in `vercel.json`, all hitting `/api/cron/*` with
+Six schedules in `cron-schedules.json`, all hitting `/api/cron/*` with
 `Authorization: Bearer $CRON_SECRET` (verified constant-time in
 `src/lib/cron-auth.ts`):
 
@@ -436,7 +394,7 @@ Six schedules in `vercel.json`, all hitting `/api/cron/*` with
 every ledger-shaped background job (conversion drain, webhook retry, go-link
 rollup, social read-back). A new job registers a step in
 `src/lib/cron/ledgers.ts` (`LEDGER_STEPS`) with its own `due()` cadence — no new
-`vercel.json` entry, no new route. It is offset to :30 so it never contends with
+`cron-schedules.json` entry, no new route. It is offset to :30 so it never contends with
 the hourly `sync`/`social` tick, and each invocation writes one `cron_runs` row
 carrying per-step counts plus each step's `lastRunAt` (which is how a step's
 cadence survives across runs). One step failing never stops the others.
@@ -467,51 +425,19 @@ irreversibility this feature accepts and bounds with the dry run. Only gclid,
 conversion action, time, value and currency leave the product — no identity field
 is on the wire. Sklik has no live path and stays the hand-mapped CSV.
 
-## Host rename → adamant-named project (operator action)
+## Operator checks
 
-The product is Adamant but the Vercel project is still `systedo-case`, so the
-default production URL leaks the old name. Decision (2026-08-04): canonical
-host = an adamant-named Vercel host; free during validation.
+What no committed file can see, run by whoever hosts an instance (after a rebuild, and
+whenever configuration changes). Poll `/api/health` (behind the same `CRON_SECRET`
+bearer as the crons) from your own uptime monitor; it reports which credentials are
+configured as booleans and never a value.
 
-1. Vercel dashboard → Project → **Settings → General → Project Name** → rename
-   (e.g. `adamant`). The production domain becomes `adamant*.vercel.app`;
-   the old `systedo-case.vercel.app` URL stops resolving, so do this before
-   sharing links.
-2. Set **`NEXT_PUBLIC_SITE_URL`** in the project's production env to the new
-   canonical origin (e.g. `https://adamant.vercel.app`, or the custom domain
-   once one exists) and redeploy — OG tags, canonicals, the sitemap and share
-   URLs all derive from it.
-3. ~~Then update the hardcoded fallback in **`src/lib/site.ts`**~~ — done
-   (2026-08-07): the fallback now reads `"https://adamant.vercel.app"`. If the
-   Vercel project ends up under a different name or a custom domain, update the
-   literal again so a build without the env var can never advertise a dead host.
-4. Update the Google OAuth authorized redirect URI
-   (`https://<new-host>/api/auth/callback/google`) in Google Cloud Console.
-
-## Post-deploy verification
-
-**Two of these are automatic now.** `.github/workflows/post-deploy.yml` fires on the
-same push that ships the release and runs `scripts/post-deploy-verify.mjs`, which (1)
-polls `/api/health` until the new deployment answers and (2) times the public routes
-in [`.github/post-deploy-budgets.json`](../.github/post-deploy-budgets.json) against
-the ceiling each one is allowed. A route over its ceiling — or one that does not
-answer 2xx at all — **fails that run**, which is the only number in this repository
-that can go red *after* the merge. The verdict, with every measurement, is kept as a
-90-day artifact (`post-deploy.json`).
-
-It does **not** revert: that would need a token able to write `refs/heads/master`, and
-the job holds `contents: read`. A red run is the trigger for the rollback below, which
-is rehearsed weekly by `npm run revert:drill`. Without `CRON_SECRET` and
-`vars.ADAMANT_HEALTH_URL` the run records `skipped` rather than a green it did not
-earn — the release then ships unverified, and the checklist below is all there is.
-
-- [ ] `https://<host>/` renders the landing page (no 500, correct brand).
-- [ ] `https://<host>/app` resolves — redirects to sign-in when logged out
-      (a crash here means Firestore/auth env is broken).
-- [ ] `https://<host>/robots.txt` shows the **production** policy: `Allow: /`
-      with `Disallow: /app` + `Disallow: /api` and a sitemap line. If it shows
-      a blanket `Disallow: /`, the deploy is not `VERCEL_ENV=production`
-      (preview deploys are crawl-blocked by design — `src/app/robots.ts`).
+- [ ] `http://<host>/` renders the landing page (no 500, correct brand).
+- [ ] `http://<host>/app` resolves — redirects to sign-in when logged out
+      (a crash here means the store or auth env is broken).
+- [ ] `/robots.txt` shows the policy you intend. The indexable policy is on only
+      when `VERCEL_ENV=production` is set, which nothing here sets any more, so an
+      instance is crawl-blocked by default (`src/app/robots.ts`).
 - [ ] One cron route answers 401 without the bearer token.
 
 <!-- S1 -->
@@ -537,6 +463,6 @@ pass, set `SKLIK_WRITES_ENABLED=1` in production. If step 4 shows nothing change
 the method name is wrong: fix `SKLIK_CAMPAIGN_UPDATE_METHOD` (and, for pause /
 resume, `SKLIK_STATUS_ACTIVE` / `SKLIK_STATUS_SUSPEND`) in `src/lib/sklik/client.ts`
 — that constant is deliberately the only thing to change — and start again at 3. To
-disarm at any time, unset the variable and redeploy: with it off the console refuses
+disarm at any time, unset the variable and restart: with it off the console refuses
 Sklik approvals with a message instead of writing, and nothing else in the product
 changes.

@@ -16,7 +16,7 @@ import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 import { voiceLines } from "./voice";
 
-const REPURPOSE_SYSTEM = `Jsi český obsahový stratég a copywriter. Z jednoho zdrojového článku připravuješ varianty „na míru" pro jednotlivé distribuční kanály.
+export const REPURPOSE_SYSTEM = `Jsi český obsahový stratég a copywriter. Z jednoho zdrojového článku připravuješ varianty „na míru" pro jednotlivé distribuční kanály.
 
 Pravidla:
 - Piš výhradně česky, gramaticky správně, s diakritikou a bez prázdných korporátních frází.
@@ -26,6 +26,8 @@ Pravidla:
   - Instagram = vizuálně, s emoji a 3–6 relevantními hashtagy na konci;
   - X / Twitter = velmi stručně a údernĕ;
   - Facebook = přátelsky a konverzačně, s lehkými emoji.
+- Každá varianta má tři části v tomto pořadí: háček v první větě (tvrzení nebo otázka, ne pouhé pojmenování tématu), jednu konkrétní hodnotu, kterou čtenář získá bez kliknutí, a právě jednu výzvu k akci. Čísla a fakta bereš jen z článku — nic nevymýšlej.
+- Instagram nemá v textu klikací odkaz: výzva řekne, kde odkaz je (např. „odkaz v biu"), a adresu nevkládá.
 - Vycházej z předaného názvu a textu článku — neopisuj je doslova, převyprávěj to nejdůležitější.
 - Nepřekračuj limit znaků daného kanálu (raději mírně pod ním). Do textu nevkládej odkaz s UTM — ten doplní aplikace.
 - Vrať pouze validní JSON dle schématu — právě jednu variantu na každý požadovaný kanál.`;
@@ -74,6 +76,19 @@ const REPURPOSE_SCHEMA = {
   required: ["variants"],
   propertyOrdering: ["variants"],
 };
+
+/** The tracking link is the system's, not the writer's: a model-written address is
+ *  recalled from memory and carries no (or another channel's) campaign parameters, and
+ *  the module shows the stamped link in its own row. The prompt already forbids it; this
+ *  removes the one that slips through, so a variant never ships an unattributed URL. A
+ *  variant that was only a URL becomes empty and falls back to the template. */
+export const stripWrittenUrls = (s: string): string =>
+  s
+    .replace(/\(?\b(?:https?:\/\/|www\.)[^\s)]+\)?/gi, "")
+    .replace(/[ \t]+([,.;:!?])/g, "$1")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+$/gm, "")
+    .trim();
 
 const channelLimit = (channel: string): number =>
   CHANNEL_LIMITS[channel as keyof typeof CHANNEL_LIMITS] ?? 1000;
@@ -128,7 +143,7 @@ export function normalizeRepurposeTracked(
     const x = item as Record<string, unknown>;
     const channel = txt(x.channel);
     if (!channels.includes(channel)) continue;
-    const text = txt(x.text);
+    const text = stripWrittenUrls(txt(x.text));
     if (text && !byChannel.has(channel)) {
       byChannel.set(channel, clamp(text, channelLimit(channel)));
     }

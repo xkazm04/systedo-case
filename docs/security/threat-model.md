@@ -154,8 +154,8 @@ Stated here rather than left to be assumed, the same way
 [`.github/environments.json`](../../.github/environments.json) carries its own
 `cannotSee` list:
 
-- **Whether a secret is actually set, or set correctly, in Vercel.** Every fence
-  above reads the repository. `docs/deploy.md` § Post-deploy verification is the
+- **Whether a secret is actually set, or set correctly, on the host.** Every fence
+  above reads the repository. `docs/deploy.md` § Operator checks is the
   operator's half.
 - **Runtime exfiltration.** Nothing here watches egress. `sast` `secret-in-log`
   catches the shape of a credential going to `console`; it cannot catch one going

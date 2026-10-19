@@ -83,7 +83,7 @@
     },
     {
       "doc": "docs/deploy.md",
-      "watches": ["vercel.json", ".env.example", "src/lib/cron-auth.ts", "src/app/api/cron"],
+      "watches": ["cron-schedules.json", ".env.example", "src/lib/cron-auth.ts", "src/app/api/cron"],
       "maxAgeDays": 120,
       "why": "The runbook for env names, crons and rollback. A wrong page here is read during an incident."
     },

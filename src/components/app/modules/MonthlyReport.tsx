@@ -15,7 +15,7 @@ import { LOCALES } from "@/lib/format";
 import { resolveMoneyCompactFormatter } from "@/lib/campaigns/currency";
 import { ANALYSIS_PERIODS, analysisPeriodLabel, type AnalysisPeriod, type MonthlyRecapResult } from "@/lib/ai-types";
 import { useAiTool } from "@/components/ai/useAiTool";
-import { deltaTone, type ReportMetric, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
+import { deltaTone, spentNoReturn, type ReportMetric, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
 import type { MonthAttainment } from "@/lib/metrics";
 import CostModelEditor, { type CostModelView } from "@/components/app/modules/CostModelEditor";
 import type { BreakEven } from "@/lib/cost-model/compute";
@@ -48,7 +48,7 @@ const T = {
     historyLatest: "nejnovější", historyStale: "neaktuální",
     error: "Souhrn se nepodařilo vygenerovat.", retry: "Zkusit znovu",
     wins: "Co se daří", risks: "Na co si dát pozor", actions: "Doporučené kroky",
-    vsPrev: "vs. předchozí období",
+    vsPrev: "vs. předchozí období", spentNoReturn: "Utraceno, bez výsledku",
     annHeading: "Poznámky klienta", annSub: "Co se v daném období stalo: události za čísly. Zobrazí se jako značky na časové ose a AI je zohlední v souhrnu.",
     annDate: "Datum", annText: "Co se stalo", annPlaceholder: "např. Spustili jsme TV kampaň",
     annAdd: "Přidat poznámku", annAdding: "Přidávám…", annRemove: "Odebrat",
@@ -81,7 +81,7 @@ const T = {
     historyLatest: "latest", historyStale: "out of date",
     error: "Could not generate the summary.", retry: "Try again",
     wins: "What’s working", risks: "Watch out for", actions: "Recommended actions",
-    vsPrev: "vs. previous period",
+    vsPrev: "vs. previous period", spentNoReturn: "Spent, no return",
     annHeading: "Client notes", annSub: "What happened in the period: the events behind the numbers. Shown as markers on the timeline and factored into the AI summary.",
     annDate: "Date", annText: "What happened", annPlaceholder: "e.g. Launched a TV campaign",
     annAdd: "Add note", annAdding: "Adding…", annRemove: "Remove",
@@ -289,7 +289,7 @@ export default function MonthlyReport({
       "",
       "| " + tiles.map((s) => tileLabel(s)).join(" | ") + " |",
       "| " + tiles.map(() => "---").join(" | ") + " |",
-      "| " + tiles.map((s) => fmtVal(s.metric, snap.current[s.metric] ?? 0)).join(" | ") + " |",
+      "| " + tiles.map((s) => (spentNoReturn(s, snap) ? t("spentNoReturn") : fmtVal(s.metric, snap.current[s.metric] ?? 0))).join(" | ") + " |",
     ];
     if (r) {
       lines.push("", `## ${r.headline}`, "", r.summary,
@@ -345,11 +345,11 @@ export default function MonthlyReport({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {tiles.map((spec) => {
           const value = snap.current[spec.metric] ?? 0;
-          const d = spec.hasDelta ? snap.delta[spec.metric] : undefined;
+          const noReturn = spentNoReturn(spec, snap), d = spec.hasDelta && !noReturn ? snap.delta[spec.metric] : undefined;
           return (
             <div key={spec.metric} className="card p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted">{tileLabel(spec)}</p>
-              <p className="tnum mt-1 text-2xl font-semibold text-navy-800">{fmtVal(spec.metric, value)}</p>
+              <p className="tnum mt-1 text-2xl font-semibold text-navy-800">{noReturn ? t("spentNoReturn") : fmtVal(spec.metric, value)}</p>
               {typeof d === "number" && (
                 <p className={"tnum mt-0.5 text-xs font-medium " + toneClass(deltaTone(d, spec.goodWhenDown))}>
                   {fmtSignedPct(d)} <span className="text-muted">{t("vsPrev")}</span>

@@ -5,8 +5,8 @@ import { movedModuleRoutes } from "./src/lib/projects/modules";
 const nextConfig: NextConfig = {
   // Container builds only (the Dockerfile sets ADAMANT_DOCKER_BUILD=1): emit the
   // self-contained standalone server so the runtime image carries neither the
-  // toolchain nor the full node_modules. Gated on the flag — Vercel does its own
-  // output tracing, so this must never change how cloud deploys are packaged.
+  // toolchain nor the full node_modules. Gated on the flag so a plain `next build`
+  // (and `next dev`) keeps the default output.
   ...(process.env.ADAMANT_DOCKER_BUILD === "1" ? { output: "standalone" as const } : {}),
 
   // This project lives alongside other apps in a parent folder that also has a

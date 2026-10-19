@@ -45,6 +45,7 @@ const LOCAL_PAGE_SYSTEM = `Jsi český copywriter na lokální SEO. Píšeš tex
 Pravidla:
 - ${antiFabrication("předaných údajů")}
 - NIKDY neuváděj adresu, telefon, e-mail, otevírací dobu ani jméno konkrétního pracovníka — tyto údaje nemáš a vymyslet je nesmíš.
+- Nikdy netvrď, že firma funguje nonstop, 24/7, o víkendech ani v pohotovosti — provozní dobu v podkladech nemáš.
 - Ceny piš pouze těmi čísly, která jsou v podkladech. Nejsou-li tam, o ceně nepiš vůbec.
 - Recenze cituj jen ty, které jsou v podkladech, doslova a jako citaci. Žádnou jinou referenci si nevymýšlej.
 - Neslibuj termíny, záruky, certifikace ani počty realizací, které v podkladech nejsou.
@@ -220,6 +221,12 @@ export function normalizeLocalPage(parsed: unknown, req: LocalPageRequest): Loca
   };
 }
 
+/** Availability the grounding never supplies: round-the-clock, weekend or emergency
+ *  service. Hours are an eligibility claim (the open-at-search filter), so an invented
+ *  "nonstop" is worse than a blank. Czech inflection is covered by stems. */
+const AVAILABILITY_CLAIM =
+  /non-?stop|24\s*\/\s*7|24\s*hod(?:in)?\w*\s+(?:denně|na\s+den)|nepřetržit|celodenn|pohotovost|7\s+dní\s+v\s+týdnu|o\s+víkend\w*/i;
+
 /** Flag a hollow page so the wrapper re-prompts once instead of publishing a stub
  *  at a real public URL. */
 export function validateLocalPage(parsed: unknown): string[] {
@@ -231,6 +238,12 @@ export function validateLocalPage(parsed: unknown): string[] {
     ]);
     if (cleanSections(o.sections).length < 2) {
       missing.push('Chybí obsahové sekce (sections) — vrať 2 až 4 sekce s „heading" a „body".');
+    }
+    const prose: string[] = [o.headline, o.intro, o.cta].filter((v): v is string => typeof v === "string");
+    for (const sec of cleanSections(o.sections)) prose.push(sec.heading, sec.body);
+    for (const f of cleanFaq(o.faq)) prose.push(f.q, f.a);
+    if (prose.some((t) => AVAILABILITY_CLAIM.test(t))) {
+      missing.push("Text tvrdí nonstop / 24/7 / víkendový provoz, který v podkladech není — tvrzení o provozní době odstraň.");
     }
     return missing;
   })(parsed);

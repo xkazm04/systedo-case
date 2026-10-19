@@ -75,7 +75,7 @@ jobs:
         run: node scripts/setup-walk.mjs --out setup-walk.json --summary "$GITHUB_STEP_SUMMARY"
 
       # The verdict outlives the run, in the same 90-day window as the review's report
-      # and the post-deploy probe. "Did the setup page work in September?" is asked
+      # and the other kept verdicts. "Did the setup page work in September?" is asked
       # well after a run's logs stop being convenient.
       - name: Keep the verdict
         if: always()

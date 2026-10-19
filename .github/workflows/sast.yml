@@ -69,7 +69,7 @@ jobs:
       #
       # The same script is also an early stage of `npm run check:ci`, which
       # .husky/pre-push runs: on this repository's real landing path (direct push
-      # to master, Vercel ships on push) a required status check never gets a
+      # to master is the release) a required status check never gets a
       # chance, so the push is where a security finding has to be refused.
       - name: Repo security rules
         run: node scripts/sast.mjs --summary "$GITHUB_STEP_SUMMARY"

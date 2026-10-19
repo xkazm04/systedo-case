@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { ArrowRight, Bolt, Check, Info } from "@/components/icons";
 import { recommendBudgetMoves } from "@/lib/campaigns/budget-moves";
-import { simulationConfidence } from "@/lib/campaigns/simulate";
+import { projectedLiftFraction, simulationConfidence } from "@/lib/campaigns/simulate";
 import { withMetrics, CAMPAIGN_PERIOD_DAYS, type Campaign, type CampaignPeriod } from "@/lib/campaigns/types";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -43,6 +43,7 @@ const T = {
     pnoPortfolio: "PNO portfolia",
     convValue: "Hodnota konverzí",
     valueChange: "Změna hodnoty",
+    noLift: "bez nárůstu",
     footnote:
       "Odhad lineárně extrapoluje současnou efektivitu kampaní; skutečný dopad ověří" +
       " další synchronizace. Akce se <strong>nespouští přímo</strong>. Tlačítko vytvoří" +
@@ -84,6 +85,7 @@ const T = {
     pnoPortfolio: "Portfolio PNO",
     convValue: "Conversion value",
     valueChange: "Value change",
+    noLift: "no lift",
     footnote:
       "Estimate linearly extrapolates current campaign efficiency; the next sync will verify actual impact." +
       " Nothing is applied directly. The button creates a <strong>change set</strong> (shifts and" +
@@ -144,9 +146,7 @@ export default function BudgetMoves({
     periodDays: period ? CAMPAIGN_PERIOD_DAYS[period] : undefined,
   });
   const { before, after } = simulation;
-  // Direction 3: degrade the projection's label when any shift re-points more than
-  // half its donor's spend — the linear estimate is past the "small reallocation"
-  // it stays honest for.
+  // Direction 3: low-confidence label when a shift re-points over half its donor.
   const lowConfidence = simulationConfidence(moves) === "low";
   const valueGain = after.conversionValue - before.conversionValue;
   // Projected net profit derived from the (unchanged) value simulation: margin ×
@@ -310,7 +310,7 @@ export default function BudgetMoves({
                   valueGain >= 0 ? "text-positive" : "text-negative"
                 }`}
               >
-                {fmt.fmtSignedPct(before.conversionValue > 0 ? valueGain / before.conversionValue : 0)}
+                {(lift => (lift === null ? t("noLift") : fmt.fmtSignedPct(lift)))(projectedLiftFraction(simulation))}
               </p>
             </div>
           </div>

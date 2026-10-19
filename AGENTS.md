@@ -22,7 +22,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # Adamant (systedo-case) — agent guide
 
 Adtech marketing-automation suite ("Adamant"). Local-first OSS on the operator's machine with
-signed-in LLM CLIs; hosted Vercel is the port (ADR-0015). English source, Czech transcreated
+signed-in LLM CLIs; no hosted deployment, Docker or `dev:local` (ADR-0015). English source, Czech transcreated
 (ADR-0006). Public site `/`; authed `/app`, per-project tenancy, six area roofs (ADR-0013).
 
 **This file is canonical.** `CLAUDE.md` is a shim (an `@AGENTS.md` import plus a generated
@@ -106,7 +106,7 @@ regenerates the artefact, and the file where an exception is recorded.
 6. Non-chokepoint AI: Leonardo image gen + Gemini vision scoring + embeddings (Creative Studio, patterns RAG).
 7. Billing/abuse rails are server-enforced: `usage.consume()` Firestore txn, durable per-IP limits + global daily spend ceiling (`src/lib/ai/durable-limit.ts`) on all paid routes.
 8. i18n is colocated: each component owns `const T = { cs: {...}, en: {...} }` (`TDict`), consumed via `useT(T)` (client) / `await getT(T)` (server); central dict only for nav/footer chrome. Contract: `docs/i18n/contract.md`.
-9. Six crons in `vercel.json` → `/api/cron/*`, guarded by `CRON_SECRET` through `src/lib/cron-auth.ts` (constant-time).
+9. Six crons in `cron-schedules.json` → `/api/cron/*`, guarded by `CRON_SECRET` through `src/lib/cron-auth.ts` (constant-time).
 10. Design system: dark-only Optic Bench kit on semantic token roles (ADR-0014), shared `Button` in `src/components/ui.tsx`; conventions in `docs/design-system.md`.
 
 ## Conventions that bite
@@ -221,7 +221,7 @@ argue with a gate.
 - **A gate that fails at random is not a gate for long.** A flaky test has three honest
   answers, and re-running is not one: fix it, quarantine it in `.github/flaky-tests.json`
   (moving its ceiling in the same diff), or delete it with an `Ack:`.
-- **The deploy target is declared, and the declaration is diffed against the tree.**
+- **The run target is declared, and the declaration is diffed against the tree.**
   A new cron, runtime bump or env var goes into `.github/environments.json` in the same diff
   (`npm run env:manifest:check`). Deploy/env questions: `docs/deploy.md`.
 - **A second standard that nothing executes gives no feedback.** `typecheck:strict` is a
@@ -378,7 +378,7 @@ ago.**
   post, sending mail through Resend, uploading conversions to Google Ads,
   contacting a person. Drafts go through the review gate in `schranka`; the
   operator presses send.
-- `git push`, and especially any push to `master` — Vercel ships master on push,
+- `git push`, and especially any push to `master` — master is the release branch,
   so the push *is* the release. `SYSTEDO_SKIP_GATE=1` is the operator's escape
   hatch, not yours.
 - Editing `.env*`, printing a secret, or moving a credential anywhere — including

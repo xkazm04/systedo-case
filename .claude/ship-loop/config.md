@@ -17,8 +17,8 @@ CLI in dev, BYOM) behind ONE chokepoint `generateStructured` · Leonardo AI imag
 Firestore, local dev `node:sqlite` under `.data/` (`LOCAL_DB=true`). Authed product at `/app` with
 per-project tenancy (tenant key embeds userId, so no classic IDOR); public marketing + demo surfaces
 outside it. Harnesses: Playwright (`tests/`), `node:test` (`test-unit/`), the LLM contract gate
-(`test-llm/`), `uat/` (Characters x journeys), `tiger/` (LLM call-site lens). Hosted on Vercel —
-**push to master IS the release act** (Git integration ships it regardless of CI's verdict), so
+(`test-llm/`), `uat/` (Characters x journeys), `tiger/` (LLM call-site lens). Local open source (no hosted deployment) —
+**push to master IS the release act** (nothing gates it but the hook), so
 `.husky/pre-push` runs `npm run check:ci` before any push to master.
 
 ## Cadence

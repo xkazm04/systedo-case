@@ -61,7 +61,7 @@ name: Agent review
 #
 # But a required status check only bites on a pull request, and this repo lands
 # changes by direct push to master (docs/deploy.md § Delivery contract) — on that
-# path this workflow's verdict arrives after Vercel has begun the deploy. So the
+# path this workflow's verdict arrives after the push has landed. So the
 # same Part A also runs as one of the early stages of `npm run check:ci`
 # (`npm run review:agent:gate`), which `.husky/pre-push` runs before any push that
 # updates master: a blocking finding refuses the push. Both wirings are asserted
@@ -300,7 +300,7 @@ jobs:
       # After the tree is base, so `git clean` above cannot take the report with it.
       - name: Fetch Part A's report
         continue-on-error: true
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: mechanical-review
 

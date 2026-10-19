@@ -1544,6 +1544,8 @@
       ],
       "file_paths": [
         "src/lib/campaigns/report-config.ts",
+        "src/lib/campaigns/report-config.local.ts",
+        "src/lib/campaigns/report-config.firestore.ts",
         "src/lib/campaigns/report-config-types.ts",
         "src/lib/campaigns/report-input.ts",
         "src/lib/campaigns/shared-report.ts",
@@ -2262,7 +2264,7 @@
         "reporting-modules"
       ],
       "db_tables": [],
-      "description": "Six scheduled cron endpoints that run autonomously on Vercel Cron timers (schedule defined in vercel.json), all guarded by CRON_SECRET. Sync pulls fresh campaign data for every connected tenant; catalog-sync re-pulls warehouse products; social publishes scheduled posts for all connected users; report generates and emails client reports on configured cadences; digest sends weekly portfolio summaries with AI telemetry rollups. A shared fan-out helper iterates over the connected user set.",
+      "description": "Six scheduled cron endpoints that run autonomously on their own schedules (declared in cron-schedules.json; scripts/cron-runner.mjs fires them locally or from the cron sidecar), all guarded by CRON_SECRET. Sync pulls fresh campaign data for every connected tenant; catalog-sync re-pulls warehouse products; social publishes scheduled posts for all connected users; report generates and emails client reports on configured cadences; digest sends weekly portfolio summaries with AI telemetry rollups. A shared fan-out helper iterates over the connected user set.",
       "entry_points": [
         "src/app/api/cron/sync/route.ts",
         "src/app/api/cron/report/route.ts"
@@ -2289,7 +2291,7 @@
         "digest",
         "email",
         "webhook",
-        "Vercel Cron",
+        "cron-runner",
         "CRON_SECRET"
       ],
       "last_written_at": "2026-07-30T08:51:59.391465700+00:00",
@@ -2299,7 +2301,7 @@
         "Next.js 16.3.0-preview.5",
         "TypeScript",
         "Firestore",
-        "Vercel Cron"
+        "cron-runner"
       ]
     },
     {
@@ -4527,7 +4529,8 @@
         "src/components/app/overview/NeedsAttention.tsx",
         "src/components/app/overview/AdviceOutcomes.tsx",
         "src/components/app/overview/AdviceFeed.tsx",
-        "src/components/app/overview/DismissedAdvice.tsx"
+        "src/components/app/overview/DismissedAdvice.tsx",
+        "src/components/app/overview/portfolio-lead.ts"
       ],
       "group": "App Shell & Site",
       "group_id": "795ce24d-2a23-4b1f-b1d9-cd288bf5dfb0",

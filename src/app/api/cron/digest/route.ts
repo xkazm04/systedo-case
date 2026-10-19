@@ -6,7 +6,7 @@
  *  webhook + the cron-run record — never into a tenant's email, which is
  *  client-facing (the digest fans out per user/account/project).
  *
- *  Guarded by CRON_SECRET; schedule lives in vercel.json (weekly). */
+ *  Guarded by CRON_SECRET; schedule lives in cron-schedules.json (weekly). */
 import { forEachSyncPair, resolvePairTenant } from "@/lib/cron/fan-out";
 import { claimWeeklyDigest, releaseWeeklyDigest } from "@/lib/cron/sent-guard";
 import { isoWeekKey } from "@/lib/cron/schedule";

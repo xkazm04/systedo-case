@@ -395,3 +395,15 @@ test("an obedient model still cannot name a campaign the request never supplied"
     `severity "${out.severity}" is outside high/medium/low, so an injected escalation renders as a badge.`
   );
 });
+
+test("ads diagnosis: ids the model named that are all dropped are not backfilled with the deterministic subjects", () => {
+  // one-lever-from-supplied-entities: the worst-rows set backfills a model that named
+  // NOTHING; a model that named only unsupplied ids pointed at no real row, and the
+  // card must not show the worst rows as if it had.
+  const req = adsRequest("PMax · Feed");
+  const base = { summary: "Rozpočet teče špatně.", likelyCause: "waste-zero-conv", recommendation: "Vypněte kampaň.", severity: "high" };
+  const invented = M.normalizeAdsDiagnosis({ ...base, affectedCampaignIds: ["cmp-999", "cmp-998"] }, req);
+  assert.deepEqual(invented.affectedCampaignIds, [], "all-invented ids were replaced by the deterministic subject set");
+  const silent = M.normalizeAdsDiagnosis({ ...base, affectedCampaignIds: [] }, req);
+  assert.ok(silent.affectedCampaignIds.length > 0, "a model that named nothing must still get the deterministic subject set");
+});

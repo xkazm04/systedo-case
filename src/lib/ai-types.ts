@@ -1142,6 +1142,9 @@ export interface LeadSourcePeer {
   winRate: number;
   /** cost per qualified lead (CZK), when the peer has spend */
   costPerQualified?: number;
+  /** cost per lead (CZK), when the peer has spend — the baseline the "cheap"
+   *  split of the cause diagnosis is read against (peer median) */
+  cpl?: number;
 }
 
 /** A source's period-over-period drift, mirrored from SourceTrend
@@ -1154,6 +1157,9 @@ export interface LeadSourceTrend {
   qualRateDelta: number | null;
   /** relative change in win rate (rise = better); null = no baseline */
   winRateDelta: number | null;
+  /** relative change in cost per lead vs the previous period (a fall = cheapening);
+   *  absent / null = no baseline or unpaid. Feeds the relative "cheap" test only. */
+  cplDelta?: number | null;
 }
 
 export interface LeadSourceDiagnosisResult {

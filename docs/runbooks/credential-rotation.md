@@ -50,7 +50,7 @@ So: **before rotating `AUTH_SECRET`, run step 0.**
     #                  a token-crypto seam FIRST, then come back.
 
 `npm run env:manifest` prints what the repository expects; whether a value is
-actually set in Vercel is the operator's half and is **outside** what any gate here
+actually set on the host is the operator's half and is **outside** what any gate here
 can see (`.github/environments.json` § `cannotSee`).
 
 ## The general shape
@@ -73,7 +73,7 @@ reach alone.
 
 ### 1. Contain (minutes, before anything else)
 
-1. **Revoke at the source, not in the env.** Deleting the variable in Vercel stops
+1. **Revoke at the source, not in the env.** Deleting the variable from the host stops
    *this* deployment using the credential; it does not stop whoever has it. Revoke
    in the issuing console: Google Cloud (OAuth client, service account, Ads
    developer token), Sklik's account settings, Resend, Leonardo, the model provider.
@@ -135,12 +135,12 @@ Rotation is not finished when the variable is set. In order:
     npm run env:manifest:check     # the declaration still matches the tree
     npm run check:ci               # nothing about the change broke a gate
 
-Then the half no gate can reach — `docs/deploy.md` § Post-deploy verification:
+Then the half no gate can reach — `docs/deploy.md` § Operator checks:
 sign in, load `/app`, and confirm the affected surface serves **live** data rather
 than a flagged degradation. A rotation that silently left the deployment on sample
 data is the failure this step exists to catch.
 
-For `CRON_SECRET` specifically, the six schedules in `vercel.json` are the
+For `CRON_SECRET` specifically, the six schedules in `cron-schedules.json` are the
 verification: a wrong secret fails **closed**
 ([`src/lib/cron-auth.ts`](../../src/lib/cron-auth.ts), asserted by
 `test-unit/cron-auth.test.mjs`), so the symptom is crons that stop running rather
@@ -190,7 +190,7 @@ Stated here rather than assumed, the same way
 [`.github/environments.json`](../../.github/environments.json) carries its own
 `cannotSee` list:
 
-- **It cannot tell you whether a value is set correctly in Vercel.** Every check it
+- **It cannot tell you whether a value is set correctly on the host.** Every check it
   names reads the repository.
 - **It cannot re-key stored ciphertext.** No migration exists for the token-crypto
   seams; § Procedure step 3 says so instead of implying otherwise.

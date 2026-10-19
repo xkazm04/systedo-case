@@ -1,5 +1,5 @@
 /** Scheduled ledgers tick: ONE guarded route that runs every registered step
- *  whose `due()` says so. The five older crons each own a `vercel.json` entry;
+ *  whose `due()` says so. The five older crons each own a `cron-schedules.json` entry;
  *  every future ledger-shaped job (conversion drain, webhook retry, go-link
  *  rollup, social read-back) instead registers itself in
  *  `src/lib/cron/ledgers.ts` — this route needs no change, and neither does the
@@ -11,7 +11,7 @@
  *  recorded and skipped over; it can never stop a sibling.
  *
  *  Guarded by CRON_SECRET (Vercel Cron sends it as a Bearer token; the guard
- *  fails CLOSED when the env var is unset). Schedule lives in vercel.json. */
+ *  fails CLOSED when the env var is unset). Schedule lives in cron-schedules.json. */
 import { cronAuthorized } from "@/lib/cron-auth";
 import { recordCronRun } from "@/lib/cron/run";
 import { listRecentCronRuns } from "@/lib/cron/runs-store";

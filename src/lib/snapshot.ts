@@ -258,8 +258,14 @@ export function snapshotToPromptText(s: Snapshot, projectType?: ProjectType): st
       "",
       "Plnění měsíčního cíle (projekce do konce měsíce):",
       `- Zatím tento měsíc: ${fmtCZK(p.mtd)} z cíle ${fmtCZK(p.goal)} (${p.onPace ? "na plánu" : "pod plánem"})`,
-      `- Projekce konce měsíce: ${fmtCZK(p.projection)} (rozpětí ${fmtCZK(p.projectionLow)}–${fmtCZK(p.projectionHigh)})`,
-      `- Pravděpodobnost splnění cíle: ${fmtPct(p.goalProbability, 0)}`
+      `- Projekce konce měsíce: ${fmtCZK(p.projection)} (rozpětí ${fmtCZK(p.projectionLow)}–${fmtCZK(p.projectionHigh)})`
+    );
+    // Same gate as the dashboard card: an early-month probability is a coin flip
+    // dressed as a percentage, and the recap would narrate it as fact.
+    lines.push(
+      p.probabilityReliable
+        ? `- Pravděpodobnost splnění cíle: ${fmtPct(p.goalProbability, 0)}`
+        : "- Pravděpodobnost splnění cíle: zatím se ustaluje (nekvantifikovat)"
     );
   }
 

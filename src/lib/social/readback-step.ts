@@ -1,7 +1,7 @@
 /** The `social-readback` ledger step (WP W3-D): ask each platform what a published post
  *  ACTUALLY did, and store it as a per-(post, UTC day) snapshot. Registered in
  *  src/lib/cron/ledgers.ts — that one line in LEDGER_STEPS is the whole registration
- *  ceremony (no new route, no new `vercel.json` entry, no new guard; see WP F4).
+ *  ceremony (no new route, no new `cron-schedules.json` entry, no new guard; see WP F4).
  *
  *  WHY IT NEEDS NO SENT-GUARD CLAIM. The write is an upsert-OVERWRITE on (post, day), so
  *  running it twice in a day leaves the same three integers — idempotent by construction,

@@ -110,6 +110,16 @@ export function simulationConfidence(moves: BudgetMove[]): SimulationConfidence 
   return moves.some((m) => moveDonorShare(m) > SIM_LOW_CONFIDENCE_DONOR_SHARE) ? "low" : "high";
 }
 
+/** The conversion-value lift as a fraction of the live value, or null when there is
+ *  nothing honest to divide: the projected gain is zero or negative (a pause-only
+ *  set saves spend and moves no value; a percentage of nothing reads as a
+ *  measurement) or the live value is zero. Pure; the UI renders null as "no lift". */
+export function projectedLiftFraction(sim: SimulationResult): number | null {
+  const gain = sim.after.conversionValue - sim.before.conversionValue;
+  if (!(gain > 0) || !(sim.before.conversionValue > 0)) return null;
+  return gain / sim.before.conversionValue;
+}
+
 /** Options for {@link simulateBudgetShift}. Optional in full — omitting them
  *  leaves the projection byte-identical to the uncalibrated one (pinned). */
 export interface SimulateOptions {

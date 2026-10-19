@@ -18,6 +18,7 @@
  *  prefix test. Framework-free and side-effect-free so the unit suite can pin every
  *  branch without a store. */
 import type { ProjectKind } from "@/lib/projects/demo";
+import { hasUsableDirectives } from "./voice-age";
 import { resolveVoice, type ToneScope, type TwinState, type TwinVoice } from "./types";
 
 /** The voice that may speak for this project on `scope`, or undefined when nothing
@@ -32,7 +33,7 @@ export function selectInjectableVoice(
       ? resolved.state.voices
       : resolved.state.voices.filter((v) => resolved.trainedScopes.includes(v.scope));
   const voice = resolveVoice(pool, scope);
-  // A voice row with no directives is an empty editor draft, not a trained voice.
-  if (!voice || !voice.directives.trim()) return undefined;
+  // A voice row with no (or tone-word-only) directives is an editor draft, not a trained voice.
+  if (!voice || !hasUsableDirectives(voice)) return undefined;
   return voice;
 }

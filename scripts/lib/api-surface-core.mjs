@@ -18,7 +18,7 @@
  *    methods       the HTTP verbs the module actually exports, in canonical order
  *    parameters    the path parameters, in the order the segments appear
  *    auth          WHICH identity the handler establishes before it acts
- *    maxDuration   the Vercel function budget, when the route sets one
+ *    maxDuration   the function time budget, when the route sets one
  *
  *  Prose — summaries, descriptions, request and response shapes — is the author's
  *  and is deliberately NOT derived: a generated sentence about a route is the kind

@@ -3,10 +3,9 @@
  *  environment manifest declares? (zero-dependency, offline)
  *
  *  WHY THIS EXISTS. Fifteen gates run before a change lands here, and past the merge
- *  there was nothing. Vercel ships `master` on push, so the push is the release act
- *  — and what that release runs on was described in exactly two places, both of them
- *  unreviewable: the Vercel project's settings screen, and prose in `docs/deploy.md`
- *  that nothing compares against the tree. There was no environment declaration an
+ *  there was nothing. What a deployment of this repository runs on was described in
+ *  exactly two places, both of them unreviewable: whatever host's settings screen the
+ *  operator uses, and prose in `docs/deploy.md` that nothing compares against the tree. There was no environment declaration an
  *  agent could read to know what runs where, and therefore no check that could go red
  *  when the production target and the repository's assumptions came apart. A
  *  well-gated repository still ships a surprise through that gap.
@@ -25,7 +24,7 @@
  *                                 (and its major against the engines range)
  *    R4  runtime.nextConfig    vs next.config.ts (cacheComponents, partialPrefetching)
  *    R5  runtime.timezone      vs the TZ the CI job renders in
- *    C1  crons.schedules       vs vercel.json, set for set, path AND schedule
+ *    C1  crons.schedules       vs cron-schedules.json, set for set, path AND schedule
  *    C2  every cron path       resolves to a route module under src/app/api/cron
  *    E1  every variable in .env.example is CLASSIFIED in the manifest
  *    E2  every manifest entry that claims `source: env-example` is really there
@@ -36,9 +35,9 @@
  *
  *  WHAT IT CANNOT SEE is in the manifest's own `cannotSee` list rather than left for
  *  a reader to assume: it reads the repository, not the platform. Whether a secret is
- *  actually set in the Vercel project, which region a function landed in, whether the
+ *  actually set on the host, which region a function landed in, whether the
  *  Firestore TTL policy exists — those need an API token and an operator, and
- *  docs/deploy.md § Post-deploy verification is where they live. A check that
+ *  docs/deploy.md § Operator checks is where they live. A check that
  *  overstated its reach would be worse than this one, because the gap would then be
  *  invisible AND believed closed.
  *
@@ -90,7 +89,7 @@ const majorOf = (v) => String(v).split(".")[0];
  * the findings, so the unit test runs exactly what the CLI runs.
  *
  * @param {{
- *   manifest: object, pkg: object, vercel: object, nextConfig: string,
+ *   manifest: object, pkg: object, cronSchedules: object, nextConfig: string,
  *   envExample: string, deployDoc: string,
  *   workflows: Array<{name: string, text: string}>,
  *   cronRouteExists: (path: string) => boolean,
@@ -98,7 +97,7 @@ const majorOf = (v) => String(v).split(".")[0];
  * @returns {string[]} one sentence per drift, empty when the declaration holds
  */
 export function environmentFindings(sources) {
-  const { manifest, pkg, vercel, nextConfig, envExample, deployDoc, workflows, cronRouteExists } = sources;
+  const { manifest, pkg, cronSchedules, nextConfig, envExample, deployDoc, workflows, cronRouteExists } = sources;
   const findings = [];
   const rt = manifest.runtime ?? {};
 
@@ -160,16 +159,16 @@ export function environmentFindings(sources) {
 
   // --- C1/C2: the schedules the platform must fire ---------------------------
   const declared = new Map((manifest.crons?.schedules ?? []).map((c) => [c.path, c.schedule]));
-  const actual = new Map((vercel.crons ?? []).map((c) => [c.path, c.schedule]));
+  const actual = new Map((cronSchedules.crons ?? []).map((c) => [c.path, c.schedule]));
   for (const [path, schedule] of actual) {
     if (!declared.has(path)) {
       findings.push(
-        `C1 crons: vercel.json fires \`${path}\` and the manifest declares no such schedule. A cron is a job the ` +
+        `C1 crons: cron-schedules.json fires \`${path}\` and the manifest declares no such schedule. A cron is a job the ` +
           "platform runs against production on its own; one nobody declared is one nobody reviewed."
       );
     } else if (declared.get(path) !== schedule) {
       findings.push(
-        `C1 crons: \`${path}\` runs on \`${schedule}\` in vercel.json and is declared as ` +
+        `C1 crons: \`${path}\` runs on \`${schedule}\` in cron-schedules.json and is declared as ` +
           `\`${declared.get(path)}\`. The schedule is the fact — say which one is right in the diff.`
       );
     }
@@ -177,13 +176,13 @@ export function environmentFindings(sources) {
   for (const path of declared.keys()) {
     if (!actual.has(path)) {
       findings.push(
-        `C1 crons: the manifest declares \`${path}\` and vercel.json does not fire it. Either the schedule was ` +
+        `C1 crons: the manifest declares \`${path}\` and cron-schedules.json does not fire it. Either the schedule was ` +
           "dropped (and the declaration should follow) or it was lost (and production is silently not running it)."
       );
     }
     if (!cronRouteExists(path)) {
       findings.push(
-        `C2 crons: \`${path}\` has no route module under src/app/api/cron. Vercel would call it and get a 404 on ` +
+        `C2 crons: \`${path}\` has no route module under src/app/api/cron. the cron runner would call it and get a 404 on ` +
           "a schedule, which is the failure mode that looks like nothing at all."
       );
     }
@@ -241,7 +240,7 @@ export function environmentFindings(sources) {
   }
 
   // --- D1: the documents this declaration routes to --------------------------
-  for (const section of ["## Delivery contract", "## Deploy + rollback (Vercel)", "## Crons"]) {
+  for (const section of ["## Delivery contract", "## Deploy + rollback", "## Crons"]) {
     if (!deployDoc.includes(section)) {
       findings.push(
         `D1 docs: ${MANIFEST_PATH} routes a reader to docs/deploy.md \`${section}\`, which the document no longer ` +
@@ -265,7 +264,7 @@ export function readSources(root) {
   return {
     manifest: JSON.parse(read(MANIFEST_PATH)),
     pkg: JSON.parse(read("package.json")),
-    vercel: JSON.parse(read("vercel.json")),
+    cronSchedules: JSON.parse(read("cron-schedules.json")),
     nextConfig: read("next.config.ts"),
     envExample: read(".env.example"),
     deployDoc: read("docs/deploy.md"),
@@ -324,7 +323,7 @@ if (invokedDirectly) {
   const findings = environmentFindings(sources);
   if (!findings.length) {
     console.log("✓ env manifest: the declared target and the repository agree — runtime, schedules and every");
-    console.log("  configuration variable. The platform half is the operator's: docs/deploy.md § Post-deploy verification.");
+    console.log("  configuration variable. The platform half is the operator's: docs/deploy.md § Operator checks.");
     process.exit(0);
   }
 

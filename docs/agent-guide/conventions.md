@@ -183,11 +183,11 @@ npm run env:manifest  # WHAT RUNS WHERE, past the merge: the runtime the platfor
                       #   give us, the six schedules it must fire, and every env var the
                       #   deployment reads, each classified by what its absence costs
                       #   (.github/environments.json). `env:manifest:check` diffs that
-                      #   declaration against vercel.json, package.json, next.config.ts,
+                      #   declaration against cron-schedules.json, package.json, next.config.ts,
                       #   .env.example, docs/deploy.md and the workflows; the same
                       #   comparison blocks on every build in
                       #   test-unit/environment-manifest.test.mjs. It reads the
-                      #   REPOSITORY, not the Vercel project — the manifest's own
+                      #   REPOSITORY, not any host — the manifest's own
                       #   `cannotSee` list says which half is still the operator's
 npm run typecheck:strict:report # the stricter project, MEASURED: how many errors, in
                       #   which files, under which rules. `typecheck:strict:check` runs
@@ -299,25 +299,25 @@ remedy all turn the unit suite red.
   list: nothing in it stops a test running or failing. What blocks on every build is
   its shape (`test-unit/flake-census.test.mjs`), because an entry naming a test that
   is gone is a flake nobody is tracking any more.
-- **The deploy target is declared, and the declaration is diffed against the tree.**
-  Fifteen gates run before a change lands and past the merge there was nothing: Vercel
-  ships `master` on push, so the push is the release act, and what that release runs
-  on lived in a dashboard — not reviewable, not diffable, not reversible. Nothing in
-  this repository could go red for "production drifted from what the code assumes".
+- **The run target is declared, and the declaration is diffed against the tree.**
+  Fifteen gates run before a change lands and past the merge there was nothing: what a
+  run environment assumes lived in a host dashboard — not reviewable, not diffable, not
+  reversible. This repository has no hosted deployment (local open source only). Nothing in
+  this repository could go red for "the environment drifted from what the code assumes".
   [`.github/environments.json`](.github/environments.json) is the declaration: the
   runtime the platform must provide, the six schedules it must fire, and every one of
   the ~70 environment variables the deployment reads, each classified by what its
   absence costs (`required` / `optional` / `local` / `selfhosted` / `bench` / `build`)
   and whether it reaches the browser. `npm run env:manifest` prints it;
-  `test-unit/environment-manifest.test.mjs` diffs it against `vercel.json`,
+  `test-unit/environment-manifest.test.mjs` diffs it against `cron-schedules.json`,
   `package.json`, `next.config.ts`, `.env.example`, `docs/deploy.md` and the workflows
   on **every build**, so a cron nobody declared, a Node bump in one workflow and not
   the others, or a new env var classified nowhere refuses the push. **It reads the
-  repository, not the platform** — whether a secret is actually set in Vercel, which
+  repository, not the platform** — whether a secret is actually set on a host, which
   region a function landed in, whether the Firestore TTL policy exists — and the
   manifest's own `cannotSee` list says so rather than leaving a reader to assume a
   green build means the platform is configured. That half stays in `docs/deploy.md`
-  § Post-deploy verification, under the operator's name.
+  § Operator checks, under the operator's name.
 - **A second standard that nothing executes gives no feedback.** `tsconfig.strict.json`
   turns on the two flags `strict: true` does not, `npm run typecheck:strict` runs it,
   and until now nothing did — so the number ADR-0007 says a promotion decision needs

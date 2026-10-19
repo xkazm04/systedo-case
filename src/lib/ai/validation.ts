@@ -714,6 +714,8 @@ export function validateLeadSourceDiagnosisRequest(
       };
       const cpq = fin(p.costPerQualified);
       if (cpq > 0) peer.costPerQualified = cpq;
+      const pCpl = fin(p.cpl);
+      if (pCpl > 0) peer.cpl = pCpl;
       peers.push(peer);
     }
     if (peers.length > 0) value.peers = peers;
@@ -728,6 +730,8 @@ export function validateLeadSourceDiagnosisRequest(
       qualRateDelta: delta(tr.qualRateDelta),
       winRateDelta: delta(tr.winRateDelta),
     };
+    const cplDelta = delta(tr.cplDelta);
+    if (cplDelta !== null) trend.cplDelta = cplDelta;
     if (trend.cpqlDelta !== null || trend.qualRateDelta !== null || trend.winRateDelta !== null) {
       value.trend = trend;
     }

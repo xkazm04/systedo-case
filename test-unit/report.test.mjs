@@ -1,7 +1,7 @@
 /** Monthly report compute (src/lib/report/compute.ts): delta tone + tile specs. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { deltaTone, REPORT_TILES, reportTilesForType, livePaidTilesForType, tileSnapshotValue } from "@/lib/report/compute";
+import { deltaTone, REPORT_TILES, reportTilesForType, livePaidTilesForType, tileSnapshotValue, spentNoReturn } from "@/lib/report/compute";
 
 test("tileSnapshotValue: distinguishes a MISSING metric key from a real zero", () => {
   const snap = { label: "30d", current: { cost: 0, revenue: 12000 }, delta: {} };
@@ -69,4 +69,19 @@ test("livePaidTilesForType: CTR/CPC only for traffic-led types (eshop/content), 
   assert.equal(cpc.format, "czk");
   assert.equal(ctr.hasDelta, false);
   assert.equal(cpc.hasDelta, false);
+});
+
+test("spentNoReturn: spend with zero conversions/revenue is a STATE, not a 0 Kč CPA in the good colour", () => {
+  const cpa = { metric: "cpa", label: "x", labelEn: "x", format: "czk", goodWhenDown: true, hasDelta: true };
+  const pno = { ...cpa, metric: "pno", format: "pct" };
+  const spent = { label: "30d", truncated: false, current: { cost: 5000, conversions: 0, revenue: 0, cpa: 0, pno: 0 }, delta: { cpa: -1 } };
+  // The pre-fix reading this guards: delta -100 % on a down-is-good metric is "positive".
+  assert.equal(deltaTone(-1, true), "positive");
+  assert.equal(spentNoReturn(cpa, spent), true);
+  assert.equal(spentNoReturn(pno, spent), true);
+  // No spend = paused/idle, not "spent, no return"; a real result is untouched.
+  assert.equal(spentNoReturn(cpa, { ...spent, current: { cost: 0, conversions: 0 } }), false);
+  assert.equal(spentNoReturn(cpa, { ...spent, current: { cost: 5000, conversions: 12 } }), false);
+  // Only the cost-over-return ratios carry the state.
+  assert.equal(spentNoReturn({ ...cpa, metric: "cost" }, spent), false);
 });

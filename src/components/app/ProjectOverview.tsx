@@ -17,6 +17,7 @@ import { recommendationsFor } from "@/lib/insights/aggregate";
 import { resolveRecommendationInputs } from "@/lib/insights/resolve";
 import { getPortfolioModel, type PortfolioRec } from "@/components/app/overview/portfolio-model";
 import { bucketize, totalsOf, type Totals } from "@/lib/metrics";
+import { portfolioLead } from "@/components/app/overview/portfolio-lead";
 import type { Formatters } from "@/lib/format";
 import {
   KPI_PRESETS,
@@ -40,6 +41,8 @@ const T = {
     portfolioEyebrow: "Portfolio",
     portfolioTitle: "Přehled portfolia",
     portfolioLead: "Souhrn napříč {n} projekty · obrat {revenue} · ROAS {roas}",
+    portfolioLeadSample: "Souhrn napříč {n} projekty · obrat {revenue} · ROAS {roas} · ukázková data",
+    portfolioLeadSubset: "Souhrn živých dat z {counted} z {n} projektů · obrat {revenue} · ROAS {roas}",
   },
   en: {
     revenue30: "Revenue, last 30 days",
@@ -48,6 +51,8 @@ const T = {
     portfolioEyebrow: "Portfolio",
     portfolioTitle: "Portfolio overview",
     portfolioLead: "Across {n} projects · revenue {revenue} · ROAS {roas}",
+    portfolioLeadSample: "Across {n} projects · revenue {revenue} · ROAS {roas} · sample data",
+    portfolioLeadSubset: "Live data from {counted} of {n} projects · revenue {revenue} · ROAS {roas}",
   },
 } as const;
 
@@ -247,9 +252,7 @@ export default async function ProjectOverview({
   const viewer = projects.some((p) => !isDemoProjectId(p.id)) ? await currentUserId() : null;
   const { rows, combined } = await getPortfolioModel(projects, locale, viewer);
 
-  const totalRevenue = rows.reduce((s, r) => s + r.totals.revenue, 0);
-  const totalCost = rows.reduce((s, r) => s + r.totals.cost, 0);
-  const blendedRoas = totalCost > 0 ? totalRevenue / totalCost : 0;
+  const lead = portfolioLead(rows);
   const topCombined = combined.slice(0, 8);
 
   return (
@@ -263,11 +266,19 @@ export default async function ProjectOverview({
           {t("portfolioTitle")}
         </h2>
         <p className="mt-1.5 text-sm text-muted">
-          {t("portfolioLead", {
-            n: rows.length,
-            revenue: fmt.fmtCZKCompact(totalRevenue),
-            roas: fmt.fmtMultiple(blendedRoas),
-          })}
+          {t(
+            lead.basis === "live-subset"
+              ? "portfolioLeadSubset"
+              : lead.basis === "sample"
+                ? "portfolioLeadSample"
+                : "portfolioLead",
+            {
+              n: lead.n,
+              counted: lead.counted,
+              revenue: fmt.fmtCZKCompact(lead.revenue),
+              roas: fmt.fmtMultiple(lead.roas),
+            }
+          )}
         </p>
       </div>
 

@@ -356,6 +356,8 @@ Pravidla:
   - Instagram = vizuálně, s emoji a 3–6 relevantními hashtagy na konci;
   - X / Twitter = velmi stručně a údernĕ;
   - Facebook = přátelsky a konverzačně, s lehkými emoji.
+- Každá varianta má tři části v tomto pořadí: háček v první větě (tvrzení nebo otázka, ne pouhé pojmenování tématu), jednu konkrétní hodnotu, kterou čtenář získá bez kliknutí, a právě jednu výzvu k akci. Čísla a fakta bereš jen z článku — nic nevymýšlej.
+- Instagram nemá v textu klikací odkaz: výzva řekne, kde odkaz je (např. „odkaz v biu"), a adresu nevkládá.
 - Vycházej z předaného názvu a textu článku — neopisuj je doslova, převyprávěj to nejdůležitější.
 - Nepřekračuj limit znaků daného kanálu (raději mírně pod ním). Do textu nevkládej odkaz s UTM — ten doplní aplikace.
 - Vrať pouze validní JSON dle schématu — právě jednu variantu na každý požadovaný kanál.`,
@@ -440,6 +442,9 @@ Pravidla:
   - „callout": pole „variant" („tip" | „info" | „warn"), volitelně „title", a pole „text".
   - „cta": pole „text" (pobídka), „cta" (text tlačítka); odkaz doplní aplikace.
   - „figure": pole „alt" (popis navrhovaného obrázku), volitelně „caption" (popisek pod obrázkem); „src" nevyplňuj.
+- U každé sekce, jejíž nadpis je formulován jako otázka nebo dotaz (začíná „Jak", „Proč", „Co", „Kolik", „Kdy", „Jaký" apod.), začni první odstavec samostatnou odpovědí o 40–60 slovech, kterou lze vytáhnout bez okolního textu: hned v první větě pojmenuj předmět jeho jménem (žádné zájmeno ani „to", „tento", „proto" odkazující mimo odstavec) a až potom vysvětluj, rozváděj a přidávej výhrady.
+- Konkrétní číslo, cenu nebo lhůtu do odpovědi uveď jen tehdy, pokud je v briefu. Nikdy nevymýšlej údaj; když chybí, odpověz tím, co brief dokládá.
+- Odpovědi v poli „faq" piš jako úplné věty o 40–60 slovech: první věta odpovídá přímo a jmenuje předmět, bez odrážek a bez zájmen odkazujících mimo odpověď.
 - Odstavce drž krátké (2–4 věty). Celkem vrať nejvýše ~16 bloků — buď stručný a věcný, ne mnohomluvný.
 - Vrať POUZE jeden validní JSON objekt dle schématu (pole „blocks" a „faq") — žádný text okolo, žádné markdown bloky, žádné komentáře.`,
     prompt: `Rozepiš tento hotový brief do plnohodnotného konceptu článku.

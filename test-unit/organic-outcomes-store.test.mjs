@@ -167,7 +167,7 @@ test("the step is REGISTERED in LEDGER_STEPS — that is the whole ceremony", as
   assert.equal(GO_ROLLUP_STEP_ID, "go-rollup");
   assert.ok(
     LEDGER_STEPS.some((s) => s.id === GO_ROLLUP_STEP_ID),
-    "no new route, no vercel.json entry — appending here IS shipping the job"
+    "no new route, no cron-schedules.json entry — appending here IS shipping the job"
   );
   // Due every tick: a rolling window has moved by definition, so there is no clock
   // to gate on. Asserted through the planner, which is what the route actually calls.

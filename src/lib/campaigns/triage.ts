@@ -158,7 +158,10 @@ export function triageGoals(pnoGoal: number, breakEvenRoas?: number): TriageGoal
 
 // --- the rules ---------------------------------------------------------------
 // Ordered worst-first. ROAS bands are disjoint so a campaign never matches both
-// the critical and the warning ROAS rule. New rules (e.g. a drop vs the prior
+// the critical and the warning ROAS rule. The return rules also require
+// conversions > 0, so they are disjoint from no_conversions too: value reported
+// against zero conversions is a count problem first, and a "meets target" or
+// "below target" line beside "no conversions" would contradict it in the tooltip. New rules (e.g. a drop vs the prior
 // window, once that data is wired) slot in here without touching callers.
 
 interface Rule {
@@ -194,7 +197,8 @@ const RULES: Rule[] = [
     severity: "critical",
     label: "ROAS hluboko pod cílem",
     labelEn: "ROAS far below target",
-    test: (c, g) => c.cost > 0 && c.roas > 0 && c.roas < g.targetRoas * ROAS_CRITICAL_RATIO,
+    test: (c, g) =>
+      c.cost > 0 && c.conversions > 0 && c.roas > 0 && c.roas < g.targetRoas * ROAS_CRITICAL_RATIO,
     detail: (c, g) =>
       `ROAS ${fmtMultiple(c.roas)} je pod ${fmtPct(ROAS_CRITICAL_RATIO, 0)} cíle; ${targetLine(g)}. PNO ${fmtPct(c.pno)}.`,
   },
@@ -204,7 +208,10 @@ const RULES: Rule[] = [
     label: "Pod cílem",
     labelEn: "Below target",
     test: (c, g) =>
-      c.cost > 0 && c.roas >= g.targetRoas * ROAS_CRITICAL_RATIO && c.roas < g.targetRoas,
+      c.cost > 0 &&
+      c.conversions > 0 &&
+      c.roas >= g.targetRoas * ROAS_CRITICAL_RATIO &&
+      c.roas < g.targetRoas,
     detail: (c, g) => `ROAS ${fmtMultiple(c.roas)} nedosahuje cíle; ${targetLine(g)}. PNO ${fmtPct(c.pno)}.`,
   },
   {
@@ -222,6 +229,7 @@ const RULES: Rule[] = [
     test: (c, g) =>
       g.breakEvenRoas !== undefined &&
       c.cost > 0 &&
+      c.conversions > 0 &&
       c.roas >= g.targetRoas &&
       c.roas < g.breakEvenRoas,
     detail: (c, g) =>
@@ -269,8 +277,12 @@ const CHANGE_RULES: ChangeRule[] = [
     labelEn: "Spend spike without return",
     // Cost jumped ≥50% while conversion value lagged well behind — efficiency is
     // being diluted even if the absolute ROAS still looks acceptable.
+    // A rise needs a base: a campaign with no prior spend (paused, newly
+    // enabled) carries the diff's +100% placeholder, which is not a measured
+    // rise, so the launch is left to the snapshot rules.
     test: (_c, ch) =>
       ch.kind === "changed" &&
+      ch.costBefore > 0 &&
       ch.costDelta >= SPEND_SPIKE_COST_JUMP &&
       ch.valueDelta < ch.costDelta * SPEND_SPIKE_VALUE_LAG,
     detail: (_c, ch) =>
@@ -377,12 +389,18 @@ export function detectSlowBleed(points: readonly SlowBleedPoint[] | undefined): 
     revenue: Number(p.conversionValue) || 0,
   }));
   const dayRoas = (p: MetricsDailyPoint) => roasOf(p.revenue, p.cost);
-  const weights = weekdayWeightsOf(bridged, dayRoas);
-  const adj = bridged.map((p) => {
+  // A day with no spend has no ROAS (not measured is not zero): a campaign paused
+  // on weekends would otherwise feed a 0 into the variance, inflate the noise floor
+  // and silence a clean slide. Estimate weights and noise from measured days only,
+  // and size the weekly-mean standard error by the measured days a week really holds.
+  const measured = bridged.filter((p) => p.cost > 0);
+  const weights = weekdayWeightsOf(measured, dayRoas);
+  const adj = measured.map((p) => {
     const w = weights[dayOfWeek(p.date)] || 1;
     return dayRoas(p) / (w > 0 ? w : 1);
   });
-  const seMove = Math.sqrt((2 * sampleVariance(adj)) / SLOW_BLEED_WEEK_DAYS);
+  const daysPerWeek = Math.max(1, measured.length / weeks);
+  const seMove = Math.sqrt((2 * sampleVariance(adj)) / daysPerWeek);
 
   // A run of (MIN_WEEKS − 1) same-direction weekly moves spans MIN_WEEKS buckets.
   const found = detectWeeklyRun(roasByWeek, seMove, SLOW_BLEED_MIN_WEEKS - 1, SLOW_BLEED_Z);
@@ -477,6 +495,23 @@ export function triageWeight(
   history?: readonly SlowBleedPoint[]
 ): number {
   return SEVERITY_RANK[triage(c, change, goals, history).severity] * 1e12 + c.cost;
+}
+
+/** The attention order every queue shares: severity first, spend within
+ *  severity (triageWeight), and a tie on both broken by campaign id ascending, so
+ *  a rename or an input reshuffle never reorders the queue. Returns a NEW array.
+ *  The table's evaluation queue and the batch route both call this with the same
+ *  goals and history, so the two spend credits in the same order. */
+export function attentionOrder<T extends CampaignRow>(
+  rows: readonly T[],
+  changesById?: Record<string, CampaignChange>,
+  goals?: TriageGoals,
+  historyById?: Record<string, readonly SlowBleedPoint[]>
+): T[] {
+  return rows
+    .map((r) => ({ r, w: triageWeight(r, changesById?.[r.id], goals, historyById?.[r.id]) }))
+    .sort((a, b) => b.w - a.w || (a.r.id < b.r.id ? -1 : a.r.id > b.r.id ? 1 : 0))
+    .map((x) => x.r);
 }
 
 // --- portfolio summary (the banner headline) ---------------------------------

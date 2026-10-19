@@ -1,6 +1,6 @@
 /** The cron guard, from the outside.
  *
- *  Six Vercel crons (`vercel.json` → `/api/cron/*`) are authorized by exactly one
+ *  Six crons (`cron-schedules.json` → `/api/cron/*`) are authorized by exactly one
  *  function, `cronAuthorized` in src/lib/cron-auth.ts, and nothing in the suite
  *  exercised it: `CRON_SECRET` appeared only in the env-preflight tests
  *  (doctor / readiness), which assert the variable is NAMED, never that the guard

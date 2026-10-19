@@ -1,9 +1,9 @@
 # Adamant — AI ad intelligence, on your machine
 
-![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
-![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss&logoColor=white)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://www.npmjs.com/package/next)
+[![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)](https://www.npmjs.com/package/react)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.npmjs.com/package/typescript)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss&logoColor=white)](https://www.npmjs.com/package/tailwindcss)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
 
 [![CI](https://github.com/xkazm04/systedo-case/actions/workflows/ci.yml/badge.svg)](https://github.com/xkazm04/systedo-case/actions/workflows/ci.yml)
@@ -33,6 +33,8 @@ publishing surfaces.
 > is illustrative and labelled as such — none of it is a real customer's result.
 
 ![Adamant portfolio overview on Mionelo demo data](./docs/assets/readme-dashboard.png)
+
+*Portfolio overview rendered on the fictional Mionelo demo data described above — illustrative, not a real customer's numbers.*
 
 ## Two-minute local start
 
@@ -174,8 +176,11 @@ before a human opens the diff. It is not a convention, it is a job:
   (LLM-as-judge scores across every AI operation); method and the latest
   measured BYOM table are in
   [`docs/testing/llm-quality-matrix.md`](./docs/testing/llm-quality-matrix.md).
-- **Deploying the hosted flavour (Vercel):** [`docs/deploy.md`](./docs/deploy.md)
-  — env names, crons, rollback, host rename. Cloud-connected setup (Google
+- **Running it yourself (no hosted deployment):** `npm run dev:local`, or
+  `docker compose up -d --build` — [`docs/deploy.md`](./docs/deploy.md) has the env
+  names, crons and rollback, and
+  [`docs/open-source/self-hosting.md`](./docs/open-source/self-hosting.md) the container
+  path. Cloud-connected setup (Google
   sign-in + Ads sync) is walked through in [`SETUP.md`](./SETUP.md), which is
   **partly stale** — it predates the offline path and narrates the maintainer's
   own GCP project.

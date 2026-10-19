@@ -244,3 +244,11 @@ test("wire validators: the intent carries no numbers, the request clamps them", 
   assert.equal(req.value.priceModel, undefined, "an unknown price model is dropped");
   assert.equal(req.value.reviews.length, 2, "at most two quotes");
 });
+
+test("validate: an invented availability claim (nonstop, 24/7, víkendy) forces a re-prompt", () => {
+  const page = (body) => ({ headline: "H", intro: "I", cta: "C", sections: [{ heading: "A", body }, { heading: "C", body: "D" }] });
+  assert.deepEqual(validateLocalPage(page("Montáž proběhne v Brně.")), []);
+  for (const bad of ["Jsme tu nonstop.", "Servis 24/7 v Brně.", "Pracujeme nepřetržitě.", "Přijedeme o víkendu.", "Pohotovost kdykoli."]) {
+    assert.equal(validateLocalPage(page(bad)).length, 1, bad);
+  }
+});

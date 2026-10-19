@@ -153,3 +153,42 @@ test("a degenerate margin (≤0 or >1) falls back to margin-blind scoring", () =
     blind.moves.map((m) => m.fromId)
   );
 });
+
+// --- Donor floor: a donor already at its floor must not burn a recipient --------------
+
+// Two under-target donors and two recipients. The worst donor sits at the 10 CZK/day
+// floor (nothing giveable), the second has headroom. The floored-out donor yields no
+// move, so the best recipient must still be free for the donor that can give.
+test("a donor at its floor emits no move and does not consume the best recipient", () => {
+  const atFloor = { ...roasRow("f", 10_000, 0.5), budgetPerDay: 10 };
+  const roomy = { ...roasRow("r", 8_000, 1.0), budgetPerDay: 1_000 };
+  const best = roasRow("best", 20_000, 8.0);
+  const second = roasRow("second", 20_000, 6.0);
+  const { moves } = recommendBudgetMoves([atFloor, roomy, best, second], { periodDays: 30 });
+  assert.equal(moves.filter((m) => m.fromId === "f").length, 0);
+  const m = moves.find((x) => x.fromId === "r");
+  assert.ok(m, "the donor with headroom still moves");
+  assert.equal(m.toId, "best");
+});
+
+// pause-zero-return-before-shifting: a small burner (cost 2 000, waste 2 000) is out-wasted
+// by a large partial donor (10 000 at half target = 5 000 waste). The pause still ranks
+// first, so a one-move cap spends its slot on stopping the burner.
+test("a small burner is not displaced by a larger partial donor under a move cap", () => {
+  const small = row("z2", { cost: 2_000, roasFactor: 0 });
+  const { moves } = recommendBudgetMoves([weakDonor, small, winner], { includePauses: true, maxMoves: 1 });
+  assert.equal(moves.length, 1);
+  assert.equal(moves[0].kind, "pause");
+  assert.equal(moves[0].fromId, "z2");
+});
+
+// Conversions reported with no conversion value is "not measured", not "no return": it is
+// neither paused nor shifted from.
+test("a row with conversions but no reported value is not paused", () => {
+  const valueless = withMetrics({
+    id: "v1", name: "Kampaň v1", type: "search", status: "enabled",
+    impressions: 50_000, clicks: 1_000, cost: 8_000, conversions: 12, conversionValue: 0,
+  });
+  const { moves } = recommendBudgetMoves([valueless, winner], { includePauses: true });
+  assert.equal(moves.length, 0);
+});

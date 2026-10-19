@@ -148,6 +148,27 @@ test("[S1b] the same query under two ad groups yields ONE campaign-level negativ
   assert.equal(moves.length, 1, "a campaign-level criterion added twice is one API error");
 });
 
+test("[S1b] a wasted ad group cannot condemn a query that converts in a sibling group", () => {
+  // Campaign scope: the criterion blocks the query everywhere in the campaign, so the
+  // evidence is the campaign total, whichever row the loop meets first.
+  const waste = term();
+  const wins = term({ adGroupId: "23", adGroupName: "Sestava C", conversions: 3, conversionValue: 900 });
+  for (const rows of [[waste, wins], [wins, waste]]) {
+    const kinds = recommendTermMoves(rows, { maxMoves: 10 }).map((m) => m.kind);
+    assert.ok(!kinds.includes("negative"), "no negative for a query with any campaign conversion");
+  }
+});
+
+test("[S1b] a phrase negative is vetoed by a converting query it would also block", () => {
+  const rows = [term({ term: "boty" }), term({ term: "boty na běh", adGroupId: "23", conversions: 4, conversionValue: 2000 })];
+  assert.ok(!recommendTermMoves(rows, { maxMoves: 10 }).some((m) => m.kind === "negative"));
+  // Whole words only, and only within the same campaign.
+  const otherCampaign = [rows[0], { ...rows[1], campaignId: "12" }];
+  assert.ok(recommendTermMoves(otherCampaign, { maxMoves: 10 }).some((m) => m.kind === "negative" && m.criterion.term === "boty"));
+  const notAPhrase = [rows[0], { ...rows[1], term: "botyx na běh" }];
+  assert.ok(recommendTermMoves(notAPhrase, { maxMoves: 10 }).some((m) => m.kind === "negative"));
+});
+
 test("[S1b] negatives come first, costliest first, then promotes by realized value", () => {
   const moves = recommendTermMoves(
     [

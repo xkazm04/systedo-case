@@ -19,7 +19,7 @@
  *
  *  Both are offline, key-free and free, so they block: this file runs in
  *  `npm run test:unit` → `npm run check:ci` → `.husky/pre-push`, the hook that
- *  proves a change before Vercel ships master.
+ *  proves a change before it lands on master.
  */
 import { test, after } from "node:test";
 import assert from "node:assert/strict";

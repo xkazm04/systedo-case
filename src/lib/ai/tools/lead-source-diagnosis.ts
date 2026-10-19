@@ -158,9 +158,30 @@ const coerceSeverity = coerceEnum<LeadSourceSeverity, undefined>(["high", "mediu
 // SMB context; a different currency/business size would want different anchors.
 const MIN_LEADS_FOR_SIGNAL = 30; // fewer leads → too small a sample to blame anything but volume
 const CHEAP_CPL_CZK = 200; // CPL at/under this reads as "cheap" leads (spam vs mis-targeting split)
+const CHEAP_RELATIVE = 0.5; // "cheap" = under this fraction of the peer-median CPL AND of the source's own prior CPL
+const MIN_PEERS_FOR_RELATIVE = 2; // fewer paid peers than this → no median; fall back to the demo anchor above
 const MIN_QUAL_RATE = 0.35; // qualification rate under this = leads don't qualify
 const MIN_WIN_RATE = 0.15; // win rate under this = qualifies but doesn't close
 const HIGH_CPQL_CZK = 3000; // cost per qualified lead at/over this = a pricing problem
+
+/** "Cheap" for the spam / mis-targeting split. Relative where the data allows it —
+ *  under half the paid peers' median CPL AND (when a prior period exists) under half
+ *  the source's own prior CPL — because a currency constant for one market is a wrong
+ *  answer with the same badge in another. With fewer than two paid peers there is no
+ *  median, and the absolute CZK demo anchor stands in (labelled above). A source whose
+ *  CPL ROSE against its own prior is not cheapening, so it is not cheap. */
+export function isCheapCpl(cpl: number, req: LeadSourceDiagnosisRequest): boolean {
+  const peerCpls = (req.peers ?? [])
+    .filter((p) => p.source !== req.source && p.cpl != null && p.cpl > 0)
+    .map((p) => p.cpl as number)
+    .sort((a, b) => a - b);
+  if (peerCpls.length < MIN_PEERS_FOR_RELATIVE) return cpl <= CHEAP_CPL_CZK;
+  const mid = Math.floor(peerCpls.length / 2);
+  const median = peerCpls.length % 2 ? peerCpls[mid] : (peerCpls[mid - 1] + peerCpls[mid]) / 2;
+  if (cpl > CHEAP_RELATIVE * median) return false;
+  const d = req.trend?.cplDelta;
+  return d == null || 1 + d <= CHEAP_RELATIVE; // no prior → peers alone decide
+}
 
 /** Deterministic, data-driven cause from the metrics alone — the demo's pick and
  *  the floor when the model leaves likelyCause empty. Mirrors the prompt's rules:
@@ -169,7 +190,7 @@ const HIGH_CPQL_CZK = 3000; // cost per qualified lead at/over this = a pricing 
 export function pickCause(req: LeadSourceDiagnosisRequest): LeadSourceCause {
   if (req.leads < MIN_LEADS_FOR_SIGNAL) return "volume";
   const paid = (req.spend ?? 0) > 0;
-  const cheap = paid && req.cpl != null && req.cpl <= CHEAP_CPL_CZK;
+  const cheap = paid && req.cpl != null && isCheapCpl(req.cpl, req);
   if (req.qualRate < MIN_QUAL_RATE) return cheap ? "spam" : "mis-targeting";
   // Qualifies acceptably from here on.
   if (req.winRate < MIN_WIN_RATE) return "mis-targeting";

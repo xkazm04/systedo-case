@@ -213,7 +213,11 @@ export function monthlyPacing(
     projectionLow,
     projectionHigh,
     goalProbability,
-    probabilityReliable: daysRemaining === 0 || daysElapsed >= MIN_ELAPSED_DAYS_FOR_PROBABILITY,
+    // Zero remaining noise on an unfinished month (a flat or all-zero series, or
+    // fewer than two days of history) is the ABSENCE of an estimate, not certainty:
+    // never print it as a hard 0% / 100%.
+    probabilityReliable:
+      daysRemaining === 0 || (daysElapsed >= MIN_ELAPSED_DAYS_FOR_PROBABILITY && remainingStd > 0),
     attainment: goal > 0 ? projection / goal : 0,
     willHitGoal: projection >= goal,
     requiredDailyRevenue,

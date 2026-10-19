@@ -5,8 +5,8 @@
  *  own tenant via the connector's tenant key, so alerts cover the whole agency
  *  portfolio and de-dupe per tenant exactly as before.
  *
- *  Guarded by CRON_SECRET (Vercel Cron sends it as a Bearer token when the env var
- *  is set). Schedule lives in vercel.json. */
+ *  Guarded by CRON_SECRET (the cron runner sends it as a Bearer token when the env var
+ *  is set). Schedule lives in cron-schedules.json. */
 import { listConnectedAccounts, listConnectedUserIds } from "@/lib/campaigns/connection";
 import { listSklikConnectedUserIds } from "@/lib/campaigns/sklik-connection";
 import { unionConnectedUserIds } from "@/lib/campaigns/provider-precedence";

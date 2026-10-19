@@ -1,6 +1,6 @@
 /** The `webhook-retry` ledger step: the outbox's BACKSTOP drain. Registered in
  *  src/lib/cron/ledgers.ts — that one line in LEDGER_STEPS is the whole registration
- *  ceremony (no new route, no new `vercel.json` entry, no new guard; see WP F4).
+ *  ceremony (no new route, no new `cron-schedules.json` entry, no new guard; see WP F4).
  *
  *  An emit only enqueues and asks `after()` to drain its own rows; this sweep covers
  *  everything that path did not finish: a failed attempt whose backoff came due, an

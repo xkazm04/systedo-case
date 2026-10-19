@@ -26,7 +26,7 @@ const ch = (over = {}) => ({
 
 const voice = (scope, over = {}) => ({
   scope,
-  directives: "Piš lidsky a věcně.",
+  directives: "Piš lidsky, věcně a stručně.",
   traits: [],
   lengthHint: "2–4 věty",
   constraints: [],

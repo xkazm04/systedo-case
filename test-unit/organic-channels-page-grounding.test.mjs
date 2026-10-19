@@ -136,3 +136,22 @@ test("the scan profile is handed on for the builder to apply, not pre-merged her
   assert.equal(kanalyGroundingInput(reads({ profile: undefined })).profile, null);
   assert.equal(kanalyGroundingInput(reads({ profile: null })).profile, null);
 });
+
+// --- a paused offering never grounds a plan ----------------------------------
+
+test("a paused offering contributes neither its name nor its category", () => {
+  const input = kanalyGroundingInput(
+    reads({
+      catalog: [
+        { name: "Kešu", category: "Ořechy", active: true },
+        { name: "Stažený sirup", category: "Sirupy", active: false },
+        { name: "Bez příznaku", category: "Semínka" },
+      ],
+    })
+  );
+  assert.deepEqual(input.offeringNames, ["Kešu", "Bez příznaku"]);
+  assert.deepEqual(input.categories, ["Ořechy", "Semínka"]);
+  const grounding = buildKanalyGrounding(input);
+  assert.equal(JSON.stringify(grounding).includes("Stažený sirup"), false);
+  assert.equal(JSON.stringify(grounding).includes("Sirupy"), false);
+});
