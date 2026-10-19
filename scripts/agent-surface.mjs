@@ -21,7 +21,7 @@
  *
  *    • CLAUDE.md's "N contexts across M groups" must match context-map.json;
  *    • every path context-map.json points at must still exist (blocking, 0 today);
- *    • tracked source files that no context maps is a ratcheted count (159 today).
+ *    • tracked source files that no context maps is a ratcheted count (157 today).
  *
  *  And it answers the question two documents cannot answer about each other: which
  *  one wins. `.ai/manifest.yaml` must declare `guidance.canonical`, it must name a
@@ -106,7 +106,7 @@ const BLOCKS = [
 ];
 
 /** Ratcheted count. Fix findings and lower it in the same commit; never raise it. */
-const RATCHET = { unmapped: 159 };
+const RATCHET = { unmapped: 157 };
 
 const CHECK = argv.includes("--check");
 const acceptIdx = argv.indexOf("--accept");

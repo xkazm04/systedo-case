@@ -2077,7 +2077,8 @@
         "src/app/app/[projectId]/obsah/page.tsx",
         "src/app/app/[projectId]/local/obsah-plan/page.tsx",
         "src/app/app/[projectId]/performance/knihovna/page.tsx",
-        "src/app/app/[projectId]/channels/distribuce/page.tsx"
+        "src/app/app/[projectId]/channels/distribuce/page.tsx",
+        "src/app/app/[projectId]/studio/ulozeny-obsah/page.tsx"
       ],
       "group": "AI & Content Engine",
       "group_id": "97de897f-b7ed-4e79-b8c0-c06cfbf35b3b",
@@ -3023,7 +3024,9 @@
         "test-unit/conversions-mapping.test.mjs",
         "test-unit/conversions-upload-payload.test.mjs",
         "test-unit/conversions-drain.test.mjs",
-        "src/components/app/modules/leads/CrmFunnelBanner.tsx"
+        "src/components/app/modules/leads/CrmFunnelBanner.tsx",
+        "src/app/app/[projectId]/channels/leady/page.tsx",
+        "src/lib/leads/room-summary.ts"
       ],
       "group": "Lead & CRM Management",
       "group_id": "f1a820c1-0783-4550-b47c-133532ad7ea4",
@@ -3330,6 +3333,8 @@
       "file_paths": [
         "src/components/marketing/LocalSeoShowcase.tsx",
         "src/components/marketing/RankClimbDemo.tsx",
+        "src/components/marketing/RankClimbParts.tsx",
+        "src/components/marketing/rank-climb-data.ts",
         "src/components/marketing/charts/CompetitorBars.tsx",
         "src/components/marketing/charts/RankClimbChart.tsx",
         "src/components/marketing/charts/VisibilityGauge.tsx"
@@ -3408,7 +3413,8 @@
       "cross_refs": [
         "local-seo-core-lib",
         "ai-tools-diagnostics",
-        "diagnoses-engine"
+        "diagnoses-engine",
+        "catalog-core"
       ],
       "db_tables": [
         "local_signals"
@@ -4095,7 +4101,9 @@
       "cross_refs": [
         "campaigns-api",
         "project-data-api",
-        "reporting-modules"
+        "reporting-modules",
+        "lead-management",
+        "lead-quality-signals"
       ],
       "db_tables": [],
       "description": "Six module pages covering the quantitative performance layer of a project: Výkon (Google Ads performance dashboard), Zisk (margin-aware POAS profit view), Spotřeba (LLM spend by operation/model from live telemetry), LTV (cohort CAC→LTV economics), Publikum (audience funnel + revenue segments), and Kvalita leadu (lead quality scoring). All pages resolve per-project datasets server-side and ground KPIs in the project's real metrics or graded sample data.",
@@ -4621,7 +4629,8 @@
         "cost-goals-ltv",
         "inventory-sync-ops",
         "local-signals",
-        "lp-experimentation"
+        "lp-experimentation",
+        "lead-management"
       ],
       "db_tables": [
         "projects"
@@ -5777,7 +5786,8 @@
       "cross_refs": [
         "twin-assistant-core",
         "ai-tools-content",
-        "social-publishing"
+        "social-publishing",
+        "ai-tools-shared"
       ],
       "db_tables": [
         "twin_state"
