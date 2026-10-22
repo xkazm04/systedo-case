@@ -25,7 +25,7 @@ import { txt } from "./_shared";
 import { antiFabrication, demoTail } from "./_fragments";
 import { missingStrFields, withObjectGuard } from "./_validate";
 import { coerceEnum } from "./_coerce";
-import { JUNK_QUAL_RATE, MIN_LEADS_FOR_VERDICT } from "../../lead-quality/compute";
+import { JUNK_QUAL_RATE, MIN_LEADS_FOR_VERDICT, MIN_QUALIFIED_FOR_VERDICT } from "../../lead-quality/compute";
 import { refineLines } from "./refine";
 import { dataProvenanceLine } from "./cohort-diagnosis";
 
@@ -66,6 +66,13 @@ export function buildLeadSourceDiagnosisPrompt(req: LeadSourceDiagnosisRequest):
     `- Z toho kvalifikovaných (SQL): ${fmtInt(req.qualified)} (míra kvalifikace ${fmtPct(req.qualRate)})`,
     `- Z toho uzavřených (won): ${fmtInt(req.won)} (win rate ${fmtPct(req.winRate)})`,
   ];
+  // The per-stage floor, said to the model too: the deterministic floor already
+  // refuses a win-rate or CPQL verdict on this few qualified leads.
+  if (req.leads >= MIN_LEADS_FOR_SIGNAL && req.qualified < MIN_QUALIFIED_FOR_VERDICT) {
+    lines.push(
+      `- Kvalifikovaných je méně než ${MIN_QUALIFIED_FOR_VERDICT}: win rate ani CPQL z nich nehodnoť — není-li nízká sama míra kvalifikace, příčina je „volume".`
+    );
+  }
   if (paid) {
     lines.push(`- Náklady (spend): ${fmtCZK(req.spend ?? 0)}`);
     if (req.cpl != null) lines.push(`- CPL (cena za lead): ${fmtCZK(req.cpl)}`);
@@ -193,7 +200,9 @@ export function pickCause(req: LeadSourceDiagnosisRequest): LeadSourceCause {
   const paid = (req.spend ?? 0) > 0;
   const cheap = paid && req.cpl != null && isCheapCpl(req.cpl, req);
   if (req.qualRate < MIN_QUAL_RATE) return cheap ? "spam" : "mis-targeting";
-  // Qualifies acceptably from here on.
+  // Qualifies acceptably from here on. Win rate and CPQL divide by qualified, so they
+  // need their own floor: too few qualified to judge closing or cost is volume too.
+  if (req.qualified < MIN_QUALIFIED_FOR_VERDICT) return "volume";
   if (req.winRate < MIN_WIN_RATE) return "mis-targeting";
   if (paid && req.costPerQualified != null && req.costPerQualified >= HIGH_CPQL_CZK) return "pricing";
   return "ok";
@@ -274,7 +283,7 @@ export function baseLeadSourceDiagnosis(
   // Deterministic drift note from the period-over-period trend, when the source is
   // measurably getting worse — so the demo also reflects the new signal.
   const driftNote =
-    req.trend?.cpqlDelta != null && req.trend.cpqlDelta > 0.25
+    req.qualified >= MIN_QUALIFIED_FOR_VERDICT && req.trend?.cpqlDelta != null && req.trend.cpqlDelta > 0.25
       ? ` Navíc CPQL vzrostlo o ${fmtSignedPct(req.trend.cpqlDelta)} oproti minulému období — zdroj se zhoršuje.`
       : "";
 
@@ -294,7 +303,9 @@ export function baseLeadSourceDiagnosis(
       recommendation = `Snižte CPQL: utlumte nejdražší klíčová slova / publika, posuňte rozpočet ke zdrojům s nižším CPQL a nasaďte limity, dokud se cena za kvalifikovaný lead nesrovná.`;
       break;
     case "volume":
-      summary = `Zdroj „${req.source}" má zatím jen ${fmtInt(req.leads)} leadů — to je málo na spolehlivý závěr o kvalitě (míra kvalifikace ${qual}, win rate ${win} jsou statisticky nejisté).`;
+      summary = req.leads >= MIN_LEADS_FOR_SIGNAL
+        ? `Zdroj „${req.source}" se kvalifikuje slušně (${qual}), ale kvalifikovaných leadů je zatím jen ${fmtInt(req.qualified)} — to je málo na závěr o uzavírání či ceně (win rate ${win} je statisticky nejistý).`
+        : `Zdroj „${req.source}" má zatím jen ${fmtInt(req.leads)} leadů — to je málo na spolehlivý závěr o kvalitě (míra kvalifikace ${qual}, win rate ${win} jsou statisticky nejisté).`;
       recommendation = `Sbírejte víc dat, než budete zdroj škálovat nebo vypínat — nastavte sledování lead → kvalifikovaný → uzavřený a vyhodnoťte znovu při vyšším objemu.`;
       break;
     default:

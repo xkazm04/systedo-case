@@ -24,15 +24,16 @@ const full = {
 };
 
 // A paid source whose CPQL both rose >25 % and blew past the 900 CZK target →
-// fires the rise + target alerts.
+// fires the rise + target alerts. Both periods carry the qualified floor (30): on one
+// qualified lead a doubled CPQL is arithmetic, and the alerts stay silent.
 const drifting = {
   source: "Meta",
   leads: 100,
-  qualified: 1,
+  qualified: 30,
   won: 0,
-  spend: 1000,
+  spend: 30_000,
   revenue: 0,
-  prior: { leads: 100, qualified: 1, won: 0, spend: 500 },
+  prior: { leads: 100, qualified: 30, won: 0, spend: 15_000 },
 };
 
 test("stage labels: cs default is byte-identical, en spells them out", () => {

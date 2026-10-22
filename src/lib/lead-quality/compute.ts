@@ -38,6 +38,13 @@ export const JUNK_QUAL_RATE = 0.35;
  *  badge never fires on a row whose own diagnosis says "too little data". */
 export const MIN_LEADS_FOR_VERDICT = 30;
 
+/** Qualified-lead count below which a verdict that divides by QUALIFIED (win rate,
+ *  CPQL, a CPQL drift or target alert) is too small a sample to make. The second
+ *  stage's floor, on that stage's own denominator: 30 leads with a third qualifying
+ *  leaves 10 qualified, and 10 cannot say "does not close". A convention (the
+ *  proportion rule of thumb), not a property of leads. */
+export const MIN_QUALIFIED_FOR_VERDICT = 30;
+
 export function withMetrics(s: LeadSource): SourceMetrics {
   const cpl = s.leads > 0 ? s.spend / s.leads : 0;
   const qualRate = s.leads > 0 ? s.qualified / s.leads : 0;
@@ -219,6 +226,10 @@ export interface SourceTrend {
   paid: boolean;
   cpqlNow: number;
   cpqlPrev: number;
+  /** qualified leads in the current / prior period: the CPQL denominators, so an
+   *  alert can tell a drift from arithmetic on a handful of qualified leads */
+  qualifiedNow: number;
+  qualifiedPrev: number;
   /** relative change in CPQL; null when no baseline or unpaid (rise = worse) */
   cpqlDelta: number | null;
   /** relative change in qualification rate; null when no baseline (rise = better) */
@@ -244,6 +255,8 @@ export function sourceTrend(s: LeadSource): SourceTrend | null {
     paid,
     cpqlNow,
     cpqlPrev,
+    qualifiedNow: curr.qualified,
+    qualifiedPrev: prev.qualified,
     // CPQL drift only makes sense while the source is actually being paid for.
     cpqlDelta: paid ? relDelta(cpqlNow, cpqlPrev) : null,
     qualRateDelta: relDelta(qualRateOf(curr), qualRateOf(prev)),
@@ -314,8 +327,12 @@ export function sourceAlerts(
   const fmtCurrency = FMT[locale].fmtCZK;
   const alerts: LeadQualityAlert[] = [];
   if (!t.paid) return alerts; // CPQL undefined for unpaid sources → nothing to alert
+  // Both alerts divide by qualified. A rise is a ratio of two ratios, so it needs BOTH
+  // periods over the qualified floor; the target needs the current one. Under it the
+  // row is thin, not worse (8 → 6 qualified reads as +25 % on arithmetic alone).
+  if (t.qualifiedNow < MIN_QUALIFIED_FOR_VERDICT) return alerts;
 
-  if (t.cpqlDelta !== null && t.cpqlDelta > riseThreshold) {
+  if (t.cpqlDelta !== null && t.cpqlDelta > riseThreshold && t.qualifiedPrev >= MIN_QUALIFIED_FOR_VERDICT) {
     alerts.push({
       source: t.source,
       kind: "cpql-rise",

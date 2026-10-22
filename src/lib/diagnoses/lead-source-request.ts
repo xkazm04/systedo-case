@@ -6,7 +6,7 @@
  *  than duplicated. Framework-free + pure; imports only the pure lead-quality
  *  compute helpers (client-safe). */
 import type { LeadSourceDiagnosisRequest, LeadSourcePeer } from "../ai-types";
-import { sourceAlerts, sourceTrend, type SourceMetrics } from "../lead-quality/compute";
+import { MIN_QUALIFIED_FOR_VERDICT, sourceAlerts, sourceTrend, type SourceMetrics } from "../lead-quality/compute";
 
 /** The few real numbers the diagnosis needs per source — a projection built from
  *  the computed source metrics, so no compute / sample data ships with the client. */
@@ -77,7 +77,9 @@ export function toLeadSourceSeed(
   const tr = sourceTrend(r);
   if (tr && (tr.cpqlDelta !== null || tr.qualRateDelta !== null || tr.winRateDelta !== null)) {
     seed.trend = {
-      cpqlDelta: tr.cpqlDelta,
+      // A CPQL drift over a qualified count under the floor in either period is
+      // arithmetic, not a baseline: the diagnosis reads it as absent, never as worse.
+      cpqlDelta: Math.min(tr.qualifiedNow, tr.qualifiedPrev) >= MIN_QUALIFIED_FOR_VERDICT ? tr.cpqlDelta : null,
       qualRateDelta: tr.qualRateDelta,
       winRateDelta: tr.winRateDelta,
       ...(tr.cplDelta !== null ? { cplDelta: tr.cplDelta } : {}),
