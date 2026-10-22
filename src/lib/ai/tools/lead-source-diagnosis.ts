@@ -145,9 +145,11 @@ const LEAD_SOURCE_DIAGNOSIS_SCHEMA = {
   propertyOrdering: ["summary", "likelyCause", "recommendation", "severity"],
 };
 
-/** Coerce the model's likelyCause to a known cause, defaulting unknowns to
- *  „mis-targeting" (a safe, non-accusatory catch-all) rather than failing. */
-const coerceCause = coerceEnum<LeadSourceCause, LeadSourceCause>(LEAD_SOURCE_CAUSES, "mis-targeting");
+/** Coerce the model's likelyCause to a known cause, or undefined when it isn't one.
+ *  The caller falls back to the deterministic pick over the same metrics: a fixed
+ *  „mis-targeting" would badge a 12-lead source or a healthy one as a targeting
+ *  problem whenever the model mis-spelled its answer. */
+const coerceCause = coerceEnum<LeadSourceCause, undefined>(LEAD_SOURCE_CAUSES, undefined);
 
 /** Coerce the model's severity to a known level, or undefined when it isn't one. */
 const coerceSeverity = coerceEnum<LeadSourceSeverity, undefined>(["high", "medium", "low"], undefined);
@@ -214,7 +216,11 @@ function normalizeLeadSourceDiagnosis(
   const fallback = baseLeadSourceDiagnosis(req);
 
   const rawCause = txt(o?.likelyCause);
-  const likelyCause = rawCause ? coerceCause(rawCause) : fallback.likelyCause;
+  const knownCause = rawCause ? coerceCause(rawCause) : undefined;
+  if (rawCause && !knownCause) {
+    console.warn(`[lead-source-diagnosis] model cause outside the set, using the deterministic pick`);
+  }
+  const likelyCause = knownCause ?? fallback.likelyCause;
 
   const result: LeadSourceDiagnosisResult = {
     summary: txt(o?.summary) || fallback.summary,

@@ -173,12 +173,11 @@ const ADS_DIAGNOSIS_SCHEMA = {
   propertyOrdering: ["summary", "likelyCause", "recommendation", "severity", "affectedCampaignIds"],
 };
 
-/** Coerce the model's likelyCause to a known cause, defaulting unknowns to
- *  „budget-misallocation" (the neutral, always-actionable catch-all). */
-const coerceCause = coerceEnum<AdsDiagnosisCause, AdsDiagnosisCause>(
-  ADS_DIAGNOSIS_CAUSES,
-  "budget-misallocation"
-);
+/** Coerce the model's likelyCause to a known cause, or undefined when it isn't one.
+ *  The caller then falls back to the deterministic pick over the same numbers, never
+ *  to a fixed catch-all: „budget-misallocation" is the ladder's LAST rung (what it says
+ *  when nothing else fires), not the answer to "the model said something unknown". */
+const coerceCause = coerceEnum<AdsDiagnosisCause, undefined>(ADS_DIAGNOSIS_CAUSES, undefined);
 
 type AdsSeverity = AdsDiagnosisResult["severity"];
 const coerceSeverity = coerceEnum<AdsSeverity, undefined>(["high", "medium", "low"], undefined);
@@ -254,7 +253,11 @@ export function normalizeAdsDiagnosis(parsed: unknown, req: AdsDiagnosisRequest)
   const fallback = baseAdsDiagnosis(req);
 
   const rawCause = txt(o?.likelyCause);
-  const likelyCause = rawCause ? coerceCause(rawCause) : fallback.likelyCause;
+  const knownCause = rawCause ? coerceCause(rawCause) : undefined;
+  if (rawCause && !knownCause) {
+    console.warn(`[ads-diagnosis] model cause outside the set, using the deterministic pick`);
+  }
+  const likelyCause = knownCause ?? fallback.likelyCause;
 
   // Anti-fabrication: the model may only name campaigns it was given. Unknown ids are
   // dropped (never coerced to something plausible) and an empty list is allowed — the
