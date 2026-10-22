@@ -28,6 +28,12 @@ export interface MonthlyPacing {
    *  can exceed the calendar days actually still ahead when the month is gappy — used
    *  for the projection band/weights; the prescription fields divide by future days. */
   daysRemaining: number;
+  /** calendar days still AHEAD of the latest point (daysInMonth − its day-of-month): the
+   *  denominator of the prescription, and the only honest "days remaining" for a reader */
+  futureDays: number;
+  /** interior days of the month with no data point (daysRemaining − futureDays); the
+   *  surface says how many whenever it is above 0 */
+  missingDays: number;
   /** the whole month is represented in the data (no days left to project) */
   complete: boolean;
   /** monthly revenue goal (CZK) */
@@ -104,6 +110,17 @@ export function impliedSpendNote(
   if (p.impliedBasis === "unknown") return "unknown";
   if (!(p.impliedExtraDailySpend >= 1)) return "none";
   return p.impliedCapped ? "at-least" : "approx";
+}
+
+/** What the card may print as "days remaining", and the missing-day count it must say
+ *  beside it. The required pace divides the gap by `futureDays`; a reader who divides it
+ *  by the gap-inclusive `daysRemaining` gets a different answer than the tile shows, so
+ *  the surface prints the future days and names the days without data instead. */
+export function daysAheadDisplay(
+  p: Pick<MonthlyPacing, "complete" | "futureDays" | "missingDays">
+): { remaining: number; missing: number } {
+  if (p.complete) return { remaining: 0, missing: 0 };
+  return { remaining: p.futureDays, missing: p.missingDays };
 }
 
 /** Extra daily spend needed to buy `need` more revenue per day, solved along the
@@ -236,6 +253,8 @@ export function monthlyPacing(
     daysInMonth,
     daysElapsed,
     daysRemaining,
+    futureDays,
+    missingDays: Math.max(0, daysRemaining - futureDays),
     complete: daysRemaining === 0,
     goal,
     mtd,

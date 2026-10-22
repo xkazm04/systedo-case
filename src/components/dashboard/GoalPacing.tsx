@@ -1,7 +1,7 @@
 "use client";
 
 import { Gauge } from "@/components/icons";
-import { impliedSpendNote, type MonthAttainment, type MonthlyPacing } from "@/lib/metrics";
+import { daysAheadDisplay, impliedSpendNote, type MonthAttainment, type MonthlyPacing } from "@/lib/metrics";
 import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
@@ -10,6 +10,7 @@ const T = {
     scopeChip: "Tento měsíc",
     monthComplete: "měsíc dokončen",
     dayProgress: "{elapsed}/{total} dní · zbývá {remaining}",
+    dayProgressMissing: " · {missing} dní bez dat",
     pctOfGoal: "{pct} cíle",
     chanceLabel: "· {pct} šance na splnění",
     chanceSettling: "· výhled se ustálí po pár dnech",
@@ -32,6 +33,7 @@ const T = {
     statDoneValue: "Hotovo",
     statDoneSub: "měsíc uzavřen",
     statDaysSub: "z {total} dní",
+    statDaysSubMissing: "z {total} dní · {missing} bez dat",
     statRequiredLabel: "Potřebné tempo",
     statRequiredSub: "vs. {recent}/den nyní",
     statRequiredTitle: "Průměrný denní obrat, který zbývající dny musí přinést, aby měsíční cíl vyšel. Při současném ROAS to znamená ≈ +{spend}/den výdajů navíc.",
@@ -55,6 +57,7 @@ const T = {
     scopeChip: "This month",
     monthComplete: "month complete",
     dayProgress: "{elapsed}/{total} days · {remaining} remaining",
+    dayProgressMissing: " · {missing} days without data",
     pctOfGoal: "{pct} of goal",
     chanceLabel: "· {pct} chance of hitting goal",
     chanceSettling: "· forecast settles after a few days",
@@ -77,6 +80,7 @@ const T = {
     statDoneValue: "Done",
     statDoneSub: "month closed",
     statDaysSub: "of {total} days",
+    statDaysSubMissing: "of {total} days · {missing} without data",
     statRequiredLabel: "Required pace",
     statRequiredSub: "vs. {recent}/day now",
     statRequiredTitle: "Average daily revenue the remaining days must deliver to still hit the monthly goal. At the current ROAS that is ≈ +{spend}/day of extra spend.",
@@ -116,7 +120,6 @@ export default function GoalPacing({
     monthStart,
     daysInMonth,
     daysElapsed,
-    daysRemaining,
     complete,
     goal,
     mtd,
@@ -156,6 +159,9 @@ export default function GoalPacing({
   // once the goal is banked (required = 0) the tile would be noise.
   const showRequired = !complete && requiredDailyRevenue > 0;
   const spendNote = impliedSpendNote(pacing);
+  // The required pace divides by the days still AHEAD; the days shown must be the same
+  // days, and interior days without data are named rather than counted as remaining.
+  const daysAhead = daysAheadDisplay(pacing);
 
   return (
     <div className="card animate-fade-up p-5 sm:p-6">
@@ -174,7 +180,8 @@ export default function GoalPacing({
           {fmt.fmtMonthLong(monthStart)} ·{" "}
           {complete
             ? t("monthComplete")
-            : t("dayProgress", { elapsed: daysElapsed, total: daysInMonth, remaining: daysRemaining })}
+            : t("dayProgress", { elapsed: daysElapsed, total: daysInMonth, remaining: daysAhead.remaining }) +
+              (daysAhead.missing > 0 ? t("dayProgressMissing", { missing: daysAhead.missing }) : "")}
         </span>
       </div>
 
@@ -324,8 +331,14 @@ export default function GoalPacing({
           />
           <Stat
             label={complete ? t("statDoneLabel") : t("statDaysLabel")}
-            value={complete ? t("statDoneValue") : String(daysRemaining)}
-            sub={complete ? t("statDoneSub") : t("statDaysSub", { total: daysInMonth })}
+            value={complete ? t("statDoneValue") : String(daysAhead.remaining)}
+            sub={
+              complete
+                ? t("statDoneSub")
+                : daysAhead.missing > 0
+                  ? t("statDaysSubMissing", { total: daysInMonth, missing: daysAhead.missing })
+                  : t("statDaysSub", { total: daysInMonth })
+            }
           />
           {/* the prescription: what the remaining days must average — turns the
               passive forecast into a daily operating target */}

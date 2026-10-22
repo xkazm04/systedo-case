@@ -3,7 +3,7 @@
  *  (node --import ./test-llm/setup.mjs --test). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { monthlyPacing } from "@/lib/metrics/pacing";
+import { daysAheadDisplay, monthlyPacing } from "@/lib/metrics/pacing";
 
 /** Build `n` consecutive days starting at `start` with fixed metrics. A constant
  *  series yields flat weekday weights, so the projection math stays trivial. */
@@ -112,4 +112,54 @@ test("zero-spend series: implied extra spend guards the unknown ROAS", () => {
   assert.ok(p);
   assert.ok(p.requiredDailyRevenue > p.recentDailyRevenue);
   assert.equal(p.impliedExtraDailySpend, 0);
+});
+
+/** May 2026 with `gaps` missing interior days, the latest point on day `lastDay`. */
+function gappyMay(gaps, lastDay) {
+  const out = [];
+  const leadIn = new Date("2026-03-22T00:00:00Z").getTime();
+  for (let i = 0; i < 40; i++) {
+    const d = new Date(leadIn + i * 86_400_000).toISOString().slice(0, 10);
+    if (d.slice(0, 7) === "2026-05") continue;
+    out.push({ date: d, visits: 100, cost: 100, conversions: 2, revenue: 1000 });
+  }
+  for (let dm = 1; dm <= lastDay; dm++) {
+    const iso = `2026-05-${String(dm).padStart(2, "0")}`;
+    if (gaps.has(iso)) continue;
+    out.push({ date: iso, visits: 100, cost: 100, conversions: 2, revenue: 1000 });
+  }
+  return out;
+}
+
+test("gappy month: the days shown are the days the required pace divides by, and the gap is named", () => {
+  const gaps = new Set(["2026-05-06", "2026-05-07", "2026-05-13", "2026-05-14", "2026-05-20"]);
+  const p = monthlyPacing(gappyMay(gaps, 25), 40_000);
+  assert.ok(p);
+  assert.equal(p.futureDays, 6);
+  assert.equal(p.missingDays, 5);
+  const shown = daysAheadDisplay(p);
+  assert.deepEqual(shown, { remaining: 6, missing: 5 });
+  // A reader dividing the gap by the days shown gets the tile's number.
+  approx((p.goal - p.mtd) / shown.remaining, p.requiredDailyRevenue, 1e-9);
+});
+
+test("gappy month whose data reaches the last day: no days ahead, gap still named", () => {
+  const gaps = new Set(["2026-05-06", "2026-05-07"]);
+  const p = monthlyPacing(gappyMay(gaps, 31), 40_000);
+  assert.ok(p);
+  assert.equal(p.complete, false, "two May days are missing, so the month is not complete");
+  assert.equal(p.requiredDailyRevenue, 0);
+  assert.deepEqual(daysAheadDisplay(p), { remaining: 0, missing: 2 });
+});
+
+test("gapless and complete months: the display is unchanged", () => {
+  const live = monthlyPacing(days("2026-03-20", 56, { visits: 100, cost: 100, conversions: 2, revenue: 1000 }), 40_000);
+  assert.ok(live);
+  assert.equal(live.missingDays, 0);
+  assert.deepEqual(daysAheadDisplay(live), { remaining: live.daysRemaining, missing: 0 });
+
+  const closed = monthlyPacing(days("2026-03-01", 61, { visits: 100, cost: 100, conversions: 2, revenue: 1000 }), 40_000);
+  assert.ok(closed);
+  assert.equal(closed.complete, true);
+  assert.deepEqual(daysAheadDisplay(closed), { remaining: 0, missing: 0 });
 });
