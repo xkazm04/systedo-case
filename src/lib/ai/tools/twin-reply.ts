@@ -168,7 +168,7 @@ export function generateTwinReply(
   const fallback = (): TwinReplyResult => {
     const d = draftReply({
       id: "ai",
-      name: txt(req.contact) || "zákazník",
+      name: txt(req.contact),
       channel: (txt(req.arrival) || "form") as "form" | "call" | "email" | "chat",
       message: req.inbound,
       minutesAgo: 0,

@@ -11,7 +11,13 @@ export interface Draft {
   questions: string[];
 }
 
-const firstName = (name: string) => name.split(" ")[0] ?? name;
+/** The first name to greet, or null when the field holds none: empty, or an
+ *  identifier a caller put there (an e-mail, a phone number). Greeting an identifier
+ *  or a filler word tells the lead nobody read who wrote; a bare "Dobrý den," does not. */
+function greetingFirstName(name: string): string | null {
+  const first = name.trim().split(/\s+/)[0] ?? "";
+  return /^\p{L}[\p{L}'’-]*$/u.test(first) ? first : null;
+}
 
 /** Channel-aware contact-back sentence: promise the follow-up on the channel the lead
  *  actually used, never a phone call "within minutes" for an email with no number. Kept
@@ -23,13 +29,15 @@ const CONTACT_BACK: Record<InboundLead["channel"], string> = {
   email: "odpovíme Vám na e-mail co nejdříve",
 };
 
-/** A deterministic first-response draft for an inbound lead. `brand` is the project's
+/** A deterministic first-response draft for an inbound lead. The greeting names the
+ *  person only when a first name was given (`greetingName`, else `name`). `brand` is the project's
  *  own team/brand name for the sign-off (absent → a neutral "náš tým", never a
  *  placeholder). The contact-back promise follows the lead's channel. */
 export function draftReply(lead: InboundLead, brand?: string): Draft {
   const contact = CONTACT_BACK[lead.channel];
   const signoff = brand?.trim() ? `S pozdravem,\n${brand.trim()}` : "S pozdravem,\nnáš tým";
-  const reply = `Dobrý den, ${firstName(lead.name)},
+  const first = greetingFirstName(lead.greetingName ?? lead.name);
+  const reply = `${first ? `Dobrý den, ${first},` : "Dobrý den,"}
 
 děkujeme za poptávku — rádi ji posuneme dál. Abychom Vám připravili přesnou nabídku, ${contact}; mezitím prosím o doplnění pár detailů níže.
 

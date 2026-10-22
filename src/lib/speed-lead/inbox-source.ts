@@ -44,6 +44,8 @@ export function contactToInboundLead(c: Contact, nowMs: number): InboundLead {
     id: c.id,
     contactId: c.id,
     name: c.name ?? c.companyName ?? c.email ?? c.phone ?? "",
+    // the label falls back to whatever identifies the row; the greeting does not
+    greetingName: c.name ?? "",
     channel: arrivalChannel(c),
     message: c.notes?.trim() ?? "",
     minutesAgo: Number.isFinite(seen) ? Math.max(0, Math.round((nowMs - seen) / MIN_MS)) : 0,

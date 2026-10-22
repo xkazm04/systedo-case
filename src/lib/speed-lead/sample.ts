@@ -7,6 +7,9 @@ export type LeadChannel = "form" | "call" | "email" | "chat";
 export interface InboundLead {
   id: string;
   name: string;
+  /** the PERSON's name for the reply's greeting, when `name` is only the row's label
+   *  (a live CRM row falls back to the company, e-mail or phone). Absent ⇒ `name`. */
+  greetingName?: string;
   channel: LeadChannel;
   message: string;
   /** minutes since the lead arrived */
