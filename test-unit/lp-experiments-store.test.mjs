@@ -175,16 +175,17 @@ test("mining handoff: a real significant winner passes the live-tenant prompt ga
   assert.deepEqual(await extractExperimentPatterns(undefined), []);
   assert.deepEqual(await extractExperimentPatterns(pid), []);
 
-  // A `done` experiment whose challenger beats control by a wide margin at large n →
-  // evaluate() reads it as statistically significant. Deliberately a cluster/angle that
+  // A `done` experiment whose challenger beats control by a wide margin, closed after
+  // both arms passed the sample gate → evaluate() reads it as statistically
+  // significant (closed below the gate it would be stoppedEarly). Deliberately a cluster/angle that
   // does NOT appear in SAMPLE_EXPERIMENTS, so its title (→ sha1 id) can't collide with a
   // quarantined sample lesson — the realistic case of a genuinely new account experiment.
   await createExperiment(pid, {
     cluster: "e-mailový marketing nástroj",
     status: "done",
     variants: [
-      { label: "A · Kontrola", visitors: 4200, signups: 176 },
-      { label: "B · Zdarma navždy", visitors: 4180, signups: 231 },
+      { label: "A · Kontrola", visitors: 23000, signups: 964 },
+      { label: "B · Zdarma navždy", visitors: 22950, signups: 1269 },
     ],
   });
 

@@ -29,6 +29,9 @@ export interface ExperimentResult {
   progress: number;
   /** true once every arm has reached requiredPerArm — the verdict is trustworthy */
   hasEnoughData: boolean;
+  /** a `done` test closed before every arm reached requiredPerArm: read at the stop,
+   *  labelled as stopped, never promoted to a winner */
+  stoppedEarly: boolean;
   /** the per-comparison α actually used (Šidák-corrected when > 2 variants) */
   effectiveAlpha: number;
   /** number of challenger arms compared against control (drives the correction) */
@@ -125,6 +128,7 @@ export function evaluate(exp: LpExperiment): ExperimentResult {
       requiredPerArm: Infinity,
       progress: 0,
       hasEnoughData: false,
+      stoppedEarly: exp.status === "done",
       effectiveAlpha: DEFAULT_ALPHA,
       comparisons: 1,
     };
@@ -163,13 +167,17 @@ export function evaluate(exp: LpExperiment): ExperimentResult {
   const progress = sizingKnown ? Math.max(0, Math.min(1, minVisitors / requiredPerArm)) : 0;
   const hasEnoughData = sizingKnown ? minVisitors >= requiredPerArm : false;
 
-  // A `done` experiment is read as before (the test was stopped deliberately).
-  // A `running` experiment must clear BOTH the corrected confidence threshold AND
-  // the sample-size gate before we declare significance — this is the peeking guard.
+  // The peeking guard: significance needs BOTH the corrected confidence threshold AND
+  // the sample-size gate, whatever the status. Marking a test `done` is not a way past
+  // the gate — an operator who closes a test the first morning it crosses the bar has
+  // stopped on a peek, and the stop was chosen by the numbers it would then be read
+  // on. A null test closed that way read as a winner in ~1 of 5 replays; closed when
+  // the gate opened, ~1 of 35. So a `done` test below the gate is `stoppedEarly`: its
+  // confidence is shown as read at the stop, and nothing downstream (the winner pill,
+  // the ship handoff, the creative-pattern miner) treats it as proven.
   const meetsConfidence = !!winner && confidence >= 1 - effectiveAlpha;
-  const significant = exp.status === "done"
-    ? !!winner && confidence >= 1 - effectiveAlpha
-    : meetsConfidence && hasEnoughData;
+  const significant = meetsConfidence && hasEnoughData;
+  const stoppedEarly = exp.status === "done" && !hasEnoughData;
 
   return {
     id: exp.id,
@@ -182,6 +190,7 @@ export function evaluate(exp: LpExperiment): ExperimentResult {
     requiredPerArm,
     progress,
     hasEnoughData,
+    stoppedEarly,
     effectiveAlpha,
     comparisons,
   };

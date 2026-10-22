@@ -70,8 +70,8 @@ test("proof travels: a live experiment winner's prompt line carries its own evid
     cluster: "e-mailový marketing nástroj",
     status: "done",
     variants: [
-      { label: "A · Kontrola", visitors: 4200, signups: 176 },
-      { label: "B · Zdarma navždy", visitors: 4180, signups: 231 },
+      { label: "A · Kontrola", visitors: 23000, signups: 964 },
+      { label: "B · Zdarma navždy", visitors: 22950, signups: 1269 },
     ],
   });
   const mined = await extractExperimentPatterns(pid);

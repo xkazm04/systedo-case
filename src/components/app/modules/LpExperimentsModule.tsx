@@ -21,6 +21,7 @@ const T = {
     collecting: "Sbírá data: {pct} %",
     winner: "Vítěz (jistota {conf})",
     leading: "Vede, zatím neprůkazné",
+    stoppedEarly: "Ukončeno předčasně, {pct} % vzorku (jistota {conf} při ukončení)",
     noDiff: "Bez rozdílu",
     needVisitors: "Potřeba ~{n} návštěvníků na variantu, než vyhlásíme vítěze",
     adjustedThreshold: "(práh upraven pro {n} varianty)",
@@ -44,6 +45,7 @@ const T = {
     collecting: "Collecting data: {pct}%",
     winner: "Winner ({conf} confidence)",
     leading: "Leading, not yet conclusive",
+    stoppedEarly: "Stopped early at {pct}% of sample ({conf} confidence at stop)",
     noDiff: "No difference",
     needVisitors: "~{n} visitors/variant needed before declaring a winner",
     adjustedThreshold: "(threshold adjusted for {n} variants)",
@@ -94,8 +96,8 @@ export default async function LpExperimentsModule({
     };
   });
   // A resolved experiment = the gated verdict from the trust-gate wave: a winner
-  // that is statistically significant (a `done` test, or a `running` one that has
-  // cleared both the confidence threshold and the sample-size gate). Only those
+  // that is statistically significant (cleared both the confidence threshold and the
+  // sample-size gate, running or done; a test closed early is not). Only those
   // earn a ship-the-winner handoff — a leading-but-unproven arm routes nowhere.
   const shipped = results.filter((r) => r.significant && r.winner);
 
@@ -155,6 +157,8 @@ export default async function LpExperimentsModule({
                 </Pill>
                 {collecting ? (
                   <Pill tone="navy">{t("collecting", { pct: progressPct })}</Pill>
+                ) : r.stoppedEarly && r.winner ? (
+                  <Pill tone="neutral">{t("stoppedEarly", { pct: progressPct, conf: fmt.fmtPct(r.confidence) })}</Pill>
                 ) : r.winner ? (
                   <Pill tone={r.significant ? "positive" : "coral"}>
                     {r.significant ? t("winner", { conf: fmt.fmtPct(r.confidence) }) : t("leading")}

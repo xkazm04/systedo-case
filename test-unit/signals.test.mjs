@@ -33,8 +33,8 @@ test("evaluate detects a significant landing-page winner", () => {
     cluster: "c",
     status: "done",
     variants: [
-      { label: "A", visitors: 5000, signups: 200 },
-      { label: "B", visitors: 5000, signups: 300 },
+      { label: "A", visitors: 20000, signups: 800 },
+      { label: "B", visitors: 20000, signups: 1200 },
     ],
   });
   assert.equal(r.winner.label, "B");

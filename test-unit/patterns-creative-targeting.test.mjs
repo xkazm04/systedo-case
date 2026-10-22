@@ -19,15 +19,15 @@ const cat = (ps, c) => ps.filter((p) => p.category === c);
 
 // --- creative miner ----------------------------------------------------------
 
-/** A `done` experiment whose challenger B beats control by a wide margin at large
- *  n — evaluate() reads it as a statistically significant winner. */
+/** A `done` experiment whose challenger B beats control by a wide margin, closed
+ *  after both arms passed the sample gate — evaluate() reads it as a winner. */
 const wonExperiment = () => ({
   id: "exp-x",
   cluster: "projektové řízení nástroj",
   status: "done",
   variants: [
-    { label: "A · Kontrola", visitors: 4200, signups: 176 },
-    { label: "B · Důraz na šablony", visitors: 4180, signups: 231 },
+    { label: "A · Kontrola", visitors: 23000, signups: 964 },
+    { label: "B · Důraz na šablony", visitors: 22950, signups: 1269 },
   ],
 });
 

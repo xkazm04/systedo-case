@@ -38,8 +38,8 @@ export const SAMPLE_EXPERIMENTS: LpExperiment[] = [
     cluster: "projektové řízení nástroj",
     status: "done",
     variants: [
-      { label: "A · Kontrola", visitors: 4200, signups: 176 },
-      { label: "B · Důraz na šablony", visitors: 4180, signups: 231, url: "/lp/projektove-rizeni-sablony" },
+      { label: "A · Kontrola", visitors: 23000, signups: 964 },
+      { label: "B · Důraz na šablony", visitors: 22950, signups: 1269, url: "/lp/projektove-rizeni-sablony" },
     ],
   },
   {

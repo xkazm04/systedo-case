@@ -55,13 +55,35 @@ test("a done experiment with enough data still declares its winner", () => {
     cluster: "c",
     status: "done",
     variants: [
+      { label: "A", visitors: 20000, signups: 800 },
+      { label: "B", visitors: 20000, signups: 1200 },
+    ],
+  });
+  assert.equal(r.hasEnoughData, true);
+  assert.equal(r.winner.label, "B");
+  assert.equal(r.significant, true);
+  assert.equal(r.stoppedEarly, false);
+  assert.ok(r.confidence > 0.9);
+});
+
+test("a test marked done before its sample gate is stopped early, never a winner", () => {
+  // The peek-and-stop case: the confidence clears the bar at 5000/arm, the gate wants
+  // ~17.9k, and the operator closes the test that morning. Before the fix `done` was
+  // read on confidence alone, so this became a significant winner and a mined lesson.
+  const r = evaluate({
+    id: "early",
+    cluster: "c",
+    status: "done",
+    variants: [
       { label: "A", visitors: 5000, signups: 200 },
       { label: "B", visitors: 5000, signups: 300 },
     ],
   });
-  assert.equal(r.winner.label, "B");
-  assert.equal(r.significant, true);
-  assert.ok(r.confidence > 0.9);
+  assert.equal(r.winner.label, "B"); // still the leader, read at the stop
+  assert.ok(r.confidence >= 1 - r.effectiveAlpha); // it DID cross the bar
+  assert.equal(r.hasEnoughData, false);
+  assert.equal(r.stoppedEarly, true);
+  assert.equal(r.significant, false);
 });
 
 test("a 0-CVR control fails the trust gate CLOSED, not open", () => {
