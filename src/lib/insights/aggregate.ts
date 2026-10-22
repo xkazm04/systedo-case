@@ -473,8 +473,10 @@ export interface ChannelRecsInput {
  *  The selection rule is the module's own quick-win rule (OrganicChannels.tsx:
  *  `effort === "low" && fit >= 70`, untracked), so the callout and the rec name
  *  the same channel. Untracked FIRST: a channel already in the lifecycle is not
- *  the next thing to start. The Overview always wants one item, so it falls back
- *  past the quick-win bar rather than going silent. */
+ *  the next thing to start. The Overview wants one item, so it falls back past
+ *  the quick-win bar to the best untracked channel rather than going silent — but
+ *  never back to a tracked one: when every channel is in the lifecycle there is
+ *  nothing left to start, the module shows no callout, and neither does this. */
 function channelRecs(
   project: Project,
   locale: SupportedLocale,
@@ -489,15 +491,12 @@ function channelRecs(
   };
   const isQuickWin = (c: OrganicChannel) => c.effort === "low" && c.fit >= 70;
   const untracked = plan.channels.filter((c) => !plan.tracks[c.id]);
-  // Untracked exhausts BEFORE tracked: a channel already in the lifecycle is work
-  // the tenant started, so it is never "the next free channel to get seen on" — not
-  // even when it is the only one clearing the quick-win bar. Both plans arrive
-  // sorted by fit descending, so `[0]` is the best-fit member of its group.
-  const quickWin =
-    untracked.find(isQuickWin) ??
-    untracked[0] ??
-    plan.channels.find(isQuickWin) ??
-    plan.channels[0];
+  // Untracked only: a channel already in the lifecycle is work the tenant started,
+  // so it is never "the next free channel to get seen on" — not even when it is the
+  // only one clearing the quick-win bar, and not when every channel is tracked (the
+  // old tail re-picked a tracked channel there and told the tenant they "haven't
+  // started" it). Plans arrive sorted by fit descending, so `[0]` is the best fit.
+  const quickWin = untracked.find(isQuickWin) ?? untracked[0];
   if (!quickWin) return [];
   // The fallback chain deliberately goes PAST the quick-win bar rather than going
   // silent — but the body text then described the pick instead of the rule, and

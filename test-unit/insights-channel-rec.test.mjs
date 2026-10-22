@@ -147,3 +147,17 @@ test("the fallback disclosure is localized, not Czech-only", () => {
   assert.match(rec.detail, /no low-effort quick win left right now/);
   assert.ok(!/Low-effort, high-fit/.test(rec.detail));
 });
+
+test("every channel tracked: no rec, never a started channel re-offered as unstarted", () => {
+  // The module's callout goes silent once every channel is in the lifecycle; the rec
+  // used to fall back to a TRACKED channel and, for a high-effort pick, tell the
+  // tenant it was "the best-fitting free channel you haven't started yet".
+  const allTracked = {
+    ...pinned,
+    tracks: Object.fromEntries(pinned.channels.map((c) => [c.id, { stage: "planned" }])),
+  };
+  for (const locale of ["cs", "en"]) {
+    const recs = collectRecommendations(project, locale, null, null, false, allTracked);
+    assert.equal(channelRec(recs), undefined);
+  }
+});
