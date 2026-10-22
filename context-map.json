@@ -519,7 +519,8 @@
       "cross_refs": [
         "ai-tools-shared",
         "diagnoses-engine",
-        "local-seo-core-lib"
+        "local-seo-core-lib",
+        "lead-quality-signals"
       ],
       "db_tables": [],
       "description": "AI tool implementations for diagnostic analysis: cohort conversion diagnosis (why did a conversion rate drop?), lead-source diagnosis (which traffic sources send quality leads?), local-SEO diagnosis, and local review reply drafting. These tools interpret metric anomalies and surface actionable recommendations grounded in the diagnoses engine output.",
