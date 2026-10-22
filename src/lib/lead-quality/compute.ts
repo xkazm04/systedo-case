@@ -24,7 +24,7 @@ export interface SourceMetrics extends LeadSource {
   roi: number | null;
   /** composite 0..100 */
   qualityScore: number;
-  /** cheap per lead but low qualification → junk */
+  /** paid, at or over the sample floor, and low qualification → junk */
   junk: boolean;
 }
 
@@ -32,6 +32,11 @@ export interface SourceMetrics extends LeadSource {
  *  poor quality). Exported so the UI's "under-performing source" picker keys off
  *  the same single threshold instead of duplicating the literal. */
 export const JUNK_QUAL_RATE = 0.35;
+
+/** Lead count below which a source's rates are too small a sample to call it anything.
+ *  The SAME floor the lead-source diagnosis uses for its "volume" cause, so the junk
+ *  badge never fires on a row whose own diagnosis says "too little data". */
+export const MIN_LEADS_FOR_VERDICT = 30;
 
 export function withMetrics(s: LeadSource): SourceMetrics {
   const cpl = s.leads > 0 ? s.spend / s.leads : 0;
@@ -47,7 +52,7 @@ export function withMetrics(s: LeadSource): SourceMetrics {
     winRate,
     roi,
     qualityScore: Math.round(100 * (0.6 * qualRate + 0.4 * winRate)),
-    junk: s.spend > 0 && qualRate < JUNK_QUAL_RATE,
+    junk: s.spend > 0 && s.leads >= MIN_LEADS_FOR_VERDICT && qualRate < JUNK_QUAL_RATE,
   };
 }
 

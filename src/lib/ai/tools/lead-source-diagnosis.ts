@@ -25,6 +25,7 @@ import { txt } from "./_shared";
 import { antiFabrication, demoTail } from "./_fragments";
 import { missingStrFields, withObjectGuard } from "./_validate";
 import { coerceEnum } from "./_coerce";
+import { JUNK_QUAL_RATE, MIN_LEADS_FOR_VERDICT } from "../../lead-quality/compute";
 import { refineLines } from "./refine";
 import { dataProvenanceLine } from "./cohort-diagnosis";
 
@@ -156,11 +157,11 @@ const coerceSeverity = coerceEnum<LeadSourceSeverity, undefined>(["high", "mediu
 // LEAD_SOURCE_SYSTEM. Named + commented so the TS floor and the prompt wording
 // move in lockstep (edit both together). CZK-denominated — they assume a Czech
 // SMB context; a different currency/business size would want different anchors.
-const MIN_LEADS_FOR_SIGNAL = 30; // fewer leads → too small a sample to blame anything but volume
+const MIN_LEADS_FOR_SIGNAL = MIN_LEADS_FOR_VERDICT; // fewer leads → too small a sample to blame anything but volume (shared with the junk badge)
 const CHEAP_CPL_CZK = 200; // CPL at/under this reads as "cheap" leads (spam vs mis-targeting split)
 const CHEAP_RELATIVE = 0.5; // "cheap" = under this fraction of the peer-median CPL AND of the source's own prior CPL
 const MIN_PEERS_FOR_RELATIVE = 2; // fewer paid peers than this → no median; fall back to the demo anchor above
-const MIN_QUAL_RATE = 0.35; // qualification rate under this = leads don't qualify
+const MIN_QUAL_RATE = JUNK_QUAL_RATE; // qualification rate under this = leads don't qualify (the junk badge's threshold, never a copy)
 const MIN_WIN_RATE = 0.15; // win rate under this = qualifies but doesn't close
 const HIGH_CPQL_CZK = 3000; // cost per qualified lead at/over this = a pricing problem
 
