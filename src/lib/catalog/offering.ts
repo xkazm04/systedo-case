@@ -107,6 +107,12 @@ export const isService = (o: Offering): o is ServiceOffering => o.kind === "serv
  *  paused offering is NOT a product the modules may act on. */
 export const isActiveProduct = (o: Offering): o is ProductOffering => isProduct(o) && o.active;
 
+/** The same pause rule for the other two kinds. A paused plan must not seed comparison
+ *  queries and a paused service must not fill the coverage matrix or ground a local
+ *  page, so the plan and service routes filter on these, not on the kind alone. */
+export const isActivePlan = (o: Offering): o is PlanOffering => isPlan(o) && o.active;
+export const isActiveService = (o: Offering): o is ServiceOffering => isService(o) && o.active;
+
 /** Adapt a product offering back to the legacy `Product` shape, so the existing
  *  inventory (`stockRows`, `budgetChangeSet`) and creative (`buildAssetGroup`)
  *  modules consume the catalog with zero downstream changes. */

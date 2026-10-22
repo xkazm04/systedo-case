@@ -6,7 +6,7 @@ import "server-only";
 import { cache } from "react";
 import type { Project } from "@/lib/projects/types";
 import type { Offering, PlanOffering, ServiceOffering } from "./offering";
-import { isPlan, isService, toProducts } from "./offering";
+import { isActivePlan, isActiveService, toProducts } from "./offering";
 import type { Product } from "./sample";
 import { getProjectCatalog } from "./resolve";
 import { listOfferings } from "./store";
@@ -68,9 +68,9 @@ export async function loadProductsForWithSource(
 }
 
 export async function loadPlansFor(project: Project): Promise<PlanOffering[]> {
-  return (await loadProjectCatalog(project)).filter(isPlan);
+  return (await loadProjectCatalog(project)).filter(isActivePlan);
 }
 
 export async function loadServicesFor(project: Project): Promise<ServiceOffering[]> {
-  return (await loadProjectCatalog(project)).filter(isService);
+  return (await loadProjectCatalog(project)).filter(isActiveService);
 }

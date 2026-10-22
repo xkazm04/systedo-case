@@ -4,7 +4,7 @@
  *  swaps the seed lookup for a project-scoped store without changing these signatures. */
 import type { Project } from "@/lib/projects/types";
 import type { Locality, Offering, PlanOffering, ServiceOffering } from "./offering";
-import { isPlan, isService, toProducts } from "./offering";
+import { isActivePlan, isActiveService, toProducts } from "./offering";
 import type { Product } from "./sample";
 import { LOCALITIES, appCatalog, contentCatalog, eshopCatalog, leadgenCatalog, localSeoCatalog } from "./seeds";
 
@@ -32,11 +32,11 @@ export function productsFor(project: Project, now: Date = new Date()): Product[]
 }
 
 export function plansFor(project: Project): PlanOffering[] {
-  return getProjectCatalog(project).filter(isPlan);
+  return getProjectCatalog(project).filter(isActivePlan);
 }
 
 export function servicesFor(project: Project): ServiceOffering[] {
-  return getProjectCatalog(project).filter(isService);
+  return getProjectCatalog(project).filter(isActiveService);
 }
 
 /** Localities a local/service business operates in (empty for non-local types). */

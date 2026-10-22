@@ -27,7 +27,7 @@ import { demoProjectById } from "@/lib/demo/projects";
 import { promptSafeName } from "@/lib/projects/name";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { loadProjectCatalogWithSource } from "@/lib/catalog/load";
-import { isService } from "@/lib/catalog/offering";
+import { isActiveService } from "@/lib/catalog/offering";
 import { businessTypeFromServices } from "@/lib/local/business-type";
 import { deriveBrandContext } from "@/lib/brand/context";
 import { reviewsForProject } from "@/lib/reviews/sample";
@@ -80,7 +80,7 @@ export async function buildLocalPageRequest(
     resolveReviews(project.id, reviewsForProject(project, localities)),
   ]);
 
-  const services = offerings.filter(isService);
+  const services = offerings.filter(isActiveService);
   // Prefer the catalog's own spelling of the service — the stored payload then folds
   // back onto the coverage cell even when the caller typed it without diacritics.
   const matched = services.find((s) => sameLabel(s.name, service));
