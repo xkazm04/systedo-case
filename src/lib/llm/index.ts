@@ -17,7 +17,7 @@ import { languageViolations } from "./language-check";
 // The char-limit violation vocabulary is owned by the tools' shared string layer
 // (pure, dependency-free, no provider access) — the wrapper only asks it which
 // violations the clamp already handles.
-import { partitionViolations } from "../ai/tools/_shared";
+import { partitionViolations, shouldRepair } from "../ai/tools/_shared";
 import type { SupportedLocale } from "../format";
 import { claudeAvailable, runClaude } from "./claude";
 import { researchAvailable, runClaudeResearch, RESEARCH_TIMEOUT_MS } from "./claude-research";
@@ -83,6 +83,10 @@ export interface GenerateArgs<T> {
    *  wrapper re-prompts the model once to self-correct before `normalize()`'s
    *  clamping guarantees a valid final result. */
   validate?: (parsed: unknown) => string[];
+  /** Re-prompt on a char-limit overrun too, instead of leaving it to normalize()'s
+   *  clamp. For tools whose output ships as finished copy, where a mid-word cut
+   *  with an ellipsis is a defect, not a fix (see `shouldRepair`). */
+  repairOverruns?: boolean;
   /** Output language for the generated content. Defaults to Czech (cs). For other
    *  locales a language-override line is appended to the *prompt* (not the system
    *  prompt) so the model writes in that language — the fingerprint (system +
@@ -367,7 +371,9 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       // bought a second full model call (double latency, double spend) to produce
       // something the clamp would have produced anyway — and when that second call
       // failed, the old code fell back to exactly that clamp, silently. So the
-      // re-prompt now fires only when at least one violation genuinely needs a model.
+      // re-prompt now fires only when at least one violation genuinely needs a model -
+      // or when the tool set `repairOverruns`, because its clamped output would ship
+      // cut mid-word (ads: the clamp is the floor there, not the fix).
       //
       // When it DOES fire, the note still carries the FULL violation list, byte-for-
       // byte as before: the call is already paid for, so telling the model about the
@@ -381,12 +387,13 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       // No-op for `cs`; no prompt or schema is touched, so the goldens hold.
       const toolViolations = args.validate ? args.validate(parsed) : [];
       const violations = [...toolViolations, ...languageViolations(parsed, args.locale)];
-      const { clampable, needsModel } = partitionViolations(violations);
+      const partition = partitionViolations(violations);
+      const { clampable } = partition;
       let repaired = false;
       // Honest by default: if the repair never runs (nothing else to fix, or it
       // threw), whatever the first call said about the language still stands.
       let languageMismatch = violations.length > toolViolations.length;
-      if (needsModel.length > 0) {
+      if (shouldRepair(partition, args.repairOverruns)) {
         try {
           const second = await runWithRetry(
             provider,

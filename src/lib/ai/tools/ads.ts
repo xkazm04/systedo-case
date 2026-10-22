@@ -166,6 +166,9 @@ export const adsSkill: Skill<AdRequest, AdResult> = {
   buildPrompt: buildAdPrompt,
   normalize: normalizeAdResult,
   validate: validateAds,
+  // An ad asset clamped to the limit ships cut mid-word with an ellipsis; the model
+  // told the asset's length and limit rewrites it whole. Costs a call only on overrun.
+  repairOverruns: true,
   demo: demoAds,
 };
 

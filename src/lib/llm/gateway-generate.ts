@@ -7,7 +7,7 @@
  *  down) the call degrades straight to the tool's deterministic demo — the app's floor, not
  *  another provider attempt — so a usage limit never turns into a second spend on the same seat. */
 import type { AiMeta, AiResponse } from "../ai-types";
-import { partitionViolations } from "../ai/tools/_shared";
+import { partitionViolations, shouldRepair } from "../ai/tools/_shared";
 import { callStatus, looksCorrupt } from "./output-health";
 import { languageViolations } from "./language-check";
 import { runWithDeadline } from "./deadline";
@@ -65,13 +65,14 @@ export async function generateViaGateway<T>(
 
     // The tool's own output validation + one repair re-prompt, exactly as the in-app ladder does
     // it: only when a violation genuinely needs the model (a char-limit overrun is clamped for free
-    // by normalize()); the note carries the full list either way.
+    // by normalize()) unless the tool set `repairOverruns`; the note carries the full list either way.
     const toolViolations = args.validate ? args.validate(parsed) : [];
     const violations = [...toolViolations, ...languageViolations(parsed, args.locale)];
-    const { clampable, needsModel } = partitionViolations(violations);
+    const partition = partitionViolations(violations);
+    const { clampable } = partition;
     let repaired = false;
     let languageMismatch = violations.length > toolViolations.length;
-    if (needsModel.length > 0) {
+    if (shouldRepair(partition, args.repairOverruns)) {
       try {
         const second = await call(effectivePrompt + buildRepairNote(violations));
         parsed = pruneToSchema(second.value, args.schema);

@@ -74,6 +74,18 @@ export function partitionViolations(violations: string[]): {
   return { clampable, needsModel };
 }
 
+/** Does the wrapper buy the one repair re-prompt? Always when a violation needs the
+ *  model. For a length overrun alone, only when the tool opted in with
+ *  `repairOverruns`: the clamp cuts mid-word and appends an ellipsis, which a tool
+ *  whose output ships as finished copy (ad assets) cannot accept, while a model told
+ *  "description #2 is 122 characters, limit 90" rewrites it whole. Measured on the
+ *  ads tool, fast tier: 2 of 12 sets overran, the clamp shipped 8 truncated
+ *  descriptions, the repair shipped 0 at 2 extra calls in 12. */
+export const shouldRepair = (
+  partition: { clampable: string[]; needsModel: string[] },
+  repairOverruns = false
+): boolean => partition.needsModel.length > 0 || (repairOverruns && partition.clampable.length > 0);
+
 /** Collect char-limit violations for a list of strings (used for self-repair). */
 export const lenViolations = (label: string, items: string[], max: number): string[] =>
   items

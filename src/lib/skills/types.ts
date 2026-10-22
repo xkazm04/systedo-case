@@ -44,6 +44,9 @@ export interface Skill<I, O> {
    *  silently backfilling it from the demo floor. Input-independent validators
    *  ignore the 2nd arg. */
   validate?: (parsed: unknown, input: I) => string[];
+  /** repair a char-limit overrun with the model rather than the clamp (see
+   *  `GenerateArgs.repairOverruns`) */
+  repairOverruns?: boolean;
   /** optional honesty signal: did the normalized result have to be backfilled from
    *  the demo floor, and how much? `"full"` → the answer is entirely canned (the
    *  caller sets `meta.demo`, so the refund fires); `"partial"` → some fields were
@@ -70,6 +73,7 @@ export function skillToGenerateArgs<I, O>(skill: Skill<I, O>, input: I): Generat
     // Bind the input-aware validator to THIS input, so the wrapper still sees the
     // plain `(parsed) => string[]` shape it always has (mirrors `normalize`).
     validate: skill.validate ? (parsed: unknown) => skill.validate!(parsed, input) : undefined,
+    ...(skill.repairOverruns ? { repairOverruns: true } : {}),
   };
 }
 
