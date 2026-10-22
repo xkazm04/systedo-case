@@ -23,7 +23,7 @@ import { useAuthedResource } from "./useAuthedResource";
 import type { SearchTermRow } from "@/lib/campaigns/store/search-terms";
 import {
   PROMOTE_MIN_CONVERSIONS,
-  TERM_MIN_CLICKS,
+  termClickFloor,
   TERM_MIN_SPEND_CZK,
 } from "@/lib/campaigns/term-moves";
 import SearchTermsLists from "./SearchTermsLists";
@@ -155,7 +155,7 @@ export default function SearchTermsPanel({
           <p className="mt-3 text-xs text-muted">
             {t("thresholds")
               .replace("{spend}", money(TERM_MIN_SPEND_CZK))
-              .replace("{clicks}", String(TERM_MIN_CLICKS))
+              .replace("{clicks}", String(termClickFloor(terms)))
               .replace("{conv}", String(PROMOTE_MIN_CONVERSIONS))}
           </p>
 

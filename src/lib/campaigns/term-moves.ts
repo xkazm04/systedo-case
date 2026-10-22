@@ -39,10 +39,17 @@ import type { BudgetMove } from "./simulate";
  *  permanent negative. Below this the criterion costs more attention than it saves. */
 export const TERM_MIN_SPEND_CZK = 500;
 
-/** Minimum clicks before "zero conversions" means anything. A query with 3 clicks and
- *  no conversion has not been given a chance to convert — blocking it is inference
- *  from noise, and this threshold is what stops the recommender doing that. */
+/** The LOWEST click count at which "zero conversions" can mean anything. A query with
+ *  3 clicks and no conversion has not been given a chance to convert — blocking it is
+ *  inference from noise. This is the absolute form, a practitioner convention no
+ *  platform documents; it is the floor of {@link termClickFloor}, which raises it to
+ *  the window's own conversion rate, because a fixed count is wrong for every rate but
+ *  one (10 clicks without a conversion is unremarkable at a 1% rate). */
 export const TERM_MIN_CLICKS = 10;
+
+/** Tolerance of the click floor: zero conversions over the floor must be a
+ *  one-in-twenty event at the window's conversion rate. A convention, like the rest. */
+export const TERM_CLICK_TOLERANCE = 0.05;
 
 /** Minimum conversions before a non-exact query earns its own EXACT keyword. Two, not
  *  one: a single conversion on a broad match is regularly a coincidence, and a promote
@@ -62,6 +69,23 @@ export interface TermMoveOptions {
   minClicks?: number;
   /** override {@link PROMOTE_MIN_CONVERSIONS} */
   minConversions?: number;
+}
+
+/** The click floor for a window: clicks at which zero conversions would be unlikely
+ *  (under {@link TERM_CLICK_TOLERANCE}) if a query converted at the window's own rate,
+ *  `ln(0.05) / ln(1 - r)`, never below {@link TERM_MIN_CLICKS}. Only ever raises the
+ *  absolute floor: a high-converting account keeps it. No measurable rate (no clicks,
+ *  no conversions, or more than one per click) keeps the constant too. */
+export function termClickFloor(terms: SearchTermRow[], base: number = TERM_MIN_CLICKS): number {
+  let clicks = 0;
+  let conversions = 0;
+  for (const t of terms) {
+    clicks += t.clicks;
+    conversions += t.conversions;
+  }
+  const rate = clicks > 0 ? conversions / clicks : 0;
+  if (!(rate > 0) || rate >= 1) return base;
+  return Math.max(base, Math.ceil(Math.log(TERM_CLICK_TOLERANCE) / Math.log(1 - rate)));
 }
 
 /** Is this term a candidate NEGATIVE? Spent real money, was clicked enough for the
@@ -150,7 +174,7 @@ function promoteMove(t: SearchTermRow): BudgetMove {
 export function recommendTermMoves(terms: SearchTermRow[], opts: TermMoveOptions = {}): BudgetMove[] {
   const maxMoves = opts.maxMoves ?? DEFAULT_TERM_MAX_MOVES;
   const minSpend = opts.minSpend ?? TERM_MIN_SPEND_CZK;
-  const minClicks = opts.minClicks ?? TERM_MIN_CLICKS;
+  const minClicks = opts.minClicks ?? termClickFloor(terms);
   const minConversions = opts.minConversions ?? PROMOTE_MIN_CONVERSIONS;
   if (maxMoves <= 0) return [];
 

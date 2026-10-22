@@ -18,6 +18,7 @@ const {
   isProvenTerm,
   TERM_MIN_SPEND_CZK,
   TERM_MIN_CLICKS,
+  termClickFloor,
   PROMOTE_MIN_CONVERSIONS,
 } = await import("@/lib/campaigns/term-moves");
 const { simulateBudgetShift, moveDonorShare, isCriterionMove } = await import("@/lib/campaigns/simulate");
@@ -42,6 +43,12 @@ const term = (over = {}) => ({
   ...over,
 });
 
+/** A converting EXACT row in another campaign: it emits no move and vetoes nothing, but it
+ *  fixes the window's conversion rate near 20% so the derived click floor stays at the
+ *  absolute 10-14 and the fixtures below keep testing what they were written to test. */
+const rateAnchor = () =>
+  term({ term: "anchor", campaignId: "99", adGroupId: "98", matchType: "EXACT", cost: 100, clicks: 100, conversions: 40 });
+
 // --- thresholds: the three acceptance rows -------------------------------------
 
 test("[S1b] the three acceptance fixtures classify exactly as specified", () => {
@@ -50,6 +57,7 @@ test("[S1b] the three acceptance fixtures classify exactly as specified", () => 
       term({ term: "levné boty", cost: 900, clicks: 40, conversions: 0 }),
       term({ term: "boty na běh", cost: 3000, conversions: 3, conversionValue: 9000, matchType: "PHRASE" }),
       term({ term: "boty výprodej", cost: 900, clicks: 40, conversions: 1, conversionValue: 400 }),
+      rateAnchor(),
     ],
     { maxMoves: 10 }
   );
@@ -160,12 +168,12 @@ test("[S1b] a wasted ad group cannot condemn a query that converts in a sibling 
 });
 
 test("[S1b] a phrase negative is vetoed by a converting query it would also block", () => {
-  const rows = [term({ term: "boty" }), term({ term: "boty na běh", adGroupId: "23", conversions: 4, conversionValue: 2000 })];
+  const rows = [term({ term: "boty" }), term({ term: "boty na běh", adGroupId: "23", conversions: 4, conversionValue: 2000 }), rateAnchor()];
   assert.ok(!recommendTermMoves(rows, { maxMoves: 10 }).some((m) => m.kind === "negative"));
   // Whole words only, and only within the same campaign.
-  const otherCampaign = [rows[0], { ...rows[1], campaignId: "12" }];
+  const otherCampaign = [rows[0], { ...rows[1], campaignId: "12" }, rateAnchor()];
   assert.ok(recommendTermMoves(otherCampaign, { maxMoves: 10 }).some((m) => m.kind === "negative" && m.criterion.term === "boty"));
-  const notAPhrase = [rows[0], { ...rows[1], term: "botyx na běh" }];
+  const notAPhrase = [rows[0], { ...rows[1], term: "botyx na běh" }, rateAnchor()];
   assert.ok(recommendTermMoves(notAPhrase, { maxMoves: 10 }).some((m) => m.kind === "negative"));
 });
 
@@ -176,6 +184,7 @@ test("[S1b] negatives come first, costliest first, then promotes by realized val
       term({ term: "n1", cost: 700 }),
       term({ term: "p2", conversions: 4, conversionValue: 9000, matchType: "BROAD" }),
       term({ term: "n2", cost: 5000 }),
+      rateAnchor(),
     ],
     { maxMoves: 10 }
   );
@@ -330,4 +339,30 @@ test("[S1b] only a negative hides its value figure", () => {
   assert.equal(moveShowsValueGain(pro), true);
   assert.equal(moveShowsValueGain({ kind: "pause" }), true);
   assert.equal(moveShowsValueGain({}), true, "a legacy move is unchanged");
+});
+
+// --- the click floor is read off the window's own conversion rate (technique:
+// spend-and-click-floors-before-negation) -----------------------------------------
+
+test("[S1b] the click floor rises with a low conversion rate and never falls below the constant", () => {
+  const at = (clicks, conversions) => [term({ clicks, conversions, matchType: "EXACT" })];
+  assert.equal(termClickFloor(at(1000, 20)), 149, "2%: ln(0.05)/ln(0.98), the technique's 150");
+  assert.equal(termClickFloor(at(1000, 100)), 29, "10%: the technique's 30");
+  assert.equal(termClickFloor(at(1000, 10)), 299, "1%: the technique's 300");
+  assert.equal(termClickFloor(at(100, 60)), TERM_MIN_CLICKS, "a high-converting window keeps the constant");
+  assert.equal(termClickFloor(at(1000, 0)), TERM_MIN_CLICKS, "no measurable rate keeps the constant");
+  assert.equal(termClickFloor([]), TERM_MIN_CLICKS);
+  assert.equal(termClickFloor(at(10, 40)), TERM_MIN_CLICKS, "more than one conversion per click is not a rate");
+});
+
+test("[S1b] a zero is not evidence below the window's floor, and an explicit minClicks still wins", () => {
+  // 2% window: 150 clicks are needed before zero conversions is a one-in-twenty event.
+  const rows = [
+    term({ term: "levné boty", cost: 900, clicks: 40 }),
+    term({ term: "boty na běh", cost: 3000, clicks: 960, conversions: 20, matchType: "EXACT", campaignId: "99", adGroupId: "98" }),
+  ];
+  assert.equal(recommendTermMoves(rows, { maxMoves: 10 }).length, 0, "40 clicks at a 2% rate is not yet a finding");
+  assert.equal(recommendTermMoves(rows, { maxMoves: 10, minClicks: 10 }).length, 1, "the override is honoured");
+  const enough = [{ ...rows[0], clicks: 150 }, { ...rows[1], clicks: 850 }];
+  assert.equal(recommendTermMoves(enough, { maxMoves: 10 }).length, 1, "150 clicks clears it");
 });

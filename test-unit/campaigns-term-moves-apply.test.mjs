@@ -76,6 +76,22 @@ const TERMS = [
     conversions: 3,
     conversionValue: 9000,
   },
+  // The account's rate anchor: an EXACT row in another campaign, so it emits no move and
+  // vetoes nothing, but it puts the window's conversion rate near 14%, where the
+  // derived click floor (termClickFloor) is 20 and the 40-click waste below still counts.
+  {
+    term: "boty praha",
+    campaignId: "99",
+    campaignName: "Kampaň Z",
+    adGroupId: "98",
+    adGroupName: "Sestava Z",
+    matchType: "EXACT",
+    cost: 1500,
+    clicks: 100,
+    impressions: 2000,
+    conversions: 30,
+    conversionValue: 30000,
+  },
 ];
 
 let SYNC_SOURCE = "google";

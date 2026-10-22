@@ -15,7 +15,7 @@ import {
   isProvenTerm,
   isWastedTerm,
   PROMOTE_MIN_CONVERSIONS,
-  TERM_MIN_CLICKS,
+  termClickFloor,
   TERM_MIN_SPEND_CZK,
 } from "@/lib/campaigns/term-moves";
 
@@ -97,7 +97,8 @@ export default function SearchTermsLists({
   // The recommender's own predicates — not a re-implementation of the thresholds.
   // `terms` arrives costliest-first from the store, which is the order the wasted
   // column wants; the converting column re-sorts by the number it is judged on.
-  const wasted = terms.filter((r) => isWastedTerm(r, TERM_MIN_SPEND_CZK, TERM_MIN_CLICKS)).slice(0, TOP_N);
+  const clickFloor = termClickFloor(terms);
+  const wasted = terms.filter((r) => isWastedTerm(r, TERM_MIN_SPEND_CZK, clickFloor)).slice(0, TOP_N);
   const converting = terms
     .filter((r) => isProvenTerm(r, PROMOTE_MIN_CONVERSIONS))
     .sort((a, b) => b.conversions - a.conversions)
