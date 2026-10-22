@@ -47,6 +47,7 @@ Mionelo (mionelo.cz) — český e-shop s ořechy, semínky a superpotravinami. 
 
 Vygeneruj:
 - 8 nadpisů (headlines), každý max 30 znaků, vzájemně se lišící úhlem,
+  z toho aspoň 2 krátké do 15 znaků (značka, výzva k akci nebo produkt jedním až dvěma slovy, napsané nově, ne zkrácené); na mobilu se skládají krátké nadpisy,
 - 4 popisky (descriptions), každý max 90 znaků,
 - 4 odznaky (callouts), každý max 25 znaků,
 - 8 návrhů klíčových slov pro tuto kampaň,

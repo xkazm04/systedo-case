@@ -11,6 +11,7 @@ import {
   type AiResponse,
 } from "../../ai-types";
 import { generateStructured } from "../../llm";
+import { HEADLINE_SHORT_MAX } from "../../ad-strength";
 import type { SupportedLocale } from "@/lib/format";
 import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
 import { txt, cleanList, clamp, cleanClampedList, lenViolation, lenViolations } from "./_shared";
@@ -45,6 +46,11 @@ function buildAdPrompt(req: AdRequest): string {
     "",
     "Vygeneruj:",
     `- 8 nadpisů (headlines), každý max ${AD_LIMITS.headline} znaků, vzájemně se lišící úhlem,`,
+    // Length spread: "stay slightly under the limit" alone pulled every recorded set to
+    // 19-29 chars with no short headline, so the rater's length-variety factor never
+    // passed. Only the short bucket is asked for: asking for long ones too pushed
+    // headlines over the limit into the clamp. Edge is the rater's (ad-strength.ts).
+    `  z toho aspoň 2 krátké do ${HEADLINE_SHORT_MAX} znaků (značka, výzva k akci nebo produkt jedním až dvěma slovy, napsané nově, ne zkrácené); na mobilu se skládají krátké nadpisy,`,
     `- 4 popisky (descriptions), každý max ${AD_LIMITS.description} znaků,`,
     `- 4 odznaky (callouts), každý max ${AD_LIMITS.callout} znaků,`,
     "- 8 návrhů klíčových slov pro tuto kampaň,",

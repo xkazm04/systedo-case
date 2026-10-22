@@ -87,8 +87,15 @@ const stemKey = (w: string): string => (w.length >= 6 ? w.slice(0, 5) : w);
 const distinctCount = (list: string[]): number =>
   new Set(list.map(normalize).filter(Boolean)).size;
 
+/** Upper edges of the short and medium headline-length buckets (practitioner
+ *  convention, not a platform rule). Shared with the ad generator's prompt
+ *  (src/lib/ai/tools/ads.ts) so what it asks for is what this rater counts. */
+export const HEADLINE_SHORT_MAX = 15;
+export const HEADLINE_MEDIUM_MAX = 24;
+
 /** Bucket a headline by length the way Google distinguishes short/medium/long. */
-const lengthBucket = (len: number): 0 | 1 | 2 => (len <= 15 ? 0 : len <= 24 ? 1 : 2);
+const lengthBucket = (len: number): 0 | 1 | 2 =>
+  len <= HEADLINE_SHORT_MAX ? 0 : len <= HEADLINE_MEDIUM_MAX ? 1 : 2;
 
 const statusFromFraction = (fraction: number): AdStrengthFactor["status"] =>
   fraction >= 0.999 ? "pass" : fraction >= 0.4 ? "partial" : "fail";
