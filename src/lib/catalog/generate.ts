@@ -61,6 +61,8 @@ function clampList(texts: string[], max: number, limit: number): Asset[] {
   const seen = new Set<string>();
   const out: Asset[] = [];
   for (const t of texts) {
+    // an empty fragment (an unavailable, USP-less row) is no asset at all
+    if (!t.trim()) continue;
     const key = t.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
@@ -104,11 +106,11 @@ export function buildAssetGroup(p: Product, brand = "", domain = "", claims: Flo
   const usps = p.usps.filter((u) => u.trim() !== "");
 
   // Verifiable claim lines — each present only when the shop actually supplied the value.
-  const stockLine = inStock
-    ? claims.dispatchHours != null
-      ? `Skladem, expedice ${claims.dispatchHours} h`
-      : "Skladem"
-    : "Předobjednejte ihned";
+  // Availability is a proof: an unavailable product gets no availability line at all,
+  // never "preorder now" / "restocking soon", which promise a future the record lacks.
+  const stockLines = inStock
+    ? [claims.dispatchHours != null ? `Skladem, expedice ${claims.dispatchHours} h` : "Skladem"]
+    : [];
   const claimHeadlines: string[] = [];
   if (claims.freeShippingFrom != null) claimHeadlines.push(`Doprava zdarma nad ${fmtCZK(claims.freeShippingFrom)}`);
   if (claims.rating != null) claimHeadlines.push(`Hodnocení ${String(claims.rating).replace(".", ",")}/5 ★`);
@@ -117,10 +119,11 @@ export function buildAssetGroup(p: Product, brand = "", domain = "", claims: Flo
     [
       p.title,
       `${p.category} ${price}`,
-      stockLine,
+      ...stockLines,
       ...claimHeadlines,
-      usps[0] ?? "Ověřená kvalita",
-      usps[1] ?? "Oblíbená volba zákazníků",
+      // Only the owner's own USPs: a short list leaves the slot empty rather than
+      // standing in a review nobody wrote ("customers' favourite").
+      ...usps.slice(0, 2),
       withBrand(p.category),
     ],
     RSA_HEADLINE_MAX,
@@ -147,7 +150,7 @@ export function buildAssetGroup(p: Product, brand = "", domain = "", claims: Flo
     ? claims.dispatchHours != null
       ? `Skladem, odesíláme do ${claims.dispatchHours} hodin.`
       : "Skladem."
-    : "Naskladnění brzy.";
+    : "";
 
   const topUspClause = usps.length ? [`${usps.slice(0, 2).join(", ")}.`] : [];
   const allUspClause = usps.length ? [`${usps.join(", ")}.`] : [];
@@ -158,7 +161,7 @@ export function buildAssetGroup(p: Product, brand = "", domain = "", claims: Flo
         [`${p.title}.`, ...topUspClause, ...(promoClause ? [promoClause] : [])],
         RSA_DESCRIPTION_MAX
       ),
-      packClauses([...allUspClause, dispatchClause], RSA_DESCRIPTION_MAX),
+      packClauses([...allUspClause, ...(dispatchClause ? [dispatchClause] : [])], RSA_DESCRIPTION_MAX),
     ],
     RSA_DESCRIPTION_MAX,
     2

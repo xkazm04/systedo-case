@@ -218,7 +218,9 @@ test("buildAssetGroup: feed-declared availability overrides the stock-0 sentinel
 
   const outFeed = buildAssetGroup(product("A", { stock: 0, available: false }), "Brand", "shop.cz");
   const outTexts = [...outFeed.headlines, ...outFeed.descriptions].map((a) => a.text).join(" | ");
-  assert.ok(/Předobjednejte|Naskladnění/.test(outTexts), "declared-unavailable product reads as preorder");
+  // An unavailable product gets no availability line: preorder copy promises a future
+  // the record does not know (usps-become-ad-benefits, "The availability line").
+  assert.ok(!/Předobjednejte|Naskladnění/.test(outTexts), "declared-unavailable product carries no preorder or restock promise");
 });
 
 test("adResultToGroup: folds an AdResult into the AssetGroup shape with char counts", () => {
@@ -229,4 +231,26 @@ test("adResultToGroup: folds an AdResult into the AssetGroup shape with char cou
   assert.equal(g.headlines[0].max, 30);
   assert.equal(g.headlines[0].len, "H1 Z".length);
   assert.equal(g.longHeadlines.length, 1);
+});
+
+// ── benefits come from the record, never from filler (usps-become-ad-benefits) ──
+// The floor may restate the owner's USPs and describe the product; it may not stand in a
+// review nobody wrote when the USP list is short, nor promise a future the record does
+// not know for an unavailable product.
+const FILLER = /Ověřená kvalita|Oblíbená volba zákazníků|Předobjednejte|Naskladnění brzy/;
+
+test("buildAssetGroup: a short USP list leaves slots empty, never a filler claim", () => {
+  for (const usps of [[], ["Bio"], ["  ", ""]]) {
+    const g = buildAssetGroup(product("A", { usps }), "Brand", "shop.cz");
+    const texts = [...g.headlines, ...g.longHeadlines, ...g.descriptions].map((a) => a.text);
+    assert.ok(!texts.some((t) => FILLER.test(t)), `no filler for usps=${JSON.stringify(usps)}: ${texts.join(" | ")}`);
+    assert.ok(g.headlines.length >= 3, "still at least three headlines for a responsive ad");
+  }
+});
+
+test("buildAssetGroup: an unavailable product gets no availability line at all", () => {
+  const g = buildAssetGroup(product("A", { stock: 0, available: false, usps: [] }), "Brand", "shop.cz");
+  const texts = [...g.headlines, ...g.longHeadlines, ...g.descriptions].map((a) => a.text);
+  assert.ok(!texts.some((t) => FILLER.test(t) || /Skladem/.test(t)), texts.join(" | "));
+  assert.ok(g.headlines.length >= 3 && g.descriptions.length > 0, "still a usable group");
 });
