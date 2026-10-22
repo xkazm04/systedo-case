@@ -6,7 +6,7 @@
  *  user can see at a glance whether the set is launch-ready and what is missing.
  *  No network, no API: it only reads what the model already returned. */
 
-import { AD_LIMITS, type AdResult } from "./ai-types";
+import { AD_LIMITS, HEADLINE_MEDIUM_MAX, HEADLINE_SHORT_MAX, type AdResult } from "./ai-types";
 import type { SupportedLocale } from "@/lib/format";
 
 export type AdStrengthRating = "poor" | "average" | "good" | "excellent";
@@ -86,12 +86,6 @@ const stemKey = (w: string): string => (w.length >= 6 ? w.slice(0, 5) : w);
 
 const distinctCount = (list: string[]): number =>
   new Set(list.map(normalize).filter(Boolean)).size;
-
-/** Upper edges of the short and medium headline-length buckets (practitioner
- *  convention, not a platform rule). Shared with the ad generator's prompt
- *  (src/lib/ai/tools/ads.ts) so what it asks for is what this rater counts. */
-export const HEADLINE_SHORT_MAX = 15;
-export const HEADLINE_MEDIUM_MAX = 24;
 
 /** Bucket a headline by length the way Google distinguishes short/medium/long. */
 const lengthBucket = (len: number): 0 | 1 | 2 =>

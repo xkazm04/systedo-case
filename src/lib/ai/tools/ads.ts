@@ -4,6 +4,7 @@
 import { Type } from "@google/genai";
 import {
   AD_LIMITS,
+  HEADLINE_SHORT_MAX,
   PLATFORM_LABELS,
   TONE_LABELS,
   type AdRequest,
@@ -11,7 +12,6 @@ import {
   type AiResponse,
 } from "../../ai-types";
 import { generateStructured } from "../../llm";
-import { HEADLINE_SHORT_MAX } from "../../ad-strength";
 import type { SupportedLocale } from "@/lib/format";
 import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
 import { txt, cleanList, clamp, cleanClampedList, lenViolation, lenViolations } from "./_shared";

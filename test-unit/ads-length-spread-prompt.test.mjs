@@ -4,12 +4,13 @@
  *  19-29 characters with no headline in the short bucket, so Ad Strength's
  *  length-variety factor could never pass on generated copy. buildAdPrompt now
  *  asks for at least two short headlines, using HEADLINE_SHORT_MAX from
- *  src/lib/ad-strength.ts, so the number the generator is told and the number the
- *  rater counts cannot drift apart. Pure: no network. */
+ *  src/lib/ai-types.ts, the edge the rater buckets on, so the number the generator
+ *  is told and the number the rater counts cannot drift apart. Pure: no network. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { adsSkill } from "@/lib/ai/tools/ads";
-import { HEADLINE_SHORT_MAX, computeAdStrength } from "@/lib/ad-strength";
+import { HEADLINE_SHORT_MAX } from "@/lib/ai-types";
+import { computeAdStrength } from "@/lib/ad-strength";
 
 const req = {
   product: "Směsi ořechů",

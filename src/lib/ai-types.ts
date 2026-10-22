@@ -245,6 +245,13 @@ export const AD_LIMITS = {
   longHeadline: 90,
 } as const;
 
+/** Upper edges of the short and medium headline-length buckets (practitioner
+ *  convention, not a platform rule). Ad Strength (src/lib/ad-strength.ts) counts
+ *  them and the ads prompt (src/lib/ai/tools/ads.ts) asks for them, so both read
+ *  one number. */
+export const HEADLINE_SHORT_MAX = 15;
+export const HEADLINE_MEDIUM_MAX = 24;
+
 export interface AdRequest {
   product: string;
   benefits: string;
