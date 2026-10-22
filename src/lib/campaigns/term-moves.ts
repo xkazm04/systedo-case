@@ -70,11 +70,14 @@ export function isWastedTerm(t: SearchTermRow, minSpend: number, minClicks: numb
   return t.conversions === 0 && t.cost >= minSpend && t.clicks >= minClicks;
 }
 
-/** Is this term a candidate PROMOTE? It converts, and it is not already an exact
- *  keyword (promoting an EXACT query would create a duplicate criterion — Google
- *  rejects it, and even if it did not, there is nothing to gain). */
+/** Is this term a candidate PROMOTE? It converts, and it matched a BROAD or PHRASE
+ *  keyword. An EXACT query is already there (promoting it would create a duplicate
+ *  criterion — Google rejects it, and even if it did not, there is nothing to gain).
+ *  An OTHER query is unclassifiable, and unknown is not "not exact": the mapper keeps
+ *  OTHER distinct precisely so it can never earn a permanent keyword, so the gate is
+ *  an allowlist rather than `!== "EXACT"`, which let OTHER through. */
 export function isProvenTerm(t: SearchTermRow, minConversions: number): boolean {
-  return t.conversions >= minConversions && t.matchType !== "EXACT";
+  return t.conversions >= minConversions && (t.matchType === "BROAD" || t.matchType === "PHRASE");
 }
 
 /** The words of a query, as a phrase-match negative sees them: lowercased, split on

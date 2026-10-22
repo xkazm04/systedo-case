@@ -84,6 +84,19 @@ test("[S1b] an already-EXACT converting query is never promoted (it is already t
   assert.equal(isProvenTerm(term({ conversions: 1, matchType: "BROAD" }), PROMOTE_MIN_CONVERSIONS), false);
 });
 
+test("[S1b] an unclassifiable match type is never promoted (OTHER is not 'not exact')", () => {
+  // The mapper turns absent / UNSPECIFIED / UNKNOWN / a future enum into OTHER so that
+  // no unknown row becomes a permanent keyword. A gate written as `!== "EXACT"` let
+  // OTHER straight through, undoing the mapper's whole reason for the value.
+  assert.equal(isProvenTerm(term({ conversions: 5, matchType: "OTHER" }), PROMOTE_MIN_CONVERSIONS), false);
+  assert.equal(isProvenTerm(term({ conversions: 5, matchType: "PHRASE" }), PROMOTE_MIN_CONVERSIONS), true);
+  const moves = recommendTermMoves(
+    [term({ term: "boty praha", conversions: 3, conversionValue: 4000, matchType: "OTHER" })],
+    { maxMoves: 5 }
+  );
+  assert.deepEqual(moves, [], "an OTHER row with conversions is neither a promote nor a negative");
+});
+
 // --- THE INVARIANT: a converting term is never a negative -----------------------
 
 test("[S1b] INVARIANT (unit): a fractional conversion is enough to spare a query", () => {
