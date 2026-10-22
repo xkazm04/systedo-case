@@ -14,6 +14,7 @@ import {
 } from "@/lib/campaigns/types";
 import { getReportHistories, listCampaigns } from "@/lib/campaigns/store";
 import { PAID_PORTFOLIO_TARGET_PNO } from "@/lib/targets";
+import { wastedSpend } from "@/lib/diagnoses/ads-request";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
 import { evaluate } from "@/lib/lp-exp/compute";
 import { SAMPLE_EXPERIMENTS, type LpExperiment } from "@/lib/lp-exp/sample";
@@ -88,11 +89,17 @@ export function minePatterns(
     );
   }
 
-  // 3. Money pit to avoid — what NOT to repeat.
+  // 3. Money pit to avoid — what NOT to repeat. Ranked by WASTED SPEND, the same
+  // definition the ads diagnosis ranks by: the spend the target does not justify, ALL
+  // of it when nothing converted — so a zero-conversion spender is the biggest pit by
+  // construction, not invisible. Ties break by spend. Conversions with no reported
+  // value are "not measured" (as in budget-moves), never a pit: there is no field here
+  // to say the fix may be assigning a value.
   const losers = rows
-    .filter((c) => c.status === "enabled" && c.cost > 0 && c.roas > 0 && c.roas < targetRoas)
-    .map((c) => ({ c, waste: c.cost * (1 - c.roas / targetRoas) }))
-    .sort((a, b) => b.waste - a.waste);
+    .filter((c) => c.status === "enabled" && !(c.conversions > 0 && c.conversionValue <= 0))
+    .map((c) => ({ c, waste: wastedSpend(c, targetPno) }))
+    .filter((l) => l.waste > 0)
+    .sort((a, b) => b.waste - a.waste || b.c.cost - a.c.cost);
   if (losers[0]) {
     const l = losers[0].c;
     out.push(
