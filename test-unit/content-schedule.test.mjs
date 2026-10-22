@@ -442,3 +442,20 @@ test("clearLibraryLinks skips the write when nothing pointed at the entry", () =
   assert.equal(clearLibraryLinks([post({ id: "a", libraryEntryId: "ent-2" })], "ent-1"), null);
   assert.equal(clearLibraryLinks([post({ id: "a", libraryEntryId: "ent-1" })], ""), null);
 });
+
+test("an unreadable or limit-cut channel read withdraws NOTHING", () => {
+  // The board persists a withdrawal (clearWithdrawnLinks strips the link), so
+  // reading "gone" off a failed or truncated read would lose live links for good.
+  const live = withdrawnSlot();
+  const [failed] = reconcileWithChannel([live], null);
+  assert.deepEqual(failed, live);
+  assert.equal(clearWithdrawnLinks([failed]), null);
+  const [cut] = reconcileWithChannel([live], [{ id: "sp-other", status: "scheduled" }], { complete: false });
+  assert.deepEqual(cut, live);
+  // a post the cut read DID return is still followed…
+  const [seen] = reconcileWithChannel([live], [{ id: "sp-gone", status: "failed" }], { complete: false });
+  assert.equal(seen.channelFailed, true);
+  // …and a legacy unlinked claim is downgraded whatever the read did
+  const [legacy] = reconcileWithChannel([post({ status: "published", day: 1 })], null);
+  assert.equal(legacy.status, "done");
+});

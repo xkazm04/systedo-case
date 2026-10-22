@@ -13,7 +13,7 @@ import { currentUserId } from "@/lib/session";
 import ModulePage from "@/components/app/ModulePage";
 import ContentSchedule from "@/components/app/modules/ContentSchedule";
 import { initialPosts, type ContentPost } from "@/lib/content-schedule/sample";
-import { reconcileWithChannel } from "@/lib/content-schedule/compute";
+import { CHANNEL_POST_READ_LIMIT, reconcileWithChannel } from "@/lib/content-schedule/compute";
 import { getProjectState } from "@/lib/project-state/store";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { loadServicesFor } from "@/lib/catalog/load";
@@ -39,8 +39,11 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // Which channels the maker actually has, and what those channels did with the
   // slots already handed over. Both reads are best-effort: a store hiccup must
   // degrade to "no channel" (the honest, non-claiming state), never break the page.
+  // An unreadable or limit-cut post read is NOT "every link withdrawn": the board
+  // persists a withdrawal, so it passes null / complete:false and the links stay.
   let channels: SocialPlatform[] = [];
-  let channelPosts: { id: string; status: string }[] = [];
+  let channelPosts: { id: string; status: string }[] | null = null;
+  let complete = true;
   if (uid) {
     try {
       channels = (await listAccounts(uid)).map((a) => a.platform);
@@ -49,12 +52,16 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     }
     try {
       const tenant = await resolveTenant(uid, projectId, { accountScoped: false });
-      channelPosts = (await listPosts(tenant)).map((p) => ({ id: p.id, status: p.status }));
+      const read = await listPosts(tenant, CHANNEL_POST_READ_LIMIT);
+      channelPosts = read.map((p) => ({ id: p.id, status: p.status }));
+      complete = read.length < CHANNEL_POST_READ_LIMIT;
     } catch {
-      channelPosts = [];
+      channelPosts = null;
     }
+  } else {
+    channelPosts = [];
   }
-  const posts = reconcileWithChannel(base, channelPosts);
+  const posts = reconcileWithChannel(base, channelPosts, { complete });
 
   return (
     <ModulePage moduleKey="obsah-plan" sample={!isStored}>

@@ -73,6 +73,10 @@ export interface ChannelPostState {
   status: string;
 }
 
+/** How many channel posts a reconciling reader asks for. A read that comes back
+ *  this full may have cut a linked post off, so it is passed as incomplete. */
+export const CHANNEL_POST_READ_LIMIT = 200;
+
 /** Derive each slot's status from the CHANNEL rather than from what the board
  *  claimed. This is the whole point of the direction: the board may promise, only
  *  the channel may confirm.
@@ -90,12 +94,19 @@ export interface ChannelPostState {
  *   • a slot claiming `published`/`queued` with NO link is a legacy board written
  *     by the old local-flip button. It is downgraded to `done` ("marked finished"),
  *     because nothing ever left the app for it.
- *  Pure; never mutates. */
+ *
+ *  GONE IS ONLY READ OFF A COMPLETE READ. Absence from a read that failed
+ *  (`channelPosts === null`) or was cut at its limit (`complete: false`) says
+ *  nothing about the post, and a withdrawal is persisted by the board — so a
+ *  store hiccup or a long post history would otherwise strip live links for good.
+ *  Such a slot keeps exactly what it stored. Pure; never mutates. */
 export function reconcileWithChannel(
   posts: ContentPost[],
-  channelPosts: ChannelPostState[]
+  channelPosts: ChannelPostState[] | null,
+  opts: { complete?: boolean } = {}
 ): ContentPost[] {
-  const byId = new Map(channelPosts.map((p) => [p.id, p.status]));
+  const complete = channelPosts !== null && opts.complete !== false;
+  const byId = new Map((channelPosts ?? []).map((p) => [p.id, p.status]));
   return posts.map((p) => {
     if (!p.channelPostId) {
       return p.status === "published" || p.status === "queued"
@@ -103,6 +114,7 @@ export function reconcileWithChannel(
         : p;
     }
     const channel = byId.get(p.channelPostId);
+    if (channel === undefined && !complete) return p;
     if (channel === undefined) {
       // Withdrawn in the social centre: the slot keeps its plan, loses the claim,
       // and SAYS SO. The link is left for clearWithdrawnLinks to strip + persist.

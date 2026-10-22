@@ -83,6 +83,7 @@ mock.module("@/lib/organic-channels/store", {
 });
 
 const { resolvePublishingCalendar, resolveCadenceRules } = await import("@/lib/publishing/resolve");
+const { checkCadence } = await import("@/lib/publishing/cadence");
 
 beforeEach(() => {
   world.posts = [];
@@ -142,7 +143,9 @@ test("the calendar is the UNION of all four schedulers, sorted by instant", asyn
     items.map((i) => [i.source, i.channel, i.status]),
     [
       ["social", "instagram", "scheduled"],
-      ["content-plan", "facebook", "scheduled"],
+      // s1 claims `queued` with NO channel link: a legacy local flip, which the
+      // board's own reconciliation reads as marked done — so "sent", never a promise.
+      ["content-plan", "facebook", "sent"],
       ["twin", "linkedin", "sent"],
       ["distribution", "linkedin", "sent"],
     ]
@@ -251,4 +254,51 @@ test("a content-plan slot the channel rejected reads as failed, not as a plan", 
   ];
   const { items } = await resolvePublishingCalendar(UID, PID);
   assert.equal(items[0].status, "failed");
+});
+
+/** A slot handed to a connected channel, and the channel post it created. */
+function seedHandover(channelStatus = "scheduled") {
+  world.channels = { tracks: { "facebook-organic": { stage: "live", maxPerWeek: 2 } } };
+  world.posts = [
+    { id: "p3", platform: "facebook", content: "Akce v Brně", status: channelStatus, scheduledAt: iso(2026, 8, 26), createdAt: MONDAY },
+  ];
+  world.board = [
+    { id: "s3", title: "Akce v Brně", service: "Servis", area: "Brno", status: "queued", day: 2, channelPostId: "p3", channelPlatform: "facebook", channelSendAt: iso(2026, 8, 26) },
+  ];
+}
+
+test("a handed-over slot is ONE item on the week — the channel's — and one cadence count", async () => {
+  seedHandover();
+  const { items, rules } = await resolvePublishingCalendar(UID, PID);
+  assert.deepEqual(items.map((i) => [i.id, i.status]), [["social:p3", "scheduled"]]);
+  // One promise, one slot of the cap: with a cap of 2 a second real post still fits.
+  const check = checkCadence(items, "facebook", iso(2026, 8, 27), rules);
+  assert.equal(check.count, 1);
+  assert.equal(check.exceeded, false);
+});
+
+test("the channel confirms: a stored `queued` slot whose post went out reads published, once", async () => {
+  seedHandover("published");
+  world.board.push({ id: "s4", title: "Starý", service: "S", area: "A", status: "published", day: 3, channelSendAt: iso(2026, 8, 27) });
+  const { items } = await resolvePublishingCalendar(UID, PID);
+  const byId = Object.fromEntries(items.map((i) => [i.id, i.status]));
+  assert.deepEqual(byId, { "social:p3": "published", "content-plan:s4": "sent" });
+  // only a channel may assert published — the unlinked legacy claim never does
+  assert.equal(items.filter((i) => i.status === "published").length, 1);
+});
+
+test("a link whose post is gone from a complete read is back on the plan, not in a channel", async () => {
+  seedHandover();
+  world.board[0].channelPostId = "p-gone";
+  const { items } = await resolvePublishingCalendar(UID, PID);
+  assert.equal(items.find((i) => i.id === "content-plan:s3").status, "planned");
+});
+
+test("an unreadable channel keeps the slot as the one trace of the promise", async () => {
+  seedHandover();
+  world.throws.posts = new Error("firestore unavailable");
+  const { items, sources } = await resolvePublishingCalendar(UID, PID);
+  assert.equal(sources.social, "error");
+  assert.equal(sources["content-plan"], "ok");
+  assert.deepEqual(items.map((i) => [i.id, i.status]), [["content-plan:s3", "scheduled"]]);
 });

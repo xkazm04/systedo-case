@@ -27,6 +27,11 @@ import { getVariants } from "@/lib/distribution/variants-store";
 import { getOrganicChannels } from "@/lib/organic-channels/store";
 import { sanitizeChannelState } from "@/lib/organic-channels/types";
 import { channelSendAt, type ContentPost } from "@/lib/content-schedule/sample";
+import {
+  CHANNEL_POST_READ_LIMIT,
+  reconcileWithChannel,
+} from "@/lib/content-schedule/compute";
+import type { SocialPost } from "@/lib/social/types";
 import { cadenceRules } from "./cadence";
 import { moduleHref } from "@/lib/projects/modules";
 import {
@@ -46,8 +51,9 @@ import type {
 
 /** How many social posts the calendar reads. The social store's own default is 50
  *  (one screen of PostsList); a calendar spanning weeks needs the tail too, and the
- *  posts collection is per-tenant and small. */
-const SOCIAL_LIMIT = 200;
+ *  posts collection is per-tenant and small. Shared with the board's reconciliation
+ *  so both readers see the same channel. */
+const SOCIAL_LIMIT = CHANNEL_POST_READ_LIMIT;
 
 /** Titles are chips in a day cell — the full caption belongs to the module. */
 const TITLE_MAX = 120;
@@ -75,9 +81,12 @@ async function readSource(
 /** Social posts. A `draft` has no date and no promise attached, so it is not a
  *  calendar item; `publishing` is a transient claim on a scheduled post and shows
  *  as scheduled until it settles. */
-async function socialItems(uid: string, projectId: string): Promise<PublishingItem[]> {
+async function readSocialPosts(uid: string, projectId: string): Promise<SocialPost[]> {
   const tenant = await resolveTenant(uid, projectId, { accountScoped: false });
-  const posts = await listPosts(tenant, SOCIAL_LIMIT);
+  return listPosts(tenant, SOCIAL_LIMIT);
+}
+
+function socialItems(posts: SocialPost[], projectId: string): PublishingItem[] {
   const out: PublishingItem[] = [];
   for (const p of posts) {
     if (p.status === "draft") continue;
@@ -101,17 +110,32 @@ async function socialItems(uid: string, projectId: string): Promise<PublishingIt
 /** The content-plan board. Its slots carry a DAY INDEX, not an instant — the model
  *  this feature deliberately does not touch — so the instant is the one the board
  *  itself computes (`channelSendAt`), or the instant the channel was actually told
- *  when the slot was handed over. */
+ *  when the slot was handed over.
+ *
+ *  The STORED board is a snapshot of whatever the page derived at its last save,
+ *  so it is reconciled against the same channel read the social leg uses — the
+ *  board's own rule, not a second one. A slot whose linked post that read holds
+ *  is then NOT listed: the channel's item already stands for it, with the
+ *  channel's own status, and listing both would count one handover twice against
+ *  the weekly cap. `channelPosts === null` (social unreadable) reconciles nothing
+ *  linked, so the slot is the only trace of the promise and stays on the week. */
 async function contentPlanItems(
   uid: string,
   projectId: string,
-  now: number
+  now: number,
+  channelPosts: SocialPost[] | null
 ): Promise<PublishingItem[]> {
-  const board = await getProjectState<ContentPost[]>(uid, projectId, "content-schedule");
-  if (!Array.isArray(board)) return [];
+  const stored = await getProjectState<ContentPost[]>(uid, projectId, "content-schedule");
+  if (!Array.isArray(stored)) return [];
+  const read = channelPosts?.map((p) => ({ id: p.id, status: p.status })) ?? null;
+  const inChannel = new Set((read ?? []).map((p) => p.id));
+  const board = reconcileWithChannel(stored, read, {
+    complete: read !== null && read.length < SOCIAL_LIMIT,
+  });
   const out: PublishingItem[] = [];
   for (const post of board) {
     if (post.day === null || post.day === undefined) continue;
+    if (post.channelPostId && inChannel.has(post.channelPostId)) continue;
     const at = post.channelSendAt ?? channelSendAt(post.day, now);
     // A withdrawn or failed handover fell back to a plan — it is not in a channel.
     const status: PublishingStatus = post.channelFailed
@@ -216,9 +240,13 @@ const readCalendar = cache(async (uid: string, projectId: string): Promise<Publi
   const now = Date.now();
   // Rules first: the twin leg needs them to resolve a TwinChannel onto a channel.
   const rules = await resolveCadenceRules(projectId);
+  // One social read feeds both legs, so the board is reconciled against exactly
+  // the channel the calendar shows. A failed read fails the social leg alone.
+  const posts = readSocialPosts(uid, projectId);
+  const channelPosts = posts.catch(() => null);
   const [social, contentPlan, twin, distribution] = await Promise.all([
-    readSource(() => socialItems(uid, projectId)),
-    readSource(() => contentPlanItems(uid, projectId, now)),
+    readSource(async () => socialItems(await posts, projectId)),
+    readSource(async () => contentPlanItems(uid, projectId, now, await channelPosts)),
     readSource(() => twinItems(projectId, rules)),
     readSource(() => distributionItems(uid, projectId)),
   ]);
