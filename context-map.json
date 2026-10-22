@@ -2384,6 +2384,7 @@
         "src/components/dashboard/KpiCard.tsx",
         "src/components/dashboard/DeltaBadge.tsx",
         "src/components/dashboard/GoalPacing.tsx",
+        "src/components/dashboard/goal-pacing-strings.ts",
         "src/components/dashboard/TrendChart.tsx",
         "src/components/dashboard/ChannelTable.tsx",
         "src/components/dashboard/WeekdayProfileCard.tsx",
