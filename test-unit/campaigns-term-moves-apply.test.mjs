@@ -84,6 +84,8 @@ let STORED_TERMS = TERMS;
 let adsCalls = [];
 /** When set, the next `addCampaignNegativeKeyword` throws this message. */
 let failNegative = null;
+/** When set, only the NEXT `addCampaignNegativeKeyword` throws this message. */
+let failNegativeOnce = null;
 
 mock.module("@/lib/campaigns/store", {
   namedExports: {
@@ -121,6 +123,11 @@ mock.module("@/lib/google/ads", {
     addCampaignNegativeKeyword: async (token, cid, campaignId, term) => {
       adsCalls.push(["addCampaignNegativeKeyword", cid, campaignId, term]);
       if (failNegative) throw new Error(failNegative);
+      if (failNegativeOnce) {
+        const msg = failNegativeOnce;
+        failNegativeOnce = null;
+        throw new Error(msg);
+      }
       return `customers/${cid}/campaignCriteria/${campaignId}~987`;
     },
     addAdGroupExactKeyword: async (token, cid, adGroupId, term) => {
@@ -134,7 +141,7 @@ mock.module("@/lib/google/ads", {
 });
 
 const { tenantDocs } = await import("@/lib/tenant-docs/backend");
-const { createChangeSet, listChangeSets, approveChangeSet, revertChangeSet } = await import(
+const { createChangeSet, listChangeSets, approveChangeSet, revertChangeSet, PROMOTE_WITHHELD } = await import(
   "@/lib/campaigns/control-plane"
 );
 const { CRITERION_UNSUPPORTED } = await import("@/lib/campaigns/mutations");
@@ -148,6 +155,7 @@ const BASE = "u_u1_proj_p1_1234567890";
 beforeEach(() => {
   adsCalls = [];
   failNegative = null;
+  failNegativeOnce = null;
   SYNC_SOURCE = "google";
   STORED_TERMS = TERMS;
 });
@@ -265,21 +273,51 @@ test("[S1b] revert removes both criteria in REVERSE order and settles 'reverted'
   assert.equal(noop.status, "reverted");
 });
 
-test("[S1b] a PARTIAL apply is still revertable — the landed criterion is not stranded", async () => {
-  const tenant = `${BASE}_partial`;
+test("[S1b] a failed negative WITHHOLDS the promote after it — no keyword beside an open leak", async () => {
+  const tenant = `${BASE}_withheld`;
   failNegative = "Google Ads addCampaignNegativeKeyword 400: bad";
   const cs = await createChangeSet(tenant, { moveSource: "terms" });
   const applied = await approveChangeSet(tenant, USER, cs.id);
 
+  assert.deepEqual(
+    adsCalls,
+    [["addCampaignNegativeKeyword", CUSTOMER_ID, "11", "levné boty"]],
+    "the promote never reached the ads layer"
+  );
+  assert.deepEqual(applied.results.map((r) => r.ok), [false, false]);
+  assert.equal(applied.results[1].error, PROMOTE_WITHHELD);
+  assert.equal(applied.status, "failed", "nothing landed, so the set does not claim 'applied'");
+  assert.deepEqual(applied.criterionSnapshots, []);
+});
+
+test("[S1b] a PARTIAL apply is still revertable — later negatives run, the landed one is not stranded", async () => {
+  const tenant = `${BASE}_partial`;
+  // Two negatives (the costlier one first) and one promote; the first negative fails.
+  STORED_TERMS = [{ ...TERMS[0], term: "boty zdarma", cost: 1500 }, ...TERMS];
+  const cs = await createChangeSet(tenant, { moveSource: "terms" });
+  assert.deepEqual(
+    cs.moves.map((m) => [m.kind, m.criterion.term]),
+    [
+      ["negative", "boty zdarma"],
+      ["negative", "levné boty"],
+      ["promote", "boty na běh"],
+    ]
+  );
+  failNegativeOnce = "Google Ads addCampaignNegativeKeyword 400: bad";
+  const applied = await approveChangeSet(tenant, USER, cs.id);
+
+  assert.equal(adsCalls.length, 2, "both negatives were attempted, the promote was not");
+  assert.deepEqual(applied.results.map((r) => r.ok), [false, true, false]);
+  assert.equal(applied.results[2].error, PROMOTE_WITHHELD);
   assert.equal(applied.status, "applied", "one move landed, so the set is applied, not failed");
-  assert.deepEqual(applied.results.map((r) => r.ok), [false, true]);
   assert.equal(applied.criterionSnapshots.length, 1, "only the criterion that was really created");
-  assert.equal(applied.criterionSnapshots[0].action, "promote");
+  assert.equal(applied.criterionSnapshots[0].action, "negative");
+  assert.equal(applied.criterionSnapshots[0].term, "levné boty");
 
   adsCalls = [];
   const reverted = await revertChangeSet(tenant, USER, applied.id);
   assert.equal(reverted.status, "reverted");
-  assert.deepEqual(adsCalls, [["removeCriterion", `customers/${CUSTOMER_ID}/adGroupCriteria/22~654`]]);
+  assert.deepEqual(adsCalls, [["removeCriterion", `customers/${CUSTOMER_ID}/campaignCriteria/11~987`]]);
 });
 
 test("[S1b] an ALL-FAILED criterion apply settles 'failed' with nothing to revert", async () => {

@@ -59,6 +59,11 @@ import type { ChangeSetPreview } from "./stage-selection";
  *  `.add`, merge-set), so the production path is unchanged. */
 const CHANGE_SETS = "changeSets";
 
+/** The result reason of a promote the apply loop withheld because a negative before
+ *  it in the same set failed (see the loop in {@link approveChangeSet}). */
+export const PROMOTE_WITHHELD =
+  "Klíčové slovo nepřidáno: dřívější vyloučení dotazu selhalo, únik výdajů tedy nebyl zastaven. Zkuste to v dalším balíčku.";
+
 /** The tenant's projection calibration, as persisted by the post-sync realization
  *  pass (./realize-run). Read best-effort at proposal time: a missing doc, an
  *  unreachable store or a malformed payload all read as "no calibration", and the
@@ -392,6 +397,13 @@ export async function approveChangeSet(
       console.error(`[control-plane] incremental evidence write failed for ${id}:`, err);
     }
   };
+  // A failed negative WITHHOLDS every promote after it. The recommender emits
+  // negatives first so a partial apply leaves the account in the safe state (waste
+  // removed, nothing added); continuing past a failed negative created the reverse —
+  // a new keyword beside a leak that is still open, under a set that settles
+  // "applied". Later negatives still run: they only remove waste, and their errors
+  // are usually row-specific. The withheld promotes stay for the next approval.
+  let negativeFailed = false;
   for (const m of cs.moves) {
     // WP S1b — a criterion move (negative / promote). Ordered FIRST in the loop body
     // only because it is the newest arm; the loop still walks the moves in the order
@@ -399,6 +411,11 @@ export async function approveChangeSet(
     // next move starts, which is the whole invariant: a crash between two creates
     // must never leave a criterion on the live account with no recorded address.
     if (isCriterionMove(m)) {
+      if (m.kind === "promote" && negativeFailed) {
+        results.push({ fromName: m.fromName, toName: m.toName, ok: false, error: PROMOTE_WITHHELD });
+        await persistEvidence();
+        continue;
+      }
       const r = await applyCriterionMove(userId, tenant, m, target);
       results.push({
         fromName: m.fromName,
@@ -408,6 +425,7 @@ export async function approveChangeSet(
         ...(r.platform ? { platform: r.platform } : {}),
       });
       if (r.ok && r.criterion) criterionSnapshots.push(r.criterion);
+      if (!r.ok && m.kind === "negative") negativeFailed = true;
       await persistEvidence();
       continue;
     }
