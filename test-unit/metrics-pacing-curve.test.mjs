@@ -102,7 +102,8 @@ test("a zero-spend series cannot use the curve and falls back honestly", () => {
   const daily = days("2026-03-20", 56, { visits: 100, cost: 0, conversions: 2, revenue: 1000 });
   const p = monthlyPacing(daily, 40_000, undefined, curve());
   assert.ok(p);
-  assert.equal(p.impliedBasis, "average");
-  // No spend → no ROAS → no honest number to quote.
+  // No spend → no ROAS → no honest number to quote, and the basis says so: the 0 is
+  // an absence, not "nothing needed" (see metrics-pacing-implied-note).
+  assert.equal(p.impliedBasis, "unknown");
   assert.equal(p.impliedExtraDailySpend, 0);
 });

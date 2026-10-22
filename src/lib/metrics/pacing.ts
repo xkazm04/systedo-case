@@ -81,8 +81,29 @@ export interface MonthlyPacing {
    *  diminishing-returns response curve (the next koruna is priced at its MARGINAL
    *  return, so a saturated account is told the truth); `"average"` = divided by the
    *  trailing-window average ROAS, which assumes the next koruna performs like the
-   *  last 28 days did. Optional — absent on callers that pass no curve. */
-  impliedBasis?: "curve" | "average";
+   *  last 28 days did; `"unknown"` = a shortfall exists but the window has no ad
+   *  return to price it with (no spend, or spend with no revenue), so the 0 is an
+   *  ABSENCE of a number, not "nothing needed". Optional for hand-built fixtures. */
+  impliedBasis?: "curve" | "average" | "unknown";
+  /** The curve solve hit its 3× ceiling: `impliedExtraDailySpend` is the ceiling, a
+   *  LOWER bound on what the gap costs ("at least"), never an estimate of it. */
+  impliedCapped?: boolean;
+}
+
+/** What the card may say about the implied extra spend — the one place its wording is
+ *  read from, so the hover, the footnote and the assistive text cannot disagree.
+ *  `"none"` = on pace, goal banked or month closed; `"unknown"` = behind, but the
+ *  spend cannot be priced; `"at-least"` = the capped curve answer; `"approx"` = an
+ *  estimate on the stated basis. */
+export type ImpliedSpendNote = "none" | "unknown" | "at-least" | "approx";
+
+export function impliedSpendNote(
+  p: Pick<MonthlyPacing, "complete" | "requiredDailyRevenue" | "recentDailyRevenue" | "impliedExtraDailySpend" | "impliedBasis" | "impliedCapped">
+): ImpliedSpendNote {
+  if (p.complete || !(p.requiredDailyRevenue > p.recentDailyRevenue)) return "none";
+  if (p.impliedBasis === "unknown") return "unknown";
+  if (!(p.impliedExtraDailySpend >= 1)) return "none";
+  return p.impliedCapped ? "at-least" : "approx";
 }
 
 /** Extra daily spend needed to buy `need` more revenue per day, solved along the
@@ -93,11 +114,15 @@ export interface MonthlyPacing {
  *  about tripling the account) and a termination bound; when even 3× cannot close the
  *  gap the ceiling itself is returned, so the UI shows "at least this much" rather than
  *  an invented number. */
-function extraSpendForRevenue(curve: ResponseCurve, currentDailySpend: number, need: number): number {
-  if (!(need > 0) || !(currentDailySpend > 0)) return 0;
+function extraSpendForRevenue(
+  curve: ResponseCurve,
+  currentDailySpend: number,
+  need: number
+): { spend: number; capped: boolean } {
+  if (!(need > 0) || !(currentDailySpend > 0)) return { spend: 0, capped: false };
   const base = revenueAt(curve, currentDailySpend);
   const ceiling = currentDailySpend * 3;
-  if (revenueAt(curve, currentDailySpend + ceiling) - base < need) return ceiling;
+  if (revenueAt(curve, currentDailySpend + ceiling) - base < need) return { spend: ceiling, capped: true };
   let lo = 0;
   let hi = ceiling;
   for (let i = 0; i < 60; i++) {
@@ -105,7 +130,7 @@ function extraSpendForRevenue(curve: ResponseCurve, currentDailySpend: number, n
     if (revenueAt(curve, currentDailySpend + mid) - base >= need) hi = mid;
     else lo = mid;
   }
-  return hi;
+  return { spend: hi, capped: false };
 }
 
 /**
@@ -192,11 +217,19 @@ export function monthlyPacing(
     ? roasWindow.reduce((a, p) => a + p.cost, 0) / roasWindow.length
     : 0;
   const fittedCurve = curve?.fitted && currentDailySpend > 0 ? curve : null;
-  const impliedExtraDailySpend = fittedCurve
-    ? extraSpendForRevenue(fittedCurve, currentDailySpend, revenueShortfall)
+  const solved = fittedCurve ? extraSpendForRevenue(fittedCurve, currentDailySpend, revenueShortfall) : null;
+  const impliedExtraDailySpend = solved
+    ? solved.spend
     : recentRoas > 0
       ? revenueShortfall / recentRoas
       : 0;
+  // A shortfall the window cannot price (no spend, or spend with no return) is marked
+  // unknown, so the card says so instead of reading the 0 as "the pace is enough".
+  const impliedBasis: "curve" | "average" | "unknown" = fittedCurve
+    ? "curve"
+    : revenueShortfall > 0 && !(recentRoas > 0)
+      ? "unknown"
+      : "average";
 
   return {
     monthStart: `${ym}-01`,
@@ -224,7 +257,8 @@ export function monthlyPacing(
     recentDailyRevenue,
     requiredVsRecent,
     impliedExtraDailySpend,
-    impliedBasis: fittedCurve ? "curve" : "average",
+    impliedBasis,
+    impliedCapped: solved?.capped ?? false,
   };
 }
 
