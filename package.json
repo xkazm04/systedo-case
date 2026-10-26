@@ -131,7 +131,7 @@
   },
   "dependencies": {
     "@auth/firebase-adapter": "^2.11.2",
-    "@google/genai": "^2.21.0",
+    "@google/genai": "^2.31.0",
     "@sentry/nextjs": "^11.8.0",
     "@types/leaflet": "^1.9.22",
     "firebase-admin": "^14.5.0",
